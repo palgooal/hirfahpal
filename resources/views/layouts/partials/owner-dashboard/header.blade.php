@@ -138,10 +138,16 @@
 
 
                 </li> --}}
+                @php
+                    $owner = Auth::guard('owner')->user();
+                    $ownerName = $owner?->name ?? 'Owner';
+                    $ownerEmail = $owner?->email ?? '';
+                @endphp
+
                 <li class="dropdown pc-h-item header-user-profile">
                     <a class="pc-head-link dropdown-toggle arrow-none me-0" data-pc-toggle="dropdown" href="#"
                         role="button" aria-haspopup="false" data-pc-auto-close="outside" aria-expanded="false">
-                        <img src="https://ui-avatars.com/api/?name={{ Auth::user()->name }}" alt="user-image"
+                        <img src="https://ui-avatars.com/api/?name={{ urlencode($ownerName) }}" alt="user-image"
                             class="user-avtar w-10 h-10 rounded-full" />
                     </a>
                     <div class="dropdown-menu dropdown-user-profile dropdown-menu-end pc-h-dropdown p-2">
@@ -153,11 +159,11 @@
                                 style="max-height: calc(100vh - 225px)">
                                 <div class="flex mb-1 items-center">
                                     <div class="shrink-0">
-                                        <img src="https://ui-avatars.com/api/?name={{ Auth::user()->name }}" alt="user-image" class="w-10 rounded-full" />
+                                        <img src="https://ui-avatars.com/api/?name={{ urlencode($ownerName) }}" alt="user-image" class="w-10 rounded-full" />
                                     </div>
                                     <div class="grow ms-3">
-                                        <h6 class="mb-1">{{ Auth::user()->name }}</h6>
-                                        <span>{{ Auth::user()->email }}</span>
+                                        <h6 class="mb-1">{{ $ownerName }}</h6>
+                                        <span>{{ $ownerEmail }}</span>
                                     </div>
                                 </div>
                                 <hr class="border-secondary-500/10 my-4" />
