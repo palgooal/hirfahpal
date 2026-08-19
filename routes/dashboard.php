@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('dashboard')
-    ->middleware('auth:admin')
+    ->middleware(['auth:admin', 'setLocale'])
     ->name('dashboard.')
     ->group(function () {
 

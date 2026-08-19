@@ -41,8 +41,8 @@ Route::get('/dashboard', function () {
         return redirect()->route('home');
     }
 
-    return redirect()->route('login');
-})->name('dashboard.home');
+    return redirect()->route('admin.login');
+})->middleware('setLocale')->name('dashboard.home');
 
 Route::prefix('owner')->name('owner.')->group(function () {
     Route::middleware('guest:owner')->group(function () {

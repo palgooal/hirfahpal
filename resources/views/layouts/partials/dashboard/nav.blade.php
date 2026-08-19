@@ -61,6 +61,31 @@
                         <span class="pc-mtext">{{__('admin.Home')}}</span>
                     </a>
                 </li>
+                <li class="pc-item pc-hasmenu {{ request()->routeIs('dashboard.languages.*') || request()->routeIs('dashboard.translation-values.*') ? 'active pc-trigger' : '' }}">
+                    <a href="#!" class="pc-link">
+                        <span class="pc-micon">
+                            <i class="fas fa-language"></i>
+                        </span>
+                        <span class="pc-mtext">{{ t('dashboard.Translations', 'Translations') }}</span>
+                        @if (App::getLocale() == 'en')
+                        <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
+                        @else
+                        <span class="pc-arrow"><i data-feather="chevron-left"></i></span>
+                        @endif
+                    </a>
+                    <ul class="pc-submenu">
+                        <li class="pc-item {{ request()->routeIs('dashboard.languages.*') ? 'active' : '' }}">
+                            <a class="pc-link" href="{{ route('dashboard.languages.index') }}">
+                                {{ t('dashboard.Languages', 'Languages') }}
+                            </a>
+                        </li>
+                        <li class="pc-item {{ request()->routeIs('dashboard.translation-values.*') ? 'active' : '' }}">
+                            <a class="pc-link" href="{{ route('dashboard.translation-values.index') }}">
+                                {{ t('dashboard.Translation_Values', 'Translation Values') }}
+                            </a>
+                        </li>
+                    </ul>
+                </li>
                 <li class="pc-item">
                     <a href="#" class="pc-link">
                         <span class="pc-micon">

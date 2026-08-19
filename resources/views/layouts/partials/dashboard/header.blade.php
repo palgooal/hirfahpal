@@ -29,19 +29,7 @@
         <!-- [Mobile Media Block end] -->
         <div class="{{ App::getLocale() == 'ar' ? 'ml-0' : 'ms-auto'}}">
             <ul class="inline-flex *:min-h-header-height *:inline-flex *:items-center">
-                @foreach(LaravelLocalization::getSupportedLocales() as $localeCode => $properties)
-                    @if (app()->currentLocale() != $localeCode)
-                    <li class="dropdown pc-h-item">
-                        <a class="pc-head-link dropdown-toggle me-0" rel="alternate" hreflang="{{ $localeCode }}" href="{{ LaravelLocalization::getLocalizedURL($localeCode, null, [], true) }}">
-                            @if (! empty($properties['flag']))
-                                <img width="20" class="pc-icon" src="{{ asset('assets-dashboard/images/'.$properties['flag']) }}" alt="{{ $properties['native'] ?? $localeCode }}">
-                            @else
-                                <span class="text-sm font-semibold">{{ strtoupper($localeCode) }}</span>
-                            @endif
-                        </a>
-                    </li>
-                    @endif
-                @endforeach
+                <x-lang.language-switcher-dashboard />
 
 
                 <li class="dropdown pc-h-item">
