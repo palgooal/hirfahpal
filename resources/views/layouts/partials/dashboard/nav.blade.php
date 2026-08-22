@@ -1,6 +1,10 @@
 <nav class="pc-sidebar">
     @php
         $admin = Auth::guard('admin')->user() ?? Auth::user();
+        $canViewLanguages = $admin?->can('view', App\Models\Language::class) ?? false;
+        $canViewTranslations = $admin?->can('view', App\Models\TranslationValue::class) ?? false;
+        $canViewAdmins = $admin?->can('view', App\Models\Admin::class) ?? false;
+        $canCreateAdmins = $admin?->can('create', App\Models\Admin::class) ?? false;
     @endphp
     <div class="navbar-wrapper">
         <div class="m-header flex items-center py-4 px-6 h-header-height">
@@ -29,16 +33,14 @@
                     </div>
                     <div class="hidden pc-user-links" id="pc_sidebar_userlink">
                         <div class="pt-3 *:flex *:items-center *:py-2 *:gap-2.5 hover:*:text-primary-500">
-                            <a href="#">
+                            <a href="javascript:void(0)">
                                 <i class="text-lg leading-none ti ti-user"></i>
                                 <span>{{__('admin.My_account')}}</span>
                             </a>
-                            @can('view', 'App\\Models\Setting')
-                            <a href="#">
-                                <i class="text-lg leading-none ti ti-settings"></i>
-                                <span>{{__('admin.Settings')}}</span>
+                            <a href="{{ route('dashboard.admins.index') }}">
+                                <i class="text-lg leading-none ti ti-shield-lock"></i>
+                                <span>{{ t('dashboard.Permissions', 'Permissions') }}</span>
                             </a>
-                            @endcan
                             <form action="{{ route('admin.logout') }}" method="post">
                                 @csrf
                                 <button type="submit" style="display: flex; align-items: center; gap: 5px;">
@@ -61,33 +63,51 @@
                         <span class="pc-mtext">{{__('admin.Home')}}</span>
                     </a>
                 </li>
-                <li class="pc-item pc-hasmenu {{ request()->routeIs('dashboard.languages.*') || request()->routeIs('dashboard.translation-values.*') ? 'active pc-trigger' : '' }}">
-                    <a href="#!" class="pc-link">
+                @if ($canViewLanguages)
+                <li class="pc-item {{ request()->routeIs('dashboard.languages.*') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard.languages.index') }}" class="pc-link">
                         <span class="pc-micon">
                             <i class="fas fa-language"></i>
                         </span>
-                        <span class="pc-mtext">{{ t('dashboard.Translations', 'Translations') }}</span>
-                        @if (App::getLocale() == 'en')
-                        <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
-                        @else
-                        <span class="pc-arrow"><i data-feather="chevron-left"></i></span>
-                        @endif
+                        <span class="pc-mtext">{{ t('dashboard.Languages', 'Languages') }}</span>
                     </a>
-                    <ul class="pc-submenu">
-                        <li class="pc-item {{ request()->routeIs('dashboard.languages.*') ? 'active' : '' }}">
-                            <a class="pc-link" href="{{ route('dashboard.languages.index') }}">
-                                {{ t('dashboard.Languages', 'Languages') }}
-                            </a>
-                        </li>
-                        <li class="pc-item {{ request()->routeIs('dashboard.translation-values.*') ? 'active' : '' }}">
-                            <a class="pc-link" href="{{ route('dashboard.translation-values.index') }}">
-                                {{ t('dashboard.Translation_Values', 'Translation Values') }}
-                            </a>
-                        </li>
-                    </ul>
                 </li>
+                @endif
+
+                @if ($canViewTranslations)
+                <li class="pc-item {{ request()->routeIs('dashboard.translation-values.*') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard.translation-values.index') }}" class="pc-link">
+                        <span class="pc-micon">
+                            <i class="fas fa-language"></i>
+                        </span>
+                        <span class="pc-mtext">{{ t('dashboard.Translation_Values', 'Translation Values') }}</span>
+                    </a>
+                </li>
+                @endif
+
+                @if ($canViewAdmins)
+                <li class="pc-item {{ request()->routeIs('dashboard.admins.index') || request()->routeIs('dashboard.admins.edit') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard.admins.index') }}" class="pc-link">
+                        <span class="pc-micon">
+                            <i class="fas fa-user-shield"></i>
+                        </span>
+                        <span class="pc-mtext">{{ t('dashboard.Admins_Permissions', 'Admins & Permissions') }}</span>
+                    </a>
+                </li>
+                @endif
+
+                @if ($canCreateAdmins)
+                <li class="pc-item {{ request()->routeIs('dashboard.admins.create') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard.admins.create') }}" class="pc-link">
+                        <span class="pc-micon">
+                            <i class="fas fa-user-plus"></i>
+                        </span>
+                        <span class="pc-mtext">{{ t('dashboard.Add_Admin', 'Add Admin') }}</span>
+                    </a>
+                </li>
+                @endif
                 <li class="pc-item">
-                    <a href="#" class="pc-link">
+                    <a href="javascript:void(0)" class="pc-link">
                         <span class="pc-micon">
                             <i class="fas fa-cog"></i>
                         </span>
@@ -95,7 +115,7 @@
                     </a>
                 </li>
                 <li class="pc-item">
-                    <a href="#" class="pc-link">
+                    <a href="javascript:void(0)" class="pc-link">
                         <span class="pc-micon">
                             <i class="fas fa-heading"></i>
                         </span>
@@ -109,7 +129,7 @@
 
                
                 <li class="pc-item pc-hasmenu">
-                    <a href="#!" class="pc-link">
+                    <a href="javascript:void(0)" class="pc-link">
                         <span class="pc-micon">
                             <i class="fas fa-map-marker-alt"></i>
                         </span>
@@ -124,12 +144,12 @@
                     </a>
                     <ul class="pc-submenu">
                         <li class="pc-item">
-                            <a class="pc-link" href="#">
+                            <a class="pc-link" href="javascript:void(0)">
                                 {{__('admin.Area show')}}
                             </a>
                         </li>
                         <li class="pc-item">
-                            <a class="pc-link" href="#" >
+                            <a class="pc-link" href="javascript:void(0)" >
                                 {{__('admin.Add Area')}}
                             </a>
                         </li>

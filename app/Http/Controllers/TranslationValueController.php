@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Language;
 use App\Models\TranslationValue;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -29,8 +30,12 @@ use Illuminate\Support\Str;
  */
 class TranslationValueController extends Controller
 {
+    use AuthorizesRequests;
+
     public function index(Request $request)
     {
+        $this->authorize('view', TranslationValue::class);
+
         $localeFilter = $request->get('locale');
         $search       = $request->get('search');
         $typeFilter   = $request->get('type');
@@ -63,12 +68,16 @@ class TranslationValueController extends Controller
 
     public function create()
     {
+        $this->authorize('create', TranslationValue::class);
+
         $languages = Language::where('is_active', true)->get();
         return view('dashboard.lang.translation-values.create', compact('languages'));
     }
 
     public function store(Request $request)
     {
+        $this->authorize('create', TranslationValue::class);
+
         $request->validate([
             'key'    => 'required|string|max:150',
             'values' => 'required|array',
@@ -86,6 +95,8 @@ class TranslationValueController extends Controller
 
     public function edit($key)
     {
+        $this->authorize('edit', TranslationValue::class);
+
         $languages    = Language::where('is_active', true)->get();
         $translations = TranslationValue::where('key', $key)->get()->keyBy('locale');
 
@@ -94,6 +105,8 @@ class TranslationValueController extends Controller
 
     public function update(Request $request, $key)
     {
+        $this->authorize('edit', TranslationValue::class);
+
         $request->validate(['values' => 'required|array']);
 
         foreach ($request->values as $locale => $value) {
@@ -110,6 +123,8 @@ class TranslationValueController extends Controller
 
     public function destroy($key)
     {
+        $this->authorize('delete', TranslationValue::class);
+
         $translations = TranslationValue::where('key', $key)->get();
 
         foreach ($translations as $translation) {
@@ -123,6 +138,8 @@ class TranslationValueController extends Controller
     /** Export all translations to a downloadable CSV file. */
     public function export()
     {
+        $this->authorize('view', TranslationValue::class);
+
         $translations = TranslationValue::all();
 
         $filename = 'translations_export_' . now()->format('Y_m_d_His') . '.csv';
@@ -144,6 +161,8 @@ class TranslationValueController extends Controller
     /** Import translations from a CSV file (key, locale, value). */
     public function import(Request $request)
     {
+        $this->authorize('create', TranslationValue::class);
+
         $request->validate([
             'csv_file' => 'required|file|mimes:csv,txt',
         ]);
