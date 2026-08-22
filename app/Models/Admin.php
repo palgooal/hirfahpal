@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -15,6 +16,7 @@ class Admin extends Authenticatable
         'email',
         'phone',
         'password',
+        'super_admin',
         'status',
         'avatar',
         'email_verified_at',
@@ -34,6 +36,12 @@ class Admin extends Authenticatable
             'phone_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'password' => 'hashed',
+            'super_admin' => 'boolean',
         ];
+    }
+
+    public function roles(): HasMany
+    {
+        return $this->hasMany(RoleUser::class, 'user_id');
     }
 }
