@@ -10,7 +10,7 @@
         "laravel/framework": "^11.0",
         "laravel/tinker": "^2.9",
         "mcamara/laravel-localization": "^2.4",
-        "palgoal/media-library": "dev-main",
+        "palgoal/media-library": "^0.1.0",
         "palgoals/locale-package": "*"
     },
     "require-dev": {

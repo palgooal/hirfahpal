@@ -17,11 +17,11 @@ class DatabaseSeeder extends Seeder
         
 
         Admin::updateOrCreate(
-            ['email' => 'admin@example.com'],
+            ['email' => 'palgooal@gmail.com'],
             [
                 'name' => 'Admin',
                 'phone' => '1234567890',
-                'password' => Hash::make('password'),
+                'password' => Hash::make('Ha@1020300'),
                 'status' => 'active',
                 'avatar' => 'avatar.png',
                 'email_verified_at' => now(),

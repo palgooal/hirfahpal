@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "982cd4a23a1d1046ca3cd9fd2cc8b296",
+    "content-hash": "0cbad9acdd05d95e4e28b10f2d8cdc81",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -2891,7 +2891,7 @@
         },
         {
             "name": "palgoal/media-library",
-            "version": "dev-main",
+            "version": "v0.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/palgooal/Palgoal-Laravel-Media-Library.git",
@@ -2919,7 +2919,6 @@
                 "orchestra/testbench": "^8.0|^9.0|^10.0",
                 "phpunit/phpunit": "^10.5|^11.0"
             },
-            "default-branch": true,
             "type": "library",
             "extra": {
                 "laravel": {
@@ -10171,9 +10170,7 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "palgoal/media-library": 20
-    },
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
