@@ -5,6 +5,7 @@
         $canViewTranslations = $admin?->can('view', App\Models\TranslationValue::class) ?? false;
         $canViewAdmins = $admin?->can('view', App\Models\Admin::class) ?? false;
         $canCreateAdmins = $admin?->can('create', App\Models\Admin::class) ?? false;
+        $canViewSettings = $admin?->can('view', App\Models\Setting::class) ?? false;
     @endphp
     <div class="navbar-wrapper">
         <div class="m-header flex items-center py-4 px-6 h-header-height">
@@ -106,14 +107,16 @@
                     </a>
                 </li>
                 @endif
-                <li class="pc-item">
-                    <a href="javascript:void(0)" class="pc-link">
+                @if ($canViewSettings)
+                <li class="pc-item {{ request()->routeIs('dashboard.setting.*') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard.setting.index') }}" class="pc-link">
                         <span class="pc-micon">
                             <i class="fas fa-cog"></i>
                         </span>
                         <span class="pc-mtext">إعدادات الموقع</span>
                     </a>
                 </li>
+                @endif
                 <li class="pc-item">
                     <a href="javascript:void(0)" class="pc-link">
                         <span class="pc-micon">

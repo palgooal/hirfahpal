@@ -23,4 +23,9 @@ return [
         'edit' => t('dashboard.Edit_Translation_Value', 'Edit Translation Value'),
         'delete' => t('dashboard.Delete_Translation_Value', 'Delete Translation Value'),
     ],
+    'settings' => [
+        'name' => t('dashboard.Settings', 'Settings'),
+        'view' => t('dashboard.View_Settings', 'View Settings'),
+        'edit' => t('dashboard.Edit_Settings', 'Edit Settings'),
+    ],
 ];
