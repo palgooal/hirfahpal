@@ -80,7 +80,7 @@
                         </div>
                     </div>
 
-                    @can('settings.edit')
+                    @can('update', \App\Models\Setting::class)
                         <div class="mt-5">
                             <button type="submit" class="btn btn-primary">{{ t('dashboard.Save', 'Save') }}</button>
                         </div>
