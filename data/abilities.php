@@ -9,6 +9,11 @@ return [
         'delete' => t('dashboard.Delete_Admin', 'Delete Admin'),
         'super' => t('dashboard.Super_Admin', 'Super Admin'),
     ],
+    'settings' => [
+        'name' => t('dashboard.Settings', 'Settings'),
+        'view' => t('dashboard.View_Settings', 'View Settings'),
+        'edit' => t('dashboard.Edit_Settings', 'Edit Settings'),
+    ],
     'languages' => [
         'name' => t('dashboard.Languages', 'Languages'),
         'view' => t('dashboard.View_Languages', 'View Languages'),
