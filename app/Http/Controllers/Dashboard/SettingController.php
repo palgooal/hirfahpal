@@ -14,7 +14,7 @@ class SettingController extends Controller
 {
     public function index(): View
     {
-        Gate::authorize('settings.view');
+        Gate::authorize('viewAny', Setting::class);
 
         $setting = Setting::query()->firstOrCreate([], [
             'timezone' => 'UTC',
@@ -44,6 +44,7 @@ class SettingController extends Controller
 
         $setting->update($data);
 
-        return back()->with('success', t('dashboard.Settings_Updated', 'Settings updated successfully.'));
+        return redirect()->route('dashboard.setting.index')
+            ->with('success', t('dashboard.Settings_Updated', 'Settings updated successfully.'));
     }
 }
