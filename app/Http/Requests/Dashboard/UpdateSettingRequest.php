@@ -2,13 +2,14 @@
 
 namespace App\Http\Requests\Dashboard;
 
+use App\Models\Setting;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateSettingRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user('admin')?->can('settings.edit') ?? false;
+        return $this->user('admin')?->can('update', Setting::class) ?? false;
     }
 
     public function rules(): array
