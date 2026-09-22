@@ -52,7 +52,7 @@
       <div class="mt-6 text-center text-sm font-bold text-slate-600">
         <a href="{{ route('login') }}" class="text-[#2563EB]">لديك حساب بالفعل؟ سجل الدخول</a>
         <span class="mx-2">|</span>
-        <a href="{{ route('owner.register') }}" class="text-[#2563EB]">تسجيل صاحب نشاط</a>
+        <a href="{{ route('customer.register') }}" class="text-[#2563EB]">Customer registration</a>
       </div>
     </section>
     <aside class="rounded-2xl border border-slate-200 bg-slate-950 p-6 text-white shadow-sm sm:p-8">

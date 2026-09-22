@@ -1,23 +1,28 @@
 <?php
 
-namespace App\Actions\Fortify;
+namespace App\Actions\Auth;
 
+use App\Actions\Fortify\PasswordValidationRules;
 use App\Models\Admin;
 use App\Models\Customer;
 use App\Models\DeliveryDriver;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Support\Auth\AccountGuard;
 use Closure;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Laravel\Fortify\Contracts\CreatesNewUsers;
 
-class CreateNewUser implements CreatesNewUsers
+class CreateAccountUser
 {
     use PasswordValidationRules;
 
-    public function create(array $input): User
+    public function create(string $account, array $input): Authenticatable
     {
+        $accountConfig = AccountGuard::get($account);
+        $modelClass = $accountConfig['model'];
+
         Validator::make($input, [
             'full_name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:30', $this->uniqueAcrossAccountTables('phone')],
@@ -26,12 +31,11 @@ class CreateNewUser implements CreatesNewUsers
             'terms' => ['accepted'],
         ])->validate();
 
-        return User::create([
+        return $modelClass::create([
             'name' => $input['full_name'],
             'phone' => $input['phone'],
             'email' => $input['email'],
             'password' => Hash::make($input['password']),
-            'type' => 'user',
             'status' => 'active',
         ]);
     }

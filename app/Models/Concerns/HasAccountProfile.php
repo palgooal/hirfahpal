@@ -1,13 +1,9 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Concerns;
 
-class Owner extends Customer
+trait HasAccountProfile
 {
-    use HasFactory, Notifiable;
-
-    protected $table = 'customers';
-
     protected $fillable = [
         'name',
         'email',

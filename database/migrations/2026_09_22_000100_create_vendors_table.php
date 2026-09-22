@@ -2,14 +2,13 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('customers', function (Blueprint $table) {
+        Schema::create('vendors', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('email')->nullable()->unique();
@@ -23,32 +22,10 @@ return new class extends Migration
             $table->rememberToken();
             $table->timestamps();
         });
-
-        $customers = DB::table('users')
-            ->whereIn('type', ['owner', 'business', 'customer'])
-            ->get([
-                'id',
-                'name',
-                'email',
-                'phone',
-                'password',
-                'status',
-                'avatar',
-                'email_verified_at',
-                'phone_verified_at',
-                'last_login_at',
-                'remember_token',
-                'created_at',
-                'updated_at',
-            ]);
-
-        if ($customers->isNotEmpty()) {
-            DB::table('customers')->insert($customers->map(fn ($customer) => (array) $customer)->all());
-        }
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('customers');
+        Schema::dropIfExists('vendors');
     }
 };

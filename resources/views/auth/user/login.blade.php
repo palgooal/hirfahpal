@@ -41,14 +41,14 @@
         <button type="submit" class="inline-flex h-14 items-center justify-center rounded-2xl bg-[#2563EB] px-6 text-base font-extrabold text-white">تسجيل الدخول</button>
       </form>
       <div class="mt-4 grid gap-3 sm:grid-cols-2">
-        <a href="{{ route('owner.login') }}" class="inline-flex h-12 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 px-4 text-sm font-extrabold text-[#2563EB]">دخول صاحب نشاط</a>
+        <a href="{{ route('customer.login') }}" class="inline-flex h-12 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 px-4 text-sm font-extrabold text-[#2563EB]">Customer login</a>
         <a href="{{ route('admin.login') }}" class="inline-flex h-12 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-extrabold text-slate-800">دخول الإدارة</a>
       </div>
       <div class="mt-6 text-center">
         <p class="text-sm font-bold text-slate-600">لا تملك حسابًا؟</p>
         <div class="mt-3 grid gap-3 sm:grid-cols-2">
           <a href="{{ route('register') }}" class="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-extrabold text-slate-800 shadow-sm">حساب مستخدم</a>
-          <a href="{{ route('owner.register') }}" class="inline-flex items-center justify-center rounded-2xl bg-[#2563EB] px-5 py-3 text-sm font-extrabold text-white shadow-sm">حساب صاحب نشاط</a>
+          <a href="{{ route('customer.register') }}" class="inline-flex items-center justify-center rounded-2xl bg-[#2563EB] px-5 py-3 text-sm font-extrabold text-white shadow-sm">Customer account</a>
         </div>
       </div>
     </section>

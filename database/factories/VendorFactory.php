@@ -2,17 +2,17 @@
 
 namespace Database\Factories;
 
-use App\Models\Customer;
+use App\Models\Vendor;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * @extends Factory<Customer>
+ * @extends Factory<Vendor>
  */
-class OwnerFactory extends Factory
+class VendorFactory extends Factory
 {
-    protected $model = Customer::class;
+    protected $model = Vendor::class;
 
     protected static ?string $password;
 
@@ -21,7 +21,7 @@ class OwnerFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'phone' => fake()->unique()->numerify('059#######'),
+            'phone' => fake()->unique()->numerify('056#######'),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'status' => 'active',

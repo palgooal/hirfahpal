@@ -2,17 +2,17 @@
 
 namespace Database\Factories;
 
-use App\Models\Customer;
+use App\Models\DeliveryDriver;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * @extends Factory<Customer>
+ * @extends Factory<DeliveryDriver>
  */
-class OwnerFactory extends Factory
+class DeliveryDriverFactory extends Factory
 {
-    protected $model = Customer::class;
+    protected $model = DeliveryDriver::class;
 
     protected static ?string $password;
 
@@ -21,7 +21,7 @@ class OwnerFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'phone' => fake()->unique()->numerify('059#######'),
+            'phone' => fake()->unique()->numerify('057#######'),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'status' => 'active',
