@@ -12,8 +12,8 @@ trait ScopesOwnerBusinesses
     {
         return Business::query()
             ->when(
-                request()->routeIs('owner.*'),
-                fn (Builder $query) => $query->where('owner_id', Auth::guard('owner')->id())
+                request()->routeIs('customer.*'),
+                fn (Builder $query) => $query->where('owner_id', Auth::guard('customer')->id())
             );
     }
 
@@ -25,10 +25,10 @@ trait ScopesOwnerBusinesses
     private function scopeToAccessibleBusiness(Builder $query): Builder
     {
         return $query->when(
-            request()->routeIs('owner.*'),
+            request()->routeIs('customer.*'),
             fn (Builder $query) => $query->whereHas(
                 'business',
-                fn (Builder $business) => $business->where('owner_id', Auth::guard('owner')->id())
+                fn (Builder $business) => $business->where('owner_id', Auth::guard('customer')->id())
             )
         );
     }

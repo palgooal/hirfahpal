@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 /**
  * @extends Factory<Customer>
  */
-class OwnerFactory extends Factory
+class CustomerFactory extends Factory
 {
     protected $model = Customer::class;
 
