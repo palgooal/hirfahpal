@@ -27,18 +27,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Gate::before(function ($user, string $ability) {
-            if ($user instanceof Admin) {
-                if ($user->super_admin) {
-                    return true;
-                }
-
-                if (Schema::hasTable('admins') && $user->getKey() === Admin::query()->min('id')) {
-                    return true;
-                }
-            }
-
-            return null;
+        // Only the stored super_admin flag grants the global bypass; row order never does.
+        Gate::before(function ($user) {
+            return $user instanceof Admin && $user->isSuperAdmin() ? true : null;
         });
 
         $settingResolved = false;

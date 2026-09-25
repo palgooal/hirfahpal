@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
                 'phone' => '1234567890',
                 'password' => Hash::make('Ha@1020300'),
                 'status' => 'active',
+                'super_admin' => true,
                 'avatar' => 'avatar.png',
                 'email_verified_at' => now(),
                 'phone_verified_at' => now(),
