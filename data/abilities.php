@@ -7,7 +7,6 @@ return [
         'create' => t('dashboard.Create_Admin', 'Create Admin'),
         'edit' => t('dashboard.Edit_Admin', 'Edit Admin'),
         'delete' => t('dashboard.Delete_Admin', 'Delete Admin'),
-        'super' => t('dashboard.Super_Admin', 'Super Admin'),
     ],
     'languages' => [
         'name' => t('dashboard.Languages', 'Languages'),
