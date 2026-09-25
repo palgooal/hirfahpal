@@ -4,22 +4,29 @@ namespace App\Models\Concerns;
 
 trait HasAccountProfile
 {
-    protected $fillable = [
-        'name',
-        'email',
-        'phone',
-        'password',
-        'status',
-        'avatar',
-        'email_verified_at',
-        'phone_verified_at',
-        'last_login_at',
-    ];
+    /**
+     * Declaring $fillable / $hidden here would clash with the properties
+     * inherited from Model, so they are merged in on construction instead.
+     */
+    public function initializeHasAccountProfile(): void
+    {
+        $this->mergeFillable([
+            'name',
+            'email',
+            'phone',
+            'password',
+            'status',
+            'avatar',
+            'email_verified_at',
+            'phone_verified_at',
+            'last_login_at',
+        ]);
 
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
+        $this->makeHidden([
+            'password',
+            'remember_token',
+        ]);
+    }
 
     protected function casts(): array
     {
