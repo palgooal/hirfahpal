@@ -62,8 +62,9 @@ foreach (AccountGuard::all() as $accountType => $account) {
         });
 }
 
-Route::prefix('admin')->name('admin.')->group(function () {
-    Route::middleware('guest:admin')->group(function () {
+Route::prefix('admin')->name('admin.')->middleware('setLocale')->group(function () {
+    // Guest auth pages use seeded translations only, so t() must not insert keys here.
+    Route::middleware(['guest:admin', 'disableTranslationAutoCreate'])->group(function () {
         Route::get('/login', [AdminAuthenticatedSessionController::class, 'create'])->name('login');
         Route::post('/login', [AdminAuthenticatedSessionController::class, 'store'])->name('login.store')->middleware('throttle:account-login-ip');
         Route::get('/forgot-password', [AdminPasswordResetLinkController::class, 'create'])->name('password.request');
