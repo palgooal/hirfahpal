@@ -4,22 +4,25 @@ namespace App\Models\Concerns;
 
 trait HasAccountProfile
 {
-    protected $fillable = [
-        'name',
-        'email',
-        'phone',
-        'password',
-        'status',
-        'avatar',
-        'email_verified_at',
-        'phone_verified_at',
-        'last_login_at',
-    ];
+    public function initializeHasAccountProfile(): void
+    {
+        $this->fillable = [
+            'name',
+            'email',
+            'phone',
+            'password',
+            'status',
+            'avatar',
+            'email_verified_at',
+            'phone_verified_at',
+            'last_login_at',
+        ];
 
-    protected $hidden = [
-        'password',
-        'remember_token',
-    ];
+        $this->hidden = [
+            'password',
+            'remember_token',
+        ];
+    }
 
     protected function casts(): array
     {

@@ -13,6 +13,7 @@ use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class CreateAccountUser
 {
@@ -31,13 +32,29 @@ class CreateAccountUser
             'terms' => ['accepted'],
         ])->validate();
 
-        return $modelClass::create([
+        $user = $modelClass::create([
             'name' => $input['full_name'],
             'phone' => $input['phone'],
             'email' => $input['email'],
             'password' => Hash::make($input['password']),
             'status' => 'active',
         ]);
+
+        if ($user instanceof Vendor) {
+            $user->profile()->create([
+                'store_name' => $input['store_name'] ?? $input['full_name'],
+                'slug' => $this->uniqueSlug('vendor_profiles', $input['store_name'] ?? $input['full_name']),
+                'approval_status' => 'pending',
+            ]);
+        }
+
+        if ($user instanceof DeliveryDriver) {
+            $user->profile()->create([
+                'approval_status' => 'pending',
+            ]);
+        }
+
+        return $user;
     }
 
     private function uniqueAcrossAccountTables(string $column): Closure
@@ -53,5 +70,19 @@ class CreateAccountUser
                 $fail(__('validation.unique', ['attribute' => $attribute]));
             }
         };
+    }
+
+    private function uniqueSlug(string $table, string $value): string
+    {
+        $base = Str::slug($value) ?: 'account';
+        $slug = $base;
+        $counter = 2;
+
+        while (\Illuminate\Support\Facades\DB::table($table)->where('slug', $slug)->exists()) {
+            $slug = $base.'-'.$counter;
+            $counter++;
+        }
+
+        return $slug;
     }
 }

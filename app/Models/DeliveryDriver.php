@@ -12,4 +12,19 @@ class DeliveryDriver extends Authenticatable
     use HasAccountProfile;
     use HasFactory;
     use Notifiable;
+
+    public function profile()
+    {
+        return $this->hasOne(DeliveryDriverProfile::class);
+    }
+
+    public function vendorOrders()
+    {
+        return $this->hasMany(VendorOrder::class);
+    }
+
+    public function deliveryAssignments()
+    {
+        return $this->hasMany(DeliveryAssignment::class);
+    }
 }

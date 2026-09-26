@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="scroll-smooth motion-reduce:scroll-auto">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="تسجيل الدخول أو إنشاء حساب في حرفة - سوق الصنعة الفلسطينية الأصيلة">
+  <title>تسجيل الدخول | حرفة</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,700;1,400&family=Cairo:wght@300;400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/output.css">
+</head>
+
+<body class="auth-page overflow-x-hidden bg-canvas font-cairo text-ink antialiased">
+  <div id="toast"
+    class="fixed start-4 end-4 top-5 z-[100] mx-auto w-fit max-w-[calc(100%-2rem)] -translate-y-24 rounded-lg bg-olive px-5 py-3 text-sm font-semibold text-white shadow-soft transition-transform duration-300"
+    role="status"></div>
+
+  <header class="relative z-50 bg-surface">
+    <aside class="bg-sage px-4 py-2 text-ink lg:px-8">
+      <div class="mx-auto flex h-[32.667px] max-w-[1280px] items-center justify-center md:justify-between">
+        <div class="flex shrink-0 items-center gap-3">
+          <div class="flex items-center gap-1.5 rounded-full bg-surface/10 px-2.5 py-0.5">
+            <img src="assets/imgs/mcp/header-badge.svg" alt="" class="h-[11.88px] w-[12.441px]">
+            <span class="text-[11px] leading-4 text-surface">توثيق التراث الأصيل</span>
+          </div>
+          <p class="hidden text-xs leading-4 tracking-[.3px] lg:block">توصيل منظم ومؤمّن من أيدي الحرفيين في القدس،
+            الخليل ونابلس إلى بابك مباشرة</p>
+        </div>
+        <div class="hidden shrink-0 items-center gap-5 md:flex">
+          <div class="flex items-center gap-1.5">
+            <img src="assets/imgs/mcp/header-lock.svg" alt="" class="h-[12.656px] w-[9.687px]">
+            <span class="text-[11px] leading-4">دفع آمن أو عند الاستلام</span>
+          </div>
+          <span class="text-[11px] leading-4">|</span>
+          <div class="flex items-center gap-2">
+            <span lang="en" class="text-[11px] font-bold leading-4 text-surface">ILS (₪)</span>
+            <span class="text-[11px] leading-4">/</span>
+            <button id="languageToggle" type="button" class="language-toggle flex items-center gap-1 rounded-lg p-2"
+              aria-label="Switch to English">
+              <span class="language-label text-sm font-bold leading-[14px]" lang="en">EN</span>
+              <img src="assets/imgs/mcp/header-globe.svg" alt="" class="h-[16.667px] w-[16.667px]">
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="h-[70px] bg-surface px-4 shadow-[0_2px_7.5px_rgba(43,43,38,.03)] backdrop-blur-[6px] lg:px-8">
+      <div class="mx-auto hidden h-full max-w-[1216px] items-center justify-between py-[10px] lg:flex">
+        <a href="index.html" class="flex w-[184px] shrink-0 items-center justify-start gap-3"
+          aria-label="حرفة الرئيسية">
+          <span class="flex h-[58px] w-[58px] items-center justify-center rounded-[16px] bg-surface p-1 shadow-sm"><img
+              src="assets/imgs/mcp/header-logo.png" alt="شعار حرفة" class="h-[50px] w-[50px] object-cover"></span>
+          <div class="text-start">
+            <div class="flex items-center justify-start gap-1.5"><span
+                class="h-1.5 w-1.5 rounded-full bg-copper"></span><strong
+                class="text-2xl font-bold leading-8 text-olive">حرفة</strong></div><small
+              class="block text-[10px] font-medium leading-[15px] tracking-[.5px] text-olive">سوق الصنعة
+              الفلسطينية</small>
+          </div>
+        </a>
+
+        <nav class="flex shrink-0 items-center gap-8 text-[15px] font-semibold leading-[22.5px] text-olive">
+          <a href="index.html" class="py-1">الرئيسية</a>
+
+          <div class="nav-dropdown group relative py-1">
+            <button type="button" class="flex items-center gap-1.5" aria-haspopup="true" aria-expanded="false">
+              <span>تسوّق</span>
+              <i data-lucide="chevron-down" class="h-4 w-4 transition-transform duration-200 group-[.nav-dropdown-open]:rotate-180"></i>
+            </button>
+            <div
+              class="nav-dropdown-panel invisible absolute start-0 top-full z-40 mt-2 w-56 origin-top-start rounded-xl border border-line bg-surface p-2 opacity-0 shadow-soft transition-[opacity,transform] duration-150 [transform:scale(.97)] group-[.nav-dropdown-open]:visible group-[.nav-dropdown-open]:opacity-100 group-[.nav-dropdown-open]:[transform:scale(1)]">
+              <a href="browse.html" class="block rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-canvas">حسب المنتج</a>
+              <a href="categories.html" class="block rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-canvas">حسب الحرفة</a>
+              <a href="browse.html?sort=newest#city" class="block rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-canvas">حسب المدينة</a>
+              <a href="browse.html?occasion=all" class="block rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-canvas">حسب المناسبة</a>
+            </div>
+          </div>
+
+          <a href="vendors.html" class="py-1">الحرفيون والمتاجر</a>
+          <a href="browse.html?sale=1" class="py-1">العروض</a>
+          <a href="index.html#season" class="py-1">مختارات الموسم</a>
+          <a href="index.html#artisans" class="py-1">حكايات حِرفة</a>
+        </nav>
+
+        <div class="flex h-[50px] shrink-0 items-center gap-3 p-[10px]">
+          <button id="searchButton"
+            class="flex h-[30px] w-[30px] items-center justify-center overflow-hidden rounded-full border border-olive bg-olive p-px"
+            aria-label="بحث"><img src="assets/imgs/mcp/header-search-exact.svg" alt=""
+              class="h-[28.667px] w-[14.663px] max-w-none"></button>
+          <a href="profile.html" class="flex h-[30px] w-[30px] items-center justify-center rounded-full" aria-label="الحساب"><img
+              src="assets/imgs/mcp/header-user.svg" alt="" class="h-[16.283px] w-[17.875px]"></a>
+          <button class="relative flex h-[30px] w-[30px] items-center justify-center rounded-full"
+            aria-label="الإشعارات"><img src="assets/imgs/mcp/header-bell.svg" alt=""
+              class="h-[17.963px] w-[14.208px]"><span
+              class="absolute end-[5.42px] top-[2.33px] h-2 w-2 rounded-full bg-copper"></span></button>
+          <button class="flex h-[30px] w-[30px] items-center justify-center rounded-full" aria-label="المشاهدة"><img
+              src="assets/imgs/mcp/header-eye.svg" alt="" class="h-[14.032px] w-[14.208px]"></button>
+          <a id="cartButton" href="cart.html"
+            class="relative flex h-[30px] w-[86.208px] items-center justify-center gap-2.5 rounded-full border border-olive bg-olive px-[11px] text-surface"
+            aria-label="سلة المشتريات">
+            <span class="relative"><img src="assets/imgs/mcp/header-cart.svg" alt=""
+                class="h-[17.875px] w-[14.208px]"><span id="cartCount"
+                class="absolute start-[-12px] top-[-7.73px] flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-copper px-1 text-[11px] font-bold leading-[11px] text-white"><bdi>0</bdi></span></span>
+            <span id="cartTotal" class="w-10 text-start text-xs font-bold leading-3"><bdi>₪0</bdi></span>
+          </a>
+        </div>
+      </div>
+
+      <div class="flex h-full items-center justify-between lg:hidden">
+        <a href="index.html"
+          class="flex h-[52px] w-[52px] items-center justify-center rounded-[16px] bg-surface p-1 shadow-sm"
+          aria-label="حرفة الرئيسية"><img src="assets/imgs/mcp/header-logo.png" alt="شعار حرفة"
+            class="h-11 w-11 object-cover"></a>
+        <div class="flex items-center gap-1"><button type="button"
+            class="language-toggle flex h-9 items-center gap-1 rounded-full px-2 text-xs font-bold text-olive"
+            aria-label="Switch to English"><span class="language-label" lang="en">EN</span><img
+              src="assets/imgs/mcp/header-globe.svg" alt="" class="h-4 w-4"></button><button id="mobileSearchButton"
+            class="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-olive bg-olive"
+            aria-label="بحث"><img src="assets/imgs/mcp/header-search-exact.svg" alt=""
+              class="h-[28.667px] w-[14.663px] max-w-none"></button><button id="menuButton"
+            class="flex h-9 w-9 items-center justify-center rounded-full" aria-label="القائمة"><i data-lucide="menu"
+              class="h-5 w-5"></i></button></div>
+      </div>
+    </div>
+
+    <div id="mobileMenu" class="hidden border-t border-line bg-surface px-5 py-4 lg:hidden">
+      <nav class="grid gap-1 text-sm font-semibold">
+        <a href="index.html" class="py-2">الرئيسية</a>
+
+        <div class="mobile-nav-dropdown">
+          <button type="button" class="mobile-nav-dropdown-toggle flex w-full items-center justify-between py-2"
+            aria-expanded="false">
+            <span>تسوّق</span>
+            <i data-lucide="chevron-down" class="h-4 w-4 transition-transform duration-200"></i>
+          </button>
+          <div class="mobile-nav-dropdown-panel hidden ps-4">
+            <a href="browse.html" class="block py-2 text-muted">حسب المنتج</a>
+            <a href="categories.html" class="block py-2 text-muted">حسب الحرفة</a>
+            <a href="browse.html?sort=newest#city" class="block py-2 text-muted">حسب المدينة</a>
+            <a href="browse.html?occasion=all" class="block py-2 text-muted">حسب المناسبة</a>
+          </div>
+        </div>
+
+        <a href="vendors.html" class="py-2">الحرفيون والمتاجر</a>
+        <a href="browse.html?sale=1" class="py-2">العروض</a>
+        <a href="index.html#season" class="py-2">مختارات الموسم</a>
+        <a href="index.html#artisans" class="py-2">حكايات حِرفة</a>
+      </nav>
+    </div>
+  </header>
+
+  <div id="searchPanel" class="fixed start-0 end-0 top-0 bottom-0 z-[80] hidden bg-ink/50 p-4 backdrop-blur-sm">
+    <div class="mx-auto mt-24 max-w-2xl rounded-lg bg-surface p-5 shadow-soft">
+      <div class="flex items-center gap-3 border-b border-line pb-4">
+        <i data-lucide="search" class="h-5 w-5 text-muted"></i>
+        <input id="globalSearch" type="search" placeholder="ابحث عن قطعة، حرفة، أو مشغل..."
+          class="w-full bg-transparent text-base outline-none">
+        <button id="closeSearch" class="flex h-8 w-8 items-center justify-center rounded-full hover:bg-canvas"
+          aria-label="إغلاق"><i data-lucide="x" class="h-4 w-4"></i></button>
+      </div>
+      <p class="pt-4 text-xs text-muted">جرّب: تطريز، فخار، قش، شموع</p>
+    </div>
+  </div>
+
+  <main data-auth-page>
+    <section class="bg-canvas px-4 py-10 sm:py-16 lg:px-8">
+      <div
+        class="reveal opacity-100 translate-y-0 transition-[opacity,transform] duration-[650ms] ease-out sm:translate-y-[22px] sm:opacity-0 motion-reduce:sm:translate-y-0 motion-reduce:sm:opacity-100 mx-auto flex w-full max-w-[480px] flex-col gap-6">
+        <div class="flex flex-col items-center gap-2 text-center">
+          <span class="flex h-14 w-14 items-center justify-center rounded-[16px] bg-surface p-1 shadow-sm">
+            <img src="assets/imgs/mcp/header-logo.png" alt="شعار حرفة" class="h-11 w-11 object-cover">
+          </span>
+          <h1 class="mt-2 text-2xl font-bold leading-8 text-ink">أهلاً بك في حرفة</h1>
+          <p class="text-sm leading-6 text-muted">سجّل دخولك أو أنشئ حساباً جديداً لمتابعة طلباتك ودعم الحرفيين
+            مباشرة.</p>
+        </div>
+
+        <div class="rounded-[20px] border border-line bg-surface p-5 shadow-card sm:p-6">
+          <!-- Tabs -->
+          <div class="grid grid-cols-2 gap-2 rounded-[14px] border border-line bg-canvas p-1" role="tablist"
+            aria-label="تبديل بين تسجيل الدخول وإنشاء حساب">
+            <button type="button" id="loginTabButton" role="tab" aria-selected="true" aria-controls="loginPanel"
+              class="auth-tab-button rounded-[10px] px-4 py-2.5 text-sm font-bold transition-colors">تسجيل
+              الدخول</button>
+            <button type="button" id="registerTabButton" role="tab" aria-selected="false" aria-controls="registerPanel"
+              class="auth-tab-button rounded-[10px] px-4 py-2.5 text-sm font-bold transition-colors">إنشاء
+              حساب</button>
+          </div>
+
+          <!-- Login panel -->
+          <form id="loginPanel" role="tabpanel" aria-labelledby="loginTabButton" class="mt-6 flex flex-col gap-4"
+            novalidate>
+            <label class="text-start">
+              <span class="mb-2 block text-sm font-semibold leading-5 text-ink">البريد الإلكتروني أو رقم الجوال</span>
+              <input type="text" name="loginIdentifier" required autocomplete="username"
+                class="h-12 w-full rounded-[14px] border border-line bg-canvas px-4 text-sm outline-none transition-colors focus:border-olive"
+                placeholder="example@email.com أو 05xxxxxxxx">
+            </label>
+            <label class="text-start">
+              <span class="mb-2 flex items-center justify-between text-sm font-semibold leading-5 text-ink">
+                <span>كلمة المرور</span>
+                <button type="button" data-open-forgot-password class="text-xs font-bold text-olive underline underline-offset-2">نسيت
+                  كلمة المرور؟</button>
+              </span>
+              <span class="relative flex items-center">
+                <input type="password" name="loginPassword" required autocomplete="current-password"
+                  class="password-input h-12 w-full rounded-[14px] border border-line bg-canvas px-4 pe-12 text-sm outline-none transition-colors focus:border-olive"
+                  placeholder="••••••••">
+                <button type="button" data-toggle-password
+                  class="absolute end-3 flex h-8 w-8 items-center justify-center rounded-full text-muted hover:text-ink"
+                  aria-label="إظهار كلمة المرور">
+                  <i data-lucide="eye" class="h-4 w-4"></i>
+                </button>
+              </span>
+            </label>
+            <p data-form-error class="hidden rounded-[12px] border border-[#A13D2B]/30 bg-[#A13D2B]/10 px-4 py-3 text-start text-sm font-semibold text-[#A13D2B]"
+              role="alert"></p>
+            <button type="submit"
+              class="mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-olive text-sm font-bold text-surface shadow-sm transition-colors hover:bg-[#313923]">
+              <span>تسجيل الدخول</span>
+              <i data-lucide="log-in" class="h-4 w-4"></i>
+            </button>
+          </form>
+
+          <!-- Register panel -->
+          <form id="registerPanel" role="tabpanel" aria-labelledby="registerTabButton" class="mt-6 hidden flex-col gap-4"
+            novalidate>
+            <label class="text-start">
+              <span class="mb-2 block text-sm font-semibold leading-5 text-ink">الاسم الكامل</span>
+              <input type="text" name="registerName" required autocomplete="name"
+                class="h-12 w-full rounded-[14px] border border-line bg-canvas px-4 text-sm outline-none transition-colors focus:border-olive"
+                placeholder="الاسم الكامل">
+            </label>
+            <label class="text-start">
+              <span class="mb-2 block text-sm font-semibold leading-5 text-ink">البريد الإلكتروني أو رقم الجوال</span>
+              <input type="text" name="registerIdentifier" required autocomplete="username"
+                class="h-12 w-full rounded-[14px] border border-line bg-canvas px-4 text-sm outline-none transition-colors focus:border-olive"
+                placeholder="example@email.com أو 05xxxxxxxx">
+            </label>
+            <label class="text-start">
+              <span class="mb-2 block text-sm font-semibold leading-5 text-ink">كلمة المرور</span>
+              <span class="relative flex items-center">
+                <input type="password" name="registerPassword" required autocomplete="new-password"
+                  class="password-input h-12 w-full rounded-[14px] border border-line bg-canvas px-4 pe-12 text-sm outline-none transition-colors focus:border-olive"
+                  placeholder="8 أحرف على الأقل">
+                <button type="button" data-toggle-password
+                  class="absolute end-3 flex h-8 w-8 items-center justify-center rounded-full text-muted hover:text-ink"
+                  aria-label="إظهار كلمة المرور">
+                  <i data-lucide="eye" class="h-4 w-4"></i>
+                </button>
+              </span>
+            </label>
+            <label class="text-start">
+              <span class="mb-2 block text-sm font-semibold leading-5 text-ink">عنوان التوصيل <span class="font-normal text-muted">(اختياري الآن)</span></span>
+              <input type="text" name="registerAddress" autocomplete="street-address"
+                class="h-12 w-full rounded-[14px] border border-line bg-canvas px-4 text-sm outline-none transition-colors focus:border-olive"
+                placeholder="المدينة، الحي، الشارع">
+            </label>
+            <p data-form-error class="hidden rounded-[12px] border border-[#A13D2B]/30 bg-[#A13D2B]/10 px-4 py-3 text-start text-sm font-semibold text-[#A13D2B]"
+              role="alert"></p>
+            <button type="submit"
+              class="mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-olive text-sm font-bold text-surface shadow-sm transition-colors hover:bg-[#313923]">
+              <span>إنشاء الحساب</span>
+              <i data-lucide="user-plus" class="h-4 w-4"></i>
+            </button>
+          </form>
+        </div>
+
+        <p class="text-center text-xs leading-5 text-muted">بالمتابعة أنت توافق على
+          <a href="#" class="font-semibold text-olive underline underline-offset-2">شروط الاستخدام</a> و
+          <a href="#" class="font-semibold text-olive underline underline-offset-2">سياسة الخصوصية</a>.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Forgot password modal -->
+  <div id="forgotPasswordModal" class="fixed start-0 end-0 top-0 bottom-0 z-[90] hidden bg-ink/50 p-4 backdrop-blur-sm"
+    role="dialog" aria-modal="true" aria-labelledby="forgotPasswordTitle">
+    <div class="mx-auto mt-24 max-w-md rounded-[20px] border border-line bg-surface p-5 shadow-soft sm:p-6">
+      <div class="flex items-start justify-between gap-4 border-b border-line pb-4">
+        <div class="text-start">
+          <h2 id="forgotPasswordTitle" class="text-lg font-bold leading-7 text-ink">استرجاع كلمة المرور</h2>
+          <p class="mt-1 text-sm leading-6 text-muted">أدخل بريدك أو رقم جوالك وسنرسل لك رابط إعادة التعيين.</p>
+        </div>
+        <button type="button" data-close-forgot-password
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-canvas text-muted hover:text-ink"
+          aria-label="إغلاق"><i data-lucide="x" class="h-4 w-4"></i></button>
+      </div>
+      <form id="forgotPasswordForm" class="mt-5 flex flex-col gap-4" novalidate>
+        <label class="text-start">
+          <span class="mb-2 block text-sm font-semibold leading-5 text-ink">البريد الإلكتروني أو رقم الجوال</span>
+          <input type="text" name="forgotIdentifier" required
+            class="h-12 w-full rounded-[14px] border border-line bg-canvas px-4 text-sm outline-none transition-colors focus:border-olive"
+            placeholder="example@email.com أو 05xxxxxxxx">
+        </label>
+        <button type="submit"
+          class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-olive text-sm font-bold text-surface shadow-sm transition-colors hover:bg-[#313923]">
+          <span>إرسال رابط الاسترجاع</span>
+        </button>
+      </form>
+      <div data-forgot-success class="mt-5 hidden items-center gap-3 rounded-[14px] border border-sage/40 bg-sage/10 px-4 py-3 text-start">
+        <i data-lucide="check-circle-2" class="h-5 w-5 shrink-0 text-olive"></i>
+        <p class="text-sm font-semibold leading-6 text-olive">تم إرسال رابط الاسترجاع إن كان الحساب موجوداً.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="border-t border-sage bg-olive text-white lg:h-[355px]">
+    <div class="mx-auto flex w-full max-w-[1280px] flex-col gap-9 px-4 pb-8 pt-10 sm:gap-12 sm:pb-10 sm:pt-14 lg:px-8">
+      <div class="grid w-full grid-cols-2 gap-x-6 gap-y-9 sm:gap-10 lg:h-[159px] lg:grid-cols-5 lg:gap-12">
+        <div class="col-span-2 flex flex-col items-start gap-4 text-start lg:col-span-2">
+          <div class="flex w-full items-center justify-start gap-3">
+            <span
+              class="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[16px] bg-surface p-1 shadow-sm"><img
+                src="assets/imgs/mcp/footer-logo.png" alt="شعار حرفة" class="h-[50px] w-[50px] object-cover"></span>
+            <div class="flex flex-col items-start">
+              <div class="flex items-center justify-start gap-1.5"><i
+                  class="h-1.5 w-1.5 rounded-full bg-copper"></i><strong
+                  class="text-2xl font-bold leading-8 text-[#fef3c7]">حرفة</strong></div>
+              <p class="text-[10px] font-medium uppercase leading-[15px] tracking-[.5px] text-white/70">سوق الصنعة
+                الفلسطينية الأصيلة</p>
+            </div>
+          </div>
+          <p class="w-full max-w-[384px] text-start text-sm font-light leading-5 text-white/75">سوق رقمي مباشر يوثق
+            التراث ويربط الحرفيين المستقلين والتعاونيات النسوية بالمستهلك الواعي حول العالم بجودة وأصالة استثنائية.</p>
+          <div class="flex w-full items-center justify-start gap-2.5 pt-2">
+            <a href="#" class="flex h-8 w-8 items-center justify-center rounded-full border border-surface/10 bg-surface/10"
+              aria-label="انستغرام"><img src="assets/imgs/mcp/footer-instagram.svg" alt="" class="h-4 w-4"></a>
+            <a href="#" class="flex h-8 w-8 items-center justify-center rounded-full border border-surface/10 bg-surface/10"
+              aria-label="فيسبوك"><img src="assets/imgs/mcp/footer-facebook.svg" alt="" class="h-4 w-4"></a>
+            <a href="#" class="flex h-8 w-8 items-center justify-center rounded-full border border-surface/10 bg-surface/10"
+              aria-label="اكس"><img src="assets/imgs/mcp/footer-x.svg" alt="" class="h-[14px] w-[14px]"></a>
+          </div>
+        </div>
+        <div class="flex flex-col items-start gap-[14px] text-start">
+          <h3 class="w-full text-start text-sm font-bold leading-5 tracking-[.35px] text-[#fde68a]">عن حرفة</h3>
+          <ul class="flex w-full flex-col gap-[9.5px] text-xs leading-4 text-white/75">
+            <li><a href="#" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>قصة المنصة ورؤيتها</span></a></li>
+            <li><a href="#" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>ميثاق الأصالة والجودة</span></a></li>
+            <li><a href="#" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>تواصل واستفسارات</span></a></li>
+          </ul>
+        </div>
+        <div class="flex flex-col items-start gap-[14px] text-start">
+          <h3 class="w-full text-start text-sm font-bold leading-5 tracking-[.35px] text-[#fde68a]">روابط مفيدة</h3>
+          <ul class="flex w-full flex-col gap-[9.5px] text-xs leading-4 text-white/75">
+            <li><a href="orders.html" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>طلباتي</span></a></li>
+            <li><a href="cart.html" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>سلة المشتريات</span></a></li>
+            <li><a href="login.html" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>تسجيل الدخول</span></a></li>
+            <li><a href="profile.html" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>حسابي</span></a></li>
+          </ul>
+        </div>
+        <div class="flex flex-col items-start gap-[14px] text-start">
+          <h3 class="w-full text-start text-sm font-bold leading-5 tracking-[.35px] text-[#fde68a]">خدمة العملاء</h3>
+          <ul class="flex w-full flex-col gap-[9.5px] text-xs leading-4 text-white/75">
+            <li><a href="#" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>الشحن والتوصيل المنظم</span></a></li>
+            <li><a href="#" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>سياسة الاستبدال والإرجاع</span></a></li>
+            <li><a href="#" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>الأسئلة الأكثر شيوعاً</span></a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="flex w-full flex-col gap-5 border-t border-surface/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-start text-xs leading-4 text-white/70"><bdi>© 2026</bdi> حرفة. جميع الحقوق محفوظة لرواد الحرف
+          الأصيلة في فلسطين.</p>
+        <div class="flex flex-col items-start gap-3 text-[11px] leading-4 sm:flex-row sm:flex-wrap sm:items-center">
+          <span class="text-white/50">طرق الدفع الآمنة:</span>
+          <div class="flex flex-wrap items-center gap-2">
+            <span
+              class="flex h-[26px] items-center gap-1.5 rounded-lg border border-surface/10 bg-surface/5 px-[11px] font-medium text-white/90"><img
+                src="assets/imgs/mcp/footer-card.svg" alt="" class="h-[7.75px] w-[9.75px]"><span>بطاقة
+                ائتمان</span></span>
+            <span
+              class="flex h-[26px] items-center gap-1.5 rounded-lg border border-surface/10 bg-surface/5 px-[11px] font-medium text-white/90"><img
+                src="assets/imgs/mcp/footer-apple.svg" alt="" class="h-[10.75px] w-[7.25px]"><span lang="en">Apple
+                Pay</span></span>
+            <span
+              class="flex h-[26px] items-center gap-1.5 rounded-lg border border-surface/10 bg-surface/5 px-[11px] font-medium text-white/90"><img
+                src="assets/imgs/mcp/footer-cod.svg" alt="" class="h-[9.745px] w-[10.756px]"><span>الدفع عند
+                الاستلام</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+  <script src="assets/js/vendor/jquery.min.js" defer></script>
+  <script src="assets/js/vendor/lucide.min.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+  <script src="assets/js/auth.js" defer></script>
+</body>
+
+</html>

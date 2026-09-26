@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@source "../../index.html";
+@source "../../product.html";
+@source "../../categories.html";
+@source "../../vendors.html";
+@source "../../browse.html";
+@source "../../vendor.html";
+@source "../../cart.html";
+@source "../../checkout.html";
+@source "../../order-detail.html";
+@source "../../orders.html";
+@source "../../login.html";
+@source "../../profile.html";
+@source "../../rate-order.html";
+@source "../../*.html";
+@source "../js/app.js";
+@source "../js/auth.js";
+@source "../js/profile.js";
+@source "../js/rate-order.js";
+
+@theme {
+  --color-ink: #2b2b26;
+  --color-olive: #3d472b;
+  --color-sage: #b3ba91;
+  --color-copper: #b5622e;
+  --color-canvas: #f5f0e5;
+  --color-surface: #faf8f3;
+  --color-line: #e4ddcb;
+  --color-muted: #6b6a5f;
+  --color-gold: #c98a2c;
+
+  --font-cairo: "Cairo", sans-serif;
+  --font-amiri: "Amiri", serif;
+  --font-noto: "Noto Sans Arabic", sans-serif;
+
+  --shadow-card: 0 4px 18px rgb(61 71 43 / 8%);
+  --shadow-soft: 0 12px 34px rgb(43 43 38 / 12%);
+}

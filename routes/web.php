@@ -11,6 +11,11 @@ use App\Http\Controllers\Auth\AdminNewPasswordController;
 use App\Http\Controllers\Auth\AdminPasswordResetLinkController;
 use App\Http\Controllers\Dashboard\AdminDashboardController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\Store\CartController;
+use App\Http\Controllers\Store\CheckoutController;
+use App\Http\Controllers\Store\OrderController;
+use App\Http\Controllers\Store\ProductCatalogController;
+use App\Http\Controllers\Store\ReviewController;
 use App\Support\Auth\AccountGuard;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +26,13 @@ Route::middleware(['setLocale'])->group(function () {
 
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+
+Route::prefix('shop')->name('shop.')->group(function () {
+    Route::get('products', [ProductCatalogController::class, 'index'])->name('products.index');
+    Route::get('products/{product:slug}', [ProductCatalogController::class, 'show'])->name('products.show');
+    Route::get('categories', [ProductCatalogController::class, 'categories'])->name('categories.index');
+    Route::get('vendors', [ProductCatalogController::class, 'vendors'])->name('vendors.index');
+});
 
 
 Route::middleware('auth:web')->group(function () {
@@ -66,6 +78,20 @@ foreach (AccountGuard::all() as $accountType => $account) {
             });
     });
 }
+
+Route::prefix('customer')
+    ->middleware(['auth:customer', 'setLocale'])
+    ->name('customer.')
+    ->group(function () {
+        Route::get('cart', [CartController::class, 'show'])->name('cart.show');
+        Route::post('cart/items', [CartController::class, 'store'])->name('cart.items.store');
+        Route::patch('cart/items/{cartItem}', [CartController::class, 'update'])->name('cart.items.update');
+        Route::delete('cart/items/{cartItem}', [CartController::class, 'destroy'])->name('cart.items.destroy');
+        Route::post('checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+        Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+        Route::post('orders/{order}/reviews', [ReviewController::class, 'store'])->name('orders.reviews.store');
+    });
 
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware('guest:admin')->group(function () {

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="scroll-smooth motion-reduce:scroll-auto">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="كل المتاجر في حِرفة - دليل الحرفيين والمشاغل الفلسطينية المسجلة">
+  <title>كل المتاجر | حِرفة</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,700;1,400&family=Cairo:wght@300;400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/output.css">
+</head>
+
+<body class="vendors-page overflow-x-hidden bg-canvas font-cairo text-ink antialiased">
+  <div id="toast"
+    class="fixed start-4 end-4 top-5 z-[100] mx-auto w-fit max-w-[calc(100%-2rem)] -translate-y-24 rounded-lg bg-olive px-5 py-3 text-sm font-semibold text-white shadow-soft transition-transform duration-300"
+    role="status"></div>
+
+  <header class="relative z-50 bg-surface" data-node-id="223:3408">
+    <aside class="bg-sage px-4 py-2 text-ink lg:px-8" data-node-id="223:3409">
+      <div class="mx-auto flex h-[32.667px] max-w-[1280px] items-center justify-center md:justify-between">
+        <div class="flex shrink-0 items-center gap-3">
+          <div class="flex items-center gap-1.5 rounded-full bg-surface/10 px-2.5 py-0.5">
+            <img src="assets/imgs/mcp/header-badge.svg" alt="" class="h-[11.88px] w-[12.441px]">
+            <span class="text-[11px] leading-4 text-surface">توثيق التراث الأصيل</span>
+          </div>
+          <p class="hidden text-xs leading-4 tracking-[.3px] lg:block">توصيل منظم ومؤمّن من أيدي الحرفيين في القدس،
+            الخليل ونابلس إلى بابك مباشرة</p>
+        </div>
+        <div class="hidden shrink-0 items-center gap-5 md:flex">
+          <div class="flex items-center gap-1.5">
+            <img src="assets/imgs/mcp/header-lock.svg" alt="" class="h-[12.656px] w-[9.687px]">
+            <span class="text-[11px] leading-4">دفع آمن أو عند الاستلام</span>
+          </div>
+          <span class="text-[11px] leading-4">|</span>
+          <div class="flex items-center gap-2">
+            <span lang="en" class="text-[11px] font-bold leading-4 text-surface">ILS (₪)</span>
+            <span class="text-[11px] leading-4">/</span>
+            <button id="languageToggle" type="button" class="language-toggle flex items-center gap-1 rounded-lg p-2"
+              aria-label="Switch to English">
+              <span class="language-label text-sm font-bold leading-[14px]" lang="en">EN</span>
+              <img src="assets/imgs/mcp/header-globe.svg" alt="" class="h-[16.667px] w-[16.667px]">
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="h-[70px] bg-surface px-4 shadow-[0_2px_7.5px_rgba(43,43,38,.03)] backdrop-blur-[6px] lg:px-8"
+      data-node-id="223:3436">
+      <div class="mx-auto hidden h-full max-w-[1216px] items-center justify-between py-[10px] lg:flex">
+        <a href="index.html" class="flex w-[184px] shrink-0 items-center justify-start gap-3"
+          aria-label="حرفة الرئيسية" data-node-id="223:3474">
+          <span class="flex h-[58px] w-[58px] items-center justify-center rounded-[16px] bg-surface p-1 shadow-sm"><img
+              src="assets/imgs/mcp/header-logo.png" alt="شعار حرفة" class="h-[50px] w-[50px] object-cover"></span>
+          <div class="text-start">
+            <div class="flex items-center justify-start gap-1.5"><span
+                class="h-1.5 w-1.5 rounded-full bg-copper"></span><strong
+                class="text-2xl font-bold leading-8 tracking-[-.6px] text-olive">حِــرْفَة</strong></div><small
+              class="block text-[10px] font-medium leading-[15px] tracking-[.5px] text-olive">سوق الصنعة
+              الفلسطينية</small>
+          </div>
+        </a>
+
+        <nav class="flex shrink-0 items-center gap-8 text-[15px] font-semibold leading-[22.5px] text-olive"
+          data-node-id="223:3463">
+          <a href="index.html" class="py-1">الرئيسية</a>
+
+          <div class="nav-dropdown group relative py-1">
+            <button type="button" class="flex items-center gap-1.5" aria-haspopup="true" aria-expanded="false">
+              <span>تسوّق</span>
+              <i data-lucide="chevron-down" class="h-4 w-4 transition-transform duration-200 group-[.nav-dropdown-open]:rotate-180"></i>
+            </button>
+            <div
+              class="nav-dropdown-panel invisible absolute start-0 top-full z-40 mt-2 w-56 origin-top-start rounded-xl border border-line bg-surface p-2 opacity-0 shadow-soft transition-[opacity,transform] duration-150 [transform:scale(.97)] group-[.nav-dropdown-open]:visible group-[.nav-dropdown-open]:opacity-100 group-[.nav-dropdown-open]:[transform:scale(1)]">
+              <a href="browse.html" class="block rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-canvas">حسب المنتج</a>
+              <a href="categories.html" class="block rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-canvas">حسب الحرفة</a>
+              <a href="browse.html?sort=newest#city" class="block rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-canvas">حسب المدينة</a>
+              <a href="browse.html?occasion=all" class="block rounded-lg px-3 py-2 text-sm font-semibold text-ink hover:bg-canvas">حسب المناسبة</a>
+            </div>
+          </div>
+
+          <a href="vendors.html" aria-current="page"
+            class="border-b-2 border-copper pb-1.5 font-bold text-copper">الحرفيون والمتاجر</a>
+          <a href="browse.html?sale=1" class="py-1">العروض</a>
+          <a href="index.html#season" class="py-1">مختارات الموسم</a>
+          <a href="index.html#artisans" class="py-1">حكايات حِرفة</a>
+        </nav>
+
+        <div class="flex h-[50px] shrink-0 items-center gap-3 p-[10px]" data-node-id="223:3438">
+          <button id="searchButton"
+            class="flex h-[30px] w-[30px] items-center justify-center overflow-hidden rounded-full border border-olive bg-olive p-px"
+            aria-label="بحث"><img src="assets/imgs/mcp/header-search-exact.svg" alt=""
+              class="h-[28.667px] w-[14.663px] max-w-none"></button>
+          <a href="profile.html" class="flex h-[30px] w-[30px] items-center justify-center rounded-full" aria-label="الحساب"><img
+              src="assets/imgs/mcp/header-user.svg" alt="" class="h-[16.283px] w-[17.875px]"></a>
+          <button class="relative flex h-[30px] w-[30px] items-center justify-center rounded-full"
+            aria-label="الإشعارات"><img src="assets/imgs/mcp/header-bell.svg" alt=""
+              class="h-[17.963px] w-[14.208px]"><span
+              class="absolute end-[5.42px] top-[2.33px] h-2 w-2 rounded-full bg-copper"></span></button>
+          <button class="flex h-[30px] w-[30px] items-center justify-center rounded-full" aria-label="المشاهدة"><img
+              src="assets/imgs/mcp/header-eye.svg" alt="" class="h-[14.032px] w-[14.208px]"></button>
+          <button id="cartButton"
+            class="relative flex h-[30px] w-[86.208px] items-center justify-center gap-2.5 rounded-full border border-olive bg-olive px-[11px] text-surface"
+            aria-label="سلة المشتريات">
+            <span class="relative"><img src="assets/imgs/mcp/header-cart.svg" alt=""
+                class="h-[17.875px] w-[14.208px]"><bdi id="cartCount"
+                class="absolute start-[-12px] top-[-7.73px] flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-copper px-1 text-[11px] font-bold leading-[11px] text-white">2</bdi></span>
+            <bdi id="cartTotal" class="w-10 text-start text-xs font-bold leading-3">₪365</bdi>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex h-full items-center justify-between lg:hidden">
+        <a href="index.html"
+          class="flex h-[52px] w-[52px] items-center justify-center rounded-[16px] bg-surface p-1 shadow-sm"
+          aria-label="حرفة الرئيسية"><img src="assets/imgs/mcp/header-logo.png" alt="شعار حرفة"
+            class="h-11 w-11 object-cover"></a>
+        <div class="flex items-center gap-1"><button type="button"
+            class="language-toggle flex h-9 items-center gap-1 rounded-full px-2 text-xs font-bold text-olive"
+            aria-label="Switch to English"><span class="language-label" lang="en">EN</span><img
+              src="assets/imgs/mcp/header-globe.svg" alt="" class="h-4 w-4"></button><button id="mobileSearchButton"
+            class="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-olive bg-olive"
+            aria-label="بحث"><img src="assets/imgs/mcp/header-search-exact.svg" alt=""
+              class="h-[28.667px] w-[14.663px] max-w-none"></button><button id="menuButton"
+            class="flex h-9 w-9 items-center justify-center rounded-full" aria-label="القائمة"><i data-lucide="menu"
+              class="h-5 w-5"></i></button></div>
+      </div>
+    </div>
+
+    <div id="mobileMenu" class="hidden border-t border-line bg-surface px-5 py-4 lg:hidden">
+      <nav class="grid gap-1 text-sm font-semibold">
+        <a href="index.html" class="py-2">الرئيسية</a>
+
+        <div class="mobile-nav-dropdown">
+          <button type="button" class="mobile-nav-dropdown-toggle flex w-full items-center justify-between py-2"
+            aria-expanded="false">
+            <span>تسوّق</span>
+            <i data-lucide="chevron-down" class="h-4 w-4 transition-transform duration-200"></i>
+          </button>
+          <div class="mobile-nav-dropdown-panel hidden ps-4">
+            <a href="browse.html" class="block py-2 text-muted">حسب المنتج</a>
+            <a href="categories.html" class="block py-2 text-muted">حسب الحرفة</a>
+            <a href="browse.html?sort=newest#city" class="block py-2 text-muted">حسب المدينة</a>
+            <a href="browse.html?occasion=all" class="block py-2 text-muted">حسب المناسبة</a>
+          </div>
+        </div>
+
+        <a href="vendors.html" aria-current="page" class="py-2 font-bold text-copper">الحرفيون والمتاجر</a>
+        <a href="browse.html?sale=1" class="py-2">العروض</a>
+        <a href="index.html#season" class="py-2">مختارات الموسم</a>
+        <a href="index.html#artisans" class="py-2">حكايات حِرفة</a>
+      </nav>
+    </div>
+  </header>
+
+  <div id="searchPanel" class="fixed start-0 end-0 top-0 bottom-0 z-[80] hidden bg-ink/50 p-4 backdrop-blur-sm">
+    <div class="mx-auto mt-24 max-w-2xl rounded-lg bg-surface p-5 shadow-soft">
+      <div class="flex items-center gap-3 border-b border-line pb-4">
+        <i data-lucide="search" class="h-5 w-5 text-muted"></i>
+        <input id="globalSearch" type="search" placeholder="ابحث عن قطعة، حرفة، أو مشغل..."
+          class="w-full bg-transparent text-base outline-none">
+        <button id="closeSearch" class="flex h-8 w-8 items-center justify-center rounded-full hover:bg-canvas"
+          aria-label="إغلاق"><i data-lucide="x" class="h-4 w-4"></i></button>
+      </div>
+      <p class="pt-4 text-xs text-muted">جرّب: تطريز، فخار، قش، شموع</p>
+    </div>
+  </div>
+
+  <main>
+    <section class="border-b border-line/60 bg-canvas px-4 py-6 lg:px-8">
+      <div class="mx-auto flex max-w-[1216px] flex-col gap-5">
+        <nav class="flex items-center gap-2 text-xs font-medium leading-4 text-muted sm:text-sm"
+          aria-label="مسار الصفحة">
+          <a href="index.html" class="hover:text-olive">الرئيسية</a>
+          <span class="text-line">/</span>
+          <span class="font-semibold text-olive">كل المتاجر</span>
+        </nav>
+        <div class="flex max-w-3xl flex-col items-start gap-2 text-start">
+          <p class="flex items-center gap-1.5 text-xs font-bold uppercase leading-4 tracking-[.6px] text-copper"><span
+              class="h-1.5 w-1.5 rounded-full bg-copper"></span>دليل المشاغل المسجلة</p>
+          <h1 class="text-[30px] font-bold leading-9 text-ink sm:text-4xl sm:leading-[48px]">كل المتاجر</h1>
+          <p class="text-sm leading-6 text-muted sm:text-base">تعرّف على كل الحرفيين والمشاغل المسجلين في المنصة.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-canvas px-4 py-10 sm:py-12 lg:px-8">
+      <div
+        class="reveal opacity-100 translate-y-0 transition-[opacity,transform] duration-[650ms] ease-out sm:translate-y-[22px] sm:opacity-0 motion-reduce:sm:translate-y-0 motion-reduce:sm:opacity-100 mx-auto flex max-w-[1216px] flex-col gap-7">
+        <div
+          class="flex flex-col gap-4 rounded-[20px] border border-line bg-surface p-4 shadow-card sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div class="text-start">
+            <h2 class="text-[22px] font-semibold leading-8 text-ink">مشاغل وحرفيون من كل فلسطين</h2>
+            <p class="text-sm leading-6 text-muted">ابحث بالاسم أو المدينة لتصل مباشرة إلى المتجر المناسب.</p>
+          </div>
+          <label class="relative block w-full sm:max-w-[384px]">
+            <span class="sr-only">ابحث باسم المشغل أو المدينة</span>
+            <i data-lucide="search"
+              class="pointer-events-none absolute start-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted"></i>
+            <input id="vendorSearch" type="search" placeholder="ابحث باسم المشغل أو المدينة..."
+              class="h-12 w-full rounded-[16px] border border-line bg-surface ps-11 pe-4 text-start text-sm text-ink outline-none transition-colors placeholder:text-muted focus:border-sage">
+          </label>
+        </div>
+
+        <div id="vendorsGrid" class="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+          <article
+            class="vendor-card flex min-h-[260px] flex-col rounded-[20px] border border-line bg-surface p-5 shadow-card transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:border-copper/40 hover:shadow-soft sm:rounded-[24px] sm:p-[25px]"
+            data-name="دار الكرمة للخزف" data-city="الخليل القديمة">
+            <div class="flex items-center justify-start gap-4 pb-4">
+              <span
+                class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-copper/20 bg-copper/10 p-0.5 text-xl font-bold leading-7 text-copper">د.ك</span>
+              <div class="min-w-0 flex-1 text-start">
+                <h3 class="truncate text-base font-bold leading-6">دار الكرمة للخزف</h3>
+                <p class="flex items-center justify-start gap-1 text-xs font-medium leading-4 text-copper"><img
+                    src="assets/imgs/mcp/artisan-location.svg" alt="" class="h-[9.752px] w-[7.774px]"><span>الخليل
+                    القديمة</span></p>
+              </div>
+            </div>
+            <p class="pb-4 text-start text-xs leading-[19.5px] text-muted">مشغل عائلي يحفظ حكاية الخزف الأزرق والمزجج
+              بلمسة ورثة الحرفة في البلدة القديمة.</p>
+            <div class="flex items-center gap-1 pb-5 text-xs font-bold leading-4 text-ink" aria-label="تقييم 4.9 من 5">
+              <bdi>4.9</bdi><img src="assets/imgs/mcp/arrival-star.svg" alt="" class="h-[11.083px] w-[11.667px]">
+            </div>
+            <div class="mt-auto flex items-center justify-between gap-3 border-t border-line/60 pt-[17px] text-xs">
+              <span class="text-[#918f83]"><bdi>24</bdi> منتج متاح</span><a href="vendor.html?id=dar-al-karma"
+                class="font-bold text-olive underline underline-offset-2 hover:text-copper">زيارة المتجر</a>
+            </div>
+          </article>
+
+          <article
+            class="vendor-card flex min-h-[260px] flex-col rounded-[20px] border border-line bg-surface p-5 shadow-card transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:border-copper/40 hover:shadow-soft sm:rounded-[24px] sm:p-[25px]"
+            data-name="جمعية نساء بيت لحم" data-city="بيت لحم">
+            <div class="flex items-center justify-start gap-4 pb-4">
+              <span
+                class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-sage/40 bg-sage/20 p-0.5 text-xl font-bold leading-7 text-olive">ن.ب</span>
+              <div class="min-w-0 flex-1 text-start">
+                <h3 class="truncate text-base font-bold leading-6">جمعية نساء بيت لحم</h3>
+                <p class="flex items-center justify-start gap-1 text-xs font-medium leading-4 text-copper"><img
+                    src="assets/imgs/mcp/artisan-location.svg" alt="" class="h-[9.752px] w-[7.774px]"><span>بيت
+                    لحم</span></p>
+              </div>
+            </div>
+            <p class="pb-4 text-start text-xs leading-[19.5px] text-muted">تعاونية نسوية تجمع غرز التطريز الفلسطيني
+              في قطع بيتية تحمل دفء اليد وذاكرة القرى.</p>
+            <div class="flex items-center gap-1 pb-5 text-xs font-bold leading-4 text-ink" aria-label="تقييم 4.8 من 5">
+              <bdi>4.8</bdi><img src="assets/imgs/mcp/arrival-star.svg" alt="" class="h-[11.083px] w-[11.667px]">
+            </div>
+            <div class="mt-auto flex items-center justify-between gap-3 border-t border-line/60 pt-[17px] text-xs">
+              <span class="text-[#918f83]"><bdi>41</bdi> منتج متاح</span><a href="vendor.html?id=bethlehem-women"
+                class="font-bold text-olive underline underline-offset-2 hover:text-copper">زيارة المتجر</a>
+            </div>
+          </article>
+
+          <article
+            class="vendor-card flex min-h-[260px] flex-col rounded-[20px] border border-line bg-surface p-5 shadow-card transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:border-copper/40 hover:shadow-soft sm:rounded-[24px] sm:p-[25px]"
+            data-name="مشغل نور الزيتونة" data-city="نابلس">
+            <div class="flex items-center justify-start gap-4 pb-4">
+              <span
+                class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-copper/20 bg-copper/10 p-0.5 text-xl font-bold leading-7 text-copper">ن.ز</span>
+              <div class="min-w-0 flex-1 text-start">
+                <h3 class="truncate text-base font-bold leading-6">مشغل نور الزيتونة</h3>
+                <p class="flex items-center justify-start gap-1 text-xs font-medium leading-4 text-copper"><img
+                    src="assets/imgs/mcp/artisan-location.svg" alt="" class="h-[9.752px] w-[7.774px]"><span>نابلس</span>
+                </p>
+              </div>
+            </div>
+            <p class="pb-4 text-start text-xs leading-[19.5px] text-muted">شموع وصابون بزيت الزيتون البكر، مصنوعة
+              بروائح هادئة من سفوح نابلس.</p>
+            <div class="flex items-center gap-1 pb-5 text-xs font-bold leading-4 text-ink" aria-label="تقييم 4.9 من 5">
+              <bdi>4.9</bdi><img src="assets/imgs/mcp/arrival-star.svg" alt="" class="h-[11.083px] w-[11.667px]">
+            </div>
+            <div class="mt-auto flex items-center justify-between gap-3 border-t border-line/60 pt-[17px] text-xs">
+              <span class="text-[#918f83]"><bdi>18</bdi> منتج متاح</span><a href="vendor.html?id=noor-alzaytouna"
+                class="font-bold text-olive underline underline-offset-2 hover:text-copper">زيارة المتجر</a>
+            </div>
+          </article>
+
+          <article
+            class="vendor-card flex min-h-[260px] flex-col rounded-[20px] border border-line bg-surface p-5 shadow-card transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:border-copper/40 hover:shadow-soft sm:rounded-[24px] sm:p-[25px]"
+            data-name="نسج الجليل التراثي" data-city="الجليل">
+            <div class="flex items-center justify-start gap-4 pb-4">
+              <span
+                class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-sage/40 bg-sage/20 p-0.5 text-xl font-bold leading-7 text-olive">ن.ج</span>
+              <div class="min-w-0 flex-1 text-start">
+                <h3 class="truncate text-base font-bold leading-6">نسج الجليل التراثي</h3>
+                <p class="flex items-center justify-start gap-1 text-xs font-medium leading-4 text-copper"><img
+                    src="assets/imgs/mcp/artisan-location.svg" alt="" class="h-[9.752px] w-[7.774px]"><span>الجليل</span>
+                </p>
+              </div>
+            </div>
+            <p class="pb-4 text-start text-xs leading-[19.5px] text-muted">سلال وقش مصبوغ بنباتات طبيعية، كل جدلة
+              فيها أثر موسم حصاد ويد صبورة.</p>
+            <div class="flex items-center gap-1 pb-5 text-xs font-bold leading-4 text-ink" aria-label="تقييم 4.7 من 5">
+              <bdi>4.7</bdi><img src="assets/imgs/mcp/arrival-star.svg" alt="" class="h-[11.083px] w-[11.667px]">
+            </div>
+            <div class="mt-auto flex items-center justify-between gap-3 border-t border-line/60 pt-[17px] text-xs">
+              <span class="text-[#918f83]"><bdi>16</bdi> منتج متاح</span><a href="vendor.html?id=jalil-weaving"
+                class="font-bold text-olive underline underline-offset-2 hover:text-copper">زيارة المتجر</a>
+            </div>
+          </article>
+
+          <article
+            class="vendor-card flex min-h-[260px] flex-col rounded-[20px] border border-line bg-surface p-5 shadow-card transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:border-copper/40 hover:shadow-soft sm:rounded-[24px] sm:p-[25px]"
+            data-name="خشب الزيتون المقدسي" data-city="القدس">
+            <div class="flex items-center justify-start gap-4 pb-4">
+              <span
+                class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-copper/20 bg-copper/10 p-0.5 text-xl font-bold leading-7 text-copper">خ.ز</span>
+              <div class="min-w-0 flex-1 text-start">
+                <h3 class="truncate text-base font-bold leading-6">خشب الزيتون المقدسي</h3>
+                <p class="flex items-center justify-start gap-1 text-xs font-medium leading-4 text-copper"><img
+                    src="assets/imgs/mcp/artisan-location.svg" alt="" class="h-[9.752px] w-[7.774px]"><span>القدس</span>
+                </p>
+              </div>
+            </div>
+            <p class="pb-4 text-start text-xs leading-[19.5px] text-muted">قطع خشب زيتون منحوتة بعناية، تترك عروق
+              الشجرة تقود شكل الهدية وحكايتها.</p>
+            <div class="flex items-center gap-1 pb-5 text-xs font-bold leading-4 text-ink" aria-label="تقييم 4.8 من 5">
+              <bdi>4.8</bdi><img src="assets/imgs/mcp/arrival-star.svg" alt="" class="h-[11.083px] w-[11.667px]">
+            </div>
+            <div class="mt-auto flex items-center justify-between gap-3 border-t border-line/60 pt-[17px] text-xs">
+              <span class="text-[#918f83]"><bdi>22</bdi> منتج متاح</span><a href="vendor.html?id=jerusalem-olivewood"
+                class="font-bold text-olive underline underline-offset-2 hover:text-copper">زيارة المتجر</a>
+            </div>
+          </article>
+
+          <article
+            class="vendor-card flex min-h-[260px] flex-col rounded-[20px] border border-line bg-surface p-5 shadow-card transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:border-copper/40 hover:shadow-soft sm:rounded-[24px] sm:p-[25px]"
+            data-name="منسوجات رواق رام الله" data-city="رام الله">
+            <div class="flex items-center justify-start gap-4 pb-4">
+              <span
+                class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-sage/40 bg-sage/20 p-0.5 text-xl font-bold leading-7 text-olive">ر.ر</span>
+              <div class="min-w-0 flex-1 text-start">
+                <h3 class="truncate text-base font-bold leading-6">منسوجات رواق رام الله</h3>
+                <p class="flex items-center justify-start gap-1 text-xs font-medium leading-4 text-copper"><img
+                    src="assets/imgs/mcp/artisan-location.svg" alt="" class="h-[9.752px] w-[7.774px]"><span>رام
+                    الله</span></p>
+              </div>
+            </div>
+            <p class="pb-4 text-start text-xs leading-[19.5px] text-muted">أوشحة وبياضات بيتية منسوجة بخيوط قطنية
+              هادئة، تحمل إيقاع النول لا ضجيج المصنع.</p>
+            <div class="flex items-center gap-1 pb-5 text-xs font-bold leading-4 text-ink" aria-label="تقييم 4.6 من 5">
+              <bdi>4.6</bdi><img src="assets/imgs/mcp/arrival-star.svg" alt="" class="h-[11.083px] w-[11.667px]">
+            </div>
+            <div class="mt-auto flex items-center justify-between gap-3 border-t border-line/60 pt-[17px] text-xs">
+              <span class="text-[#918f83]"><bdi>19</bdi> منتج متاح</span><a href="vendor.html?id=rawaq-ramallah"
+                class="font-bold text-olive underline underline-offset-2 hover:text-copper">زيارة المتجر</a>
+            </div>
+          </article>
+
+          <article
+            class="vendor-card flex min-h-[260px] flex-col rounded-[20px] border border-line bg-surface p-5 shadow-card transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:border-copper/40 hover:shadow-soft sm:rounded-[24px] sm:p-[25px]"
+            data-name="صابون خان نابلس" data-city="نابلس">
+            <div class="flex items-center justify-start gap-4 pb-4">
+              <span
+                class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-copper/20 bg-copper/10 p-0.5 text-xl font-bold leading-7 text-copper">خ.ن</span>
+              <div class="min-w-0 flex-1 text-start">
+                <h3 class="truncate text-base font-bold leading-6">صابون خان نابلس</h3>
+                <p class="flex items-center justify-start gap-1 text-xs font-medium leading-4 text-copper"><img
+                    src="assets/imgs/mcp/artisan-location.svg" alt="" class="h-[9.752px] w-[7.774px]"><span>نابلس</span>
+                </p>
+              </div>
+            </div>
+            <p class="pb-4 text-start text-xs leading-[19.5px] text-muted">قوالب صابون زيت زيتون بنَفَس نابلسي قديم،
+              تقطع وتختم يدوياً كما كانت تفعل الخانات.</p>
+            <div class="flex items-center gap-1 pb-5 text-xs font-bold leading-4 text-ink" aria-label="تقييم 4.9 من 5">
+              <bdi>4.9</bdi><img src="assets/imgs/mcp/arrival-star.svg" alt="" class="h-[11.083px] w-[11.667px]">
+            </div>
+            <div class="mt-auto flex items-center justify-between gap-3 border-t border-line/60 pt-[17px] text-xs">
+              <span class="text-[#918f83]"><bdi>27</bdi> منتج متاح</span><a href="vendor.html?id=khan-nablus-soap"
+                class="font-bold text-olive underline underline-offset-2 hover:text-copper">زيارة المتجر</a>
+            </div>
+          </article>
+
+          <article
+            class="vendor-card flex min-h-[260px] flex-col rounded-[20px] border border-line bg-surface p-5 shadow-card transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:border-copper/40 hover:shadow-soft sm:rounded-[24px] sm:p-[25px]"
+            data-name="تطريز مرج ابن عامر" data-city="جنين">
+            <div class="flex items-center justify-start gap-4 pb-4">
+              <span
+                class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-sage/40 bg-sage/20 p-0.5 text-xl font-bold leading-7 text-olive">م.ع</span>
+              <div class="min-w-0 flex-1 text-start">
+                <h3 class="truncate text-base font-bold leading-6">تطريز مرج ابن عامر</h3>
+                <p class="flex items-center justify-start gap-1 text-xs font-medium leading-4 text-copper"><img
+                    src="assets/imgs/mcp/artisan-location.svg" alt="" class="h-[9.752px] w-[7.774px]"><span>جنين</span>
+                </p>
+              </div>
+            </div>
+            <p class="pb-4 text-start text-xs leading-[19.5px] text-muted">وسائد وحقائب مطرزة بغرز ريفية هادئة، تنسج
+              ألوان المرج في قطعة تعيش طويلاً.</p>
+            <div class="flex items-center gap-1 pb-5 text-xs font-bold leading-4 text-ink" aria-label="تقييم 4.7 من 5">
+              <bdi>4.7</bdi><img src="assets/imgs/mcp/arrival-star.svg" alt="" class="h-[11.083px] w-[11.667px]">
+            </div>
+            <div class="mt-auto flex items-center justify-between gap-3 border-t border-line/60 pt-[17px] text-xs">
+              <span class="text-[#918f83]"><bdi>14</bdi> منتج متاح</span><a href="vendor.html?id=marj-embroidery"
+                class="font-bold text-olive underline underline-offset-2 hover:text-copper">زيارة المتجر</a>
+            </div>
+          </article>
+        </div>
+
+        <div id="vendorEmptyState"
+          class="hidden rounded-[20px] border border-line bg-surface p-8 text-center shadow-card sm:p-10">
+          <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-copper/10 text-copper">
+            <i data-lucide="search-x" class="h-7 w-7"></i>
+          </span>
+          <h2 class="mt-4 text-[22px] font-semibold leading-8 text-ink">لا يوجد تجار مطابقين</h2>
+          <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-muted">جرّب اسماً أقصر أو ابحث باسم مدينة مثل نابلس،
+            الخليل، بيت لحم، أو القدس.</p>
+          <button id="clearVendorSearch" type="button"
+            class="mt-5 inline-flex items-center justify-center gap-2 rounded-[16px] bg-sage px-5 py-3 text-sm font-bold text-ink shadow-sm transition-colors hover:bg-[#a7af82]">
+            <i data-lucide="x" class="h-4 w-4"></i>
+            <span>مسح البحث</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-sage bg-olive text-white lg:h-[355px]" data-node-id="223:964">
+    <div class="mx-auto flex w-full max-w-[1280px] flex-col gap-9 px-4 pb-8 pt-10 sm:gap-12 sm:pb-10 sm:pt-14 lg:px-8"
+      data-node-id="223:965">
+      <div class="grid w-full grid-cols-2 gap-x-6 gap-y-9 sm:gap-10 lg:h-[159px] lg:grid-cols-5 lg:gap-12"
+        data-node-id="223:966">
+        <div class="col-span-2 flex flex-col items-start gap-4 text-start lg:col-span-2" data-node-id="223:967">
+          <div class="flex w-full items-center justify-start gap-3" data-node-id="223:968">
+            <span
+              class="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[16px] bg-surface p-1 shadow-sm"><img
+                src="assets/imgs/mcp/footer-logo.png" alt="شعار حِرفة" class="h-[50px] w-[50px] object-cover"></span>
+            <div class="flex flex-col items-start">
+              <div class="flex items-center justify-start gap-1.5"><i
+                  class="h-1.5 w-1.5 rounded-full bg-copper"></i><strong
+                  class="text-2xl font-bold leading-8 text-[#fef3c7]">حِــرْفَة</strong></div>
+              <p class="text-[10px] font-medium uppercase leading-[15px] tracking-[.5px] text-white/70">سوق الصنعة
+                الفلسطينية الأصيلة</p>
+            </div>
+          </div>
+          <p class="w-full max-w-[384px] text-start text-sm font-light leading-5 text-white/75">سوق رقمي مباشر يوثق
+            التراث ويربط الحرفيين المستقلين والتعاونيات النسوية بالمستهلك الواعي حول العالم بجودة وأصالة استثنائية.</p>
+          <div class="flex w-full items-center justify-start gap-2.5 pt-2">
+            <a href="#"
+              class="flex h-8 w-8 items-center justify-center rounded-full border border-surface/10 bg-surface/10"
+              aria-label="انستغرام"><img src="assets/imgs/mcp/footer-instagram.svg" alt="" class="h-4 w-4"></a>
+            <a href="#"
+              class="flex h-8 w-8 items-center justify-center rounded-full border border-surface/10 bg-surface/10"
+              aria-label="فيسبوك"><img src="assets/imgs/mcp/footer-facebook.svg" alt="" class="h-4 w-4"></a>
+            <a href="#"
+              class="flex h-8 w-8 items-center justify-center rounded-full border border-surface/10 bg-surface/10"
+              aria-label="اكس"><img src="assets/imgs/mcp/footer-x.svg" alt="" class="h-[14px] w-[14px]"></a>
+          </div>
+        </div>
+        <div class="flex flex-col items-start gap-[14px] text-start" data-node-id="223:991">
+          <h3 class="w-full text-start text-sm font-bold leading-5 tracking-[.35px] text-[#fde68a]">عن حِرفة</h3>
+          <ul class="flex w-full flex-col gap-[9.5px] text-xs leading-4 text-white/75">
+            <li><a href="#" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>قصة المنصة ورؤيتها</span></a></li>
+            <li><a href="#" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>ميثاق الأصالة والجودة</span></a></li>
+            <li><a href="#" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>تواصل واستفسارات</span></a></li>
+          </ul>
+        </div>
+        <div class="flex flex-col items-start gap-[14px] text-start" data-node-id="223:1004">
+          <h3 class="w-full text-start text-sm font-bold leading-5 tracking-[.35px] text-[#fde68a]">روابط مفيدة</h3>
+          <ul class="flex w-full flex-col gap-[9.5px] text-xs leading-4 text-white/75">
+            <li><a href="orders.html" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>طلباتي</span></a></li>
+            <li><a href="cart.html" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>سلة المشتريات</span></a></li>
+            <li><a href="login.html" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>تسجيل الدخول</span></a></li>
+            <li><a href="profile.html" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>حسابي</span></a></li>
+          </ul>
+        </div>
+        <div class="flex flex-col items-start gap-[14px] text-start" data-node-id="223:1017">
+          <h3 class="w-full text-start text-sm font-bold leading-5 tracking-[.35px] text-[#fde68a]">خدمة العملاء</h3>
+          <ul class="flex w-full flex-col gap-[9.5px] text-xs leading-4 text-white/75">
+            <li><a href="#" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>الشحن والتوصيل المنظم</span></a></li>
+            <li><a href="#" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>سياسة الاستبدال والإرجاع</span></a></li>
+            <li><a href="#" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>الأسئلة الأكثر شيوعاً</span></a></li>
+          </ul>
+        </div>
+      </div>
+      <div
+        class="flex w-full flex-col gap-5 border-t border-surface/10 pt-6 sm:flex-row sm:items-center sm:justify-between"
+        data-node-id="223:1030">
+        <p class="text-start text-xs leading-4 text-white/70"><bdi>© 2026</bdi> حِرفة. جميع الحقوق محفوظة لرواد الحِرف
+          الأصيلة في فلسطين.</p>
+        <div class="flex flex-col items-start gap-3 text-[11px] leading-4 sm:flex-row sm:flex-wrap sm:items-center">
+          <span class="text-white/50">طرق الدفع الآمنة:</span>
+          <div class="flex flex-wrap items-center gap-2">
+            <span
+              class="flex h-[26px] items-center gap-1.5 rounded-lg border border-surface/10 bg-surface/5 px-[11px] font-medium text-white/90"><img
+                src="assets/imgs/mcp/footer-card.svg" alt="" class="h-[7.75px] w-[9.75px]"><span>بطاقة
+                ائتمان</span></span>
+            <span
+              class="flex h-[26px] items-center gap-1.5 rounded-lg border border-surface/10 bg-surface/5 px-[11px] font-medium text-white/90"><img
+                src="assets/imgs/mcp/footer-apple.svg" alt="" class="h-[10.75px] w-[7.25px]"><span lang="en">Apple
+                Pay</span></span>
+            <span
+              class="flex h-[26px] items-center gap-1.5 rounded-lg border border-surface/10 bg-surface/5 px-[11px] font-medium text-white/90"><img
+                src="assets/imgs/mcp/footer-cod.svg" alt="" class="h-[9.745px] w-[10.756px]"><span>الدفع عند
+                الاستلام</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+  <script src="assets/js/vendor/jquery.min.js" defer></script>
+  <script src="assets/js/vendor/lucide.min.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</body>
+
+</html>

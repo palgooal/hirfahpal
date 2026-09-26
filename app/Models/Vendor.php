@@ -12,4 +12,24 @@ class Vendor extends Authenticatable
     use HasAccountProfile;
     use HasFactory;
     use Notifiable;
+
+    public function profile()
+    {
+        return $this->hasOne(VendorProfile::class);
+    }
+
+    public function products()
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    public function vendorOrders()
+    {
+        return $this->hasMany(VendorOrder::class);
+    }
+
+    public function commissionRules()
+    {
+        return $this->hasMany(CommissionRule::class);
+    }
 }

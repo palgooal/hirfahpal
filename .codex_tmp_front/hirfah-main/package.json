@@ -1,0 +1,20 @@
+{
+  "name": "hirfah-new",
+  "version": "1.0.0",
+  "description": "Hirfah Palestinian crafts marketplace",
+  "scripts": {
+    "build": "tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --minify",
+    "dev": "tailwindcss -i ./assets/css/input.css -o ./assets/css/output.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "tailwindcss": "^4.3.3"
+  },
+  "dependencies": {
+    "jquery": "^3.7.1",
+    "lucide": "^0.468.0"
+  }
+}
