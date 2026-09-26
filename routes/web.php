@@ -1,6 +1,5 @@
 <?php
 
-
 use App\Http\Controllers\AccountDashboardController;
 use App\Http\Controllers\Auth\AccountAuthenticatedSessionController;
 use App\Http\Controllers\Auth\AccountNewPasswordController;
@@ -16,16 +15,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['setLocale'])->group(function () {
-    require __DIR__ . '/lang.php';
+    require __DIR__.'/lang.php';
 });
-
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-
-Route::middleware('auth:web')->group(function () {
-   
-});
+Route::middleware('auth:web')->group(function () {});
 
 Route::get('/dashboard', function () {
     if (Auth::guard('admin')->check()) {
@@ -51,30 +46,30 @@ foreach (AccountGuard::all() as $accountType => $account) {
         ->group(function () use ($accountType, $account): void {
             Route::middleware('guest:'.$account['guard'])->group(function () use ($accountType): void {
                 Route::get('/login', [AccountAuthenticatedSessionController::class, 'create'])->name('login')->defaults('account_type', $accountType);
-                Route::post('/login', [AccountAuthenticatedSessionController::class, 'store'])->name('login.store')->defaults('account_type', $accountType);
+                Route::post('/login', [AccountAuthenticatedSessionController::class, 'store'])->name('login.store')->defaults('account_type', $accountType)->middleware('throttle:account-login-ip');
                 Route::get('/register', [AccountRegisteredUserController::class, 'create'])->name('register')->defaults('account_type', $accountType);
-                Route::post('/register', [AccountRegisteredUserController::class, 'store'])->name('register.store')->defaults('account_type', $accountType);
+                Route::post('/register', [AccountRegisteredUserController::class, 'store'])->name('register.store')->defaults('account_type', $accountType)->middleware('throttle:account-register');
                 Route::get('/forgot-password', [AccountPasswordResetLinkController::class, 'create'])->name('password.request')->defaults('account_type', $accountType);
-                Route::post('/forgot-password', [AccountPasswordResetLinkController::class, 'store'])->name('password.email')->defaults('account_type', $accountType);
+                Route::post('/forgot-password', [AccountPasswordResetLinkController::class, 'store'])->name('password.email')->defaults('account_type', $accountType)->middleware('throttle:account-password-email');
                 Route::get('/reset-password/{token}', [AccountNewPasswordController::class, 'create'])->name('password.reset')->defaults('account_type', $accountType);
-                Route::post('/reset-password', [AccountNewPasswordController::class, 'store'])->name('password.update')->defaults('account_type', $accountType);
+                Route::post('/reset-password', [AccountNewPasswordController::class, 'store'])->name('password.update')->defaults('account_type', $accountType)->middleware('throttle:account-password-reset');
             });
 
             Route::middleware('auth:'.$account['guard'])->group(function () use ($accountType): void {
                 Route::post('/logout', [AccountAuthenticatedSessionController::class, 'destroy'])->name('logout')->defaults('account_type', $accountType);
                 Route::get('/dashboard', AccountDashboardController::class)->name('dashboard')->defaults('account_type', $accountType);
             });
-    });
+        });
 }
 
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware('guest:admin')->group(function () {
         Route::get('/login', [AdminAuthenticatedSessionController::class, 'create'])->name('login');
-        Route::post('/login', [AdminAuthenticatedSessionController::class, 'store'])->name('login.store');
+        Route::post('/login', [AdminAuthenticatedSessionController::class, 'store'])->name('login.store')->middleware('throttle:account-login-ip');
         Route::get('/forgot-password', [AdminPasswordResetLinkController::class, 'create'])->name('password.request');
-        Route::post('/forgot-password', [AdminPasswordResetLinkController::class, 'store'])->name('password.email');
+        Route::post('/forgot-password', [AdminPasswordResetLinkController::class, 'store'])->name('password.email')->middleware('throttle:account-password-email');
         Route::get('/reset-password/{token}', [AdminNewPasswordController::class, 'create'])->name('password.reset');
-        Route::post('/reset-password', [AdminNewPasswordController::class, 'store'])->name('password.update');
+        Route::post('/reset-password', [AdminNewPasswordController::class, 'store'])->name('password.update')->middleware('throttle:account-password-reset');
     });
 
     Route::middleware('auth:admin')->group(function () {
