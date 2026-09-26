@@ -155,15 +155,16 @@ class SuperAdminResolutionTest extends TestCase
         }
     }
 
-    public function test_database_seeder_creates_a_flagged_super_admin(): void
+    public function test_database_seeder_does_not_create_or_modify_admins(): void
     {
+        $admin = $this->createAdmin(status: 'blocked');
+        $before = $admin->fresh()->getAttributes();
+
         $this->seed(DatabaseSeeder::class);
 
-        $seeded = Admin::sole();
-
-        $this->assertTrue($seeded->isActiveSuperAdmin());
-        $this->assertSame([], $seeded->abilityNames());
-        $this->assertTrue($seeded->can('edit', Setting::class));
+        $this->assertSame(1, Admin::count());
+        $this->assertSame($before, $admin->fresh()->getAttributes());
+        $this->assertFalse($admin->fresh()->isSuperAdmin());
     }
 
     public function test_make_super_command_promotes_a_selected_active_admin(): void
