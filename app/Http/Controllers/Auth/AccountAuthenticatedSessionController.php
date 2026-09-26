@@ -31,7 +31,8 @@ class AccountAuthenticatedSessionController extends Controller
         $user = $guardLoginService->authenticate(
             $account['model'],
             $request->string('login')->toString(),
-            $request->string('password')->toString()
+            $request->string('password')->toString(),
+            throttleScope: $account['guard'],
         );
 
         Auth::guard($account['guard'])->login($user, $request->boolean('remember'));

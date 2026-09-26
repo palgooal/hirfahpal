@@ -44,4 +44,39 @@ class Admin extends Authenticatable
     {
         return $this->hasMany(RoleUser::class, 'user_id');
     }
+
+    /**
+     * Super admin status comes only from the stored flag, never from
+     * role_user rows or the Gate.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return (bool) $this->super_admin;
+    }
+
+    public function isActiveSuperAdmin(): bool
+    {
+        return $this->isSuperAdmin() && $this->status === 'active';
+    }
+
+    /**
+     * Ability names explicitly granted through role_user.
+     *
+     * @return array<int, string>
+     */
+    public function abilityNames(): array
+    {
+        return $this->roles()
+            ->where('ability', 'allow')
+            ->pluck('role_name')
+            ->all();
+    }
+
+    public function hasAbility(string $ability): bool
+    {
+        return $this->roles()
+            ->where('role_name', $ability)
+            ->where('ability', 'allow')
+            ->exists();
+    }
 }

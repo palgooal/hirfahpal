@@ -69,13 +69,13 @@
                                     </td>
                                     <td class="text-end">
                                         <div class="d-inline-flex gap-2">
-                                            @can('edit', App\Models\Admin::class)
+                                            @can('edit', $admin)
                                                 <a href="{{ route('dashboard.admins.edit', $admin) }}" class="btn btn-sm btn-light-secondary">
                                                     {{ t('dashboard.Edit', 'Edit') }}
                                                 </a>
                                             @endcan
 
-                                            @can('delete', App\Models\Admin::class)
+                                            @can('delete', $admin)
                                                 <form action="{{ route('dashboard.admins.destroy', $admin) }}" method="POST" onsubmit="return confirm('{{ t('dashboard.confirm_delete', 'Are you sure?') }}');">
                                                     @csrf
                                                     @method('DELETE')

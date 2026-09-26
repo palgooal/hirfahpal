@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
-use App\Models\Business;
 use App\Models\Category;
 use App\Models\JobListing;
 use App\Models\Owner;

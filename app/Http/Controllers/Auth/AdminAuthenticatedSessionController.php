@@ -27,7 +27,8 @@ class AdminAuthenticatedSessionController extends Controller
         $admin = $guardLoginService->authenticate(
             Admin::class,
             $request->string('login')->toString(),
-            $request->string('password')->toString()
+            $request->string('password')->toString(),
+            throttleScope: 'admin',
         );
 
         Auth::guard('admin')->login($admin, $request->boolean('remember'));

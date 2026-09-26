@@ -30,19 +30,21 @@
         />
     </div>
 
-    <div class="col-12 col-md-6">
-        <label class="form-label" for="status">{{ t('dashboard.Status', 'Status') }}</label>
-        <select name="status" id="status" class="form-control @error('status') is-invalid @enderror">
-            @foreach (['active' => 'Active', 'pending' => 'Pending', 'blocked' => 'Blocked'] as $value => $label)
-                <option value="{{ $value }}" @selected(old('status', $admin->status ?: 'active') === $value)>
-                    {{ t('dashboard.' . $label, $label) }}
-                </option>
-            @endforeach
-        </select>
-        @error('status')
-            <div class="invalid-feedback">{{ $message }}</div>
-        @enderror
-    </div>
+    @unless ($restrictedSelfEdit)
+        <div class="col-12 col-md-6">
+            <label class="form-label" for="status">{{ t('dashboard.Status', 'Status') }}</label>
+            <select name="status" id="status" class="form-control @error('status') is-invalid @enderror">
+                @foreach (['active' => 'Active', 'pending' => 'Pending', 'blocked' => 'Blocked'] as $value => $label)
+                    <option value="{{ $value }}" @selected(old('status', $admin->status ?: 'active') === $value)>
+                        {{ t('dashboard.' . $label, $label) }}
+                    </option>
+                @endforeach
+            </select>
+            @error('status')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+    @endunless
 
     <div class="col-12 col-md-6">
         @if ($admin->exists)
@@ -78,7 +80,7 @@
         @endif
     </div>
 
-    @can('super', App\Models\Admin::class)
+    @if (auth('admin')->user()?->isSuperAdmin())
         <div class="col-12">
             <div class="form-check form-switch">
                 <input type="hidden" name="super_admin" value="0">
@@ -94,50 +96,60 @@
                     {{ t('dashboard.Super_Admin', 'Super Admin') }}
                 </label>
             </div>
+            @error('super_admin')
+                <div class="text-danger small mt-1">{{ $message }}</div>
+            @enderror
         </div>
-    @endcan
+    @endif
 </div>
 
-<hr class="my-4">
+{{-- Only abilities the signed-in admin may grant are listed; the controller enforces the same scope. --}}
+@unless ($restrictedSelfEdit || $grantableAbilities === [])
+    <hr class="my-4">
 
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <div>
-        <h5 class="mb-1">{{ t('dashboard.Permissions', 'Permissions') }}</h5>
-        <p class="text-muted mb-0">{{ t('dashboard.Permissions_hint', 'Choose what this admin can access in the dashboard.') }}</p>
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <h5 class="mb-1">{{ t('dashboard.Permissions', 'Permissions') }}</h5>
+            <p class="text-muted mb-0">{{ t('dashboard.Permissions_hint', 'Choose what this admin can access in the dashboard.') }}</p>
+        </div>
     </div>
-</div>
 
-<div class="row g-3">
-    @foreach (app('abilities') as $groupName => $abilityGroup)
-        <div class="col-12 col-lg-4">
-            <div class="card h-100 border">
-                <div class="card-body">
-                    <h6 class="mb-3">{{ $abilityGroup['name'] }}</h6>
+    <div class="row g-3">
+        @foreach (app('abilities') as $groupName => $abilityGroup)
+            @continue(! collect($abilityGroup)->keys()->contains(fn ($abilityName) => in_array($groupName . '.' . $abilityName, $grantableAbilities, true)))
 
-                    @foreach ($abilityGroup as $abilityName => $abilityLabel)
-                        @continue($abilityName === 'name')
+            <div class="col-12 col-lg-4">
+                <div class="card h-100 border">
+                    <div class="card-body">
+                        <h6 class="mb-3">{{ $abilityGroup['name'] }}</h6>
 
-                        @php($value = $groupName . '.' . $abilityName)
+                        @foreach ($abilityGroup as $abilityName => $abilityLabel)
+                            @continue($abilityName === 'name')
 
-                        <div class="form-check mb-2">
-                            <input
-                                class="form-check-input"
-                                type="checkbox"
-                                name="abilities[]"
-                                id="ability-{{ $groupName }}-{{ $abilityName }}"
-                                value="{{ $value }}"
-                                @checked(in_array($value, $selectedAbilities, true))
-                            >
-                            <label class="form-check-label" for="ability-{{ $groupName }}-{{ $abilityName }}">
-                                {{ $abilityLabel }}
-                            </label>
-                        </div>
-                    @endforeach
+                            @php($value = $groupName . '.' . $abilityName)
+
+                            @continue(! in_array($value, $grantableAbilities, true))
+
+                            <div class="form-check mb-2">
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    name="abilities[]"
+                                    id="ability-{{ $groupName }}-{{ $abilityName }}"
+                                    value="{{ $value }}"
+                                    @checked(in_array($value, $selectedAbilities, true))
+                                >
+                                <label class="form-check-label" for="ability-{{ $groupName }}-{{ $abilityName }}">
+                                    {{ $abilityLabel }}
+                                </label>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             </div>
-        </div>
-    @endforeach
-</div>
+        @endforeach
+    </div>
+@endunless
 
 <div class="d-flex justify-content-end gap-2 mt-4">
     <a href="{{ route('dashboard.admins.index') }}" class="btn btn-light-secondary">
