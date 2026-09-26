@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Dashboard;
 
+use App\Http\Middleware\EnsureAccountIsActive;
 use App\Models\Admin;
 use App\Models\RoleUser;
 use App\Models\Setting;
@@ -352,7 +353,10 @@ class AdminManagementTest extends TestCase
             ->put(route('dashboard.admins.update', $superAdmin), $this->payload($superAdmin, ['status' => 'blocked']))
             ->assertSessionHasErrors('super_admin');
 
-        $this->actingAs($inactiveSuper, 'admin')
+        // A non-active actor is signed out by EnsureAccountIsActive (SEC-05); bypass it
+        // here so the controller's last-active-super invariant is still exercised.
+        $this->withoutMiddleware(EnsureAccountIsActive::class)
+            ->actingAs($inactiveSuper, 'admin')
             ->put(route('dashboard.admins.update', $superAdmin), $this->payload($superAdmin, ['status' => 'blocked']))
             ->assertSessionHasErrors('super_admin');
 
@@ -364,7 +368,9 @@ class AdminManagementTest extends TestCase
         $superAdmin = $this->createAdmin(superAdmin: true);
         $inactiveSuper = $this->createAdmin(superAdmin: true, status: 'pending');
 
-        $this->actingAs($inactiveSuper, 'admin')
+        // See test_last_active_super_admin_cannot_be_blocked: exercise the controller invariant directly.
+        $this->withoutMiddleware(EnsureAccountIsActive::class)
+            ->actingAs($inactiveSuper, 'admin')
             ->delete(route('dashboard.admins.destroy', $superAdmin))
             ->assertRedirect(route('dashboard.admins.index'))
             ->assertSessionHas('danger');

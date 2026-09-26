@@ -121,7 +121,10 @@ class SuperAdminResolutionTest extends TestCase
         $this->createAdmin(superAdmin: true);
 
         $this->assertNoGlobalAccess($blocked);
-        $this->actingAs($blocked, 'admin')->get(route('dashboard.setting.index'))->assertForbidden();
+        $this->actingAs($blocked, 'admin')->get(route('dashboard.setting.index'))
+            ->assertRedirect(route('admin.login'))
+            ->assertSessionHasErrors(['login' => __('auth.inactive')]);
+        $this->assertGuest('admin');
     }
 
     public function test_pending_lowest_id_admin_gets_no_privilege_from_its_id(): void
@@ -130,7 +133,10 @@ class SuperAdminResolutionTest extends TestCase
         $this->createAdmin(superAdmin: true);
 
         $this->assertNoGlobalAccess($pending);
-        $this->actingAs($pending, 'admin')->get(route('dashboard.setting.index'))->assertForbidden();
+        $this->actingAs($pending, 'admin')->get(route('dashboard.setting.index'))
+            ->assertRedirect(route('admin.login'))
+            ->assertSessionHasErrors(['login' => __('auth.inactive')]);
+        $this->assertGuest('admin');
     }
 
     public function test_authorization_does_not_look_up_the_lowest_admin(): void
