@@ -60,27 +60,28 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
+        // Each HIRFAH broker keeps its own token table so tokens never cross account types.
         'customers' => [
             'provider' => 'customers',
-            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'table' => 'customer_password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,
         ],
         'vendors' => [
             'provider' => 'vendors',
-            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'table' => 'vendor_password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,
         ],
         'delivery_drivers' => [
             'provider' => 'delivery_drivers',
-            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'table' => 'delivery_driver_password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,
         ],
         'admins' => [
             'provider' => 'admins',
-            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'table' => 'admin_password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,
         ],
