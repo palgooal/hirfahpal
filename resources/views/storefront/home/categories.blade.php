@@ -17,7 +17,7 @@
         <div
           class="mobile-rail -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:w-[min(82vw,310px)] [&>*]:shrink-0 [&>*]:snap-start sm:mx-0 sm:grid sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 sm:[&>*]:w-auto sm:[&>*]:shrink sm:grid-cols-2 lg:grid-cols-4"
           data-node-id="223:348">
-          <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?category=pottery"
+          <a href="{{ route('browse', ['category' => 'pottery']) }}"
             class="group relative h-[384px] overflow-hidden rounded-[24px] border border-line bg-surface p-px shadow-sm"
             data-node-id="223:394">
             <img src="{{ asset('assets/storefront/imgs/mcp/category-ceramics.png') }}" alt="الفخار والخزف اليدوي الفلسطيني"
@@ -34,7 +34,7 @@
             </span>
           </a>
 
-          <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?category=embroidery"
+          <a href="{{ route('browse', ['category' => 'embroidery']) }}"
             class="group relative h-[384px] overflow-hidden rounded-[24px] border border-line bg-surface p-px shadow-sm"
             data-node-id="223:379">
             <img src="{{ asset('assets/storefront/imgs/mcp/category-embroidery.png') }}" alt="التطريز الفلسطيني التراثي"
@@ -51,7 +51,7 @@
             </span>
           </a>
 
-          <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?category=baskets"
+          <a href="{{ route('browse', ['category' => 'baskets']) }}"
             class="group relative h-[384px] overflow-hidden rounded-[24px] border border-line bg-surface p-px shadow-sm"
             data-node-id="223:364">
             <img src="{{ asset('assets/storefront/imgs/mcp/category-basket.png') }}" alt="السلال والقش والنسيج الريفي"
@@ -68,7 +68,7 @@
             </span>
           </a>
 
-          <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?category=candles-soaps"
+          <a href="{{ route('browse', ['category' => 'candles-soaps']) }}"
             class="group relative h-[384px] overflow-hidden rounded-[24px] border border-line bg-surface p-px shadow-sm"
             data-node-id="223:349">
             <img src="{{ asset('assets/storefront/imgs/mcp/category-candle.png') }}" alt="شموع وزيوت طبيعية وصابون نابلسي"

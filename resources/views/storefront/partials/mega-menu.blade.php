@@ -4,7 +4,7 @@
 
               <ul class="w-56 shrink-0 border-e border-line bg-canvas/60 p-2">
                 <li>
-                  <a role="link" tabindex="0" aria-disabled="true" data-deferred-navigation="browse.html?category=pottery" data-mega-category="pottery"
+                  <a href="{{ route('browse', ['category' => 'pottery']) }}" data-mega-category="pottery"
                     class="mega-category-trigger group/item flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-ink [&.mega-category-active]:bg-surface [&.mega-category-active]:text-copper">
                     <span class="flex items-center gap-2.5">
                       <img src="{{ asset('assets/storefront/imgs/mcp/category-ceramics.png') }}" alt="" class="h-8 w-8 shrink-0 rounded-lg object-cover">
@@ -14,7 +14,7 @@
                   </a>
                 </li>
                 <li>
-                  <a role="link" tabindex="0" aria-disabled="true" data-deferred-navigation="browse.html?category=embroidery" data-mega-category="embroidery"
+                  <a href="{{ route('browse', ['category' => 'embroidery']) }}" data-mega-category="embroidery"
                     class="mega-category-trigger group/item flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-ink [&.mega-category-active]:bg-surface [&.mega-category-active]:text-copper">
                     <span class="flex items-center gap-2.5">
                       <img src="{{ asset('assets/storefront/imgs/mcp/category-embroidery.png') }}" alt="" class="h-8 w-8 shrink-0 rounded-lg object-cover">
@@ -24,7 +24,7 @@
                   </a>
                 </li>
                 <li>
-                  <a role="link" tabindex="0" aria-disabled="true" data-deferred-navigation="browse.html?category=baskets" data-mega-category="baskets"
+                  <a href="{{ route('browse', ['category' => 'baskets']) }}" data-mega-category="baskets"
                     class="mega-category-trigger group/item flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-ink [&.mega-category-active]:bg-surface [&.mega-category-active]:text-copper">
                     <span class="flex items-center gap-2.5">
                       <img src="{{ asset('assets/storefront/imgs/mcp/category-basket.png') }}" alt="" class="h-8 w-8 shrink-0 rounded-lg object-cover">
@@ -34,7 +34,7 @@
                   </a>
                 </li>
                 <li>
-                  <a role="link" tabindex="0" aria-disabled="true" data-deferred-navigation="browse.html?category=candles-soaps" data-mega-category="candles-soaps"
+                  <a href="{{ route('browse', ['category' => 'candles-soaps']) }}" data-mega-category="candles-soaps"
                     class="mega-category-trigger group/item flex items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold text-ink [&.mega-category-active]:bg-surface [&.mega-category-active]:text-copper">
                     <span class="flex items-center gap-2.5">
                       <img src="{{ asset('assets/storefront/imgs/mcp/category-candle.png') }}" alt="" class="h-8 w-8 shrink-0 rounded-lg object-cover">

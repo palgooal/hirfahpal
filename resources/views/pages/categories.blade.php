@@ -30,7 +30,7 @@
         </div>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
-          <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?category=pottery"
+          <a href="{{ route('browse', ['category' => 'pottery']) }}"
             class="group relative h-[384px] overflow-hidden rounded-[24px] border border-line bg-surface p-px shadow-sm"
             aria-label="تصفح الفخار والخزف">
             <img src="{{ asset('assets/storefront/imgs/mcp/category-ceramics.png') }}" alt="الفخار والخزف اليدوي الفلسطيني"
@@ -48,7 +48,7 @@
             </span>
           </a>
 
-          <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?category=embroidery"
+          <a href="{{ route('browse', ['category' => 'embroidery']) }}"
             class="group relative h-[384px] overflow-hidden rounded-[24px] border border-line bg-surface p-px shadow-sm"
             aria-label="تصفح التطريز الفلسطيني">
             <img src="{{ asset('assets/storefront/imgs/mcp/category-embroidery.png') }}" alt="التطريز الفلسطيني التراثي"
@@ -66,7 +66,7 @@
             </span>
           </a>
 
-          <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?category=baskets"
+          <a href="{{ route('browse', ['category' => 'baskets']) }}"
             class="group relative h-[384px] overflow-hidden rounded-[24px] border border-line bg-surface p-px shadow-sm"
             aria-label="تصفح القش والسلال">
             <img src="{{ asset('assets/storefront/imgs/mcp/category-basket.png') }}" alt="السلال والقش والنسيج الريفي"
@@ -83,7 +83,7 @@
             </span>
           </a>
 
-          <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?category=candles-soaps"
+          <a href="{{ route('browse', ['category' => 'candles-soaps']) }}"
             class="group relative h-[384px] overflow-hidden rounded-[24px] border border-line bg-surface p-px shadow-sm"
             aria-label="تصفح الشموع والصابون">
             <img src="{{ asset('assets/storefront/imgs/mcp/category-candle.png') }}" alt="شموع وزيوت طبيعية وصابون نابلسي"
@@ -100,7 +100,7 @@
             </span>
           </a>
 
-          <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?category=textiles"
+          <a href="{{ route('browse', ['category' => 'textiles']) }}"
             class="group relative h-[384px] overflow-hidden rounded-[24px] border border-line bg-surface p-px shadow-sm"
             aria-label="تصفح المنسوجات والوسائد">
             <img src="{{ asset('assets/storefront/imgs/mcp/arrival-cushion.png') }}" alt="وسائد ومنسوجات فلسطينية مطرزة"
@@ -117,7 +117,7 @@
             </span>
           </a>
 
-          <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?category=tableware"
+          <a href="{{ route('browse', ['category' => 'tableware']) }}"
             class="group relative h-[384px] overflow-hidden rounded-[24px] border border-line bg-surface p-px shadow-sm"
             aria-label="تصفح أواني التقديم">
             <img src="{{ asset('assets/storefront/imgs/mcp/arrival-pitcher.png') }}" alt="أواني تقديم خزفية مرسومة يدوياً"
@@ -134,7 +134,7 @@
             </span>
           </a>
 
-          <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?category=gifts"
+          <a href="{{ route('browse', ['category' => 'gifts']) }}"
             class="group relative h-[384px] overflow-hidden rounded-[24px] border border-line bg-surface p-px shadow-sm"
             aria-label="تصفح الهدايا التراثية">
             <img src="{{ asset('assets/storefront/imgs/mcp/hero-main.png') }}" alt="مجموعة هدايا تراثية من مشغولات فلسطينية"
@@ -150,7 +150,7 @@
             </span>
           </a>
 
-          <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?category=home-decor"
+          <a href="{{ route('browse', ['category' => 'home-decor']) }}"
             class="group relative h-[384px] overflow-hidden rounded-[24px] border border-line bg-surface p-px shadow-sm"
             aria-label="تصفح زينة البيت اليدوية">
             <img src="{{ asset('assets/storefront/imgs/mcp/season-basket.png') }}" alt="زينة بيت يدوية من القش والمنسوجات"
