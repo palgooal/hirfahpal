@@ -34,7 +34,7 @@ $(function () {
     galilee: 'الجليل'
   };
 
-  const pageSize = 8;
+  const pageSize = 9;
   const $cards = $('#productGrid .product-card');
   const $grid = $('#productGrid');
   const $activeFilters = $('#activeFilters');
@@ -62,7 +62,7 @@ $(function () {
       cities: selectedValues('city'),
       minPrice: Number.isFinite(minPrice) && minPrice > 0 ? minPrice : null,
       maxPrice: Number.isFinite(maxPrice) && maxPrice > 0 ? maxPrice : null,
-      sort: $('#sortProducts').val()
+      sort: $('.sort-tab-active').data('sort') || 'newest'
     };
   }
 
@@ -222,10 +222,17 @@ $(function () {
     renderPage();
   }
 
+  function setSortTab(sortValue) {
+    $('.sort-tab').removeClass('sort-tab-active').each(function () {
+      $(this).attr('aria-selected', String($(this).data('sort') === sortValue));
+    });
+    $(`.sort-tab[data-sort="${sortValue}"]`).addClass('sort-tab-active').attr('aria-selected', 'true');
+  }
+
   function resetFilters() {
     $('#browseFilters input[type="checkbox"]').prop('checked', false);
     $('#priceMin, #priceMax').val('');
-    $('#sortProducts').val('newest');
+    setSortTab('newest');
     applyFilters();
   }
 
@@ -245,10 +252,15 @@ $(function () {
 
     if (params.has('min')) $('#priceMin').val(params.get('min'));
     if (params.has('max')) $('#priceMax').val(params.get('max'));
-    if (params.has('sort')) $('#sortProducts').val(params.get('sort'));
+    setSortTab(params.get('sort') || 'newest');
   }
 
-  $('#browseFilters').on('change', 'input, select', function () {
+  $('#browseFilters').on('change', 'input', function () {
+    applyFilters();
+  });
+
+  $('#sortTabs').on('click', '.sort-tab', function () {
+    setSortTab($(this).data('sort'));
     applyFilters();
   });
 

@@ -59,7 +59,39 @@ $(function () {
   $(document).on('keydown', function (event) {
     if (event.key === 'Escape') {
       $('.nav-dropdown').removeClass('nav-dropdown-open').find('button').attr('aria-expanded', 'false');
+      $('.mega-menu').removeClass('mega-menu-open').find('button').attr('aria-expanded', 'false');
     }
+  });
+
+  let megaMenuTimer;
+
+  function setActiveMegaCategory($menu, category) {
+    $menu.find('.mega-category-trigger').removeClass('mega-category-active');
+    $menu.find(`[data-mega-category="${category}"]`).addClass('mega-category-active');
+    $menu.find('.mega-panel').addClass('hidden').removeClass('grid');
+    $menu.find(`[data-mega-panel="${category}"]`).removeClass('hidden').addClass('grid');
+  }
+
+  $('.mega-menu').each(function () {
+    const $menu = $(this);
+    setActiveMegaCategory($menu, $menu.find('.mega-category-trigger').first().data('mega-category'));
+  });
+
+  $('.mega-menu').on('mouseenter', function () {
+    clearTimeout(megaMenuTimer);
+    $('.mega-menu').not(this).removeClass('mega-menu-open').find('button').attr('aria-expanded', 'false');
+    $(this).addClass('mega-menu-open').find('button').attr('aria-expanded', 'true');
+  });
+
+  $('.mega-menu').on('mouseleave', function () {
+    const $menu = $(this);
+    megaMenuTimer = setTimeout(() => {
+      $menu.removeClass('mega-menu-open').find('button').attr('aria-expanded', 'false');
+    }, 150);
+  });
+
+  $('.mega-category-trigger').on('mouseenter focus', function () {
+    setActiveMegaCategory($(this).closest('.mega-menu'), $(this).data('mega-category'));
   });
 
   $('.mobile-nav-dropdown-toggle').on('click', function (event) {
