@@ -48,7 +48,7 @@ $(function () {
   function closeAddressModal() {
     $addressModal.addClass('hidden');
     $('body').removeClass('overflow-hidden');
-    $addressForm[0].reset();
+    if ($addressForm.length) $addressForm[0].reset();
   }
 
   $('[data-open-address-modal]').on('click', function () {
@@ -61,7 +61,7 @@ $(function () {
     }
   });
   $(document).on('keydown', function (event) {
-    if (event.key === 'Escape' && !$addressModal.hasClass('hidden')) {
+    if (event.key === 'Escape' && $addressModal.length && !$addressModal.hasClass('hidden')) {
       closeAddressModal();
     }
   });

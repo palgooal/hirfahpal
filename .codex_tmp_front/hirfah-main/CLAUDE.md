@@ -15,11 +15,11 @@ Read `docs/01-pages-analysis.md`, `docs/02-remaining-pages-plan.md`, and `docs/d
 - Lucide icons (`assets/js/vendor/lucide.min.js`), invoked as `lucide.createIcons()`.
 - No backend, no build-time data — all product/vendor/order data is **hardcoded directly in the HTML**, and simple state (cart count/total) lives in module-scoped JS variables in `assets/js/app.js`.
 
-## Pages (13, all exist)
+## Pages (14, all exist)
 
-`index.html` (Home), `categories.html`, `browse.html` (filtered results), `vendors.html` (directory), `vendor.html` (single storefront), `product.html`, `cart.html`, `checkout.html`, `orders.html` (list), `order-detail.html`, `login.html`, `profile.html`, `rate-order.html`.
+`index.html` (Home), `categories.html`, `browse.html` (filtered results), `vendors.html` (directory), `vendor.html` (single storefront), `product.html`, `cart.html`, `checkout.html`, `orders.html` (list), `order-detail.html`, `login.html`, `profile.html`, `rate-order.html`, `favorites.html`.
 
-Each page has (or should reuse) the same header/footer/mobile-menu/search-panel markup block — when editing shared chrome (nav links, header, footer), **it is duplicated per file, not templated** — changes must be applied to every page individually. Recent commits (`Fix header nav and footer links across all pages`, `Make product cards clickable`) are exactly this pattern: a fix in one shared block has to be repeated across all 13 files. Check consistency across pages after any header/footer/nav change.
+Each page has (or should reuse) the same header/footer/mobile-menu/search-panel markup block — when editing shared chrome (nav links, header, footer), **it is duplicated per file, not templated** — changes must be applied to every page individually. Recent commits (`Fix header nav and footer links across all pages`, `Make product cards clickable`) are exactly this pattern: a fix in one shared block has to be repeated across all 14 files. Check consistency across pages after any header/footer/nav change.
 
 ## Navigation structure (important — supersedes older docs)
 
@@ -34,6 +34,7 @@ Don't reintroduce a generic top-level "Browse" nav item — that model was expli
 ## Non-negotiable business rules (apply to any page touching orders/cart/products)
 
 - **Multi-vendor grouping is the core mental model.** A "Parent Order" = multiple independent "Vendor Sub-orders". Anywhere products/sub-orders appear (cart, checkout, order list, order detail), group by vendor visually — always show vendor name/logo next to the item, never a flat undifferentiated list.
+  - **Exception: `favorites.html`.** Favorites are a personal wishlist, not an order — there's no sub-order/checkout semantics to group by. By deliberate choice it's a flat grid (sortable by date added) with a vendor-name badge per card plus a horizontal filter bar (vendor search/dropdown) instead of per-vendor sections, because a heavy user's favorites can span many vendors and full grouping would make the page unwieldy. Don't "fix" this to match the grouping rule — it's an intentional, scoped exception for this one page only.
 - **Order lifecycle states (sub-order level) — this exact list, never invent extra states:**
   `Pending → Accepted → Preparing → Ready for Delivery → Assigned → Out for Delivery → Delivered → Completed`, plus exception states `Rejected` and `Cancelled`.
 - **Sub-order rejection is a normal state, not an error.** UI must read as "this vendor's part was cancelled, the rest of the order continues" — never as a failure of the whole order.

@@ -110,6 +110,34 @@ if ($) {
           });
         });
 
+        $('.season-filter').on('click', function () {
+            const filter = $(this).data('filter');
+            $('.season-filter')
+                .removeClass('border-sage bg-sage font-bold text-ink shadow-sm')
+                .addClass('border-line bg-surface font-medium text-muted');
+            $(this)
+                .addClass('border-sage bg-sage font-bold text-ink shadow-sm')
+                .removeClass('border-line bg-surface font-medium text-muted');
+            $('.season-product').each(function () {
+                $(this).toggle(filter === 'all' || $(this).data('category') === filter);
+            });
+        });
+
+        $('#globalSearch').on('input', function () {
+            const query = $(this).val().trim();
+            if (!query) return;
+
+            const matches = $('.product-card').filter(function () {
+                return $(this).text().includes(query);
+            }).length;
+
+            if (matches) {
+                $('#searchPanel').fadeOut(120);
+                const target = $('#shop').length ? $('#shop') : $('.product-card').first();
+                $('html, body').animate({ scrollTop: target.offset().top - 30 }, 450);
+            }
+        });
+
         const observer = new IntersectionObserver((entries) => {
             entries.forEach((entry) => {
                 if (!entry.isIntersecting) return;

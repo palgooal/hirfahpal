@@ -13,11 +13,14 @@
 @source "../../login.html";
 @source "../../profile.html";
 @source "../../rate-order.html";
+@source "../../favorites.html";
 @source "../../*.html";
+@source "../../dashboard/*.html";
 @source "../js/app.js";
 @source "../js/auth.js";
 @source "../js/profile.js";
 @source "../js/rate-order.js";
+@source "../js/favorites.js";
 
 @theme {
   --color-ink: #2b2b26;

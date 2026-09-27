@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl" class="scroll-smooth motion-reduce:scroll-auto">
 
 <head>
@@ -315,7 +315,7 @@
             class="flex h-[30px] w-[30px] items-center justify-center overflow-hidden rounded-full border border-olive bg-olive p-px"
             aria-label="بحث"><img src="assets/imgs/mcp/header-search-exact.svg" alt=""
               class="h-[28.667px] w-[14.663px] max-w-none"></button>
-          <a href="profile.html" class="flex h-[30px] w-[30px] items-center justify-center rounded-full" aria-label="الحساب"><img
+          <a href="dashboard/index.html" class="flex h-[30px] w-[30px] items-center justify-center rounded-full" aria-label="الحساب"><img
               src="assets/imgs/mcp/header-user.svg" alt="" class="h-[16.283px] w-[17.875px]"></a>
           <button class="relative flex h-[30px] w-[30px] items-center justify-center rounded-full"
             aria-label="الإشعارات"><img src="assets/imgs/mcp/header-bell.svg" alt=""
@@ -323,6 +323,7 @@
               class="absolute end-[5.42px] top-[2.33px] h-2 w-2 rounded-full bg-copper"></span></button>
           <button class="flex h-[30px] w-[30px] items-center justify-center rounded-full" aria-label="المشاهدة"><img
               src="assets/imgs/mcp/header-eye.svg" alt="" class="h-[14.032px] w-[14.208px]"></button>
+          <a href="dashboard/favorites.html" class="flex h-[30px] w-[30px] items-center justify-center rounded-full" aria-label="مفضلتي"><i data-lucide="heart" class="h-[18px] w-[18px]"></i></a>
           <button id="cartButton"
             class="relative flex h-[30px] w-[86.208px] items-center justify-center gap-2.5 rounded-full border border-olive bg-olive px-[11px] text-surface"
             aria-label="سلة المشتريات">
@@ -374,6 +375,7 @@
         <a href="browse.html?sale=1" class="py-2">العروض</a>
         <a href="index.html#season" class="py-2">مختارات الموسم</a>
         <a href="index.html#artisans" class="py-2">حكايات حِرفة</a>
+        <a href="dashboard/favorites.html" class="py-2">مفضلتي</a>
       </nav>
     </div>
   </header>
@@ -777,13 +779,15 @@
         <div class="flex flex-col items-start gap-[14px] text-start" data-node-id="223:1004">
           <h3 class="w-full text-start text-sm font-bold leading-5 tracking-[.35px] text-[#fde68a]">روابط مفيدة</h3>
           <ul class="flex w-full flex-col gap-[9.5px] text-xs leading-4 text-white/75">
-            <li><a href="orders.html" class="flex items-center justify-start gap-1.5"><i
+            <li><a href="dashboard/orders.html" class="flex items-center justify-start gap-1.5"><i
                   class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>طلباتي</span></a></li>
+            <li><a href="dashboard/favorites.html" class="flex items-center justify-start gap-1.5"><i
+                  class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>مفضلتي</span></a></li>
             <li><a href="cart.html" class="flex items-center justify-start gap-1.5"><i
                   class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>سلة المشتريات</span></a></li>
             <li><a href="login.html" class="flex items-center justify-start gap-1.5"><i
                   class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>تسجيل الدخول</span></a></li>
-            <li><a href="profile.html" class="flex items-center justify-start gap-1.5"><i
+            <li><a href="dashboard/index.html" class="flex items-center justify-start gap-1.5"><i
                   class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>حسابي</span></a></li>
           </ul>
         </div>
