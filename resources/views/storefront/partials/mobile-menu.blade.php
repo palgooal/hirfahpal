@@ -13,7 +13,7 @@
             <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?category=embroidery" class="block py-2 text-muted">التطريز الفلسطيني</a>
             <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?category=baskets" class="block py-2 text-muted">السلال والقش</a>
             <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?category=candles-soaps" class="block py-2 text-muted">الشموع والصابون</a>
-            <a role="link" aria-disabled="true" data-deferred-navigation="categories.html" class="block py-2 font-bold text-olive">استعراض جميع الفئات</a>
+            <a href="{{ route('categories') }}" class="block py-2 font-bold text-olive">استعراض جميع الفئات</a>
           </div>
         </div>
 

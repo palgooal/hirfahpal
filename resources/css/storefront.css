@@ -4,6 +4,7 @@
 @source "../views/components/storefront/**/*.blade.php";
 @source "../views/layouts/storefront.blade.php";
 @source "../views/layouts/storefront/**/*.blade.php";
+@source "../views/pages/categories.blade.php";
 @source "../js/storefront.js";
 
 @theme {

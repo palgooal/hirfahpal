@@ -7,7 +7,7 @@
             <p class="text-xs font-bold uppercase leading-4 tracking-[.6px] text-copper">الحِرف والتقاليد العريقة</p>
             <h2 class="text-[30px] font-bold leading-9 text-ink">تسوق حسب الحرفة والمحافظة</h2>
           </div>
-          <a role="link" aria-disabled="true" data-deferred-navigation="categories.html" class="hidden items-center gap-2.5 p-0.5 text-sm font-bold leading-5 text-olive sm:flex"
+          <a href="{{ route('categories') }}" class="hidden items-center gap-2.5 p-0.5 text-sm font-bold leading-5 text-olive sm:flex"
             data-node-id="223:339">
             <span>استعراض جميع الفئات والمحافظات</span>
             <img src="{{ asset('assets/storefront/imgs/mcp/category-arrow.svg') }}" alt="" class="h-[11.625px] w-[11.625px]">

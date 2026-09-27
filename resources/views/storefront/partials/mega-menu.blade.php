@@ -44,7 +44,7 @@
                   </a>
                 </li>
                 <li class="mt-1 border-t border-line pt-1">
-                  <a role="link" tabindex="0" aria-disabled="true" data-deferred-navigation="categories.html" class="block rounded-xl px-3 py-2.5 text-xs font-bold text-olive hover:bg-surface">استعراض جميع الفئات</a>
+                  <a href="{{ route('categories') }}" class="block rounded-xl px-3 py-2.5 text-xs font-bold text-olive hover:bg-surface">استعراض جميع الفئات</a>
                 </li>
               </ul>
 

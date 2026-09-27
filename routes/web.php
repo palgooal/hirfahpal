@@ -25,6 +25,8 @@ Route::middleware(['setLocale'])->group(function () {
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
+Route::view('/categories', 'pages.categories')->middleware('setLocale')->name('categories');
+
 /*
 |--------------------------------------------------------------------------
 | Shop Routes
