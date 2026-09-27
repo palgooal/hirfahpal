@@ -6,6 +6,7 @@
 @source "../views/layouts/storefront/**/*.blade.php";
 @source "../views/pages/categories.blade.php";
 @source "../js/storefront.js";
+@source "../js/storefront-browse.js";
 
 @theme {
     --color-ink: #2b2b26;

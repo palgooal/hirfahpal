@@ -27,6 +27,8 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 
 Route::view('/categories', 'pages.categories')->middleware('setLocale')->name('categories');
 
+Route::view('/browse', 'pages.browse')->middleware('setLocale')->name('browse');
+
 /*
 |--------------------------------------------------------------------------
 | Shop Routes

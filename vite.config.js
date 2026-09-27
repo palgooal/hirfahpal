@@ -12,6 +12,7 @@ export default defineConfig({
                 'resources/js/admin-auth.js',
                 'resources/css/storefront.css',
                 'resources/js/storefront.js',
+                'resources/js/storefront-browse.js',
             ],
             refresh: true,
         }),
