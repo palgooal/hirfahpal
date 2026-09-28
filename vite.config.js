@@ -13,6 +13,7 @@ export default defineConfig({
                 'resources/css/storefront.css',
                 'resources/js/storefront.js',
                 'resources/js/storefront-browse.js',
+                'resources/js/storefront-product.js',
             ],
             refresh: true,
         }),
