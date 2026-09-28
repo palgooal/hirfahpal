@@ -1,9 +1,10 @@
+@php($onHome = request()->routeIs('home'))
 {{-- Remaining desktop-only assets under public/assets/storefront/imgs/mcp/ are pending. --}}
 {{-- Navigation and control behavior are deferred; cart values are original design placeholders. --}}
     <div class="h-[70px] bg-surface px-4 shadow-[0_2px_7.5px_rgba(43,43,38,.03)] backdrop-blur-[6px] lg:px-8"
       data-node-id="223:3436">
       <div class="mx-auto hidden h-full max-w-[1216px] items-center justify-between py-[10px] lg:flex">
-        <a href="#home" class="flex w-[184px] shrink-0 items-center justify-start gap-3" aria-label="حرفة الرئيسية"
+        <a href="{{ $onHome ? '#home' : route('home') }}" class="flex w-[184px] shrink-0 items-center justify-start gap-3" aria-label="حرفة الرئيسية"
           data-node-id="223:3474">
           <span class="flex h-[58px] w-[58px] items-center justify-center rounded-[16px] bg-surface p-1 shadow-sm"><img
               src="{{ asset('assets/storefront/imgs/mcp/header-logo.png') }}" alt="شعار حرفة" class="h-[50px] w-[50px] object-cover"></span>
@@ -18,7 +19,7 @@
 
         <nav class="flex shrink-0 items-center gap-8 text-[15px] font-semibold leading-[22.5px] text-olive"
           data-node-id="223:3463">
-          <a href="#home" class="border-b-2 border-copper pb-1.5 font-bold text-copper">الرئيسية</a>
+          <a href="{{ $onHome ? '#home' : route('home') }}" class="border-b-2 border-copper pb-1.5 font-bold text-copper">الرئيسية</a>
 
           <div class="mega-menu group relative py-1">
             <button type="button" class="flex items-center gap-1.5" aria-haspopup="true" aria-expanded="false">
@@ -30,8 +31,8 @@
 
           <a role="link" aria-disabled="true" data-deferred-navigation="vendors.html" class="py-1">الحرفيون والمتاجر</a>
           <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?sale=1" class="py-1">العروض</a>
-          <a href="#season" class="py-1">مختارات الموسم</a>
-          <a href="#artisans" class="py-1">حكايات حِرفة</a>
+          <a href="{{ $onHome ? '#season' : route('home') . '#season' }}" class="py-1">مختارات الموسم</a>
+          <a href="{{ $onHome ? '#artisans' : route('home') . '#artisans' }}" class="py-1">حكايات حِرفة</a>
         </nav>
 
         <div class="flex h-[50px] shrink-0 items-center gap-3 p-[10px]" data-node-id="223:3438">
@@ -59,7 +60,7 @@
       </div>
 
       <div class="flex h-full items-center justify-between lg:hidden">
-        <a href="#home"
+        <a href="{{ $onHome ? '#home' : route('home') }}"
           class="flex h-[52px] w-[52px] items-center justify-center rounded-[16px] bg-surface p-1 shadow-sm"><img
             src="{{ asset('assets/storefront/imgs/mcp/header-logo.png') }}" alt="شعار حرفة" class="h-11 w-11 object-cover"></a>
         <div class="flex items-center gap-1"><button type="button" disabled aria-disabled="true"

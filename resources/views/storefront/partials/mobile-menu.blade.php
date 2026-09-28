@@ -1,6 +1,7 @@
+@php($onHome = request()->routeIs('home'))
     <div id="mobileMenu" class="hidden border-t border-line bg-surface px-5 py-4 lg:hidden">
       <nav class="grid gap-1 text-sm font-semibold">
-        <a href="#home" class="py-2">الرئيسية</a>
+        <a href="{{ $onHome ? '#home' : route('home') }}" class="py-2">الرئيسية</a>
 
         <div class="mobile-nav-dropdown">
           <button type="button" class="mobile-nav-dropdown-toggle flex w-full items-center justify-between py-2"
@@ -19,7 +20,7 @@
 
         <a role="link" aria-disabled="true" data-deferred-navigation="vendors.html" class="py-2">الحرفيون والمتاجر</a>
         <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?sale=1" class="py-2">العروض</a>
-        <a href="#season" class="py-2">مختارات الموسم</a>
-        <a href="#artisans" class="py-2">حكايات حِرفة</a>
+        <a href="{{ $onHome ? '#season' : route('home') . '#season' }}" class="py-2">مختارات الموسم</a>
+        <a href="{{ $onHome ? '#artisans' : route('home') . '#artisans' }}" class="py-2">حكايات حِرفة</a>
       </nav>
     </div>
