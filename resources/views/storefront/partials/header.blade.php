@@ -29,7 +29,7 @@
             @include('storefront.partials.mega-menu')
           </div>
 
-          <a role="link" aria-disabled="true" data-deferred-navigation="vendors.html" class="py-1">الحرفيون والمتاجر</a>
+          <a href="{{ route('vendors') }}" class="py-1">الحرفيون والمتاجر</a>
           <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?sale=1" class="py-1">العروض</a>
           <a href="{{ $onHome ? '#season' : route('home') . '#season' }}" class="py-1">مختارات الموسم</a>
           <a href="{{ $onHome ? '#artisans' : route('home') . '#artisans' }}" class="py-1">حكايات حِرفة</a>

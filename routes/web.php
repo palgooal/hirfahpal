@@ -31,6 +31,8 @@ Route::view('/browse', 'pages.browse')->middleware('setLocale')->name('browse');
 
 Route::view('/product', 'pages.product')->middleware('setLocale')->name('product');
 
+Route::view('/vendors', 'pages.vendors')->middleware('setLocale')->name('vendors');
+
 /*
 |--------------------------------------------------------------------------
 | Shop Routes
