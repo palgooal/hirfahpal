@@ -33,6 +33,8 @@ Route::view('/product', 'pages.product')->middleware('setLocale')->name('product
 
 Route::view('/vendors', 'pages.vendors')->middleware('setLocale')->name('vendors');
 
+Route::view('/vendors/dar-al-karma', 'pages.vendor')->middleware('setLocale')->name('vendors.show');
+
 /*
 |--------------------------------------------------------------------------
 | Shop Routes

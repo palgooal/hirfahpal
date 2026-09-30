@@ -54,7 +54,7 @@
             <bdi>4.9</bdi><img src="{{ asset('assets/storefront/imgs/mcp/arrival-star.svg') }}" alt="" class="h-[11.083px] w-[11.667px]">
           </div>
           <div class="mt-auto flex items-center justify-between gap-3 border-t border-line/60 pt-[17px] text-xs">
-            <span class="text-[#918f83]"><bdi>24</bdi> منتج متاح</span><a role="link" aria-disabled="true" data-deferred-navigation="vendor.html?id=dar-al-karma"
+            <span class="text-[#918f83]"><bdi>24</bdi> منتج متاح</span><a href="{{ route('vendors.show') }}"
               class="font-bold text-olive underline underline-offset-2 hover:text-copper">زيارة المتجر</a>
           </div>
         </article>
