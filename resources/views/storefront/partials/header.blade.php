@@ -40,7 +40,7 @@
             class="flex h-[30px] w-[30px] items-center justify-center overflow-hidden rounded-full border border-olive bg-olive p-px"
             aria-label="بحث"><img src="{{ asset('assets/storefront/imgs/mcp/header-search-exact.svg') }}" alt=""
               class="h-[28.667px] w-[14.663px] max-w-none"></button>
-          <a role="link" aria-disabled="true" data-deferred-navigation="profile.html" class="flex h-[30px] w-[30px] items-center justify-center rounded-full" aria-label="الحساب"><img
+          <a href="{{ route('customer.dashboard') }}" class="flex h-[30px] w-[30px] items-center justify-center rounded-full" aria-label="الحساب"><img
               src="{{ asset('assets/storefront/imgs/mcp/header-user.svg') }}" alt="" class="h-[16.283px] w-[17.875px]"></a>
           <button type="button" disabled aria-disabled="true" class="relative flex h-[30px] w-[30px] items-center justify-center rounded-full"
             aria-label="الإشعارات"><img src="{{ asset('assets/storefront/imgs/mcp/header-bell.svg') }}" alt=""
