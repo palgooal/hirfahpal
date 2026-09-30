@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\DeliveryDriver;
 use App\Models\Vendor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class CustomerDashboardPageTest extends TestCase
@@ -46,20 +47,53 @@ class CustomerDashboardPageTest extends TestCase
             ->assertDontSee('<script>alert(1)</script>', false);
     }
 
-    public function test_reference_demo_data_is_not_rendered(): void
+    public function test_dashboard_renders_the_approved_static_reference_content(): void
     {
-        $response = $this->actingAs(Customer::factory()->create(), 'customer')
-            ->get(route('customer.dashboard'));
+        $main = $this->mainContent($this->actingAs(Customer::factory()->create(), 'customer')
+            ->get(route('customer.dashboard'))
+            ->getContent());
 
-        $response->assertDontSee('HF-2026-0814')
-            ->assertDontSee('₪1,066');
+        // Latest order card: approved static demo content (not bound to orders yet).
+        $this->assertStringContainsString('aria-labelledby="latestOrderTitle"', $main);
+        $this->assertStringContainsString('>آخر طلب<', $main);
+        $this->assertStringContainsString('<bdi>HF-2026-0814</bdi>', $main);
+        $this->assertStringContainsString('<bdi>2026/08/14</bdi>', $main);
+        foreach (['دار الكرمة للخزف', 'جمعية نساء بيت لحم', 'مشغل نور الزيتونة'] as $vendor) {
+            $this->assertStringContainsString($vendor, $main, $vendor);
+        }
+        $this->assertStringContainsString('<bdi>₪1,066</bdi>', $main);
 
-        $main = $this->mainContent($response->getContent());
-        $this->assertStringNotContainsString('>آخر طلب<', $main);
-        $this->assertStringNotContainsString('latestOrderTitle', $main);
-        $this->assertStringNotContainsString('قطع محفوظة', $main);
-        $this->assertStringNotContainsString('دار الكرمة', $main);
-        $this->assertDoesNotMatchRegularExpression('/>\s*5\s*</', $main);
+        // Side stack: favorites (static count), account details and address shortcuts.
+        $this->assertMatchesRegularExpression('/المفضلة<\/span>\s*<strong[^>]*><bdi>5<\/bdi><\/strong>\s*<span[^>]*>قطع محفوظة<\/span>/', $main);
+        $this->assertStringContainsString('<strong class="block text-base font-bold text-ink">تفاصيل الحساب</strong>', $main);
+        $this->assertStringContainsString('<strong class="block text-base font-bold text-ink">العنوان</strong>', $main);
+    }
+
+    public function test_dashboard_does_not_query_order_or_favorites_data(): void
+    {
+        $customer = Customer::factory()->create();
+
+        DB::enableQueryLog();
+        $this->actingAs($customer, 'customer')->get(route('customer.dashboard'))->assertOk();
+        $queries = collect(DB::getQueryLog())->pluck('query')->implode("\n");
+        DB::disableQueryLog();
+
+        $this->assertDoesNotMatchRegularExpression('/\b(orders|vendor_orders|order_items|favorites)\b/', $queries);
+    }
+
+    public function test_order_detail_and_shortcut_cards_are_deferred(): void
+    {
+        $main = $this->mainContent($this->actingAs(Customer::factory()->create(), 'customer')
+            ->get(route('customer.dashboard'))
+            ->getContent());
+
+        $this->assertMatchesRegularExpression('/<a role="link" aria-disabled="true" data-deferred-navigation="order-detail\.html\?id=HF-2026-0814"[^>]*>\s*<span>عرض تفاصيل الطلب<\/span>/', $main);
+        foreach (['dashboard/favorites.html', 'dashboard/account-details.html', 'dashboard/addresses.html'] as $target) {
+            $this->assertMatchesRegularExpression('/<a role="link" aria-disabled="true" data-deferred-navigation="'.preg_quote($target, '/').'" class="flex min-h-/', $main, $target);
+        }
+
+        $this->assertStringNotContainsString('href="'.url('/customer/orders'), $main);
+        $this->assertDoesNotMatchRegularExpression('/href="[^"]*\.html/', $main);
     }
 
     public function test_dashboard_navigation_and_deferred_sections(): void
@@ -81,7 +115,8 @@ class CustomerDashboardPageTest extends TestCase
         preg_match_all('/href="([^"]*)"/', $main, $hrefs);
         $this->assertSame([], array_values(array_diff(array_unique($hrefs[1]), [route('home'), route('customer.dashboard')])));
         $this->assertStringNotContainsString('href="#"', $main);
-        $this->assertSame(6, substr_count($main, 'aria-disabled="true"'));
+        // 4 sidebar sections + order detail button + favorites, account details and address cards.
+        $this->assertSame(8, substr_count($main, 'aria-disabled="true"'));
     }
 
     public function test_logout_is_a_post_form_with_csrf(): void
