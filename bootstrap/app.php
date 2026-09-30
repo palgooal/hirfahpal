@@ -3,6 +3,7 @@
 use App\Http\Middleware\DisableTranslationAutoCreate;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\SetLocale;
+use App\Support\Auth\AccountGuard;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,6 +22,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
             if ($request->is('owner*')) {
                 return route('owner.login');
+            }
+
+            // Exact prefix match so public storefront paths such as /vendors never match an account prefix.
+            foreach (AccountGuard::all() as $account) {
+                if ($request->is($account['prefix'], $account['prefix'].'/*')) {
+                    return route($account['route'].'.login');
+                }
             }
 
             return route('login');

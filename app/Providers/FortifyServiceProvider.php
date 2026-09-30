@@ -25,7 +25,8 @@ class FortifyServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        Fortify::loginView('auth.user.login');
+        // Customer login is the canonical public login; Fortify keeps the route name and POST /login.
+        Fortify::loginView(fn () => redirect()->route('customer.login'));
         Fortify::registerView('auth.user.register');
         Fortify::requestPasswordResetLinkView('auth.user.forgot-password');
         Fortify::resetPasswordView(function (Request $request) {
