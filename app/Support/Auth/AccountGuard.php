@@ -19,6 +19,7 @@ class AccountGuard
                 'prefix' => 'customer',
                 'route' => 'customer',
                 'dashboard_route' => 'customer.dashboard',
+                'login_view' => 'pages.customer-login',
                 'label' => 'Customer',
             ],
             'vendor' => [
@@ -28,6 +29,7 @@ class AccountGuard
                 'prefix' => 'vendor',
                 'route' => 'vendor',
                 'dashboard_route' => 'vendor.dashboard',
+                'login_view' => 'auth.accounts.login',
                 'label' => 'Vendor',
             ],
             'delivery_driver' => [
@@ -37,6 +39,7 @@ class AccountGuard
                 'prefix' => 'delivery-driver',
                 'route' => 'delivery-driver',
                 'dashboard_route' => 'delivery-driver.dashboard',
+                'login_view' => 'auth.accounts.login',
                 'label' => 'Delivery Driver',
             ],
         ];

@@ -45,7 +45,7 @@
                   class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>طلباتي</span></a></li>
             <li><a role="link" aria-disabled="true" data-deferred-navigation="cart.html" class="flex items-center justify-start gap-1.5"><i
                   class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>سلة المشتريات</span></a></li>
-            <li><a role="link" aria-disabled="true" data-deferred-navigation="login.html" class="flex items-center justify-start gap-1.5"><i
+            <li><a href="{{ route('customer.login') }}" class="flex items-center justify-start gap-1.5"><i
                   class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>تسجيل الدخول</span></a></li>
             <li><a role="link" aria-disabled="true" data-deferred-navigation="profile.html" class="flex items-center justify-start gap-1.5"><i
                   class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>حسابي</span></a></li>
