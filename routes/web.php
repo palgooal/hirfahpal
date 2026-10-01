@@ -161,6 +161,9 @@ Route::prefix('customer')
     ->middleware(['auth:customer', 'setLocale'])
     ->name('customer.')
     ->group(function () {
+        Route::view('account-details', 'pages.customer-account-details')
+            ->name('account-details');
+
         Route::get('cart', [CartController::class, 'show'])
             ->name('cart.show');
 

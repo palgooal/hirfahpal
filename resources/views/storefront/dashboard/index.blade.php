@@ -61,7 +61,7 @@
               </span>
               <span class="flex h-12 w-12 items-center justify-center rounded-full bg-copper/10 text-copper"><i data-lucide="heart" class="h-5 w-5"></i></span>
             </a>
-            <a role="link" aria-disabled="true" data-deferred-navigation="dashboard/account-details.html" class="flex min-h-28 items-center justify-between gap-4 rounded-[20px] border border-line bg-surface p-5 text-start shadow-card transition-colors hover:border-olive/40">
+            <a href="{{ route('customer.account-details') }}" class="flex min-h-28 items-center justify-between gap-4 rounded-[20px] border border-line bg-surface p-5 text-start shadow-card transition-colors hover:border-olive/40">
               <span><strong class="block text-base font-bold text-ink">تفاصيل الحساب</strong><span class="mt-1 block text-xs leading-5 text-muted">تحديث المعلومات وكلمة المرور</span></span>
               <i data-lucide="chevron-left" class="h-4 w-4 text-muted"></i>
             </a>

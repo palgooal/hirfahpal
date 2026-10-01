@@ -4,7 +4,7 @@
       ['key' => 'dashboard', 'label' => 'لوحة التحكم', 'icon' => 'layout-dashboard', 'href' => route('customer.dashboard'), 'deferred' => null],
       ['key' => 'orders', 'label' => 'الطلبات', 'icon' => 'package-search', 'href' => null, 'deferred' => 'dashboard/orders.html'],
       ['key' => 'addresses', 'label' => 'العنوان', 'icon' => 'map-pin', 'href' => null, 'deferred' => 'dashboard/addresses.html'],
-      ['key' => 'account', 'label' => 'تفاصيل الحساب', 'icon' => 'user-round-cog', 'href' => null, 'deferred' => 'dashboard/account-details.html'],
+      ['key' => 'account', 'label' => 'تفاصيل الحساب', 'icon' => 'user-round-cog', 'href' => route('customer.account-details'), 'deferred' => null],
       ['key' => 'favorites', 'label' => 'المفضلة', 'icon' => 'heart', 'href' => null, 'deferred' => 'dashboard/favorites.html'],
   ];
 @endphp
