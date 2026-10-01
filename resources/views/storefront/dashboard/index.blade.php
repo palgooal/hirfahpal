@@ -65,7 +65,7 @@
               <span><strong class="block text-base font-bold text-ink">تفاصيل الحساب</strong><span class="mt-1 block text-xs leading-5 text-muted">تحديث المعلومات وكلمة المرور</span></span>
               <i data-lucide="chevron-left" class="h-4 w-4 text-muted"></i>
             </a>
-            <a role="link" aria-disabled="true" data-deferred-navigation="dashboard/addresses.html" class="flex min-h-28 items-center justify-between gap-4 rounded-[20px] border border-line bg-surface p-5 text-start shadow-card transition-colors hover:border-olive/40">
+            <a href="{{ route('customer.addresses') }}" class="flex min-h-28 items-center justify-between gap-4 rounded-[20px] border border-line bg-surface p-5 text-start shadow-card transition-colors hover:border-olive/40">
               <span><strong class="block text-base font-bold text-ink">العنوان</strong><span class="mt-1 block text-xs leading-5 text-muted">إدارة عناوين التوصيل</span></span>
               <i data-lucide="chevron-left" class="h-4 w-4 text-muted"></i>
             </a>

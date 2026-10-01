@@ -88,13 +88,15 @@ class CustomerDashboardPageTest extends TestCase
             ->getContent());
 
         $this->assertMatchesRegularExpression('/<a role="link" aria-disabled="true" data-deferred-navigation="order-detail\.html\?id=HF-2026-0814"[^>]*>\s*<span>عرض تفاصيل الطلب<\/span>/', $main);
-        foreach (['dashboard/favorites.html', 'dashboard/addresses.html'] as $target) {
-            $this->assertMatchesRegularExpression('/<a role="link" aria-disabled="true" data-deferred-navigation="'.preg_quote($target, '/').'" class="flex min-h-/', $main, $target);
-        }
+        $this->assertMatchesRegularExpression('/<a role="link" aria-disabled="true" data-deferred-navigation="dashboard\/favorites\.html" class="flex min-h-/', $main);
 
         // The account-details card links to the migrated account-details page.
         $this->assertMatchesRegularExpression('/<a href="'.preg_quote(route('customer.account-details'), '/').'" class="flex min-h-28[^"]*">\s*<span><strong[^>]*>تفاصيل الحساب<\/strong>/', $main);
         $this->assertStringNotContainsString('dashboard/account-details.html', $main);
+
+        // The address card links to the migrated addresses page.
+        $this->assertMatchesRegularExpression('/<a href="'.preg_quote(route('customer.addresses'), '/').'" class="flex min-h-28[^"]*">\s*<span><strong[^>]*>العنوان<\/strong>/', $main);
+        $this->assertStringNotContainsString('dashboard/addresses.html', $main);
 
         $this->assertStringNotContainsString('href="'.url('/customer/orders'), $main);
         $this->assertDoesNotMatchRegularExpression('/href="[^"]*\.html/', $main);
@@ -115,12 +117,12 @@ class CustomerDashboardPageTest extends TestCase
             $this->assertStringContainsString('<span>'.$label.'</span>', $main, $label);
         }
 
-        // Deferred sections never emit a link; only home, dashboard and account-details hrefs exist inside <main>.
+        // Deferred sections never emit a link; only home, dashboard, account-details and addresses hrefs exist inside <main>.
         preg_match_all('/href="([^"]*)"/', $main, $hrefs);
-        $this->assertSame([], array_values(array_diff(array_unique($hrefs[1]), [route('home'), route('customer.dashboard'), route('customer.account-details')])));
+        $this->assertSame([], array_values(array_diff(array_unique($hrefs[1]), [route('home'), route('customer.dashboard'), route('customer.account-details'), route('customer.addresses')])));
         $this->assertStringNotContainsString('href="#"', $main);
-        // 3 deferred sidebar sections (orders, addresses, favorites) + order detail button + favorites and address cards.
-        $this->assertSame(6, substr_count($main, 'aria-disabled="true"'));
+        // 2 deferred sidebar sections (orders, favorites) + order detail button + favorites card.
+        $this->assertSame(4, substr_count($main, 'aria-disabled="true"'));
     }
 
     public function test_logout_is_a_post_form_with_csrf(): void

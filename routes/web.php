@@ -164,6 +164,9 @@ Route::prefix('customer')
         Route::view('account-details', 'pages.customer-account-details')
             ->name('account-details');
 
+        Route::view('addresses', 'pages.customer-addresses')
+            ->name('addresses');
+
         Route::get('cart', [CartController::class, 'show'])
             ->name('cart.show');
 
