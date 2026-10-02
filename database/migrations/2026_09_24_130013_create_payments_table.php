@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('order_id')->constrained()->cascadeOnDelete();
             $table->enum('method', ['online', 'cod']);
-            $table->enum('status', ['pending', 'authorized', 'paid', 'failed', 'refunded', 'partially_refunded'])->default('pending');
+            $table->enum('status', ['pending', 'paid', 'failed', 'refunded', 'partially_refunded'])->default('pending');
             $table->decimal('amount', 10, 2);
             $table->decimal('refunded_amount', 10, 2)->default(0);
             $table->string('provider')->nullable();

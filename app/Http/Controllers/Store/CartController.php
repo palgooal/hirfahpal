@@ -26,7 +26,7 @@ class CartController extends Controller
         ]);
 
         $product = Product::query()->where('status', 'active')->findOrFail($data['product_id']);
-        abort_if($product->stock_quantity < $data['quantity'], 422, 'Requested quantity is not available.');
+        abort_if($product->availableStockQuantity() < $data['quantity'], 422, 'Requested quantity is not available.');
 
         $cart = $this->activeCart($request);
         $item = CartItem::query()->firstOrNew([
@@ -35,7 +35,7 @@ class CartController extends Controller
         ]);
 
         $nextQuantity = ($item->exists ? $item->quantity : 0) + $data['quantity'];
-        abort_if($product->stock_quantity < $nextQuantity, 422, 'Requested quantity is not available.');
+        abort_if($product->availableStockQuantity() < $nextQuantity, 422, 'Requested quantity is not available.');
 
         $item->fill([
             'quantity' => $nextQuantity,
@@ -52,7 +52,7 @@ class CartController extends Controller
         ]);
 
         $this->authorizeCartItem($request, $cartItem);
-        abort_if($cartItem->product->stock_quantity < $data['quantity'], 422, 'Requested quantity is not available.');
+        abort_if($cartItem->product->availableStockQuantity() < $data['quantity'], 422, 'Requested quantity is not available.');
 
         $cartItem->update(['quantity' => $data['quantity']]);
 
@@ -69,14 +69,59 @@ class CartController extends Controller
 
     private function activeCart(Request $request): Cart
     {
+        if ($customer = $request->user('customer')) {
+            $customerCart = Cart::query()->firstOrCreate([
+                'customer_id' => $customer->id,
+                'status' => 'active',
+            ]);
+
+            $guestCart = Cart::query()
+                ->with('items')
+                ->where('session_id', $request->session()->getId())
+                ->whereNull('customer_id')
+                ->where('status', 'active')
+                ->first();
+
+            if ($guestCart) {
+                $this->mergeGuestCart($guestCart, $customerCart);
+            }
+
+            return $customerCart;
+        }
+
         return Cart::query()->firstOrCreate([
-            'customer_id' => $request->user('customer')->id,
+            'session_id' => $request->session()->getId(),
             'status' => 'active',
         ]);
     }
 
     private function authorizeCartItem(Request $request, CartItem $cartItem): void
     {
-        abort_unless($cartItem->cart->customer_id === $request->user('customer')->id, 403);
+        $cart = $cartItem->cart;
+
+        if ($customer = $request->user('customer')) {
+            abort_unless($cart->customer_id === $customer->id, 403);
+
+            return;
+        }
+
+        abort_unless($cart->session_id === $request->session()->getId(), 403);
+    }
+
+    private function mergeGuestCart(Cart $guestCart, Cart $customerCart): void
+    {
+        foreach ($guestCart->items as $guestItem) {
+            $customerItem = CartItem::query()->firstOrNew([
+                'cart_id' => $customerCart->id,
+                'product_id' => $guestItem->product_id,
+            ]);
+
+            $customerItem->fill([
+                'quantity' => ($customerItem->exists ? $customerItem->quantity : 0) + $guestItem->quantity,
+                'unit_price' => $guestItem->unit_price,
+            ])->save();
+        }
+
+        $guestCart->update(['status' => 'abandoned']);
     }
 }

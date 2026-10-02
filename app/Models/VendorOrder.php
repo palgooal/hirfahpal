@@ -22,6 +22,7 @@ class VendorOrder extends Model
         'rejection_reason',
         'ready_at',
         'delivered_at',
+        'customer_receipt_confirmed_at',
         'completed_at',
     ];
 
@@ -37,6 +38,7 @@ class VendorOrder extends Model
             'rejected_at' => 'datetime',
             'ready_at' => 'datetime',
             'delivered_at' => 'datetime',
+            'customer_receipt_confirmed_at' => 'datetime',
             'completed_at' => 'datetime',
         ];
     }
@@ -64,5 +66,10 @@ class VendorOrder extends Model
     public function deliveryAssignment()
     {
         return $this->hasOne(DeliveryAssignment::class);
+    }
+
+    public function stockReservations()
+    {
+        return $this->hasMany(StockReservation::class);
     }
 }

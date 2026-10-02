@@ -154,7 +154,7 @@ foreach (AccountGuard::all() as $accountType => $account) {
 */
 
 Route::prefix('customer')
-    ->middleware(['auth:customer', 'setLocale'])
+    ->middleware(['setLocale'])
     ->name('customer.')
     ->group(function () {
         Route::get('cart', [CartController::class, 'show'])
@@ -169,17 +169,19 @@ Route::prefix('customer')
         Route::delete('cart/items/{cartItem}', [CartController::class, 'destroy'])
             ->name('cart.items.destroy');
 
-        Route::post('checkout', [CheckoutController::class, 'store'])
-            ->name('checkout.store');
+        Route::middleware('auth:customer')->group(function () {
+            Route::post('checkout', [CheckoutController::class, 'store'])
+                ->name('checkout.store');
 
-        Route::get('orders', [OrderController::class, 'index'])
-            ->name('orders.index');
+            Route::get('orders', [OrderController::class, 'index'])
+                ->name('orders.index');
 
-        Route::get('orders/{order}', [OrderController::class, 'show'])
-            ->name('orders.show');
+            Route::get('orders/{order}', [OrderController::class, 'show'])
+                ->name('orders.show');
 
-        Route::post('orders/{order}/reviews', [ReviewController::class, 'store'])
-            ->name('orders.reviews.store');
+            Route::post('orders/{order}/reviews', [ReviewController::class, 'store'])
+                ->name('orders.reviews.store');
+        });
     });
 
 /*

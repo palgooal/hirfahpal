@@ -18,7 +18,6 @@ class Order extends Model
         'discount_total',
         'grand_total',
         'notes',
-        'confirmed_at',
         'completed_at',
     ];
 
@@ -29,7 +28,6 @@ class Order extends Model
             'delivery_total' => 'decimal:2',
             'discount_total' => 'decimal:2',
             'grand_total' => 'decimal:2',
-            'confirmed_at' => 'datetime',
             'completed_at' => 'datetime',
         ];
     }
@@ -62,5 +60,10 @@ class Order extends Model
     public function reviews()
     {
         return $this->hasMany(Review::class);
+    }
+
+    public function stockReservations()
+    {
+        return $this->hasMany(StockReservation::class);
     }
 }

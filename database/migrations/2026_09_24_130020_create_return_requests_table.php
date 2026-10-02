@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('order_id')->constrained()->cascadeOnDelete();
             $table->foreignId('vendor_order_id')->nullable()->constrained()->cascadeOnDelete();
             $table->foreignId('customer_id')->constrained('customers')->cascadeOnDelete();
-            $table->enum('status', ['requested', 'approved', 'rejected', 'received', 'refunded', 'closed'])->default('requested');
+            $table->string('status')->default('requested');
             $table->text('reason');
             $table->text('admin_note')->nullable();
             $table->foreignId('reviewed_by')->nullable()->constrained('admins')->nullOnDelete();

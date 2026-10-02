@@ -12,7 +12,7 @@ class ReviewController extends Controller
     public function store(Request $request, Order $order): JsonResponse
     {
         abort_unless($order->customer_id === $request->user('customer')->id, 403);
-        abort_unless(in_array($order->status, ['completed', 'partially_delivered'], true), 422, 'Order is not ready for review.');
+        abort_unless($order->status === 'completed', 422, 'Order is not ready for review.');
 
         $data = $request->validate([
             'vendor_order_id' => ['required', 'integer', 'exists:vendor_orders,id'],
@@ -26,6 +26,7 @@ class ReviewController extends Controller
         ]);
 
         $vendorOrder = $order->vendorOrders()->findOrFail($data['vendor_order_id']);
+        abort_unless($vendorOrder->status === 'completed', 422, 'Vendor order is not ready for review.');
         $reviews = [];
 
         if (! empty($data['product_rating']) && ! empty($data['product_id'])) {

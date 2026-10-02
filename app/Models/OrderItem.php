@@ -39,4 +39,9 @@ class OrderItem extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    public function stockReservation()
+    {
+        return $this->hasOne(StockReservation::class);
+    }
 }

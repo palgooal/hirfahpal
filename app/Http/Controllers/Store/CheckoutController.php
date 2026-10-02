@@ -24,16 +24,12 @@ class CheckoutController extends Controller
         ]);
 
         $customer = $request->user('customer');
-        $cart = Cart::query()
-            ->with('items.product.vendor')
-            ->where('customer_id', $customer->id)
-            ->where('status', 'active')
-            ->firstOrFail();
+        $cart = $this->checkoutCart($request, $customer->id);
 
         abort_if($cart->items->isEmpty(), 422, 'Cart is empty.');
 
         foreach ($cart->items as $item) {
-            abort_if($item->product->stock_quantity < $item->quantity, 422, "Product [{$item->product->name}] is out of stock.");
+            abort_if($item->product->availableStockQuantity() < $item->quantity, 422, "Product [{$item->product->name}] is out of stock.");
         }
 
         $order = DB::transaction(function () use ($cart, $customer, $data) {
@@ -45,14 +41,13 @@ class CheckoutController extends Controller
                 'number' => $this->nextOrderNumber(),
                 'customer_id' => $customer->id,
                 'customer_address_id' => $data['customer_address_id'] ?? null,
-                'status' => 'confirmed',
+                'status' => 'pending',
                 'payment_method' => $data['payment_method'],
-                'payment_status' => $data['payment_method'] === 'cod' ? 'pending' : 'authorized',
+                'payment_status' => 'pending',
                 'subtotal' => $subtotal,
                 'delivery_total' => $deliveryTotal,
                 'grand_total' => $subtotal + $deliveryTotal,
                 'notes' => $data['notes'] ?? null,
-                'confirmed_at' => now(),
             ]);
 
             foreach ($groupedItems as $vendorId => $items) {
@@ -71,9 +66,10 @@ class CheckoutController extends Controller
                 ]);
 
                 foreach ($items as $item) {
-                    $product = $item->product;
+                    $product = $item->product()->lockForUpdate()->first();
+                    abort_if($product->availableStockQuantity() < $item->quantity, 422, "Product [{$product->name}] is out of stock.");
 
-                    $order->items()->create([
+                    $orderItem = $order->items()->create([
                         'vendor_order_id' => $vendorOrder->id,
                         'product_id' => $product->id,
                         'product_name' => $product->name,
@@ -83,14 +79,21 @@ class CheckoutController extends Controller
                         'line_total' => $item->quantity * (float) $item->unit_price,
                     ]);
 
-                    $product->decrement('stock_quantity', $item->quantity);
+                    $order->stockReservations()->create([
+                        'product_id' => $product->id,
+                        'vendor_order_id' => $vendorOrder->id,
+                        'order_item_id' => $orderItem->id,
+                        'quantity' => $item->quantity,
+                        'status' => 'reserved',
+                        'reserved_at' => now(),
+                    ]);
                 }
             }
 
             Payment::query()->create([
                 'order_id' => $order->id,
                 'method' => $data['payment_method'],
-                'status' => $data['payment_method'] === 'cod' ? 'pending' : 'authorized',
+                'status' => 'pending',
                 'amount' => $order->grand_total,
             ]);
 
@@ -105,5 +108,54 @@ class CheckoutController extends Controller
     private function nextOrderNumber(): string
     {
         return 'HF-'.now()->format('Ymd-His').'-'.random_int(100, 999);
+    }
+
+    private function checkoutCart(Request $request, int $customerId): Cart
+    {
+        $customerCart = Cart::query()
+            ->with('items.product.vendor')
+            ->where('customer_id', $customerId)
+            ->where('status', 'active')
+            ->first();
+
+        $guestCart = Cart::query()
+            ->with('items.product.vendor')
+            ->where('session_id', $request->session()->getId())
+            ->whereNull('customer_id')
+            ->where('status', 'active')
+            ->first();
+
+        if ($guestCart && $customerCart) {
+            foreach ($guestCart->items as $guestItem) {
+                $customerItem = $customerCart->items->firstWhere('product_id', $guestItem->product_id);
+
+                if ($customerItem) {
+                    $customerItem->update([
+                        'quantity' => $customerItem->quantity + $guestItem->quantity,
+                        'unit_price' => $guestItem->unit_price,
+                    ]);
+
+                    continue;
+                }
+
+                $customerCart->items()->create([
+                    'product_id' => $guestItem->product_id,
+                    'quantity' => $guestItem->quantity,
+                    'unit_price' => $guestItem->unit_price,
+                ]);
+            }
+
+            $guestCart->update(['status' => 'abandoned']);
+
+            return $customerCart->fresh('items.product.vendor');
+        }
+
+        if ($guestCart) {
+            $guestCart->update(['customer_id' => $customerId]);
+
+            return $guestCart->fresh('items.product.vendor');
+        }
+
+        return $customerCart ?? abort(404, 'Cart not found.');
     }
 }

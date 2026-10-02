@@ -14,7 +14,7 @@ return new class extends Migration
             $table->foreignId('vendor_order_id')->nullable()->constrained()->cascadeOnDelete();
             $table->foreignId('customer_id')->constrained('customers')->cascadeOnDelete();
             $table->enum('type', ['order', 'delivery', 'payment', 'product', 'other'])->default('order');
-            $table->enum('status', ['open', 'under_review', 'resolved', 'closed'])->default('open');
+            $table->string('status')->default('open');
             $table->string('subject');
             $table->text('description');
             $table->text('resolution')->nullable();

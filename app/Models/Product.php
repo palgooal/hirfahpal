@@ -56,4 +56,21 @@ class Product extends Model
     {
         return $this->hasOne(ProductImage::class)->where('is_primary', true);
     }
+
+    public function stockReservations()
+    {
+        return $this->hasMany(StockReservation::class);
+    }
+
+    public function reservedStockQuantity(): int
+    {
+        return (int) $this->stockReservations()
+            ->where('status', 'reserved')
+            ->sum('quantity');
+    }
+
+    public function availableStockQuantity(): int
+    {
+        return max(0, $this->stock_quantity - $this->reservedStockQuantity());
+    }
 }
