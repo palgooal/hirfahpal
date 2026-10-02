@@ -452,8 +452,43 @@
       <div
         class="reveal opacity-100 translate-y-0 transition-[opacity,transform] duration-[650ms] ease-out sm:translate-y-[22px] sm:opacity-0 motion-reduce:sm:translate-y-0 motion-reduce:sm:opacity-100 flex flex-col gap-4">
 
+        <div class="flex flex-col gap-3 rounded-[20px] border border-line bg-surface p-3 shadow-card sm:flex-row sm:items-center sm:justify-between sm:p-4">
+          <div class="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+            <div class="relative flex-1 sm:max-w-[260px]">
+              <i data-lucide="search" class="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"></i>
+              <input id="ordersSearch" type="search" placeholder="ابحث برقم الطلب أو اسم التاجر..."
+                class="h-10 w-full rounded-[12px] border border-line bg-canvas ps-9 pe-3 text-sm outline-none focus:border-sage">
+            </div>
+            <div class="relative sm:w-[220px]">
+              <select id="ordersStatusFilter"
+                class="h-10 w-full appearance-none rounded-[12px] border border-line bg-canvas ps-3 pe-8 text-sm font-semibold text-ink outline-none focus:border-sage">
+                <option value="all">كل الحالات</option>
+                <option value="قيد الانتظار">قيد الانتظار</option>
+                <option value="تم القبول">تم القبول</option>
+                <option value="قيد التحضير">قيد التحضير</option>
+                <option value="جاهز للتوصيل">جاهز للتوصيل</option>
+                <option value="تم الإسناد">تم الإسناد</option>
+                <option value="خارج للتوصيل">خارج للتوصيل</option>
+                <option value="تم التسليم">تم التسليم</option>
+                <option value="مكتمل">مكتمل</option>
+                <option value="مرفوض">مرفوض</option>
+                <option value="ملغي">ملغي</option>
+              </select>
+              <i data-lucide="chevron-down" class="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"></i>
+            </div>
+          </div>
+          <p id="ordersResultsSummary" class="text-start text-sm font-semibold text-muted">عرض <bdi>4</bdi> من <bdi>4</bdi> طلب</p>
+        </div>
+
+        <div id="ordersNoMatchState" class="hidden flex-col items-center gap-3 rounded-[20px] border border-dashed border-line bg-surface px-4 py-12 text-center">
+          <i data-lucide="search-x" class="h-8 w-8 text-muted"></i>
+          <p class="text-sm font-semibold text-muted">ما لقينا طلبات تطابق بحثك أو الحالة المختارة.</p>
+        </div>
+
         <!-- Order 1: mixed statuses (matches order-detail.html HF-2026-0814) -->
         <a href="../order-detail.html?id=HF-2026-0814"
+          data-order-id="HF-2026-0814" data-vendor-names="دار الكرمة للخزف، جمعية نساء بيت لحم، مشغل نور الزيتونة"
+          data-order-status-text="1 من 3 تجار خارج للتوصيل، 1 تم التسليم، 1 مرفوض"
           class="group flex flex-col gap-4 rounded-[20px] border border-line bg-surface p-5 shadow-card transition-colors hover:border-olive/40 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div class="flex items-start gap-4">
             <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-olive/10 text-olive">
@@ -476,6 +511,8 @@
 
         <!-- Order 2: all delivered / completed -->
         <a href="../order-detail.html?id=HF-2026-0791"
+          data-order-id="HF-2026-0791" data-vendor-names="دار الكرمة للخزف، تعاونية نساء نابلس"
+          data-order-status-text="2 من 2 تجار مكتمل"
           class="group flex flex-col gap-4 rounded-[20px] border border-line bg-surface p-5 shadow-card transition-colors hover:border-olive/40 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div class="flex items-start gap-4">
             <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sage/20 text-olive">
@@ -498,6 +535,8 @@
 
         <!-- Order 3: single vendor, still preparing -->
         <a href="../order-detail.html?id=HF-2026-0805"
+          data-order-id="HF-2026-0805" data-vendor-names="جمعية نساء بيت لحم"
+          data-order-status-text="قيد التحضير"
           class="group flex flex-col gap-4 rounded-[20px] border border-line bg-surface p-5 shadow-card transition-colors hover:border-olive/40 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div class="flex items-start gap-4">
             <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gold/10 text-gold">
@@ -520,6 +559,8 @@
 
         <!-- Order 4: newly placed, single vendor, pending -->
         <a href="../order-detail.html?id=HF-2026-0760"
+          data-order-id="HF-2026-0760" data-vendor-names="مشغل نور الزيتونة"
+          data-order-status-text="قيد الانتظار"
           class="group flex flex-col gap-4 rounded-[20px] border border-line bg-surface p-5 shadow-card transition-colors hover:border-olive/40 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div class="flex items-start gap-4">
             <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-line/60 text-muted">
@@ -660,6 +701,7 @@
   <script src="../assets/js/vendor/jquery.min.js" defer></script>
   <script src="../assets/js/vendor/lucide.min.js" defer></script>
   <script src="../assets/js/app.js" defer></script>
+  <script src="../assets/js/orders.js" defer></script>
 </body>
 
 </html>

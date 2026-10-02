@@ -31,6 +31,10 @@ Route::view('/browse', 'pages.browse')->middleware('setLocale')->name('browse');
 
 Route::view('/product', 'pages.product')->middleware('setLocale')->name('product');
 
+Route::view('/vendors', 'pages.vendors')->middleware('setLocale')->name('vendors');
+
+Route::view('/vendors/dar-al-karma', 'pages.vendor')->middleware('setLocale')->name('vendors.show');
+
 /*
 |--------------------------------------------------------------------------
 | Shop Routes
@@ -157,6 +161,12 @@ Route::prefix('customer')
     ->middleware(['setLocale'])
     ->name('customer.')
     ->group(function () {
+        Route::view('account-details', 'pages.customer-account-details')
+            ->name('account-details');
+
+        Route::view('addresses', 'pages.customer-addresses')
+            ->name('addresses');
+
         Route::get('cart', [CartController::class, 'show'])
             ->name('cart.show');
 

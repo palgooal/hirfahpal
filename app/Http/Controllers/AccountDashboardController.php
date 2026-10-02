@@ -10,8 +10,11 @@ class AccountDashboardController extends Controller
 {
     public function __invoke(Request $request): View
     {
-        return view('accounts.dashboard', [
-            'account' => AccountGuard::get($request->route('account_type')),
+        $account = AccountGuard::get($request->route('account_type'));
+
+        return view($account['dashboard_view'] ?? 'accounts.dashboard', [
+            'account' => $account,
+            'user' => $request->user($account['guard']),
         ]);
     }
 }

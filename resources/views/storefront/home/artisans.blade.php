@@ -25,7 +25,7 @@
             <p class="pb-6 text-right text-xs leading-[19.5px] text-muted">مشغل عائلي متخصص في الخزف الأزرق والمزجج
               بالطرق التقليدية القديمة الموروثة عن الأجداد منذ مطلع القرن الماضي.</p>
             <div class="mt-auto flex items-center justify-between border-t border-line/60 pt-[17px] text-xs leading-4">
-              <span class="text-[#918f83]">24 منتج متاح</span><a role="link" aria-disabled="true" data-deferred-navigation="vendor.html"
+              <span class="text-[#918f83]">24 منتج متاح</span><a href="{{ route('vendors.show') }}"
                 class="font-bold text-olive underline underline-offset-2">زيارة المتجر</a></div>
           </article>
           <article

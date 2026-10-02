@@ -144,7 +144,7 @@
             <div><span class="block text-muted">التقييم</span><strong>4.8 من 5</strong></div>
             <div><span class="block text-muted">الأعمال</span><strong>16 منتجاً معتمداً</strong></div>
             <div><span class="block text-muted">التجهيز</span><strong>خلال 48 ساعة</strong></div>
-          </div><a role="link" aria-disabled="true" data-deferred-navigation="vendor.html?id=dar-al-karma"
+          </div><a href="{{ route('vendors.show') }}"
             class="mt-4 flex h-10 cursor-pointer items-center justify-center rounded-2xl border border-line text-xs font-bold text-olive transition-colors hover:border-olive hover:bg-canvas">تصفح
             كافة أعمال دار الكرمة <i data-lucide="chevron-left" class="me-1 h-3 w-3"></i></a>
         </article>

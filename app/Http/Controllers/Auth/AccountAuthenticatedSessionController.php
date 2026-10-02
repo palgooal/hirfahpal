@@ -14,8 +14,10 @@ class AccountAuthenticatedSessionController extends Controller
 {
     public function create(Request $request): View
     {
-        return view('auth.accounts.login', [
-            'account' => AccountGuard::get($request->route('account_type')),
+        $account = AccountGuard::get($request->route('account_type'));
+
+        return view($account['login_view'] ?? 'auth.accounts.login', [
+            'account' => $account,
         ]);
     }
 
