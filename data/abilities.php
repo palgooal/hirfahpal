@@ -27,4 +27,16 @@ return [
         'view' => t('dashboard.View_Settings', 'View Settings'),
         'edit' => t('dashboard.Edit_Settings', 'Edit Settings'),
     ],
+    'vendors' => [
+        'name' => t('dashboard.Vendors', 'Vendors'),
+        'view' => t('dashboard.View_Vendors', 'View Vendors'),
+        'create' => t('dashboard.Create_Vendor', 'Create Vendor'),
+        'edit' => t('dashboard.Approve_Reject_Vendors', 'Approve / Reject Vendors'),
+    ],
+    'vendor-orders' => [
+        'name' => t('dashboard.Vendor_Orders', 'Vendor Orders'),
+        'view' => t('dashboard.View_Vendor_Orders', 'View Vendor Orders'),
+        'create' => t('dashboard.Create_Vendor_Order', 'Create Vendor Order'),
+        'assign-driver' => t('dashboard.Assign_Delivery_Driver', 'Assign Delivery Driver'),
+    ],
 ];

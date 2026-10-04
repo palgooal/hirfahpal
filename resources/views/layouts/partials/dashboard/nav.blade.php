@@ -6,6 +6,10 @@
         $canViewAdmins = $admin?->can('view', App\Models\Admin::class) ?? false;
         $canCreateAdmins = $admin?->can('create', App\Models\Admin::class) ?? false;
         $canViewSettings = $admin?->can('view', App\Models\Setting::class) ?? false;
+        $canViewVendors = $admin?->isSuperAdmin() || $admin?->hasAbility('vendors.view');
+        $canCreateVendors = $admin?->isSuperAdmin() || $admin?->hasAbility('vendors.create');
+        $canViewVendorOrders = $admin?->isSuperAdmin() || $admin?->hasAbility('vendor-orders.view');
+        $canCreateVendorOrders = $admin?->isSuperAdmin() || $admin?->hasAbility('vendor-orders.create');
     @endphp
     <div class="navbar-wrapper">
         <div class="m-header flex items-center py-4 px-6 h-header-height">
@@ -104,6 +108,48 @@
                             <i class="fas fa-user-plus"></i>
                         </span>
                         <span class="pc-mtext">{{ t('dashboard.Add_Admin', 'Add Admin') }}</span>
+                    </a>
+                </li>
+                @endif
+                @if ($canViewVendors)
+                <li class="pc-item {{ request()->routeIs('dashboard.vendors.*') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard.vendors.index') }}" class="pc-link">
+                        <span class="pc-micon">
+                            <i class="fas fa-store"></i>
+                        </span>
+                        <span class="pc-mtext">{{ t('dashboard.Vendors', 'Vendors') }}</span>
+                    </a>
+                </li>
+                @endif
+                @if ($canCreateVendors)
+                <li class="pc-item {{ request()->routeIs('dashboard.vendors.create') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard.vendors.create') }}" class="pc-link">
+                        <span class="pc-micon">
+                            <i class="fas fa-store-alt"></i>
+                        </span>
+                        <span class="pc-mtext">{{ t('dashboard.Add_Vendor', 'Add Vendor') }}</span>
+                    </a>
+                </li>
+                @endif
+
+                @if ($canViewVendorOrders)
+                <li class="pc-item {{ request()->routeIs('dashboard.vendor-orders.*') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard.vendor-orders.index') }}" class="pc-link">
+                        <span class="pc-micon">
+                            <i class="fas fa-clipboard-list"></i>
+                        </span>
+                        <span class="pc-mtext">{{ t('dashboard.Vendor_Orders', 'Vendor Orders') }}</span>
+                    </a>
+                </li>
+                @endif
+
+                @if ($canCreateVendorOrders)
+                <li class="pc-item {{ request()->routeIs('dashboard.vendor-orders.create') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard.vendor-orders.create') }}" class="pc-link">
+                        <span class="pc-micon">
+                            <i class="fas fa-plus-square"></i>
+                        </span>
+                        <span class="pc-mtext">{{ t('dashboard.Add_Vendor_Order', 'Add Vendor Order') }}</span>
                     </a>
                 </li>
                 @endif
