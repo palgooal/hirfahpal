@@ -180,6 +180,9 @@ Route::prefix('customer')
             Route::view('addresses', 'pages.customer-addresses')
                 ->name('addresses');
 
+            Route::view('favorites', 'pages.customer-favorites')
+                ->name('favorites');
+
             Route::post('checkout', [CheckoutController::class, 'store'])
                 ->name('checkout.store');
 

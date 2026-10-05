@@ -53,7 +53,7 @@
           </section>
 
           <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-            <a role="link" aria-disabled="true" data-deferred-navigation="dashboard/favorites.html" class="flex min-h-32 items-center justify-between gap-4 rounded-[20px] border border-line bg-surface p-5 text-start shadow-card transition-colors hover:border-olive/40">
+            <a href="{{ route('customer.favorites') }}" class="flex min-h-32 items-center justify-between gap-4 rounded-[20px] border border-line bg-surface p-5 text-start shadow-card transition-colors hover:border-olive/40">
               <span>
                 <span class="block text-sm font-semibold text-muted">المفضلة</span>
                 <strong class="mt-2 block text-3xl font-bold text-ink"><bdi>5</bdi></strong>

@@ -5,7 +5,7 @@
       ['key' => 'orders', 'label' => 'الطلبات', 'icon' => 'package-search', 'href' => null, 'deferred' => 'dashboard/orders.html'],
       ['key' => 'addresses', 'label' => 'العنوان', 'icon' => 'map-pin', 'href' => route('customer.addresses'), 'deferred' => null],
       ['key' => 'account', 'label' => 'تفاصيل الحساب', 'icon' => 'user-round-cog', 'href' => route('customer.account-details'), 'deferred' => null],
-      ['key' => 'favorites', 'label' => 'المفضلة', 'icon' => 'heart', 'href' => null, 'deferred' => 'dashboard/favorites.html'],
+      ['key' => 'favorites', 'label' => 'المفضلة', 'icon' => 'heart', 'href' => route('customer.favorites'), 'deferred' => null],
   ];
 @endphp
 <aside class="h-fit rounded-[20px] border border-line bg-surface p-3 shadow-card lg:sticky lg:top-6" aria-label="أقسام حسابي">
