@@ -33,4 +33,14 @@ class CustomerAddress extends Model
     {
         return $this->belongsTo(Customer::class);
     }
+
+    public function governorate()
+    {
+        return $this->belongsTo(Governorate::class);
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(City::class);
+    }
 }

@@ -23,4 +23,24 @@ class Review extends Model
     {
         return $this->belongsTo(Customer::class);
     }
+
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    public function vendor()
+    {
+        return $this->belongsTo(Vendor::class);
+    }
+
+    public function deliveryDriver()
+    {
+        return $this->belongsTo(DeliveryDriver::class);
+    }
 }

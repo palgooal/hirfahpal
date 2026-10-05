@@ -23,6 +23,10 @@
         [t('dashboard.Active_Vendors', 'Active Vendors'), $stats['active_vendors'], 'success', 'ti-store', route('dashboard.vendors.index')],
         [t('dashboard.Pending_Vendor_Orders', 'Pending Vendor Orders'), $stats['pending_vendor_orders'], 'primary', 'ti-clipboard-list', route('dashboard.vendor-orders.index', ['status' => 'pending'])],
         [t('dashboard.Needs_attention', 'Needs attention'), $stats['needs_attention'], 'danger', 'ti-alert-triangle', route('dashboard.vendor-orders.index', ['needs_attention' => 1])],
+        [t('dashboard.Active_Products', 'Active Products'), $stats['active_products'], 'success', 'ti-box', route('dashboard.products.index', ['status' => 'active'])],
+        [t('dashboard.Low_Stock', 'Low Stock'), $stats['low_stock_products'], 'warning', 'ti-alert-circle', route('dashboard.products.index')],
+        [t('dashboard.Pending_Drivers', 'Pending Drivers'), $stats['pending_drivers'], 'info', 'ti-truck', route('dashboard.delivery-drivers.index', ['approval_status' => 'pending'])],
+        [t('dashboard.Open_Disputes', 'Open Disputes'), $stats['open_disputes'], 'danger', 'ti-life-buoy', route('dashboard.disputes.index', ['status' => 'open'])],
     ] as [$label, $value, $color, $icon, $url])
         <div class="col-span-12 sm:col-span-6 xl:col-span-3">
             <a href="{{ $url }}" class="card d-block text-decoration-none">
@@ -40,6 +44,25 @@
             </a>
         </div>
     @endforeach
+
+    <div class="col-span-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">{{ t('dashboard.Admin_Quick_Actions', 'Admin Quick Actions') }}</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('dashboard.categories.index') }}" class="btn btn-light-secondary">{{ t('dashboard.Categories', 'Categories') }}</a>
+                    <a href="{{ route('dashboard.products.index') }}" class="btn btn-light-secondary">{{ t('dashboard.Products', 'Products') }}</a>
+                    <a href="{{ route('dashboard.customers.index') }}" class="btn btn-light-secondary">{{ t('dashboard.Customers', 'Customers') }}</a>
+                    <a href="{{ route('dashboard.delivery-drivers.index') }}" class="btn btn-light-secondary">{{ t('dashboard.Delivery_Drivers', 'Delivery Drivers') }}</a>
+                    <a href="{{ route('dashboard.orders.index') }}" class="btn btn-light-secondary">{{ t('dashboard.Orders', 'Orders') }}</a>
+                    <a href="{{ route('dashboard.reviews.index', ['status' => 'pending']) }}" class="btn btn-light-secondary">{{ t('dashboard.Pending_Reviews', 'Pending Reviews') }}: {{ number_format($stats['pending_reviews']) }}</a>
+                    <a href="{{ route('dashboard.return-requests.index', ['status' => 'requested']) }}" class="btn btn-light-secondary">{{ t('dashboard.Open_Returns', 'Open Returns') }}: {{ number_format($stats['open_returns']) }}</a>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="col-span-12 xl:col-span-7">
         <div class="card">

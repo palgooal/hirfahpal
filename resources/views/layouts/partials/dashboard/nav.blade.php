@@ -8,8 +8,16 @@
         $canViewSettings = $admin?->can('view', App\Models\Setting::class) ?? false;
         $canViewVendors = $admin?->isSuperAdmin() || $admin?->hasAbility('vendors.view');
         $canCreateVendors = $admin?->isSuperAdmin() || $admin?->hasAbility('vendors.create');
+        $canViewCategories = $admin?->isSuperAdmin() || $admin?->hasAbility('categories.view');
+        $canViewProducts = $admin?->isSuperAdmin() || $admin?->hasAbility('products.view');
+        $canViewCustomers = $admin?->isSuperAdmin() || $admin?->hasAbility('customers.view');
+        $canViewDeliveryDrivers = $admin?->isSuperAdmin() || $admin?->hasAbility('delivery-drivers.view');
+        $canViewOrders = $admin?->isSuperAdmin() || $admin?->hasAbility('orders.view');
         $canViewVendorOrders = $admin?->isSuperAdmin() || $admin?->hasAbility('vendor-orders.view');
         $canCreateVendorOrders = $admin?->isSuperAdmin() || $admin?->hasAbility('vendor-orders.create');
+        $canViewReviews = $admin?->isSuperAdmin() || $admin?->hasAbility('reviews.view');
+        $canViewDisputes = $admin?->isSuperAdmin() || $admin?->hasAbility('disputes.view');
+        $canViewReturnRequests = $admin?->isSuperAdmin() || $admin?->hasAbility('return-requests.view');
     @endphp
     <div class="navbar-wrapper">
         <div class="m-header flex items-center py-4 px-6 h-header-height">
@@ -111,6 +119,22 @@
                     </a>
                 </li>
                 @endif
+                @if ($canViewCategories)
+                <li class="pc-item {{ request()->routeIs('dashboard.categories.*') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard.categories.index') }}" class="pc-link">
+                        <span class="pc-micon"><i class="fas fa-layer-group"></i></span>
+                        <span class="pc-mtext">{{ t('dashboard.Categories', 'Categories') }}</span>
+                    </a>
+                </li>
+                @endif
+                @if ($canViewProducts)
+                <li class="pc-item {{ request()->routeIs('dashboard.products.*') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard.products.index') }}" class="pc-link">
+                        <span class="pc-micon"><i class="fas fa-box-open"></i></span>
+                        <span class="pc-mtext">{{ t('dashboard.Products', 'Products') }}</span>
+                    </a>
+                </li>
+                @endif
                 @if ($canViewVendors)
                 <li class="pc-item {{ request()->routeIs('dashboard.vendors.*') ? 'active' : '' }}">
                     <a href="{{ route('dashboard.vendors.index') }}" class="pc-link">
@@ -128,6 +152,30 @@
                             <i class="fas fa-store-alt"></i>
                         </span>
                         <span class="pc-mtext">{{ t('dashboard.Add_Vendor', 'Add Vendor') }}</span>
+                    </a>
+                </li>
+                @endif
+                @if ($canViewCustomers)
+                <li class="pc-item {{ request()->routeIs('dashboard.customers.*') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard.customers.index') }}" class="pc-link">
+                        <span class="pc-micon"><i class="fas fa-users"></i></span>
+                        <span class="pc-mtext">{{ t('dashboard.Customers', 'Customers') }}</span>
+                    </a>
+                </li>
+                @endif
+                @if ($canViewDeliveryDrivers)
+                <li class="pc-item {{ request()->routeIs('dashboard.delivery-drivers.*') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard.delivery-drivers.index') }}" class="pc-link">
+                        <span class="pc-micon"><i class="fas fa-truck"></i></span>
+                        <span class="pc-mtext">{{ t('dashboard.Delivery_Drivers', 'Delivery Drivers') }}</span>
+                    </a>
+                </li>
+                @endif
+                @if ($canViewOrders)
+                <li class="pc-item {{ request()->routeIs('dashboard.orders.*') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard.orders.index') }}" class="pc-link">
+                        <span class="pc-micon"><i class="fas fa-receipt"></i></span>
+                        <span class="pc-mtext">{{ t('dashboard.Orders', 'Orders') }}</span>
                     </a>
                 </li>
                 @endif
@@ -150,6 +198,30 @@
                             <i class="fas fa-plus-square"></i>
                         </span>
                         <span class="pc-mtext">{{ t('dashboard.Add_Vendor_Order', 'Add Vendor Order') }}</span>
+                    </a>
+                </li>
+                @endif
+                @if ($canViewReviews)
+                <li class="pc-item {{ request()->routeIs('dashboard.reviews.*') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard.reviews.index') }}" class="pc-link">
+                        <span class="pc-micon"><i class="fas fa-star"></i></span>
+                        <span class="pc-mtext">{{ t('dashboard.Reviews', 'Reviews') }}</span>
+                    </a>
+                </li>
+                @endif
+                @if ($canViewDisputes)
+                <li class="pc-item {{ request()->routeIs('dashboard.disputes.*') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard.disputes.index') }}" class="pc-link">
+                        <span class="pc-micon"><i class="fas fa-life-ring"></i></span>
+                        <span class="pc-mtext">{{ t('dashboard.Disputes', 'Disputes') }}</span>
+                    </a>
+                </li>
+                @endif
+                @if ($canViewReturnRequests)
+                <li class="pc-item {{ request()->routeIs('dashboard.return-requests.*') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard.return-requests.index') }}" class="pc-link">
+                        <span class="pc-micon"><i class="fas fa-undo"></i></span>
+                        <span class="pc-mtext">{{ t('dashboard.Return_Requests', 'Return Requests') }}</span>
                     </a>
                 </li>
                 @endif

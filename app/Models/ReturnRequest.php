@@ -23,4 +23,19 @@ class ReturnRequest extends Model
             'reviewed_at' => 'datetime',
         ];
     }
+
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    public function vendorOrder()
+    {
+        return $this->belongsTo(VendorOrder::class);
+    }
+
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class);
+    }
 }
