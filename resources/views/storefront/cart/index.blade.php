@@ -354,7 +354,7 @@
               <span class="text-base font-bold leading-7 text-ink">المجموع الكلي</span>
               <strong class="text-2xl font-bold leading-9 text-olive" data-grand-total-display><bdi>₪1,011</bdi></strong>
             </div>
-            <a role="link" aria-disabled="true" data-deferred-navigation="checkout.html"
+            <a href="{{ route('customer.checkout.show') }}"
               class="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-olive px-5 text-sm font-bold text-surface shadow-sm transition-colors hover:bg-[#313923]">
               <span>متابعة إلى الدفع</span>
               <i data-lucide="credit-card" class="h-4 w-4"></i>

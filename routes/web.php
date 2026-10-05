@@ -185,6 +185,9 @@ Route::prefix('customer')
             Route::view('favorites', 'pages.customer-favorites')
                 ->name('favorites');
 
+            Route::view('checkout', 'pages.checkout')
+                ->name('checkout.show');
+
             Route::post('checkout', [CheckoutController::class, 'store'])
                 ->name('checkout.store');
 

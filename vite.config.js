@@ -19,6 +19,7 @@ export default defineConfig({
                 'resources/js/storefront-login.js',
                 'resources/js/storefront-addresses.js',
                 'resources/js/storefront-favorites.js',
+                'resources/js/storefront-checkout.js',
             ],
             refresh: true,
         }),

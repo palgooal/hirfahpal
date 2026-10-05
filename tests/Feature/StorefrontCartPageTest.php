@@ -108,11 +108,17 @@ class StorefrontCartPageTest extends TestCase
         $this->assertStringNotContainsString('storefront-cart', $this->get(route('cart'))->getContent());
     }
 
-    public function test_checkout_product_and_vendor_navigation_is_deferred(): void
+    public function test_checkout_cta_links_to_the_checkout_display_and_other_navigation_is_deferred(): void
     {
         $main = $this->mainContent($this->get(route('cart'))->getContent());
 
-        $this->assertMatchesRegularExpression('/<a role="link" aria-disabled="true" data-deferred-navigation="checkout\.html"\s+class="[^"]*">\s*<span>متابعة إلى الدفع<\/span>/', $main);
+        // GET customer.checkout.show and POST customer.checkout.store share one URI, so the CTA is checked as a plain GET link.
+        $this->assertMatchesRegularExpression('/<a href="'.preg_quote(route('customer.checkout.show'), '/').'"\s+class="[^"]*">\s*<span>متابعة إلى الدفع<\/span>/', $main);
+        $this->assertStringNotContainsString('data-deferred-navigation="checkout.html"', $main);
+        $this->assertStringNotContainsString('<form', $main);
+        $this->assertStringNotContainsString('formaction', $main);
+        $this->assertStringNotContainsString('data-method', $main);
+
         $this->assertSame(6, substr_count($main, '<a role="link" aria-disabled="true" data-deferred-navigation="product.html" class='));
         foreach (['dar-al-karma', 'bethlehem-women', 'noor-alzaytouna'] as $slug) {
             $this->assertStringContainsString('<a role="link" aria-disabled="true" data-deferred-navigation="vendor.html?id='.$slug.'" class=', $main, $slug);
@@ -120,7 +126,6 @@ class StorefrontCartPageTest extends TestCase
 
         $this->assertStringNotContainsString('href="'.route('vendors.show').'"', $main);
         $this->assertStringNotContainsString('href="'.route('product').'"', $main);
-        $this->assertStringNotContainsString(route('customer.checkout.store'), $main);
         $this->assertDoesNotMatchRegularExpression('/href="[^"]*\.html/', $main);
     }
 
