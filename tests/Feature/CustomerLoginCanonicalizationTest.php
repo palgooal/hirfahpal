@@ -21,11 +21,18 @@ class CustomerLoginCanonicalizationTest extends TestCase
 
     public function test_guest_customer_protected_routes_redirect_to_customer_login(): void
     {
-        foreach (['customer.dashboard', 'customer.orders.index', 'customer.cart.show'] as $protected) {
+        foreach (['customer.dashboard', 'customer.orders.index', 'customer.account-details', 'customer.addresses'] as $protected) {
             $this->get(route($protected))->assertRedirect(route('customer.login'));
             $this->assertSame(route($protected), session('url.intended'), $protected);
             $this->flushSession();
         }
+    }
+
+    public function test_guest_can_access_customer_cart_without_login(): void
+    {
+        $this->get(route('customer.cart.show'))->assertOk();
+
+        $this->assertGuest('customer');
     }
 
     public function test_customer_intended_url_survives_successful_login(): void

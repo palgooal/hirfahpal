@@ -161,12 +161,6 @@ Route::prefix('customer')
     ->middleware(['setLocale'])
     ->name('customer.')
     ->group(function () {
-        Route::view('account-details', 'pages.customer-account-details')
-            ->name('account-details');
-
-        Route::view('addresses', 'pages.customer-addresses')
-            ->name('addresses');
-
         Route::get('cart', [CartController::class, 'show'])
             ->name('cart.show');
 
@@ -180,6 +174,12 @@ Route::prefix('customer')
             ->name('cart.items.destroy');
 
         Route::middleware('auth:customer')->group(function () {
+            Route::view('account-details', 'pages.customer-account-details')
+                ->name('account-details');
+
+            Route::view('addresses', 'pages.customer-addresses')
+                ->name('addresses');
+
             Route::post('checkout', [CheckoutController::class, 'store'])
                 ->name('checkout.store');
 
