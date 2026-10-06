@@ -25,4 +25,14 @@ class Commission extends Model
             'earned_at' => 'datetime',
         ];
     }
+
+    public function vendorOrder()
+    {
+        return $this->belongsTo(VendorOrder::class);
+    }
+
+    public function vendor()
+    {
+        return $this->belongsTo(Vendor::class);
+    }
 }

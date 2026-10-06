@@ -15,6 +15,15 @@ use App\Http\Controllers\Store\CheckoutController;
 use App\Http\Controllers\Store\OrderController;
 use App\Http\Controllers\Store\ProductCatalogController;
 use App\Http\Controllers\Store\ReviewController;
+use App\Http\Controllers\VendorDashboard\CommissionController as VendorCommissionController;
+use App\Http\Controllers\VendorDashboard\DisputeController as VendorDisputeController;
+use App\Http\Controllers\VendorDashboard\OrderController as VendorDashboardOrderController;
+use App\Http\Controllers\VendorDashboard\OverviewController as VendorDashboardOverviewController;
+use App\Http\Controllers\VendorDashboard\ProductController as VendorDashboardProductController;
+use App\Http\Controllers\VendorDashboard\ProductImageController as VendorDashboardProductImageController;
+use App\Http\Controllers\VendorDashboard\ProfileController as VendorDashboardProfileController;
+use App\Http\Controllers\VendorDashboard\ReturnRequestController as VendorReturnRequestController;
+use App\Http\Controllers\VendorDashboard\ReviewController as VendorDashboardReviewController;
 use App\Support\Auth\AccountGuard;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -143,6 +152,37 @@ foreach (AccountGuard::all() as $accountType => $account) {
                     Route::post('/logout', [AccountAuthenticatedSessionController::class, 'destroy'])
                         ->name('logout')
                         ->defaults('account_type', $accountType);
+
+                    if ($accountType === 'vendor') {
+                        Route::prefix('dashboard')->group(function (): void {
+                            Route::get('/', VendorDashboardOverviewController::class)->name('dashboard');
+
+                            Route::get('profile', [VendorDashboardProfileController::class, 'show'])->name('dashboard.profile.show');
+                            Route::put('profile', [VendorDashboardProfileController::class, 'update'])->name('dashboard.profile.update');
+
+                            Route::apiResource('products', VendorDashboardProductController::class)
+                                ->names('dashboard.products');
+                            Route::post('products/{product}/images', [VendorDashboardProductImageController::class, 'store'])->name('dashboard.products.images.store');
+                            Route::patch('products/{product}/images/{productImage}', [VendorDashboardProductImageController::class, 'update'])->name('dashboard.products.images.update');
+                            Route::delete('products/{product}/images/{productImage}', [VendorDashboardProductImageController::class, 'destroy'])->name('dashboard.products.images.destroy');
+
+                            Route::get('orders', [VendorDashboardOrderController::class, 'index'])->name('dashboard.orders.index');
+                            Route::get('orders/{vendorOrder}', [VendorDashboardOrderController::class, 'show'])->name('dashboard.orders.show');
+                            Route::patch('orders/{vendorOrder}/accept', [VendorDashboardOrderController::class, 'accept'])->name('dashboard.orders.accept');
+                            Route::patch('orders/{vendorOrder}/reject', [VendorDashboardOrderController::class, 'reject'])->name('dashboard.orders.reject');
+                            Route::patch('orders/{vendorOrder}/preparing', [VendorDashboardOrderController::class, 'markPreparing'])->name('dashboard.orders.preparing');
+                            Route::patch('orders/{vendorOrder}/ready', [VendorDashboardOrderController::class, 'markReady'])->name('dashboard.orders.ready');
+
+                            Route::get('reviews', [VendorDashboardReviewController::class, 'index'])->name('dashboard.reviews.index');
+                            Route::get('returns', [VendorReturnRequestController::class, 'index'])->name('dashboard.returns.index');
+                            Route::get('returns/{returnRequest}', [VendorReturnRequestController::class, 'show'])->name('dashboard.returns.show');
+                            Route::get('disputes', [VendorDisputeController::class, 'index'])->name('dashboard.disputes.index');
+                            Route::get('disputes/{dispute}', [VendorDisputeController::class, 'show'])->name('dashboard.disputes.show');
+                            Route::get('commissions', [VendorCommissionController::class, 'index'])->name('dashboard.commissions.index');
+                        });
+
+                        return;
+                    }
 
                     Route::get('/dashboard', AccountDashboardController::class)
                         ->name('dashboard')

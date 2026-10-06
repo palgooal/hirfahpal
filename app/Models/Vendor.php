@@ -28,6 +28,16 @@ class Vendor extends Authenticatable
         return $this->hasMany(VendorOrder::class);
     }
 
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function commissions()
+    {
+        return $this->hasMany(Commission::class);
+    }
+
     public function commissionRules()
     {
         return $this->hasMany(CommissionRule::class);
