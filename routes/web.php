@@ -44,6 +44,8 @@ Route::view('/vendors', 'pages.vendors')->middleware('setLocale')->name('vendors
 
 Route::view('/vendors/dar-al-karma', 'pages.vendor')->middleware('setLocale')->name('vendors.show');
 
+Route::view('/cart', 'pages.cart')->middleware('setLocale')->name('cart');
+
 /*
 |--------------------------------------------------------------------------
 | Shop Routes
@@ -201,12 +203,6 @@ Route::prefix('customer')
     ->middleware(['setLocale'])
     ->name('customer.')
     ->group(function () {
-        Route::view('account-details', 'pages.customer-account-details')
-            ->name('account-details');
-
-        Route::view('addresses', 'pages.customer-addresses')
-            ->name('addresses');
-
         Route::get('cart', [CartController::class, 'show'])
             ->name('cart.show');
 
@@ -220,6 +216,18 @@ Route::prefix('customer')
             ->name('cart.items.destroy');
 
         Route::middleware('auth:customer')->group(function () {
+            Route::view('account-details', 'pages.customer-account-details')
+                ->name('account-details');
+
+            Route::view('addresses', 'pages.customer-addresses')
+                ->name('addresses');
+
+            Route::view('favorites', 'pages.customer-favorites')
+                ->name('favorites');
+
+            Route::view('checkout', 'pages.checkout')
+                ->name('checkout.show');
+
             Route::post('checkout', [CheckoutController::class, 'store'])
                 ->name('checkout.store');
 

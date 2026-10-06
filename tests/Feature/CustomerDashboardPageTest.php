@@ -88,7 +88,9 @@ class CustomerDashboardPageTest extends TestCase
             ->getContent());
 
         $this->assertMatchesRegularExpression('/<a role="link" aria-disabled="true" data-deferred-navigation="order-detail\.html\?id=HF-2026-0814"[^>]*>\s*<span>عرض تفاصيل الطلب<\/span>/', $main);
-        $this->assertMatchesRegularExpression('/<a role="link" aria-disabled="true" data-deferred-navigation="dashboard\/favorites\.html" class="flex min-h-/', $main);
+        // The favorites card links to the migrated favorites page.
+        $this->assertMatchesRegularExpression('/<a href="'.preg_quote(route('customer.favorites'), '/').'" class="flex min-h-32[^"]*">\s*<span>\s*<span[^>]*>المفضلة<\/span>/', $main);
+        $this->assertStringNotContainsString('dashboard/favorites.html', $main);
 
         // The account-details card links to the migrated account-details page.
         $this->assertMatchesRegularExpression('/<a href="'.preg_quote(route('customer.account-details'), '/').'" class="flex min-h-28[^"]*">\s*<span><strong[^>]*>تفاصيل الحساب<\/strong>/', $main);
@@ -117,12 +119,12 @@ class CustomerDashboardPageTest extends TestCase
             $this->assertStringContainsString('<span>'.$label.'</span>', $main, $label);
         }
 
-        // Deferred sections never emit a link; only home, dashboard, account-details and addresses hrefs exist inside <main>.
+        // Deferred sections never emit a link; only home, dashboard, account-details, addresses and favorites hrefs exist inside <main>.
         preg_match_all('/href="([^"]*)"/', $main, $hrefs);
-        $this->assertSame([], array_values(array_diff(array_unique($hrefs[1]), [route('home'), route('customer.dashboard'), route('customer.account-details'), route('customer.addresses')])));
+        $this->assertSame([], array_values(array_diff(array_unique($hrefs[1]), [route('home'), route('customer.dashboard'), route('customer.account-details'), route('customer.addresses'), route('customer.favorites')])));
         $this->assertStringNotContainsString('href="#"', $main);
-        // 2 deferred sidebar sections (orders, favorites) + order detail button + favorites card.
-        $this->assertSame(4, substr_count($main, 'aria-disabled="true"'));
+        // Deferred: the orders sidebar section + the latest-order detail button.
+        $this->assertSame(2, substr_count($main, 'aria-disabled="true"'));
     }
 
     public function test_logout_is_a_post_form_with_csrf(): void

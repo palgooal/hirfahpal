@@ -49,7 +49,9 @@ class CustomerAddressesPageTest extends TestCase
         $this->assertMatchesRegularExpression('/<a\s+href="'.preg_quote(route('customer.addresses'), '/').'"\s+aria-current="page"/', $page);
         $this->assertMatchesRegularExpression('/<a\s+href="'.preg_quote(route('customer.dashboard'), '/').'"\s+class=/', $page);
         $this->assertMatchesRegularExpression('/<a\s+href="'.preg_quote(route('customer.account-details'), '/').'"\s+class=/', $page);
-        foreach (['dashboard/orders.html', 'dashboard/favorites.html'] as $deferred) {
+        $this->assertMatchesRegularExpression('/<a\s+href="'.preg_quote(route('customer.favorites'), '/').'"\s+class=/', $page);
+
+        foreach (['dashboard/orders.html'] as $deferred) {
             $this->assertStringContainsString('data-deferred-navigation="'.$deferred.'"', $page, $deferred);
         }
         $this->assertDoesNotMatchRegularExpression('/href="[^"]*\.html/', $page);
