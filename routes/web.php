@@ -15,6 +15,7 @@ use App\Http\Controllers\Store\CheckoutController;
 use App\Http\Controllers\Store\OrderController;
 use App\Http\Controllers\Store\ProductCatalogController;
 use App\Http\Controllers\Store\ReviewController;
+use App\Http\Controllers\VendorDashboard\ApprovalStatusController as VendorApprovalStatusController;
 use App\Http\Controllers\VendorDashboard\CommissionController as VendorCommissionController;
 use App\Http\Controllers\VendorDashboard\DisputeController as VendorDisputeController;
 use App\Http\Controllers\VendorDashboard\OrderController as VendorDashboardOrderController;
@@ -110,7 +111,15 @@ foreach (AccountGuard::all() as $accountType => $account) {
     Route::prefix($account['prefix'])
         ->name($account['route'].'.')
         ->group(function () use ($accountType, $account): void {
-            Route::middleware('guest:'.$account['guard'])
+            $guestMiddleware = ['guest:'.$account['guard']];
+
+            // Vendor auth pages use seeded translations only,
+            // so t() must not insert keys here.
+            if ($accountType === 'vendor') {
+                $guestMiddleware = ['setLocale', ...$guestMiddleware, 'disableTranslationAutoCreate'];
+            }
+
+            Route::middleware($guestMiddleware)
                 ->group(function () use ($accountType): void {
                     Route::get('/login', [AccountAuthenticatedSessionController::class, 'create'])
                         ->name('login')
@@ -156,8 +165,25 @@ foreach (AccountGuard::all() as $accountType => $account) {
                         ->defaults('account_type', $accountType);
 
                     if ($accountType === 'vendor') {
-                        Route::prefix('dashboard')->group(function (): void {
-                            Route::get('/', VendorDashboardOverviewController::class)->name('dashboard');
+                        // Outside the approval gate: pending/rejected vendors land here (VEN-BE-001).
+                        // Its page uses seeded translations only, so t() must not insert keys here.
+                        Route::get('approval-status', VendorApprovalStatusController::class)
+                            ->middleware(['setLocale', 'disableTranslationAutoCreate'])
+                            ->name('approval-status');
+
+                        // Every operational vendor route requires an approved store.
+                        Route::prefix('dashboard')->middleware('vendor.approved')->group(function (): void {
+                            // Canonical browser dashboard (VEN-BE-010): the vendor dashboard shell. Its
+                            // page uses seeded translations only, so t() must not insert keys here.
+                            Route::view('/', 'vendor-dashboard.home')
+                                ->middleware(['setLocale', 'disableTranslationAutoCreate'])
+                                ->name('dashboard');
+                            // Overview data endpoint (JSON), moved from GET vendor/dashboard unchanged.
+                            Route::get('overview', VendorDashboardOverviewController::class)->name('dashboard.overview');
+                            // My Store browser page (VUI-03B); its data comes from the profile JSON endpoints below.
+                            Route::view('my-store', 'vendor-dashboard.my-store')
+                                ->middleware(['setLocale', 'disableTranslationAutoCreate'])
+                                ->name('dashboard.my-store');
 
                             Route::get('profile', [VendorDashboardProfileController::class, 'show'])->name('dashboard.profile.show');
                             Route::put('profile', [VendorDashboardProfileController::class, 'update'])->name('dashboard.profile.update');

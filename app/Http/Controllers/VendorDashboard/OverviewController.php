@@ -24,9 +24,8 @@ class OverviewController extends Controller
             'stats' => [
                 'products_total' => (clone $products)->count(),
                 'products_active' => (clone $products)->where('status', 'active')->count(),
-                'products_low_stock' => (clone $products)
-                    ->whereColumn('stock_quantity', '<=', 'low_stock_threshold')
-                    ->count(),
+                // Low stock is based on available stock, not raw physical stock (VEN-BE-019).
+                'products_low_stock' => (clone $products)->lowAvailableStock()->count(),
                 'orders_pending' => (clone $orders)->where('status', 'pending')->count(),
                 'orders_in_progress' => (clone $orders)
                     ->whereIn('status', ['accepted', 'preparing', 'ready_for_delivery', 'assigned', 'out_for_delivery'])
@@ -53,8 +52,8 @@ class OverviewController extends Controller
             'low_stock_products' => Product::query()
                 ->with(['category', 'primaryImage'])
                 ->where('vendor_id', $vendor->id)
-                ->whereColumn('stock_quantity', '<=', 'low_stock_threshold')
-                ->orderBy('stock_quantity')
+                ->lowAvailableStock()
+                ->orderByAvailableStock()
                 ->limit(8)
                 ->get(),
         ]);

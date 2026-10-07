@@ -167,7 +167,7 @@ class VendorManagementController extends Controller
             'rejection_reason' => $data['rejection_reason'],
         ]);
 
-        $vendor->update(['status' => 'blocked']);
+        // Rejecting the store application does not block the account (Approved Vendor Approval Contract).
 
         return back()->with('success', t('dashboard.Vendor_rejected_successfully', 'Vendor rejected successfully.'));
     }

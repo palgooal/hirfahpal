@@ -28,4 +28,28 @@ class VendorFactory extends Factory
             'remember_token' => Str::random(10),
         ];
     }
+
+    /**
+     * A vendor whose store profile has been approved.
+     */
+    public function approved(): static
+    {
+        return $this->withProfile('approved');
+    }
+
+    /**
+     * A vendor with a store profile in the given approval state.
+     */
+    public function withProfile(string $approvalStatus, ?string $rejectionReason = null): static
+    {
+        return $this->afterCreating(function (Vendor $vendor) use ($approvalStatus, $rejectionReason): void {
+            $vendor->profile()->create([
+                'store_name' => $vendor->name.' Store',
+                'slug' => Str::slug($vendor->name).'-'.$vendor->id,
+                'approval_status' => $approvalStatus,
+                'approved_at' => $approvalStatus === 'approved' ? now() : null,
+                'rejection_reason' => $rejectionReason,
+            ]);
+        });
+    }
 }

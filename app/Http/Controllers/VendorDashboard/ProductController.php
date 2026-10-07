@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
@@ -90,7 +91,27 @@ class ProductController extends Controller
     {
         $this->authorizeProduct($request, $product);
 
-        $product->update($this->productData($request->validated(), $product));
+        $data = $this->productData($request->validated(), $product);
+
+        // The FormRequest rule gives early feedback; this is the authoritative check
+        // (VEN-BE-019). Product lock first, as in checkout and vendor accept, then the
+        // outstanding reserved quantity is re-read under that lock before writing.
+        $product = DB::transaction(function () use ($request, $product, $data): Product {
+            $lockedProduct = Product::query()->whereKey($product->id)->lockForUpdate()->firstOrFail();
+            abort_unless((int) $lockedProduct->vendor_id === (int) $request->user('vendor')->id, 404);
+
+            $reserved = $lockedProduct->reservedStockQuantity();
+
+            if ((int) $data['stock_quantity'] < $reserved) {
+                throw ValidationException::withMessages([
+                    'stock_quantity' => UpdateProductRequest::reservedStockMessage($reserved),
+                ]);
+            }
+
+            $lockedProduct->update($data);
+
+            return $lockedProduct;
+        });
 
         return response()->json([
             'message' => 'Product updated successfully.',

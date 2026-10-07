@@ -1,0 +1,1094 @@
+/*
+ * HIRFAH vendor dashboard shell (VUI-01B). Able Pro's style.css provides the
+ * dashboard layout (sidebar, header, container, cards); this file only adds
+ * the HIRFAH identity and the vendor shell pieces, scoped to html.vendor-shell.
+ *
+ * Tailwind is imported without preflight (theme + utilities only), so it never
+ * resets Able Pro's base styles. Utilities are generated from the vendor
+ * dashboard files only.
+ */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+
+@source "../views/components/vendor-dashboard-layout.blade.php";
+@source "../views/layouts/partials/vendor-dashboard";
+@source "../views/vendor-dashboard";
+@source "../js/vendor-dashboard.js";
+
+/* Same values as the vendor auth tokens, prefixed so they cannot clash with Able Pro class names. */
+@theme {
+  --color-hf-ink: #2b2b26;
+  --color-hf-olive: #3d472b;
+  --color-hf-olive-hover: #313923;
+  --color-hf-sage: #b3ba91;
+  --color-hf-copper: #b5622e;
+  --color-hf-canvas: #f5f0e5;
+  --color-hf-surface: #faf8f3;
+  --color-hf-line: #e4ddcb;
+  --color-hf-muted: #6b6a5f;
+
+  --font-cairo: "Cairo", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ---- Identity: olive replaces Able Pro's blue primary; Cairo replaces Inter ---- */
+
+html.vendor-shell {
+  --colors-primary-50: 244 245 239;
+  --colors-primary-100: 230 233 220;
+  --colors-primary-200: 205 211 186;
+  --colors-primary-300: 179 186 145;
+  --colors-primary-400: 120 132 88;
+  --colors-primary-500: 61 71 43;
+  --colors-primary-600: 55 64 39;
+  --colors-primary-700: 49 57 35;
+  --colors-primary-800: 41 48 29;
+  --colors-primary-900: 33 38 23;
+  --colors-primary-950: 22 26 15;
+  --colors-primary: 61 71 43;
+}
+
+html.vendor-shell body,
+html.vendor-shell button,
+html.vendor-shell h1,
+html.vendor-shell h2,
+html.vendor-shell h3 {
+  font-family: var(--font-cairo);
+}
+
+html.vendor-shell body {
+  overflow-x: hidden;
+  background-color: #f7f6f1;
+}
+
+html.vendor-shell :focus-visible {
+  outline: 2px solid var(--color-hf-olive);
+  outline-offset: 2px;
+}
+
+/* ---- Sidebar ---- */
+
+/* Solid hairline instead of Able Pro's dashed border; white so it reads as one surface with the header. */
+html.vendor-shell .pc-sidebar {
+  border-color: var(--color-hf-line);
+  border-style: solid;
+  background-color: #fff;
+}
+
+.vendor-shell .vendor-brand-header {
+  display: flex;
+  align-items: center;
+  height: 74px;
+  padding-inline: 1.25rem;
+  border-bottom: 1px solid var(--color-hf-line);
+}
+
+.vendor-shell .vendor-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.vendor-shell .vendor-brand-mark {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 3px;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 12px;
+  background-color: var(--color-hf-surface);
+}
+
+.vendor-shell .vendor-brand-mark img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.vendor-shell .vendor-brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.vendor-shell .vendor-brand-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-hf-olive);
+}
+
+.vendor-shell .vendor-brand-sub {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-hf-muted);
+}
+
+/* The sidebar content scrolls natively (no SimpleBar) and keeps logout at the bottom. */
+html.vendor-shell .pc-sidebar .vendor-navbar-content {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 74px);
+  padding: 1rem 0 0;
+  overflow-y: auto;
+}
+
+.vendor-shell .vendor-store-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 1rem 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 12px;
+  background-color: var(--color-hf-surface);
+}
+
+.vendor-shell .vendor-store-card-name {
+  min-width: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-hf-ink);
+  overflow-wrap: anywhere;
+}
+
+.vendor-shell .vendor-monogram {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 9999px;
+  background-color: var(--color-hf-olive);
+  color: var(--color-hf-surface);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.vendor-shell .vendor-monogram-sm {
+  width: 34px;
+  height: 34px;
+  font-size: 0.875rem;
+}
+
+/* Navigation rows: compact, icon and text on one aligned line. */
+html.vendor-shell .pc-sidebar .pc-navbar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0 0.75rem;
+}
+
+html.vendor-shell .pc-sidebar .pc-navbar > .pc-item > .pc-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 42px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  color: var(--color-hf-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Able Pro paints hover/active with a ::after overlay; the vendor rows use their own background. */
+html.vendor-shell .pc-sidebar .pc-navbar > .pc-item > .pc-link::after {
+  content: none;
+}
+
+html.vendor-shell .pc-sidebar .pc-navbar > .pc-item > .pc-link .pc-micon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+html.vendor-shell .pc-sidebar .pc-navbar > .pc-item:not(.vendor-nav-disabled) > .pc-link:hover {
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-olive);
+}
+
+html.vendor-shell .pc-sidebar .pc-navbar > .pc-item.active > .pc-link,
+html.vendor-shell .pc-sidebar .pc-navbar > .pc-item.active > .pc-link:hover {
+  background-color: rgb(179 186 145 / 24%);
+  color: var(--color-hf-olive);
+  font-weight: 700;
+  box-shadow: inset -3px 0 0 var(--color-hf-olive);
+}
+
+html.vendor-shell[dir="ltr"] .pc-sidebar .pc-navbar > .pc-item.active > .pc-link {
+  box-shadow: inset 3px 0 0 var(--color-hf-olive);
+}
+
+/* Inactive future sections: readable, clearly not clickable, not "broken". */
+html.vendor-shell .pc-sidebar .pc-navbar > .pc-item.vendor-nav-disabled > .pc-link {
+  cursor: not-allowed;
+  color: var(--color-hf-muted);
+  font-weight: 500;
+}
+
+html.vendor-shell .pc-sidebar .pc-navbar > .pc-item.vendor-nav-disabled > .pc-link .pc-micon {
+  color: #9a988b;
+}
+
+.vendor-shell .vendor-nav-footer {
+  margin-top: auto;
+  padding: 0.75rem;
+  border-top: 1px solid var(--color-hf-line);
+}
+
+.vendor-shell .vendor-nav-logout {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 42px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  color: var(--color-hf-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: start;
+}
+
+.vendor-shell .vendor-nav-logout:hover {
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-copper);
+}
+
+.vendor-shell .vendor-nav-logout i,
+.vendor-shell .vendor-dropdown-item i {
+  width: 1.5rem;
+  font-size: 1.25rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.vendor-shell .pc-sidebar .pc-menu-overlay[hidden] {
+  display: none;
+}
+
+/* Able Pro opens the mobile drawer from the left in both directions; open it from the start side in RTL. */
+@media (max-width: 1023.98px) {
+  html.vendor-shell[dir="rtl"] .pc-sidebar {
+    left: auto;
+    right: -280px;
+  }
+
+  html.vendor-shell[dir="rtl"] .pc-sidebar.mob-sidebar-active {
+    right: 0;
+  }
+
+  .vendor-shell .vendor-desktop-only {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .vendor-shell .vendor-mobile-only {
+    display: none !important;
+  }
+}
+
+/* ---- Header: a solid application bar joined to the sidebar's brand row ---- */
+
+html.vendor-shell .pc-header {
+  border-bottom: 1px solid var(--color-hf-line);
+  background-color: #fff;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.vendor-shell .vendor-header-wrapper {
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-inline: 2rem;
+}
+
+@media (max-width: 639.98px) {
+  .vendor-shell .vendor-header-wrapper {
+    padding-inline: 15px;
+  }
+}
+
+.vendor-shell .vendor-header-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vendor-shell .vendor-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 10px;
+  background-color: #fff;
+  font-size: 1.25rem;
+  color: var(--color-hf-ink);
+}
+
+.vendor-shell .vendor-icon-button:hover {
+  border-color: var(--color-hf-sage);
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-olive);
+}
+
+.vendor-shell .vendor-lang-list {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 3px;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 9999px;
+  background-color: var(--color-hf-surface);
+  list-style: none;
+}
+
+.vendor-shell .vendor-lang-item {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding-inline: 0.875rem;
+  border-radius: 9999px;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.vendor-shell a.vendor-lang-item:hover {
+  background-color: #fff;
+  color: var(--color-hf-ink);
+}
+
+.vendor-shell .vendor-lang-item.is-current {
+  background-color: var(--color-hf-olive);
+  color: var(--color-hf-surface);
+}
+
+.vendor-shell .vendor-user-menu {
+  position: relative;
+  padding-inline-start: 0.75rem;
+  border-inline-start: 1px solid var(--color-hf-line);
+}
+
+.vendor-shell .vendor-user-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 240px;
+  padding: 0.25rem;
+  padding-inline-end: 0.625rem;
+  border-radius: 9999px;
+  color: var(--color-hf-ink);
+}
+
+.vendor-shell .vendor-user-trigger:hover {
+  background-color: var(--color-hf-surface);
+}
+
+.vendor-shell .vendor-user-trigger-name {
+  overflow: hidden;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vendor-shell .vendor-user-trigger-caret {
+  color: var(--color-hf-muted);
+}
+
+/* Tablet and mobile (the drawer breakpoint): the account control shows the monogram only.
+   The store name stays in the drawer's identity card and in the button's accessible name. */
+@media (max-width: 1023.98px) {
+  .vendor-shell .vendor-user-trigger {
+    padding-inline-end: 0.25rem;
+  }
+
+  .vendor-shell .vendor-user-trigger-name,
+  .vendor-shell .vendor-user-trigger-caret {
+    display: none;
+  }
+}
+
+@media (max-width: 639.98px) {
+  .vendor-shell .vendor-user-menu {
+    padding-inline-start: 0;
+    border-inline-start: 0;
+  }
+}
+
+.vendor-shell .vendor-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  inset-inline-end: 0;
+  z-index: 1030;
+  width: 260px;
+  max-width: calc(100vw - 30px);
+  padding: 0.5rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 14px;
+  background-color: #fff;
+  box-shadow: 0 12px 30px rgb(43 43 38 / 10%);
+}
+
+.vendor-shell .vendor-dropdown[hidden] {
+  display: none;
+}
+
+.vendor-shell .vendor-dropdown-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-hf-line);
+}
+
+.vendor-shell .vendor-dropdown-identity-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.vendor-shell .vendor-dropdown-name {
+  font-weight: 700;
+  color: var(--color-hf-ink);
+  overflow-wrap: anywhere;
+}
+
+.vendor-shell .vendor-dropdown-role {
+  font-size: 0.75rem;
+  color: var(--color-hf-muted);
+}
+
+.vendor-shell .vendor-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 10px;
+  color: var(--color-hf-ink);
+  font-weight: 600;
+  text-align: start;
+}
+
+.vendor-shell .vendor-dropdown-item:hover {
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-copper);
+}
+
+/* ---- Page ---- */
+
+/* Application content: full width up to a readable maximum, aligned to the sidebar (not centered). */
+html.vendor-shell .pc-container .pc-content {
+  max-width: 1200px;
+  padding: 1.75rem 2rem 2.5rem;
+}
+
+@media (max-width: 639.98px) {
+  html.vendor-shell .pc-container .pc-content {
+    padding: 1.25rem 15px 2rem;
+  }
+}
+
+html.vendor-shell .vendor-page-header {
+  margin-bottom: 1.25rem;
+  padding: 0;
+}
+
+html.vendor-shell .vendor-page-header .breadcrumb {
+  margin: 0 0 0.25rem;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+}
+
+.vendor-shell .vendor-page-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-hf-ink);
+}
+
+/* Rows of the page read as one hierarchy: a slightly tighter vertical gap than the 24px columns gap. */
+html.vendor-shell .vendor-page-grid {
+  row-gap: 1.25rem;
+}
+
+/* Cards fill their grid cell; the grid gap spaces them. */
+html.vendor-shell .vendor-page-grid > * > .card {
+  height: 100%;
+  margin-bottom: 0;
+  border-color: var(--color-hf-line);
+  border-radius: 14px;
+}
+
+/* The copper accent is the card's own start border, so its outer edge sits exactly on the
+   breadcrumb/title alignment axis (no hairline outside it). */
+html.vendor-shell .vendor-page-grid > * > .vendor-welcome-card {
+  overflow: hidden;
+  border-inline-start: 4px solid var(--color-hf-copper);
+}
+
+/* Full-width intro strip: compact height from its content, not a hero banner. */
+html.vendor-shell .vendor-welcome-card .card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  padding: 1.125rem 1.75rem;
+}
+
+.vendor-shell .vendor-welcome-eyebrow {
+  margin: 0 0 0.25rem;
+  color: var(--color-hf-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.vendor-shell .vendor-welcome-name {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--color-hf-olive);
+  overflow-wrap: anywhere;
+}
+
+/* ---- Dashboard home (VUI-02B) ---- */
+
+.vendor-shell .vendor-home-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.vendor-shell .vendor-section-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--color-hf-ink);
+}
+
+/* Two columns until the wide desktop, where the four cards sit on one row. */
+.vendor-shell .vendor-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 1280px) {
+  .vendor-shell .vendor-kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+html.vendor-shell .vendor-kpi {
+  height: 100%;
+  margin-bottom: 0;
+  border-color: var(--color-hf-line);
+  border-radius: 14px;
+}
+
+html.vendor-shell .vendor-kpi .card-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 0.875rem 1.25rem;
+}
+
+.vendor-shell .vendor-kpi-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 12px;
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-olive);
+  font-size: 1.25rem;
+}
+
+.vendor-shell .vendor-kpi-body {
+  min-width: 0;
+}
+
+.vendor-shell .vendor-kpi-label {
+  margin: 0;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.vendor-shell .vendor-kpi-value {
+  margin: 0.125rem 0 0;
+  color: var(--color-hf-ink);
+  font-size: 1.625rem;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.vendor-shell .vendor-kpi-meta {
+  margin: 0.125rem 0 0;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 639.98px) {
+  html.vendor-shell .vendor-kpi .card-body {
+    flex-direction: column;
+    gap: 0.625rem;
+    padding: 1rem;
+  }
+}
+
+/* Loading placeholders: no numbers, just restrained blocks. */
+.vendor-shell .vendor-skeleton {
+  display: inline-block;
+  border-radius: 6px;
+  background-color: #ece8dc;
+  vertical-align: middle;
+  animation: vendor-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.vendor-shell .vendor-skeleton-value {
+  width: 3ch;
+  height: 1.5rem;
+}
+
+.vendor-shell .vendor-skeleton-meta {
+  width: 7rem;
+  height: 0.875rem;
+}
+
+.vendor-shell .vendor-skeleton-row {
+  display: block;
+  height: 2.5rem;
+  margin-top: 0.5rem;
+}
+
+@keyframes vendor-skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vendor-shell .vendor-skeleton {
+    animation: none;
+  }
+}
+
+/* Recent orders: a compact table on wider screens, stacked rows on phones. */
+html.vendor-shell .vendor-recent {
+  margin-bottom: 0;
+  border-color: var(--color-hf-line);
+  border-radius: 14px;
+}
+
+html.vendor-shell .vendor-recent .card-body {
+  padding: 1.25rem;
+}
+
+.vendor-shell .vendor-recent-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.vendor-shell .vendor-recent-table th {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--color-hf-line);
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: start;
+  white-space: nowrap;
+}
+
+.vendor-shell .vendor-recent-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-hf-line);
+  color: var(--color-hf-ink);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.vendor-shell .vendor-recent-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.vendor-shell .vendor-order-number {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* One neutral style for every status: the badge labels, it does not rank. */
+.vendor-shell .vendor-status-badge {
+  display: inline-block;
+  padding: 0.125rem 0.625rem;
+  border-radius: 9999px;
+  background-color: rgb(179 186 145 / 22%);
+  color: var(--color-hf-olive);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 639.98px) {
+  .vendor-shell .vendor-recent-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .vendor-shell .vendor-recent-table,
+  .vendor-shell .vendor-recent-table tbody,
+  .vendor-shell .vendor-recent-table tr,
+  .vendor-shell .vendor-recent-table td {
+    display: block;
+  }
+
+  .vendor-shell .vendor-recent-table tr {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-hf-line);
+    border-radius: 12px;
+  }
+
+  .vendor-shell .vendor-recent-table tr + tr {
+    margin-top: 0.625rem;
+  }
+
+  .vendor-shell .vendor-recent-table td,
+  .vendor-shell .vendor-recent-table tbody tr:last-child td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.375rem 0;
+    border-bottom: 0;
+  }
+
+  .vendor-shell .vendor-recent-table td::before {
+    content: attr(data-label);
+    color: var(--color-hf-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+}
+
+.vendor-shell .vendor-empty {
+  margin: 0;
+  padding: 1.5rem 0.5rem;
+  color: var(--color-hf-muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* Error: neutral message and retry; the welcome card and the shell stay usable. */
+html.vendor-shell .vendor-home-error {
+  margin-bottom: 0;
+  border-color: var(--color-hf-line);
+  border-radius: 14px;
+}
+
+html.vendor-shell .vendor-home-error .card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1.25rem;
+  text-align: center;
+}
+
+.vendor-shell .vendor-home-error-text {
+  margin: 0;
+  color: var(--color-hf-ink);
+  font-size: 0.9375rem;
+}
+
+.vendor-shell .vendor-retry-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 40px;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 10px;
+  background-color: #fff;
+  color: var(--color-hf-olive);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.vendor-shell .vendor-retry-button:hover {
+  border-color: var(--color-hf-sage);
+  background-color: var(--color-hf-surface);
+}
+
+/* ---- My Store (VUI-03B) ---- */
+
+/* The identity card reuses the welcome card (copper start accent) with the monogram beside the name. */
+/* Compact identity header: slimmer padding than the dashboard welcome strip. */
+html.vendor-shell .vendor-store-identity .card-body {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.875rem;
+  padding-block: 0.875rem;
+}
+
+.vendor-shell .vendor-monogram-lg {
+  width: 44px;
+  height: 44px;
+  font-size: 1.125rem;
+}
+
+.vendor-shell .vendor-store-identity-text {
+  min-width: 0;
+}
+
+.vendor-shell .vendor-store-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+html.vendor-shell .vendor-form-card {
+  margin-bottom: 0;
+  border-color: var(--color-hf-line);
+  border-radius: 14px;
+}
+
+html.vendor-shell .vendor-form-card .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  padding: 1.125rem 1.5rem;
+}
+
+html.vendor-shell .vendor-form-card .vendor-section-title {
+  margin-bottom: 0;
+}
+
+/* Readable form column: wider than before, still well short of the full card, aligned to the start. */
+.vendor-shell .vendor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  max-width: 800px;
+}
+
+/* The counter sits right after its label, as secondary text in the same header row (RTL and LTR). */
+.vendor-shell .vendor-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 0.625rem;
+}
+
+.vendor-shell .vendor-label {
+  margin: 0;
+  color: var(--color-hf-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.vendor-shell .vendor-required {
+  color: var(--color-hf-copper);
+}
+
+.vendor-shell .vendor-counter {
+  color: var(--color-hf-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.vendor-shell .vendor-input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 10px;
+  background-color: #fff;
+  color: var(--color-hf-ink);
+  font-family: var(--font-cairo);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.vendor-shell .vendor-input:focus {
+  border-color: var(--color-hf-olive);
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(61 71 43 / 12%);
+}
+
+.vendor-shell .vendor-input:disabled {
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-muted);
+  cursor: progress;
+}
+
+.vendor-shell .vendor-input[aria-invalid="true"] {
+  border-color: #a13d2b;
+}
+
+/* About four lines by default; the vendor can still drag it taller. */
+.vendor-shell .vendor-textarea {
+  height: 7.25rem;
+  min-height: 5.5rem;
+  resize: vertical;
+}
+
+.vendor-shell .vendor-field-error {
+  margin: 0;
+  color: #a13d2b;
+  font-size: 0.8125rem;
+}
+
+/* Read-only information rows (not disabled inputs). */
+.vendor-shell .vendor-readonly {
+  max-width: 800px;
+  margin: 0;
+  padding: 0 0.875rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 10px;
+  background-color: var(--color-hf-surface);
+}
+
+.vendor-shell .vendor-readonly-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  padding: 0.625rem 0;
+}
+
+.vendor-shell .vendor-readonly-row + .vendor-readonly-row {
+  border-top: 1px solid var(--color-hf-line);
+}
+
+.vendor-shell .vendor-readonly dt {
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.vendor-shell .vendor-readonly dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--color-hf-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.vendor-shell .vendor-readonly-empty {
+  color: var(--color-hf-muted);
+  font-weight: 500;
+}
+
+/* The form's concluding action row: a bar in the same card language, with the single Save button at
+   the start, under the form column, and the status message beside it. */
+.vendor-shell .vendor-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem 1rem;
+  padding: 0.875rem 1.5rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 14px;
+  background-color: #fff;
+}
+
+.vendor-shell .vendor-form-actions .vendor-save-button {
+  order: -1;
+}
+
+.vendor-shell .vendor-form-status {
+  margin: 0;
+  color: var(--color-hf-muted);
+  font-size: 0.875rem;
+}
+
+.vendor-shell .vendor-form-status[data-tone="success"] {
+  color: var(--color-hf-olive);
+  font-weight: 600;
+}
+
+.vendor-shell .vendor-form-status[data-tone="error"] {
+  color: #a13d2b;
+  font-weight: 600;
+}
+
+.vendor-shell .vendor-save-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 9rem;
+  min-height: 44px;
+  padding: 0.5rem 1.25rem;
+  border-radius: 10px;
+  background-color: var(--color-hf-olive);
+  color: var(--color-hf-surface);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.vendor-shell .vendor-save-button:hover:not(:disabled) {
+  background-color: var(--color-hf-olive-hover);
+}
+
+.vendor-shell .vendor-save-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (max-width: 639.98px) {
+  html.vendor-shell .vendor-form-card .card-body,
+  .vendor-shell .vendor-form-actions {
+    padding: 1rem;
+  }
+
+  .vendor-shell .vendor-save-button {
+    width: 100%;
+  }
+}

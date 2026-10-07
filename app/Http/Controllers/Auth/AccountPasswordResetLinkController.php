@@ -13,8 +13,10 @@ class AccountPasswordResetLinkController extends Controller
 {
     public function create(Request $request): View
     {
-        return view('auth.accounts.forgot-password', [
-            'account' => AccountGuard::get($request->route('account_type')),
+        $account = AccountGuard::get($request->route('account_type'));
+
+        return view($account['forgot_password_view'] ?? 'auth.accounts.forgot-password', [
+            'account' => $account,
         ]);
     }
 

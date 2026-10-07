@@ -164,7 +164,7 @@ class AdminAuthTranslationFoundationTest extends TestCase
         $this->assertSame(0, TranslationValue::where('locale', 'fr')->count());
     }
 
-    public function test_middleware_alias_is_registered_and_applied_only_to_admin_guest_auth_routes(): void
+    public function test_middleware_alias_is_registered_and_applied_only_to_admin_and_vendor_auth_pages(): void
     {
         $aliases = app(HttpKernel::class)->getMiddlewareAliases();
         $this->assertSame(DisableTranslationAutoCreate::class, $aliases['disableTranslationAutoCreate'] ?? null);
@@ -184,6 +184,17 @@ class AdminAuthTranslationFoundationTest extends TestCase
             'admin.password.request',
             'admin.password.reset',
             'admin.password.update',
+            'vendor.approval-status',
+            'vendor.dashboard',
+            'vendor.dashboard.my-store',
+            'vendor.login',
+            'vendor.login.store',
+            'vendor.password.email',
+            'vendor.password.request',
+            'vendor.password.reset',
+            'vendor.password.update',
+            'vendor.register',
+            'vendor.register.store',
         ], $applied);
     }
 

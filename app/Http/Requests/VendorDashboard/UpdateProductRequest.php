@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\VendorDashboard;
 
+use App\Models\Product;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -25,7 +27,7 @@ class UpdateProductRequest extends FormRequest
             'price' => ['required', 'numeric', 'min:0'],
             'compare_at_price' => ['nullable', 'numeric', 'min:0'],
             'sku' => ['nullable', 'string', 'max:255', Rule::unique('products', 'sku')->ignore($product)],
-            'stock_quantity' => ['required', 'integer', 'min:0'],
+            'stock_quantity' => ['required', 'integer', 'min:0', $this->notBelowReservedStock($product)],
             'low_stock_threshold' => ['nullable', 'integer', 'min:0'],
             'weight' => ['nullable', 'numeric', 'min:0'],
             'dimensions' => ['nullable', 'array'],
@@ -35,5 +37,33 @@ class UpdateProductRequest extends FormRequest
             'status' => ['required', Rule::in(['draft', 'active', 'inactive', 'out_of_stock'])],
             'is_featured' => ['nullable', 'boolean'],
         ];
+    }
+
+    /**
+     * Physical stock may not drop below the quantity still reserved for open
+     * orders (VEN-BE-019). Only checked for the vendor's own product; for any
+     * other product the controller answers 404 without revealing reservations.
+     */
+    private function notBelowReservedStock(mixed $product): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail) use ($product): void {
+            if (! $product instanceof Product || (int) $product->vendor_id !== (int) $this->user('vendor')?->id) {
+                return;
+            }
+
+            $reserved = $product->reservedStockQuantity();
+
+            if (is_numeric($value) && (int) $value < $reserved) {
+                $fail(self::reservedStockMessage($reserved));
+            }
+        };
+    }
+
+    /**
+     * Shared with the controller's write-boundary recheck, so both report the same error.
+     */
+    public static function reservedStockMessage(int $reserved): string
+    {
+        return "The stock quantity cannot be lower than the {$reserved} units currently reserved for open orders.";
     }
 }

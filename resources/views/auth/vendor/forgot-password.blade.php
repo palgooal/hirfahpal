@@ -1,0 +1,114 @@
+@php
+    // Direction comes from the current Language row (is_rtl). If the locale has
+    // no Language row at all, fall back to the HTML default direction (ltr).
+    $pageDirection = $currentLanguage?->is_rtl ? 'rtl' : 'ltr';
+@endphp
+<!doctype html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ $pageDirection }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ t('vendor.Forgot_Title', 'Forgot password | Hirfah Vendor') }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,700;1,400&family=Cairo:wght@300;400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  @vite(['resources/css/vendor-auth.css'])
+</head>
+<body class="min-h-screen overflow-x-hidden bg-canvas font-cairo text-ink antialiased">
+  {{-- The form is the first grid column, so it sits on the start side: right in RTL, left in LTR. --}}
+  <div class="grid min-h-screen lg:grid-cols-2">
+    <main class="flex min-w-0 items-center justify-center px-4 py-10 sm:px-8 sm:py-16 lg:px-12">
+      <div class="w-full max-w-[480px] lg:max-w-[520px]">
+        <x-lang.language-switcher-admin-auth class="mb-6 flex justify-end lg:mb-4" />
+
+        {{-- Compact brand lockup for mobile and tablet --}}
+        <div class="mb-8 flex items-center justify-center gap-3 lg:hidden">
+          <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] bg-surface p-1 shadow-sm sm:h-[58px] sm:w-[58px]">
+            <img src="{{ asset('images/brand/hirfah-logo.png') }}" alt="{{ t('dashboard.Hirfah_Logo', 'Hirfah logo') }}" width="50" height="50" class="h-12 w-12 object-contain sm:h-[50px] sm:w-[50px]" />
+          </span>
+          <div class="min-w-0 text-start">
+            <div class="flex items-center gap-1.5">
+              <span class="h-1.5 w-1.5 rounded-full bg-copper" aria-hidden="true"></span>
+              <span class="text-2xl font-bold leading-8 tracking-[-.6px] text-olive">{{ t('dashboard.Brand_Name', 'Hirfah') }}</span>
+            </div>
+            <p class="text-[10px] font-medium leading-[15px] tracking-[.5px] text-olive sm:text-xs">{{ t('dashboard.Brand_Tagline', 'Palestinian craft marketplace') }}</p>
+          </div>
+        </div>
+
+        <section class="rounded-[20px] border border-line bg-surface p-5 shadow-card sm:p-8" aria-labelledby="vendor-forgot-title">
+          <p class="mb-3 inline-flex items-center gap-2 rounded-full bg-sage/20 px-3 py-1 text-xs font-bold leading-5 text-olive">
+            <svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7" /><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4" /><path d="M2 7h20" /><path d="M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7" /></svg>
+            {{ t('vendor.Portal', 'Vendor portal') }}
+          </p>
+          <h1 id="vendor-forgot-title" class="text-2xl font-bold leading-8 text-ink">{{ t('dashboard.Forgot_Password', 'Forgot your password?') }}</h1>
+          <p class="mt-2 text-sm leading-6 text-muted">{{ t('vendor.Forgot_Description', "Enter your email and we'll send you a link to reset your password.") }}</p>
+
+          @if (session('status'))
+            <div role="status" class="mt-6 flex items-start gap-3 rounded-[14px] border border-sage/40 bg-sage/10 px-4 py-3 text-start">
+              <svg class="mt-0.5 h-5 w-5 shrink-0 text-olive" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></svg>
+              <p class="text-sm font-semibold leading-6 text-olive">{{ session('status') }}</p>
+            </div>
+          @endif
+
+          <form method="POST" action="{{ route('vendor.password.email') }}" class="mt-6 flex flex-col gap-5">
+            @csrf
+
+            <div>
+              <label for="email" class="mb-2 block text-sm font-semibold leading-5 text-ink">{{ t('vendor.Email', 'Email address') }}</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                dir="ltr"
+                value="{{ old('email') }}"
+                required
+                autofocus
+                autocomplete="email"
+                placeholder="name@example.com"
+                @error('email') aria-invalid="true" aria-describedby="email-error" @enderror
+                class="h-12 w-full rounded-[14px] border border-line bg-canvas px-4 text-start text-sm text-ink transition-colors placeholder:text-muted/70 focus:border-olive focus:outline-none focus-visible:ring-4 focus-visible:ring-olive/20 aria-[invalid=true]:border-error"
+              />
+              @error('email')
+                <p id="email-error" role="alert" class="mt-2 rounded-[12px] border border-error/30 bg-error/10 px-4 py-3 text-start text-sm font-semibold leading-6 text-error">{{ $message }}</p>
+              @enderror
+            </div>
+
+            <button type="submit" class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-olive text-sm font-bold text-surface shadow-sm transition-colors hover:bg-olive-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive focus-visible:ring-offset-2 focus-visible:ring-offset-surface">
+              <span>{{ t('vendor.Send_Reset_Link', 'Send reset link') }}</span>
+              {{-- The icon follows the reading direction, so it is mirrored in RTL. --}}
+              <svg class="h-4 w-4 rtl:-scale-x-100" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" /><path d="m21.854 2.147-10.94 10.939" /></svg>
+            </button>
+          </form>
+
+          <p class="mt-6 flex flex-wrap items-center justify-center gap-x-1.5 border-t border-line pt-5 text-center text-sm leading-6 text-muted">
+            <span>{{ t('vendor.Remembered_Password', 'Remembered your password?') }}</span>
+            <a href="{{ route('vendor.login') }}" class="inline-flex min-h-11 items-center rounded-md font-bold text-olive underline decoration-copper decoration-2 underline-offset-4 hover:text-olive-hover hover:decoration-olive focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-olive">{{ t('dashboard.Sign_In', 'Sign in') }}</a>
+          </p>
+        </section>
+      </div>
+    </main>
+
+    {{-- Brand panel: desktop only, colors and CSS shapes, no photos --}}
+    <aside class="relative hidden min-w-0 overflow-hidden bg-olive lg:flex lg:items-center lg:justify-center lg:px-12" aria-label="{{ t('dashboard.Hirfah', 'Hirfah') }}">
+      <div class="pointer-events-none absolute -top-28 -end-28 h-80 w-80 rounded-full border border-sage/25" aria-hidden="true"></div>
+      <div class="pointer-events-none absolute -top-12 -end-12 h-48 w-48 rounded-full border border-sage/15" aria-hidden="true"></div>
+      <div class="pointer-events-none absolute -bottom-40 -start-24 h-[26rem] w-[26rem] rounded-full bg-sage/10" aria-hidden="true"></div>
+      <div class="pointer-events-none absolute bottom-24 end-20 h-3 w-3 rounded-full bg-copper" aria-hidden="true"></div>
+      <div class="pointer-events-none absolute top-28 start-16 h-2 w-2 rounded-full bg-gold" aria-hidden="true"></div>
+
+      <div class="relative flex max-w-md flex-col items-center text-center">
+        <span class="flex h-[112px] w-[112px] items-center justify-center rounded-[24px] bg-surface p-2 shadow-soft">
+          <img src="{{ asset('images/brand/hirfah-logo.png') }}" alt="{{ t('dashboard.Hirfah_Logo', 'Hirfah logo') }}" width="96" height="96" class="h-24 w-24 object-contain" />
+        </span>
+        <div class="mt-6 flex items-center gap-2">
+          <span class="h-2 w-2 rounded-full bg-copper" aria-hidden="true"></span>
+          <span class="text-4xl font-bold leading-[3rem] tracking-[-.6px] text-surface">{{ t('dashboard.Brand_Name', 'Hirfah') }}</span>
+        </div>
+        <p class="mt-1 text-sm font-medium tracking-[.5px] text-sage">{{ t('dashboard.Brand_Tagline', 'Palestinian craft marketplace') }}</p>
+        <span class="my-8 h-px w-16 bg-sage/40" aria-hidden="true"></span>
+        <p class="text-lg font-semibold leading-8 text-surface">{{ t('vendor.Login_Panel_Line', 'Manage your store and start your journey with Hirfah') }}</p>
+      </div>
+    </aside>
+  </div>
+</body>
+</html>

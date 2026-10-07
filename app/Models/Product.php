@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
@@ -72,5 +73,33 @@ class Product extends Model
     public function availableStockQuantity(): int
     {
         return max(0, $this->stock_quantity - $this->reservedStockQuantity());
+    }
+
+    /**
+     * Products whose available stock (physical stock minus outstanding
+     * reservations, floored at 0) is at or below their threshold (VEN-BE-019).
+     * Written as `stock <= threshold + reserved` so the unsigned stock column
+     * is never subtracted from, which would overflow on MySQL.
+     */
+    public function scopeLowAvailableStock(Builder $query): Builder
+    {
+        return $query->whereRaw('products.stock_quantity <= products.low_stock_threshold + ('.self::reservedStockSql().')');
+    }
+
+    /**
+     * Orders by available stock, lowest first.
+     */
+    public function scopeOrderByAvailableStock(Builder $query): Builder
+    {
+        return $query->orderByRaw('CAST(products.stock_quantity AS SIGNED) - ('.self::reservedStockSql().')');
+    }
+
+    /**
+     * Outstanding (reserved) quantity of the current product row; released and
+     * committed reservations are not outstanding.
+     */
+    private static function reservedStockSql(): string
+    {
+        return "select coalesce(sum(stock_reservations.quantity), 0) from stock_reservations where stock_reservations.product_id = products.id and stock_reservations.status = 'reserved'";
     }
 }

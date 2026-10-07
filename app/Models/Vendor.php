@@ -18,6 +18,14 @@ class Vendor extends Authenticatable
         return $this->hasOne(VendorProfile::class);
     }
 
+    /**
+     * Store approval lives on the profile; a vendor without a profile is not approved.
+     */
+    public function isApproved(): bool
+    {
+        return $this->profile?->approval_status === 'approved';
+    }
+
     public function products()
     {
         return $this->hasMany(Product::class);

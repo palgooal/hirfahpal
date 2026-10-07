@@ -14,8 +14,10 @@ class AccountRegisteredUserController extends Controller
 {
     public function create(Request $request): View
     {
-        return view('auth.accounts.register', [
-            'account' => AccountGuard::get($request->route('account_type')),
+        $account = AccountGuard::get($request->route('account_type'));
+
+        return view($account['register_view'] ?? 'auth.accounts.register', [
+            'account' => $account,
         ]);
     }
 

@@ -16,8 +16,10 @@ class AccountNewPasswordController extends Controller
 {
     public function create(Request $request): View
     {
-        return view('auth.accounts.reset-password', [
-            'account' => AccountGuard::get($request->route('account_type')),
+        $account = AccountGuard::get($request->route('account_type'));
+
+        return view($account['reset_password_view'] ?? 'auth.accounts.reset-password', [
+            'account' => $account,
             'token' => $request->route('token'),
             'email' => $request->string('email')->toString(),
         ]);

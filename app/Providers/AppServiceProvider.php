@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Models\Admin;
 use App\Models\Language;
 use App\Models\Setting;
+use App\Models\Vendor;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -37,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->configureAuthRateLimiting();
+        $this->configurePasswordResetLinks();
 
         $settingResolved = false;
         $setting = null;
@@ -93,6 +96,24 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('account-password-reset', function (Request $request) {
             return Limit::perMinute(10)->by($request->ip());
+        });
+    }
+
+    /**
+     * ARCH-03 / VEN-BE-002: the default reset email links to Fortify's
+     * password.reset, which resets the web "users" broker. Vendor links go to
+     * the vendor reset route so the token reaches the "vendors" broker. Other
+     * account types keep the framework default until their flows are moved.
+     */
+    private function configurePasswordResetLinks(): void
+    {
+        ResetPassword::createUrlUsing(function ($notifiable, #[\SensitiveParameter] string $token): string {
+            $route = $notifiable instanceof Vendor ? 'vendor.password.reset' : 'password.reset';
+
+            return url(route($route, [
+                'token' => $token,
+                'email' => $notifiable->getEmailForPasswordReset(),
+            ], false));
         });
     }
 

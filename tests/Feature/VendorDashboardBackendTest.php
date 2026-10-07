@@ -17,7 +17,7 @@ class VendorDashboardBackendTest extends TestCase
 
     public function test_vendor_can_create_product_for_their_store(): void
     {
-        $vendor = Vendor::factory()->create();
+        $vendor = Vendor::factory()->approved()->create();
         $category = Category::query()->create([
             'name' => 'Ceramics',
             'slug' => 'ceramics',
@@ -53,8 +53,8 @@ class VendorDashboardBackendTest extends TestCase
 
     public function test_vendor_cannot_update_another_vendor_product(): void
     {
-        $vendor = Vendor::factory()->create();
-        $otherVendor = Vendor::factory()->create();
+        $vendor = Vendor::factory()->approved()->create();
+        $otherVendor = Vendor::factory()->approved()->create();
         $product = Product::query()->create([
             'vendor_id' => $otherVendor->id,
             'name' => 'Private Product',
@@ -80,7 +80,7 @@ class VendorDashboardBackendTest extends TestCase
 
     public function test_vendor_can_accept_their_pending_order(): void
     {
-        $vendor = Vendor::factory()->create();
+        $vendor = Vendor::factory()->approved()->create();
         $vendorOrder = $this->vendorOrderFor($vendor, 'pending');
 
         $this->actingAs($vendor, 'vendor')
@@ -96,8 +96,8 @@ class VendorDashboardBackendTest extends TestCase
 
     public function test_vendor_cannot_access_another_vendor_order(): void
     {
-        $vendor = Vendor::factory()->create();
-        $otherVendor = Vendor::factory()->create();
+        $vendor = Vendor::factory()->approved()->create();
+        $otherVendor = Vendor::factory()->approved()->create();
         $vendorOrder = $this->vendorOrderFor($otherVendor, 'pending');
 
         $this->actingAs($vendor, 'vendor')

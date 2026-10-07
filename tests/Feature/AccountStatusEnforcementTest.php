@@ -455,6 +455,17 @@ class AccountStatusEnforcementTest extends TestCase
             $attributes['super_admin'] = $superAdmin;
         }
 
-        return $model::create($attributes);
+        $account = $model::create($attributes);
+
+        // The vendor protected page is the operational dashboard, which needs an approved store.
+        if ($account instanceof Vendor) {
+            $account->profile()->create([
+                'store_name' => 'Store '.$email,
+                'slug' => 'store-'.$account->id,
+                'approval_status' => 'approved',
+            ]);
+        }
+
+        return $account;
     }
 }

@@ -5,8 +5,11 @@ namespace App\Http\Controllers\VendorDashboard;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\VendorDashboard\RejectVendorOrderRequest;
 use App\Models\VendorOrder;
+use App\Support\Inventory\StockCommitmentException;
+use App\Support\Inventory\StockReservationLifecycle;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
@@ -55,36 +58,53 @@ class OrderController extends Controller
         ]);
     }
 
-    public function accept(Request $request, VendorOrder $vendorOrder): JsonResponse
+    /**
+     * Vendor Accept is the stock commitment point (VEN-BE-019): the order
+     * state change and the stock commitment succeed or roll back together.
+     */
+    public function accept(Request $request, VendorOrder $vendorOrder, StockReservationLifecycle $stock): JsonResponse
     {
         $this->authorizeOrder($request, $vendorOrder);
-        abort_unless($vendorOrder->status === 'pending', 422, 'Only pending orders can be accepted.');
 
-        $vendorOrder->update([
-            'status' => 'accepted',
-            'accepted_at' => now(),
-            'rejected_at' => null,
-            'rejection_reason' => null,
-        ]);
+        try {
+            DB::transaction(function () use ($vendorOrder, $stock): void {
+                // Re-read under lock so a repeated or concurrent Accept sees the new state.
+                $lockedOrder = VendorOrder::query()->whereKey($vendorOrder->id)->lockForUpdate()->firstOrFail();
+                abort_unless($lockedOrder->status === 'pending', 422, 'Only pending orders can be accepted.');
+
+                $stock->commitForVendorOrder($lockedOrder);
+
+                $lockedOrder->update([
+                    'status' => 'accepted',
+                    'accepted_at' => now(),
+                    'rejected_at' => null,
+                    'rejection_reason' => null,
+                ]);
+            });
+        } catch (StockCommitmentException $exception) {
+            abort(422, $exception->getMessage());
+        }
 
         return $this->orderResponse($vendorOrder, 'Order accepted successfully.');
     }
 
-    public function reject(RejectVendorOrderRequest $request, VendorOrder $vendorOrder): JsonResponse
+    public function reject(RejectVendorOrderRequest $request, VendorOrder $vendorOrder, StockReservationLifecycle $stock): JsonResponse
     {
         $this->authorizeOrder($request, $vendorOrder);
-        abort_unless($vendorOrder->status === 'pending', 422, 'Only pending orders can be rejected.');
 
-        $vendorOrder->update([
-            'status' => 'rejected',
-            'rejected_at' => now(),
-            'rejection_reason' => $request->validated('rejection_reason'),
-        ]);
+        DB::transaction(function () use ($request, $vendorOrder, $stock): void {
+            $lockedOrder = VendorOrder::query()->whereKey($vendorOrder->id)->lockForUpdate()->firstOrFail();
+            abort_unless($lockedOrder->status === 'pending', 422, 'Only pending orders can be rejected.');
 
-        $vendorOrder->stockReservations()->where('status', 'reserved')->update([
-            'status' => 'released',
-            'released_at' => now(),
-        ]);
+            $lockedOrder->update([
+                'status' => 'rejected',
+                'rejected_at' => now(),
+                'rejection_reason' => $request->validated('rejection_reason'),
+            ]);
+
+            // Release only: physical stock was never decremented for these reservations.
+            $stock->releaseForVendorOrder($lockedOrder);
+        });
 
         return $this->orderResponse($vendorOrder, 'Order rejected successfully.');
     }

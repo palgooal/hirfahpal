@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\Product;
 use App\Models\VendorOrder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,6 +34,15 @@ class CheckoutController extends Controller
         }
 
         $order = DB::transaction(function () use ($cart, $customer, $data) {
+            // Lock every product up front in ascending id order, so concurrent checkouts
+            // (and vendor accepts) always take product locks in the same order (VEN-BE-019).
+            $lockedProducts = Product::query()
+                ->whereIn('id', $cart->items->pluck('product_id')->unique()->sort()->values())
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
             $groupedItems = $cart->items->groupBy(fn ($item) => $item->product->vendor_id);
             $subtotal = $cart->items->sum(fn ($item) => $item->quantity * (float) $item->unit_price);
             $deliveryTotal = collect($data['delivery_fees'] ?? [])->sum();
@@ -66,7 +76,8 @@ class CheckoutController extends Controller
                 ]);
 
                 foreach ($items as $item) {
-                    $product = $item->product()->lockForUpdate()->first();
+                    $product = $lockedProducts->get($item->product_id);
+                    abort_if($product === null, 422, 'A product in the cart is no longer available.');
                     abort_if($product->availableStockQuantity() < $item->quantity, 422, "Product [{$product->name}] is out of stock.");
 
                     $orderItem = $order->items()->create([
