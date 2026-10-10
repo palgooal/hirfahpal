@@ -49,7 +49,7 @@ class CustomerLoginCanonicalizationTest extends TestCase
 
     public function test_guest_vendor_route_redirects_to_vendor_login_and_returns_after_login(): void
     {
-        $vendor = Vendor::factory()->create(['email' => 'vendor@example.com', 'password' => self::PASSWORD]);
+        $vendor = Vendor::factory()->approved()->create(['email' => 'vendor@example.com', 'password' => self::PASSWORD]);
 
         $this->get(route('vendor.dashboard'))->assertRedirect(route('vendor.login'));
         $this->assertSame(route('vendor.dashboard'), session('url.intended'));

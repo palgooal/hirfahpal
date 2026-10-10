@@ -24,6 +24,13 @@ class VendorApprovalEnforcementTest extends TestCase
 
     private const PASSWORD = 'correct-password';
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->withoutVite();
+    }
+
     // 1. Self-registration produces active + pending.
     public function test_self_registration_produces_an_active_account_with_a_pending_store(): void
     {
@@ -34,36 +41,33 @@ class VendorApprovalEnforcementTest extends TestCase
         $this->assertSame('pending', $vendor->profile->approval_status);
     }
 
-    // 2. The new vendor stays signed in but ends in the status flow.
-    public function test_registration_keeps_the_session_and_ends_in_the_status_flow(): void
+    // 2. The new vendor application is created for admin review, without signing the vendor in.
+    public function test_registration_creates_a_pending_request_for_admin_review_without_login(): void
     {
-        $this->register()->assertRedirect(route('vendor.dashboard'));
+        $this->register()->assertRedirect(route('vendor.login'));
 
         $vendor = Vendor::sole();
-        $this->assertAuthenticatedAs($vendor, 'vendor');
+        $this->assertSame('pending', $vendor->profile->approval_status);
+        $this->assertGuest('vendor');
 
-        $this->get(route('vendor.dashboard'))->assertRedirect(route('vendor.approval-status'));
-        $this->getJson(route('vendor.approval-status'))
+        $admin = Admin::factory()->create(['super_admin' => true, 'status' => 'active']);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('dashboard.vendors.index', ['approval_status' => 'pending']))
             ->assertOk()
-            ->assertExactJson([
-                'approval_status' => 'pending',
-                'rejection_reason' => null,
-                'store_name' => 'Store Owner',
-                'dashboard_url' => null,
-            ]);
-        $this->assertAuthenticatedAs($vendor, 'vendor');
+            ->assertSee('Store Owner');
     }
 
-    // 3. A pending vendor can sign in later, and lands on the status flow.
-    public function test_pending_vendor_can_log_in_later(): void
+    // 3. A pending vendor cannot sign in until an admin approves the request.
+    public function test_pending_vendor_cannot_log_in_later(): void
     {
         $vendor = $this->vendor('pending');
 
-        $this->login($vendor)->assertRedirect(route('vendor.dashboard'));
-        $this->assertAuthenticatedAs($vendor, 'vendor');
-
-        $this->get(route('vendor.dashboard'))->assertRedirect(route('vendor.approval-status'));
-        $this->getJson(route('vendor.approval-status'))->assertOk()->assertJsonPath('approval_status', 'pending');
+        $this->from(route('vendor.login'))
+            ->login($vendor)
+            ->assertRedirect(route('vendor.login'))
+            ->assertSessionHasErrors(['login' => __('auth.failed')]);
+        $this->assertGuest('vendor');
     }
 
     // 4. A pending vendor cannot open the operational dashboard.
@@ -143,20 +147,16 @@ class VendorApprovalEnforcementTest extends TestCase
         }
     }
 
-    // 9 + 11. Rejected + active can log in and reads the status contract with the reason.
-    public function test_rejected_vendor_can_log_in_and_read_the_rejection_reason(): void
+    // 9 + 11. Rejected + active cannot log in.
+    public function test_rejected_vendor_cannot_log_in(): void
     {
         $vendor = $this->vendor('rejected', 'Missing store documents.');
 
-        $this->login($vendor)->assertRedirect(route('vendor.dashboard'));
-        $this->assertAuthenticatedAs($vendor, 'vendor');
-
-        $this->get(route('vendor.dashboard'))->assertRedirect(route('vendor.approval-status'));
-        $this->getJson(route('vendor.approval-status'))
-            ->assertOk()
-            ->assertJsonPath('approval_status', 'rejected')
-            ->assertJsonPath('rejection_reason', 'Missing store documents.')
-            ->assertJsonPath('dashboard_url', null);
+        $this->from(route('vendor.login'))
+            ->login($vendor)
+            ->assertRedirect(route('vendor.login'))
+            ->assertSessionHasErrors(['login' => __('auth.failed')]);
+        $this->assertGuest('vendor');
     }
 
     // 10 + 18. Rejected: no operational route, by URL or by direct mutation.
@@ -189,16 +189,18 @@ class VendorApprovalEnforcementTest extends TestCase
         $this->assertSame('rejected', $vendor->profile->approval_status);
         $this->assertSame('Incomplete profile.', $vendor->profile->rejection_reason);
 
-        $this->login($vendor)->assertRedirect(route('vendor.dashboard'));
-        $this->assertAuthenticatedAs($vendor, 'vendor');
-        $this->getJson(route('vendor.approval-status'))->assertJsonPath('rejection_reason', 'Incomplete profile.');
+        $this->from(route('vendor.login'))
+            ->login($vendor)
+            ->assertRedirect(route('vendor.login'))
+            ->assertSessionHasErrors(['login' => __('auth.failed')]);
+        $this->assertGuest('vendor');
     }
 
     public function test_admin_decision_takes_effect_on_the_next_request_without_re_login(): void
     {
         $admin = Admin::factory()->create(['super_admin' => true, 'status' => 'active']);
         $vendor = $this->vendor('pending');
-        $this->login($vendor);
+        Auth::guard('vendor')->login($vendor);
         $this->get(route('vendor.dashboard'))->assertRedirect(route('vendor.approval-status'));
 
         $this->actingAs($admin, 'admin')->patch(route('dashboard.vendors.approve', $vendor))->assertRedirect();
@@ -267,7 +269,7 @@ class VendorApprovalEnforcementTest extends TestCase
     {
         foreach (['approved', 'pending', 'rejected'] as $approval) {
             $vendor = $this->vendor($approval, accountStatus: 'active', email: "$approval@example.com");
-            $this->login($vendor);
+            Auth::guard('vendor')->login($vendor);
             $vendor->forceFill(['status' => 'blocked'])->save();
             // Next request: drop the guard's cached user, as a real request would.
             Auth::forgetGuards();
@@ -279,7 +281,7 @@ class VendorApprovalEnforcementTest extends TestCase
         }
 
         $vendor = $this->vendor('pending', email: 'json@example.com');
-        $this->login($vendor);
+        Auth::guard('vendor')->login($vendor);
         $vendor->forceFill(['status' => 'blocked'])->save();
         Auth::forgetGuards();
 
@@ -287,12 +289,12 @@ class VendorApprovalEnforcementTest extends TestCase
         $this->assertGuest('vendor');
     }
 
-    // 17. Logout works for pending and rejected vendors.
-    public function test_pending_and_rejected_vendors_can_log_out(): void
+    // 17. Logout still works for existing pending and rejected vendor sessions.
+    public function test_pending_and_rejected_vendor_sessions_can_log_out(): void
     {
         foreach (['pending', 'rejected'] as $approval) {
             $vendor = $this->vendor($approval, 'Reason.', email: "$approval@example.com");
-            $this->login($vendor);
+            $this->actingAs($vendor, 'vendor');
             $this->assertAuthenticatedAs($vendor, 'vendor');
 
             $this->post(route('vendor.logout'))->assertRedirect(route('vendor.login'));
@@ -326,8 +328,8 @@ class VendorApprovalEnforcementTest extends TestCase
             ->map->getName()->sort()->values();
 
         $this->assertSame(['vendor.approval-status', 'vendor.logout'], $open->all());
-        // Browser pages (vendor.dashboard, vendor.dashboard.my-store) plus 23 JSON endpoints, including vendor.dashboard.overview.
-        $this->assertCount(25, $gated);
+        // Browser pages (vendor.dashboard, vendor.dashboard.my-store) plus 25 JSON endpoints, including vendor.dashboard.overview.
+        $this->assertCount(27, $gated);
         $this->assertTrue($gated->every(fn (string $name) => $name === 'vendor.dashboard' || str_starts_with($name, 'vendor.dashboard.')));
     }
 
@@ -350,6 +352,8 @@ class VendorApprovalEnforcementTest extends TestCase
             ['GET', route('vendor.dashboard.my-store')],
             ['GET', route('vendor.dashboard.profile.show')],
             ['PUT', route('vendor.dashboard.profile.update')],
+            ['POST', route('vendor.dashboard.profile.media.store', 'logo')],
+            ['DELETE', route('vendor.dashboard.profile.media.destroy', 'logo')],
             ['GET', route('vendor.dashboard.products.index')],
             ['POST', route('vendor.dashboard.products.store')],
             ['GET', route('vendor.dashboard.products.show', $product)],

@@ -174,26 +174,25 @@ class VendorDashboardShellTest extends TestCase
     {
         $vendor = Vendor::factory()->withProfile('pending')->create(['password' => self::PASSWORD]);
 
-        $this->followingRedirects()
+        $this->from(route('vendor.login'))
             ->login($vendor)
-            ->assertOk()
-            ->assertViewIs('auth.vendor.approval-status')
-            ->assertViewHas('state', 'pending');
+            ->assertRedirect(route('vendor.login'))
+            ->assertSessionHasErrors(['login' => __('auth.failed')]);
+        $this->assertGuest('vendor');
     }
 
     public function test_rejected_login_ends_on_the_rejected_status_with_reason(): void
     {
         $vendor = Vendor::factory()->withProfile('rejected', 'Store details are incomplete.')->create(['password' => self::PASSWORD]);
 
-        $this->followingRedirects()
+        $this->from(route('vendor.login'))
             ->login($vendor)
-            ->assertOk()
-            ->assertViewIs('auth.vendor.approval-status')
-            ->assertViewHas('state', 'rejected')
-            ->assertSee('Store details are incomplete.');
+            ->assertRedirect(route('vendor.login'))
+            ->assertSessionHasErrors(['login' => __('auth.failed')]);
+        $this->assertGuest('vendor');
     }
 
-    public function test_registration_creates_a_pending_store_and_ends_on_the_status_page(): void
+    public function test_registration_creates_a_pending_store_and_returns_to_login(): void
     {
         $response = $this->followingRedirects()
             ->post(route('vendor.register.store'), [
@@ -206,14 +205,13 @@ class VendorDashboardShellTest extends TestCase
             ]);
 
         $response->assertOk()
-            ->assertViewIs('auth.vendor.approval-status')
-            ->assertViewHas('state', 'pending')
+            ->assertViewIs('auth.vendor.login')
             ->assertDontSee('id="vendor-sidebar"', false);
 
         $vendor = Vendor::with('profile')->sole();
         $this->assertSame('active', $vendor->status);
         $this->assertSame('pending', $vendor->profile->approval_status);
-        $this->assertAuthenticatedAs($vendor, 'vendor');
+        $this->assertGuest('vendor');
     }
 
     public function test_approved_vendor_on_the_status_page_is_sent_to_the_dashboard(): void

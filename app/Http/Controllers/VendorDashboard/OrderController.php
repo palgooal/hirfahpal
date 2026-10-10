@@ -7,6 +7,7 @@ use App\Http\Requests\VendorDashboard\RejectVendorOrderRequest;
 use App\Models\VendorOrder;
 use App\Support\Inventory\StockCommitmentException;
 use App\Support\Inventory\StockReservationLifecycle;
+use App\Support\Orders\OrderStatusLifecycle;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -62,12 +63,12 @@ class OrderController extends Controller
      * Vendor Accept is the stock commitment point (VEN-BE-019): the order
      * state change and the stock commitment succeed or roll back together.
      */
-    public function accept(Request $request, VendorOrder $vendorOrder, StockReservationLifecycle $stock): JsonResponse
+    public function accept(Request $request, VendorOrder $vendorOrder, StockReservationLifecycle $stock, OrderStatusLifecycle $orders): JsonResponse
     {
         $this->authorizeOrder($request, $vendorOrder);
 
         try {
-            DB::transaction(function () use ($vendorOrder, $stock): void {
+            DB::transaction(function () use ($vendorOrder, $stock, $orders): void {
                 // Re-read under lock so a repeated or concurrent Accept sees the new state.
                 $lockedOrder = VendorOrder::query()->whereKey($vendorOrder->id)->lockForUpdate()->firstOrFail();
                 abort_unless($lockedOrder->status === 'pending', 422, 'Only pending orders can be accepted.');
@@ -80,6 +81,8 @@ class OrderController extends Controller
                     'rejected_at' => null,
                     'rejection_reason' => null,
                 ]);
+
+                $orders->syncParentForVendorOrder($lockedOrder);
             });
         } catch (StockCommitmentException $exception) {
             abort(422, $exception->getMessage());
@@ -88,11 +91,11 @@ class OrderController extends Controller
         return $this->orderResponse($vendorOrder, 'Order accepted successfully.');
     }
 
-    public function reject(RejectVendorOrderRequest $request, VendorOrder $vendorOrder, StockReservationLifecycle $stock): JsonResponse
+    public function reject(RejectVendorOrderRequest $request, VendorOrder $vendorOrder, StockReservationLifecycle $stock, OrderStatusLifecycle $orders): JsonResponse
     {
         $this->authorizeOrder($request, $vendorOrder);
 
-        DB::transaction(function () use ($request, $vendorOrder, $stock): void {
+        DB::transaction(function () use ($request, $vendorOrder, $stock, $orders): void {
             $lockedOrder = VendorOrder::query()->whereKey($vendorOrder->id)->lockForUpdate()->firstOrFail();
             abort_unless($lockedOrder->status === 'pending', 422, 'Only pending orders can be rejected.');
 
@@ -104,34 +107,47 @@ class OrderController extends Controller
 
             // Release only: physical stock was never decremented for these reservations.
             $stock->releaseForVendorOrder($lockedOrder);
+            $orders->syncParentForVendorOrder($lockedOrder);
         });
 
         return $this->orderResponse($vendorOrder, 'Order rejected successfully.');
     }
 
-    public function markPreparing(Request $request, VendorOrder $vendorOrder): JsonResponse
+    public function markPreparing(Request $request, VendorOrder $vendorOrder, OrderStatusLifecycle $orders): JsonResponse
     {
         $this->authorizeOrder($request, $vendorOrder);
-        abort_unless(in_array($vendorOrder->status, ['accepted', 'preparing'], true), 422, 'Only accepted orders can move to preparing.');
 
-        $vendorOrder->update([
-            'status' => 'preparing',
-            'accepted_at' => $vendorOrder->accepted_at ?? now(),
-        ]);
+        DB::transaction(function () use ($vendorOrder, $orders): void {
+            $lockedOrder = VendorOrder::query()->whereKey($vendorOrder->id)->lockForUpdate()->firstOrFail();
+            abort_unless(in_array($lockedOrder->status, ['accepted', 'preparing'], true), 422, 'Only accepted orders can move to preparing.');
+
+            $lockedOrder->update([
+                'status' => 'preparing',
+                'accepted_at' => $lockedOrder->accepted_at ?? now(),
+            ]);
+
+            $orders->syncParentForVendorOrder($lockedOrder);
+        });
 
         return $this->orderResponse($vendorOrder, 'Order marked as preparing.');
     }
 
-    public function markReady(Request $request, VendorOrder $vendorOrder): JsonResponse
+    public function markReady(Request $request, VendorOrder $vendorOrder, OrderStatusLifecycle $orders): JsonResponse
     {
         $this->authorizeOrder($request, $vendorOrder);
-        abort_unless(in_array($vendorOrder->status, ['accepted', 'preparing', 'ready_for_delivery'], true), 422, 'Only accepted or preparing orders can be marked ready.');
 
-        $vendorOrder->update([
-            'status' => 'ready_for_delivery',
-            'accepted_at' => $vendorOrder->accepted_at ?? now(),
-            'ready_at' => $vendorOrder->ready_at ?? now(),
-        ]);
+        DB::transaction(function () use ($vendorOrder, $orders): void {
+            $lockedOrder = VendorOrder::query()->whereKey($vendorOrder->id)->lockForUpdate()->firstOrFail();
+            abort_unless(in_array($lockedOrder->status, ['accepted', 'preparing', 'ready_for_delivery'], true), 422, 'Only accepted or preparing orders can be marked ready.');
+
+            $lockedOrder->update([
+                'status' => 'ready_for_delivery',
+                'accepted_at' => $lockedOrder->accepted_at ?? now(),
+                'ready_at' => $lockedOrder->ready_at ?? now(),
+            ]);
+
+            $orders->syncParentForVendorOrder($lockedOrder);
+        });
 
         return $this->orderResponse($vendorOrder, 'Order marked as ready for delivery.');
     }

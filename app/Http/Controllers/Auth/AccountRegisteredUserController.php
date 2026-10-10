@@ -27,6 +27,12 @@ class AccountRegisteredUserController extends Controller
         $account = AccountGuard::get($accountType);
         $user = $createAccountUser->create($accountType, $request->all());
 
+        if ($accountType === 'vendor') {
+            return redirect()
+                ->route('vendor.login')
+                ->with('status', __('auth.vendor_registration_pending'));
+        }
+
         Auth::guard($account['guard'])->login($user);
         $request->session()->regenerate();
 

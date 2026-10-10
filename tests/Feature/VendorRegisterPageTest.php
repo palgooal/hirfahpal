@@ -180,7 +180,8 @@ class VendorRegisterPageTest extends TestCase
     public function test_successful_registration_follows_the_current_contract(): void
     {
         $this->post(route('vendor.register.store'), $this->validInput())
-            ->assertRedirect(route('vendor.dashboard'));
+            ->assertRedirect(route('vendor.login'))
+            ->assertSessionHas('status', __('auth.vendor_registration_pending'));
 
         $vendor = Vendor::with('profile')->sole();
 
@@ -188,15 +189,15 @@ class VendorRegisterPageTest extends TestCase
         $this->assertSame('active', $vendor->status);
         $this->assertSame('pending', $vendor->profile->approval_status);
         $this->assertSame('Store Owner', $vendor->profile->store_name);
-        $this->assertAuthenticatedAs($vendor, 'vendor');
+        $this->assertGuest('vendor');
         $this->assertGuest('admin');
     }
 
     public function test_authenticated_vendor_cannot_open_the_register_page(): void
     {
-        $this->post(route('vendor.register.store'), $this->validInput());
+        $vendor = Vendor::factory()->approved()->create();
 
-        $this->page()->assertRedirect();
+        $this->actingAs($vendor, 'vendor')->page()->assertRedirect();
     }
 
     public function test_visiting_register_never_auto_creates_translation_rows(): void

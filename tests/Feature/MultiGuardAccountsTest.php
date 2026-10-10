@@ -34,7 +34,11 @@ class MultiGuardAccountsTest extends TestCase
 
     public function test_vendor_can_login_with_vendor_guard(): void
     {
-        $vendor = Vendor::create($this->accountData('vendor@example.com', '0591000002'));
+        $vendor = Vendor::factory()->approved()->create([
+            'email' => 'vendor@example.com',
+            'phone' => '0591000002',
+            'password' => 'password',
+        ]);
 
         $this->post(route('vendor.login.store'), [
             'login' => $vendor->email,

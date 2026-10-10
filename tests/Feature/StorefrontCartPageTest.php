@@ -183,8 +183,8 @@ class StorefrontCartPageTest extends TestCase
         $this->actingAs($blocked, 'customer')->get(route('customer.dashboard'))->assertRedirect(route('customer.login'));
         $this->assertGuest('customer');
 
-        $this->actingAs(Vendor::factory()->create(), 'vendor')
-            ->get(route('vendor.dashboard'))->assertOk()->assertViewIs('accounts.dashboard');
+        $this->actingAs(Vendor::factory()->approved()->create(), 'vendor')
+            ->get(route('vendor.dashboard'))->assertOk()->assertViewIs('vendor-dashboard.home');
         $this->actingAs(DeliveryDriver::factory()->create(), 'delivery_driver')
             ->get(route('delivery-driver.dashboard'))->assertOk()->assertViewIs('accounts.dashboard');
     }

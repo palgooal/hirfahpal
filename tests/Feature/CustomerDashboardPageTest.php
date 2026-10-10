@@ -150,13 +150,13 @@ class CustomerDashboardPageTest extends TestCase
         $this->assertGuest('customer');
     }
 
-    public function test_vendor_dashboard_still_uses_the_shared_account_view(): void
+    public function test_approved_vendor_dashboard_uses_the_vendor_shell(): void
     {
-        $this->actingAs(Vendor::factory()->create(), 'vendor')
+        $this->actingAs(Vendor::factory()->approved()->create(), 'vendor')
             ->get(route('vendor.dashboard'))
             ->assertOk()
-            ->assertViewIs('accounts.dashboard')
-            ->assertDontSee('data-dashboard-page', false);
+            ->assertViewIs('vendor-dashboard.home')
+            ->assertSee('id="vendor-sidebar"', false);
     }
 
     public function test_delivery_driver_dashboard_still_uses_the_shared_account_view(): void

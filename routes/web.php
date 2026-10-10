@@ -23,6 +23,7 @@ use App\Http\Controllers\VendorDashboard\OverviewController as VendorDashboardOv
 use App\Http\Controllers\VendorDashboard\ProductController as VendorDashboardProductController;
 use App\Http\Controllers\VendorDashboard\ProductImageController as VendorDashboardProductImageController;
 use App\Http\Controllers\VendorDashboard\ProfileController as VendorDashboardProfileController;
+use App\Http\Controllers\VendorDashboard\ProfileMediaController as VendorDashboardProfileMediaController;
 use App\Http\Controllers\VendorDashboard\ReturnRequestController as VendorReturnRequestController;
 use App\Http\Controllers\VendorDashboard\ReviewController as VendorDashboardReviewController;
 use App\Support\Auth\AccountGuard;
@@ -187,6 +188,12 @@ foreach (AccountGuard::all() as $accountType => $account) {
 
                             Route::get('profile', [VendorDashboardProfileController::class, 'show'])->name('dashboard.profile.show');
                             Route::put('profile', [VendorDashboardProfileController::class, 'update'])->name('dashboard.profile.update');
+                            Route::post('profile/media/{type}', [VendorDashboardProfileMediaController::class, 'store'])
+                                ->whereIn('type', ['logo', 'cover'])
+                                ->name('dashboard.profile.media.store');
+                            Route::delete('profile/media/{type}', [VendorDashboardProfileMediaController::class, 'destroy'])
+                                ->whereIn('type', ['logo', 'cover'])
+                                ->name('dashboard.profile.media.destroy');
 
                             Route::apiResource('products', VendorDashboardProductController::class)
                                 ->names('dashboard.products');

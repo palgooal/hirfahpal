@@ -296,13 +296,9 @@ class VendorMyStorePageTest extends TestCase
         $this->assertSame('12.50', $vendor->profile->commission_rate);
     }
 
-    /**
-     * Why the script must always send the preserved values: the existing update
-     * replaces omitted fields and regenerates the slug (N1/N2, backend-owned).
-     */
-    public function test_omitting_preserved_values_would_lose_data(): void
+    public function test_omitting_preserved_values_keeps_backend_owned_data(): void
     {
-        [$vendor] = $this->vendorWithLocation();
+        [$vendor, $governorate, $city] = $this->vendorWithLocation();
 
         $this->actingAs($vendor, 'vendor')
             ->putJson(route('vendor.dashboard.profile.update'), [
@@ -313,10 +309,10 @@ class VendorMyStorePageTest extends TestCase
             ->assertOk();
 
         $vendor->refresh()->load('profile');
-        $this->assertNull($vendor->email);
-        $this->assertNull($vendor->profile->governorate_id);
-        $this->assertNull($vendor->profile->city_id);
-        $this->assertNotSame('olive-workshop-slug', $vendor->profile->slug);
+        $this->assertSame('owner.private@example.com', $vendor->email);
+        $this->assertSame($governorate->id, $vendor->profile->governorate_id);
+        $this->assertSame($city->id, $vendor->profile->city_id);
+        $this->assertSame('olive-workshop-slug', $vendor->profile->slug);
     }
 
     public function test_validation_errors_are_keyed_by_field(): void
@@ -332,6 +328,39 @@ class VendorMyStorePageTest extends TestCase
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['name', 'store_name', 'city_id']);
+    }
+
+    public function test_profile_update_rejects_a_city_that_does_not_belong_to_the_selected_governorate(): void
+    {
+        [$vendor, $governorate] = $this->vendorWithLocation();
+        $otherGovernorate = Governorate::query()->create(['name' => 'Hebron', 'slug' => 'hebron', 'status' => 'active']);
+        $otherCity = City::query()->create(['governorate_id' => $otherGovernorate->id, 'name' => 'Hebron City', 'slug' => 'hebron-city', 'status' => 'active']);
+
+        $this->actingAs($vendor, 'vendor')
+            ->putJson(route('vendor.dashboard.profile.update'), [
+                'name' => 'Owner Name',
+                'store_name' => 'Olive Workshop',
+                'phone' => '0599123123',
+                'governorate_id' => $governorate->id,
+                'city_id' => $otherCity->id,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['city_id']);
+    }
+
+    public function test_profile_update_enforces_the_database_short_description_limit(): void
+    {
+        [$vendor] = $this->vendorWithLocation();
+
+        $this->actingAs($vendor, 'vendor')
+            ->putJson(route('vendor.dashboard.profile.update'), [
+                'name' => 'Owner Name',
+                'store_name' => 'Olive Workshop',
+                'phone' => '0599123123',
+                'short_description' => str_repeat('a', 256),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['short_description']);
     }
 
     // ---- Script contract ----
@@ -359,7 +388,7 @@ class VendorMyStorePageTest extends TestCase
 
         // Save is enabled only once the preservation state exists.
         $this->assertStringContainsString('saveButton.disabled = !enabled || preserved === null;', $script);
-        $this->assertStringContainsString("if (saving || preserved === null) {", $script);
+        $this->assertStringContainsString('if (saving || preserved === null) {', $script);
         // Confirmed save, then a reload.
         $this->assertStringContainsString('window.location.reload()', $script);
         // 422: editable keys map to fields, any other key becomes the general error.

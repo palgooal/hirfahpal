@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Support\Auth\AccountGuard;
 use App\Support\Auth\GuardLoginService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,10 +31,19 @@ class AccountAuthenticatedSessionController extends Controller
             'password' => ['required', 'string'],
         ]);
 
+        $accountType = $request->route('account_type');
+
         $user = $guardLoginService->authenticate(
             $account['model'],
             $request->string('login')->toString(),
             $request->string('password')->toString(),
+            constraint: $accountType === 'vendor'
+                ? fn (Builder $query) => $query->where(function (Builder $vendor): void {
+                    $vendor
+                        ->where('status', '!=', 'active')
+                        ->orWhereHas('profile', fn (Builder $profile) => $profile->where('approval_status', 'approved'));
+                })
+                : null,
             throttleScope: $account['guard'],
         );
 

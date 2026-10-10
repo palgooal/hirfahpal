@@ -15,8 +15,7 @@ class ProductCatalogController extends Controller
     {
         $products = Product::query()
             ->with(['category', 'vendor.profile', 'primaryImage'])
-            ->where('status', 'active')
-            ->whereHas('vendor', fn ($query) => $query->where('status', 'active'))
+            ->sellable()
             ->when($request->filled('category'), function ($query) use ($request): void {
                 $query->whereHas('category', fn ($category) => $category->whereIn('slug', (array) $request->input('category')));
             })
@@ -41,7 +40,7 @@ class ProductCatalogController extends Controller
 
     public function show(Product $product): JsonResponse
     {
-        abort_unless($product->status === 'active', 404);
+        abort_unless($product->isSellable(), 404);
 
         return response()->json($product->load(['category', 'vendor.profile.city', 'images']));
     }

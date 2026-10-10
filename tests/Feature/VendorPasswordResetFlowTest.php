@@ -218,7 +218,7 @@ class VendorPasswordResetFlowTest extends TestCase
 
     private function vendor(string $email = self::EMAIL, string $phone = '0591000002'): Vendor
     {
-        return Vendor::create(['email' => $email] + $this->accountData($phone));
+        return Vendor::factory()->approved()->create(['email' => $email] + $this->accountData($phone));
     }
 
     private function accountData(string $phone): array

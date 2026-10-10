@@ -166,7 +166,7 @@ class VendorLoginPageTest extends TestCase
 
     public function test_vendor_can_login_with_valid_credentials(): void
     {
-        $vendor = $this->vendor();
+        $vendor = $this->approvedVendor();
 
         $this->post(route('vendor.login.store'), [
             'login' => $vendor->email,
@@ -178,7 +178,7 @@ class VendorLoginPageTest extends TestCase
 
     public function test_vendor_can_login_with_phone(): void
     {
-        $vendor = $this->vendor();
+        $vendor = $this->approvedVendor();
 
         $this->post(route('vendor.login.store'), [
             'login' => $vendor->phone,
@@ -188,9 +188,39 @@ class VendorLoginPageTest extends TestCase
         $this->assertAuthenticatedAs($vendor, 'vendor');
     }
 
+    public function test_pending_vendor_cannot_login_before_admin_approval(): void
+    {
+        $vendor = Vendor::factory()->withProfile('pending')->create();
+
+        $this->from(route('vendor.login'))
+            ->post(route('vendor.login.store'), [
+                'login' => $vendor->email,
+                'password' => 'password',
+            ])
+            ->assertRedirect(route('vendor.login'))
+            ->assertSessionHasErrors(['login' => __('auth.failed')]);
+
+        $this->assertGuest('vendor');
+    }
+
+    public function test_rejected_vendor_cannot_login(): void
+    {
+        $vendor = Vendor::factory()->withProfile('rejected', 'Incomplete profile.')->create();
+
+        $this->from(route('vendor.login'))
+            ->post(route('vendor.login.store'), [
+                'login' => $vendor->email,
+                'password' => 'password',
+            ])
+            ->assertRedirect(route('vendor.login'))
+            ->assertSessionHasErrors(['login' => __('auth.failed')]);
+
+        $this->assertGuest('vendor');
+    }
+
     public function test_wrong_credentials_show_the_error_on_the_page(): void
     {
-        $vendor = $this->vendor();
+        $vendor = $this->approvedVendor();
 
         $this->from(route('vendor.login'))
             ->post(route('vendor.login.store'), [
@@ -231,7 +261,7 @@ class VendorLoginPageTest extends TestCase
 
     public function test_authenticated_vendor_cannot_open_the_login_page(): void
     {
-        $this->actingAs($this->vendor(), 'vendor')
+        $this->actingAs($this->approvedVendor(), 'vendor')
             ->get(route('vendor.login'))
             ->assertRedirect();
     }
@@ -241,14 +271,12 @@ class VendorLoginPageTest extends TestCase
         return $this->get(route('vendor.login'));
     }
 
-    private function vendor(): Vendor
+    private function approvedVendor(): Vendor
     {
-        return Vendor::create([
+        return Vendor::factory()->approved()->create([
             'name' => 'Vendor',
             'email' => 'vendor@example.com',
             'phone' => '0591000002',
-            'password' => 'password',
-            'status' => 'active',
         ]);
     }
 }

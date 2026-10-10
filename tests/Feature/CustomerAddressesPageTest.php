@@ -139,8 +139,8 @@ class CustomerAddressesPageTest extends TestCase
 
     public function test_vendor_and_driver_dashboards_are_unaffected(): void
     {
-        $this->actingAs(Vendor::factory()->create(), 'vendor')
-            ->get(route('vendor.dashboard'))->assertOk()->assertViewIs('accounts.dashboard');
+        $this->actingAs(Vendor::factory()->approved()->create(), 'vendor')
+            ->get(route('vendor.dashboard'))->assertOk()->assertViewIs('vendor-dashboard.home');
 
         $this->actingAs(DeliveryDriver::factory()->create(), 'delivery_driver')
             ->get(route('delivery-driver.dashboard'))->assertOk()->assertViewIs('accounts.dashboard');

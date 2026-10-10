@@ -76,6 +76,27 @@ class Product extends Model
     }
 
     /**
+     * Storefront sellability requires both an active product and a vendor that
+     * is currently allowed to sell. Checkout reuses this contract at write time.
+     */
+    public function scopeSellable(Builder $query): Builder
+    {
+        return $query
+            ->where('status', 'active')
+            ->whereHas('vendor', fn (Builder $vendor) => $vendor->where('status', 'active'))
+            ->whereHas('vendor.profile', fn (Builder $profile) => $profile->where('approval_status', 'approved'));
+    }
+
+    public function isSellable(): bool
+    {
+        $this->loadMissing('vendor.profile');
+
+        return $this->status === 'active'
+            && $this->vendor?->status === 'active'
+            && $this->vendor?->isApproved();
+    }
+
+    /**
      * Products whose available stock (physical stock minus outstanding
      * reservations, floored at 0) is at or below their threshold (VEN-BE-019).
      * Written as `stock <= threshold + reserved` so the unsigned stock column

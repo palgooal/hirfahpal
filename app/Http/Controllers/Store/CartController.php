@@ -25,7 +25,7 @@ class CartController extends Controller
             'quantity' => ['required', 'integer', 'min:1'],
         ]);
 
-        $product = Product::query()->where('status', 'active')->findOrFail($data['product_id']);
+        $product = Product::query()->sellable()->findOrFail($data['product_id']);
         abort_if($product->availableStockQuantity() < $data['quantity'], 422, 'Requested quantity is not available.');
 
         $cart = $this->activeCart($request);
@@ -52,6 +52,7 @@ class CartController extends Controller
         ]);
 
         $this->authorizeCartItem($request, $cartItem);
+        abort_unless($cartItem->product->isSellable(), 422, 'This product is no longer available for sale.');
         abort_if($cartItem->product->availableStockQuantity() < $data['quantity'], 422, 'Requested quantity is not available.');
 
         $cartItem->update(['quantity' => $data['quantity']]);

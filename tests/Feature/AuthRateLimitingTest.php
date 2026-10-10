@@ -464,13 +464,24 @@ class AuthRateLimitingTest extends TestCase
         static $sequence = 0;
         $sequence++;
 
-        return $model::create([
+        $account = $model::create([
             'name' => 'Account '.$sequence,
             'email' => $email,
             'phone' => $phone ?? '05900'.str_pad((string) $sequence, 5, '0', STR_PAD_LEFT),
             'password' => self::PASSWORD,
             'status' => $status,
         ]);
+
+        if ($account instanceof Vendor && $status === 'active') {
+            $account->profile()->create([
+                'store_name' => 'Account '.$sequence.' Store',
+                'slug' => 'account-'.$sequence.'-store',
+                'approval_status' => 'approved',
+                'approved_at' => now(),
+            ]);
+        }
+
+        return $account;
     }
 
     private function webUser(string $email): User
