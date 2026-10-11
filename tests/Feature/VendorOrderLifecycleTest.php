@@ -3,8 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Customer;
+use App\Models\DeliveryAssignment;
+use App\Models\DeliveryDriver;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\Product;
+use App\Models\Review;
 use App\Models\StockReservation;
 use App\Models\Vendor;
 use App\Models\VendorOrder;
@@ -84,6 +88,101 @@ class VendorOrderLifecycleTest extends TestCase
         $this->assertNotNull($vendorOrder->fresh()->ready_at);
     }
 
+    public function test_driver_delivery_does_not_complete_the_order_or_mark_cod_paid(): void
+    {
+        $vendor = Vendor::factory()->approved()->create();
+        $driver = DeliveryDriver::factory()->create();
+        [$order, $vendorOrder] = $this->orderWithVendorOrder($vendor, status: 'out_for_delivery');
+        $order->update(['status' => 'processing', 'payment_status' => 'pending']);
+        Payment::query()->create([
+            'order_id' => $order->id,
+            'method' => 'cod',
+            'status' => 'pending',
+            'amount' => 10,
+        ]);
+        $assignment = DeliveryAssignment::query()->create([
+            'vendor_order_id' => $vendorOrder->id,
+            'delivery_driver_id' => $driver->id,
+            'status' => 'picked_up',
+            'assigned_at' => now(),
+            'picked_up_at' => now(),
+        ]);
+        $vendorOrder->update(['delivery_driver_id' => $driver->id]);
+
+        $this->actingAs($driver, 'delivery_driver')
+            ->patchJson(route('delivery-driver.dashboard.assignments.delivered', $assignment))
+            ->assertOk()
+            ->assertJsonPath('assignment.vendor_order.status', 'delivered')
+            ->assertJsonPath('assignment.vendor_order.order.payment.status', 'pending');
+
+        $this->assertSame('delivered', $vendorOrder->fresh()->status);
+        $this->assertNull($vendorOrder->fresh()->customer_receipt_confirmed_at);
+        $this->assertNull($vendorOrder->fresh()->completed_at);
+        $this->assertSame('processing', $order->fresh()->status);
+        $this->assertSame('pending', $order->fresh()->payment_status);
+        $this->assertSame('pending', Payment::sole()->status);
+    }
+
+    public function test_customer_receipt_confirmation_completes_delivered_vendor_order(): void
+    {
+        $vendor = Vendor::factory()->approved()->create();
+        [$order, $vendorOrder] = $this->orderWithVendorOrder($vendor, status: 'delivered');
+        $order->update(['status' => 'processing', 'payment_status' => 'pending']);
+        Payment::query()->create([
+            'order_id' => $order->id,
+            'method' => 'cod',
+            'status' => 'pending',
+            'amount' => 10,
+        ]);
+
+        $this->actingAs($order->customer, 'customer')
+            ->patchJson(route('customer.orders.vendor-orders.confirm-receipt', [$order, $vendorOrder]))
+            ->assertOk()
+            ->assertJsonPath('order.status', 'completed')
+            ->assertJsonPath('order.payment.status', 'pending');
+
+        $this->assertSame('completed', $vendorOrder->fresh()->status);
+        $this->assertNotNull($vendorOrder->fresh()->customer_receipt_confirmed_at);
+        $this->assertNotNull($vendorOrder->fresh()->completed_at);
+        $this->assertSame('completed', $order->fresh()->status);
+        $this->assertSame('pending', $order->fresh()->payment_status);
+    }
+
+    public function test_customer_cannot_confirm_receipt_before_delivery(): void
+    {
+        $vendor = Vendor::factory()->approved()->create();
+        [$order, $vendorOrder] = $this->orderWithVendorOrder($vendor, status: 'out_for_delivery');
+
+        $this->actingAs($order->customer, 'customer')
+            ->patchJson(route('customer.orders.vendor-orders.confirm-receipt', [$order, $vendorOrder]))
+            ->assertStatus(422);
+
+        $this->assertSame('out_for_delivery', $vendorOrder->fresh()->status);
+        $this->assertNull($vendorOrder->fresh()->customer_receipt_confirmed_at);
+    }
+
+    public function test_completed_vendor_order_can_be_reviewed_when_parent_is_partially_cancelled(): void
+    {
+        $vendor = Vendor::factory()->approved()->create();
+        $otherVendor = Vendor::factory()->approved()->create();
+        $product = $this->product($vendor);
+        [$order, $vendorOrder] = $this->orderWithVendorOrder($vendor, status: 'completed');
+        $order->update(['status' => 'partially_cancelled']);
+        $this->vendorOrder($order, $otherVendor, status: 'rejected');
+        $this->itemAndReservation($order, $vendorOrder, $product, 1);
+
+        $this->actingAs($order->customer, 'customer')
+            ->postJson(route('customer.orders.reviews.store', $order), [
+                'vendor_order_id' => $vendorOrder->id,
+                'product_id' => $product->id,
+                'product_rating' => 5,
+                'vendor_rating' => 5,
+            ])
+            ->assertCreated();
+
+        $this->assertSame(2, Review::count());
+    }
+
     private function product(Vendor $vendor): Product
     {
         return Product::query()->create([
@@ -126,7 +225,11 @@ class VendorOrderLifecycleTest extends TestCase
             'delivery_fee' => 0,
             'commission_amount' => 0,
             'total' => 10,
-            'accepted_at' => in_array($status, ['accepted', 'preparing', 'ready_for_delivery'], true) ? now() : null,
+            'accepted_at' => in_array($status, ['accepted', 'preparing', 'ready_for_delivery', 'assigned', 'out_for_delivery', 'delivered', 'completed'], true) ? now() : null,
+            'ready_at' => in_array($status, ['ready_for_delivery', 'assigned', 'out_for_delivery', 'delivered', 'completed'], true) ? now() : null,
+            'delivered_at' => in_array($status, ['delivered', 'completed'], true) ? now() : null,
+            'customer_receipt_confirmed_at' => $status === 'completed' ? now() : null,
+            'completed_at' => $status === 'completed' ? now() : null,
         ]);
     }
 

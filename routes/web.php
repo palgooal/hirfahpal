@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\AdminAuthenticatedSessionController;
 use App\Http\Controllers\Auth\AdminNewPasswordController;
 use App\Http\Controllers\Auth\AdminPasswordResetLinkController;
 use App\Http\Controllers\Dashboard\AdminDashboardController;
+use App\Http\Controllers\DeliveryDriverDashboard\AssignmentController as DeliveryDriverAssignmentController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Store\CartController;
 use App\Http\Controllers\Store\CheckoutController;
@@ -222,6 +223,21 @@ foreach (AccountGuard::all() as $accountType => $account) {
                     Route::get('/dashboard', AccountDashboardController::class)
                         ->name('dashboard')
                         ->defaults('account_type', $accountType);
+
+                    if ($accountType === 'delivery_driver') {
+                        Route::prefix('dashboard')->group(function (): void {
+                            Route::get('assignments', [DeliveryDriverAssignmentController::class, 'index'])
+                                ->name('dashboard.assignments.index');
+                            Route::get('assignments/{assignment}', [DeliveryDriverAssignmentController::class, 'show'])
+                                ->name('dashboard.assignments.show');
+                            Route::patch('assignments/{assignment}/accept', [DeliveryDriverAssignmentController::class, 'accept'])
+                                ->name('dashboard.assignments.accept');
+                            Route::patch('assignments/{assignment}/pick-up', [DeliveryDriverAssignmentController::class, 'pickUp'])
+                                ->name('dashboard.assignments.pick-up');
+                            Route::patch('assignments/{assignment}/delivered', [DeliveryDriverAssignmentController::class, 'markDelivered'])
+                                ->name('dashboard.assignments.delivered');
+                        });
+                    }
                 });
         });
 }
@@ -269,6 +285,9 @@ Route::prefix('customer')
 
             Route::get('orders/{order}', [OrderController::class, 'show'])
                 ->name('orders.show');
+
+            Route::patch('orders/{order}/vendor-orders/{vendorOrder}/confirm-receipt', [OrderController::class, 'confirmReceipt'])
+                ->name('orders.vendor-orders.confirm-receipt');
 
             Route::post('orders/{order}/reviews', [ReviewController::class, 'store'])
                 ->name('orders.reviews.store');
