@@ -1,0 +1,541 @@
+/*
+ * HIRFAH admin dashboard (AD-UI-01B). Able Pro's style.css and Bootstrap keep
+ * providing the dashboard layout and the page grids; this file only adds the
+ * HIRFAH identity, scoped to html.admin-shell (decision OQ-02).
+ *
+ * Tailwind is imported without preflight (theme + utilities only), so it never
+ * resets Able Pro or Bootstrap base styles. Utilities are generated from the
+ * admin dashboard files only, including the pages that use Tailwind classes
+ * today through resources/css/app.css.
+ */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(none);
+
+@source "../views/layouts/dashboard-layout.blade.php";
+@source "../views/layouts/partials/dashboard";
+@source "../views/components/lang/language-switcher-dashboard.blade.php";
+@source "../views/dashboard";
+@source "../js/admin-dashboard.js";
+
+/* Approved identity tokens (DEC-AD-UI-04.a), prefixed so they cannot clash with Able Pro or Bootstrap class names. */
+@theme {
+  --color-hf-ink: #2b2b26;
+  --color-hf-olive: #3d472b;
+  --color-hf-olive-hover: #313923;
+  --color-hf-sage: #b3ba91;
+  --color-hf-copper: #b5622e;
+  --color-hf-canvas: #f5f0e5;
+  --color-hf-surface: #faf8f3;
+  --color-hf-line: #e4ddcb;
+  --color-hf-muted: #6b6a5f;
+  --color-hf-gold: #c98a2c;
+  --color-hf-error: #a13d2b;
+
+  --font-cairo: "Cairo", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ---- Identity: olive replaces Able Pro's blue primary; Cairo replaces Inter ---- */
+
+/* Same olive scale as the vendor dashboard, so both dashboards render the primary color alike. */
+html.admin-shell {
+  --colors-primary-50: 244 245 239;
+  --colors-primary-100: 230 233 220;
+  --colors-primary-200: 205 211 186;
+  --colors-primary-300: 179 186 145;
+  --colors-primary-400: 120 132 88;
+  --colors-primary-500: 61 71 43;
+  --colors-primary-600: 55 64 39;
+  --colors-primary-700: 49 57 35;
+  --colors-primary-800: 41 48 29;
+  --colors-primary-900: 33 38 23;
+  --colors-primary-950: 22 26 15;
+  --colors-primary: 61 71 43;
+
+  /* Bootstrap's primary utilities (.text-primary, .bg-primary…) read these instead of Able Pro's scale. */
+  --bs-primary: #3d472b;
+  --bs-primary-rgb: 61, 71, 43;
+}
+
+html.admin-shell body,
+html.admin-shell button,
+html.admin-shell input,
+html.admin-shell select,
+html.admin-shell textarea,
+html.admin-shell h1,
+html.admin-shell h2,
+html.admin-shell h3,
+html.admin-shell h4,
+html.admin-shell h5,
+html.admin-shell h6 {
+  font-family: var(--font-cairo);
+}
+
+html.admin-shell :focus-visible {
+  outline: 2px solid var(--color-hf-olive);
+  outline-offset: 2px;
+}
+
+/* ---- Sidebar, expanded layout (AD-UI-01C-3) ---- */
+
+/*
+ * Able Pro keeps driving the sidebar width, the desktop collapse and the mobile drawer
+ * until AD-UI-01C-4. Its script.js also marks the active link by setting an inline
+ * display:block on list ancestors, so item spacing uses margins rather than flex gaps.
+ */
+html.admin-shell .pc-sidebar {
+  border-color: var(--color-hf-line);
+  border-style: solid;
+  background-color: #fff;
+}
+
+html.admin-shell .pc-sidebar .admin-brand-header {
+  display: flex;
+  align-items: center;
+  height: 74px;
+  padding-inline: 1.25rem;
+  border-bottom: 1px solid var(--color-hf-line);
+}
+
+html.admin-shell .admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  text-decoration: none;
+}
+
+html.admin-shell .admin-brand-mark {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 3px;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 12px;
+  background-color: var(--color-hf-surface);
+}
+
+html.admin-shell .admin-brand-mark img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+html.admin-shell .admin-brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+html.admin-shell .admin-brand-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-hf-olive);
+}
+
+html.admin-shell .admin-brand-sub {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-hf-muted);
+}
+
+/* The list scrolls natively (Able Pro's SimpleBar came from script.js, which the admin no longer loads);
+ * .pc-sidebar itself stays overflow:hidden. Scrolling stops at the list's edges instead of moving the page. */
+html.admin-shell .pc-sidebar .admin-navbar-content {
+  height: calc(100vh - 74px);
+  padding: 1rem 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Admin initial (header account menu). */
+html.admin-shell .admin-monogram {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 9999px;
+  background-color: var(--color-hf-olive);
+  color: var(--color-hf-surface);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Navigation: groups with fixed titles, no accordion. */
+html.admin-shell .pc-sidebar .admin-navbar {
+  margin: 0;
+  padding: 0.5rem 0.75rem 0;
+  list-style: none;
+}
+
+html.admin-shell .pc-sidebar .admin-navbar > * {
+  margin-inline: 0;
+}
+
+html.admin-shell .pc-sidebar .admin-nav-group {
+  margin-top: 1rem;
+}
+
+html.admin-shell .pc-sidebar .admin-nav-group-title {
+  display: block;
+  padding: 0 0.75rem 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--color-hf-muted);
+}
+
+html.admin-shell .pc-sidebar .admin-nav-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html.admin-shell .pc-sidebar .admin-nav-list > .pc-item + .pc-item {
+  margin-top: 2px;
+}
+
+html.admin-shell .pc-sidebar .admin-navbar .pc-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 42px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  color: var(--color-hf-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* Able Pro paints hover/active with a ::after overlay; the admin rows use their own background. */
+html.admin-shell .pc-sidebar .admin-navbar .pc-link::after {
+  content: none;
+}
+
+html.admin-shell .pc-sidebar .admin-navbar .pc-link .pc-micon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+html.admin-shell .pc-sidebar .admin-navbar .pc-link:hover {
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-olive);
+}
+
+html.admin-shell .pc-sidebar .admin-navbar .pc-item.active > .pc-link,
+html.admin-shell .pc-sidebar .admin-navbar .pc-item.active > .pc-link:hover {
+  background-color: rgb(179 186 145 / 24%);
+  color: var(--color-hf-olive);
+  font-weight: 700;
+  box-shadow: inset -3px 0 0 var(--color-hf-olive);
+}
+
+html.admin-shell[dir="ltr"] .pc-sidebar .admin-navbar .pc-item.active > .pc-link {
+  box-shadow: inset 3px 0 0 var(--color-hf-olive);
+}
+
+/* ---- Sidebar behaviour (AD-UI-01C-4A) ----
+ * Every rule below needs data-admin-sidebar="managed" on the sidebar, which is only set
+ * when resources/js/admin-dashboard.js takes over from Able Pro's script.js (AD-UI-01C-4B).
+ * Until then none of them matches.
+ */
+
+html.admin-shell .pc-sidebar[data-admin-sidebar="managed"] .pc-menu-overlay[hidden] {
+  display: none;
+}
+
+/* Mobile/tablet drawer: Able Pro slides it from the left in both directions; open it from the start side. */
+@media (max-width: 1023.98px) {
+  html.admin-shell[dir="rtl"] .pc-sidebar[data-admin-sidebar="managed"] {
+    left: auto;
+    right: -280px;
+  }
+
+  html.admin-shell[dir="rtl"] .pc-sidebar[data-admin-sidebar="managed"].mob-sidebar-active {
+    right: 0;
+  }
+}
+
+/* Desktop: collapsed icon rail. Header, content and footer move with it on the start side. */
+@media (min-width: 1024px) {
+  html.admin-shell .pc-sidebar[data-admin-sidebar="managed"].admin-sidebar-collapsed,
+  html.admin-shell .pc-sidebar[data-admin-sidebar="managed"].admin-sidebar-collapsed .navbar-wrapper {
+    /* Able Pro fixes .navbar-wrapper at 280px; the rail's content must shrink with it. */
+    width: 76px;
+  }
+
+  html.admin-shell .pc-sidebar[data-admin-sidebar="managed"].admin-sidebar-collapsed ~ .pc-header {
+    inset-inline-start: 76px;
+  }
+
+  html.admin-shell .pc-sidebar[data-admin-sidebar="managed"].admin-sidebar-collapsed ~ .pc-container,
+  html.admin-shell .pc-sidebar[data-admin-sidebar="managed"].admin-sidebar-collapsed ~ .pc-footer {
+    margin-inline-start: 76px;
+  }
+
+  html.admin-shell .admin-sidebar-collapsed[data-admin-sidebar="managed"] .admin-brand-header {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  /* Text stays in the accessibility tree; only its box is hidden. */
+  html.admin-shell .admin-sidebar-collapsed[data-admin-sidebar="managed"] .admin-brand-text,
+  html.admin-shell .admin-sidebar-collapsed[data-admin-sidebar="managed"] .pc-mtext,
+  html.admin-shell .admin-sidebar-collapsed[data-admin-sidebar="managed"] .admin-nav-group-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  html.admin-shell .admin-sidebar-collapsed[data-admin-sidebar="managed"] .admin-navbar {
+    padding-inline: 0.625rem;
+  }
+
+  /* A classic scrollbar would take ~15px of the 76px rail (icons off-centre, tooltips over the rail).
+   * The rail still scrolls with the wheel, touch and keyboard focus. */
+  html.admin-shell .admin-sidebar-collapsed[data-admin-sidebar="managed"] .admin-navbar-content {
+    scrollbar-width: none;
+  }
+
+  html.admin-shell .admin-sidebar-collapsed[data-admin-sidebar="managed"] .admin-navbar-content::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Groups are separated by a rule instead of their (visually hidden) titles. */
+  html.admin-shell .admin-sidebar-collapsed[data-admin-sidebar="managed"] .admin-nav-group {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-hf-line);
+  }
+
+  html.admin-shell .admin-sidebar-collapsed[data-admin-sidebar="managed"] .admin-navbar .pc-link {
+    justify-content: center;
+    gap: 0;
+    padding-inline: 0;
+  }
+}
+
+/* Tooltip for the collapsed rail: fixed to the viewport, outside the sidebar's overflow. */
+html.admin-shell .admin-sidebar-tooltip {
+  position: fixed;
+  z-index: 1027;
+  /* The script places it 8px from the link, which sits 10px inside the rail; this clears the rail's edge
+   * by 6px. Inline-start follows the page direction, so it moves away from the rail in RTL and LTR. */
+  margin-inline-start: 8px;
+  max-width: 240px;
+  padding: 0.375rem 0.625rem;
+  border-radius: 8px;
+  background-color: var(--color-hf-ink);
+  color: var(--color-hf-surface);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgb(43 43 38 / 18%);
+}
+
+/* Hoverable: an invisible bridge over the whole 16px gap back to the link keeps the pointer "inside"
+ * while moving onto the tooltip. */
+html.admin-shell .admin-sidebar-tooltip::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 100%;
+  width: 16px;
+}
+
+html.admin-shell .admin-sidebar-tooltip[hidden] {
+  display: none;
+}
+
+/* ---- Header (AD-UI-01D-3) ----
+ * A solid 74px bar: start group (sidebar control, page title), end group (language, account).
+ * Able Pro keeps its position next to the sidebar; component.js still opens the menus (AD-UI-01D-4).
+ */
+html.admin-shell .pc-header.admin-header {
+  height: 74px;
+  border-bottom: 1px solid var(--color-hf-line);
+  background-color: #fff;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+html.admin-shell .admin-header-wrapper {
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+  padding-inline: 1.5rem;
+}
+
+html.admin-shell .admin-header-start {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+html.admin-shell .admin-header-group {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html.admin-shell .admin-header-title {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-hf-ink);
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html.admin-shell .admin-header .pc-head-link {
+  color: var(--color-hf-ink);
+}
+
+html.admin-shell .admin-monogram-sm {
+  width: 34px;
+  height: 34px;
+  font-size: 0.875rem;
+}
+
+html.admin-shell .admin-header-menu {
+  min-width: 220px;
+  padding: 0.5rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 12px;
+  background-color: #fff;
+  box-shadow: 0 8px 24px rgb(43 43 38 / 10%);
+}
+
+html.admin-shell .admin-header-menu .admin-header-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  color: var(--color-hf-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: start;
+  white-space: nowrap;
+}
+
+html.admin-shell .admin-header-menu a.admin-header-menu-item:hover,
+html.admin-shell .admin-header-menu button.admin-header-menu-item:hover {
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-olive);
+}
+
+html.admin-shell .admin-header-menu .admin-header-menu-item i {
+  width: 1.25rem;
+  font-size: 1.125rem;
+  line-height: 1;
+  text-align: center;
+}
+
+/* The current language is not a link: shown as selected, not clickable. */
+html.admin-shell .admin-lang-menu .admin-lang-item.is-current {
+  color: var(--color-hf-olive);
+  font-weight: 700;
+  cursor: default;
+}
+
+html.admin-shell .admin-lang-menu .admin-lang-check {
+  margin-inline-start: auto;
+}
+
+html.admin-shell .admin-lang-flag {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  object-fit: cover;
+}
+
+html.admin-shell .admin-account-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+  padding: 0.5rem 0.75rem 0.75rem;
+  border-bottom: 1px solid var(--color-hf-line);
+}
+
+html.admin-shell .admin-account-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+html.admin-shell .admin-account-name {
+  color: var(--color-hf-ink);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+html.admin-shell .admin-account-role {
+  color: var(--color-hf-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+html.admin-shell .admin-account-menu button.admin-header-menu-item:hover {
+  color: var(--color-hf-copper);
+}
+
+@media (max-width: 639.98px) {
+  html.admin-shell .admin-header-wrapper {
+    gap: 0.5rem;
+    padding-inline: 0.75rem;
+  }
+
+  html.admin-shell .admin-header-title {
+    font-size: 1rem;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  html.admin-shell .pc-sidebar[data-admin-sidebar="managed"],
+  html.admin-shell .pc-sidebar[data-admin-sidebar="managed"] ~ .pc-header,
+  html.admin-shell .pc-sidebar[data-admin-sidebar="managed"] ~ .pc-container,
+  html.admin-shell .pc-sidebar[data-admin-sidebar="managed"] ~ .pc-footer {
+    transition: none;
+  }
+}

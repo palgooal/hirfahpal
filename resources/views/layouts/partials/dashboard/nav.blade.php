@@ -1,304 +1,93 @@
-<nav class="pc-sidebar">
-    @php
-        $admin = Auth::guard('admin')->user() ?? Auth::user();
-        $canViewLanguages = $admin?->can('view', App\Models\Language::class) ?? false;
-        $canViewTranslations = $admin?->can('view', App\Models\TranslationValue::class) ?? false;
-        $canViewAdmins = $admin?->can('view', App\Models\Admin::class) ?? false;
-        $canCreateAdmins = $admin?->can('create', App\Models\Admin::class) ?? false;
-        $canViewSettings = $admin?->can('view', App\Models\Setting::class) ?? false;
-        $canViewVendors = $admin?->isSuperAdmin() || $admin?->hasAbility('vendors.view');
-        $canCreateVendors = $admin?->isSuperAdmin() || $admin?->hasAbility('vendors.create');
-        $canViewCategories = $admin?->isSuperAdmin() || $admin?->hasAbility('categories.view');
-        $canViewProducts = $admin?->isSuperAdmin() || $admin?->hasAbility('products.view');
-        $canViewCustomers = $admin?->isSuperAdmin() || $admin?->hasAbility('customers.view');
-        $canViewDeliveryDrivers = $admin?->isSuperAdmin() || $admin?->hasAbility('delivery-drivers.view');
-        $canViewOrders = $admin?->isSuperAdmin() || $admin?->hasAbility('orders.view');
-        $canViewVendorOrders = $admin?->isSuperAdmin() || $admin?->hasAbility('vendor-orders.view');
-        $canCreateVendorOrders = $admin?->isSuperAdmin() || $admin?->hasAbility('vendor-orders.create');
-        $canViewReviews = $admin?->isSuperAdmin() || $admin?->hasAbility('reviews.view');
-        $canViewDisputes = $admin?->isSuperAdmin() || $admin?->hasAbility('disputes.view');
-        $canViewReturnRequests = $admin?->isSuperAdmin() || $admin?->hasAbility('return-requests.view');
-    @endphp
+@php
+    // AD-UI-01C-3: admin sidebar, structure from AD-UI-01 v0.5 section 3.1. Each item is
+    // shown only when the admin passes the same check its controller enforces; deferred
+    // sections (delivery, finance) have no route yet and are not rendered.
+    $admin = Auth::guard('admin')->user();
+    $ability = fn (string $name): bool => (bool) ($admin?->isSuperAdmin() || $admin?->hasAbility($name));
+    $policy = fn (string $model): bool => (bool) $admin?->can('view', $model);
+
+    $home = ['route' => 'dashboard.home', 'active' => 'dashboard.home', 'key' => 'dashboard.Nav_Home', 'default' => 'Home', 'icon' => 'ph-house'];
+
+    $groups = [
+        ['key' => 'dashboard.Nav_Group_Users', 'default' => 'User management', 'items' => [
+            ['route' => 'dashboard.vendors.index', 'active' => 'dashboard.vendors.*', 'key' => 'dashboard.Nav_Vendors', 'default' => 'Vendors', 'icon' => 'ph-storefront', 'visible' => $ability('vendors.view')],
+            ['route' => 'dashboard.customers.index', 'active' => 'dashboard.customers.*', 'key' => 'dashboard.Nav_Customers', 'default' => 'Customers', 'icon' => 'ph-users-three', 'visible' => $ability('customers.view')],
+            ['route' => 'dashboard.delivery-drivers.index', 'active' => 'dashboard.delivery-drivers.*', 'key' => 'dashboard.Nav_Delivery_Drivers', 'default' => 'Delivery drivers', 'icon' => 'ph-truck', 'visible' => $ability('delivery-drivers.view')],
+            ['route' => 'dashboard.admins.index', 'active' => 'dashboard.admins.*', 'key' => 'dashboard.Nav_Admins_Permissions', 'default' => 'Admins and permissions', 'icon' => 'ph-user-gear', 'visible' => $policy(App\Models\Admin::class)],
+        ]],
+        ['key' => 'dashboard.Nav_Group_Store', 'default' => 'Store management', 'items' => [
+            ['route' => 'dashboard.categories.index', 'active' => 'dashboard.categories.*', 'key' => 'dashboard.Nav_Categories', 'default' => 'Categories', 'icon' => 'ph-squares-four', 'visible' => $ability('categories.view')],
+            ['route' => 'dashboard.products.index', 'active' => 'dashboard.products.*', 'key' => 'dashboard.Nav_Products', 'default' => 'Products', 'icon' => 'ph-package', 'visible' => $ability('products.view')],
+            ['route' => 'dashboard.orders.index', 'active' => 'dashboard.orders.*', 'key' => 'dashboard.Nav_Orders', 'default' => 'Orders', 'icon' => 'ph-receipt', 'visible' => $ability('orders.view')],
+            ['route' => 'dashboard.vendor-orders.index', 'active' => 'dashboard.vendor-orders.*', 'key' => 'dashboard.Nav_Vendor_Orders', 'default' => 'Vendor orders', 'icon' => 'ph-clipboard-text', 'visible' => $ability('vendor-orders.view')],
+        ]],
+        ['key' => 'dashboard.Nav_Group_Quality', 'default' => 'Quality and follow-up', 'items' => [
+            ['route' => 'dashboard.reviews.index', 'active' => 'dashboard.reviews.*', 'key' => 'dashboard.Nav_Reviews', 'default' => 'Reviews', 'icon' => 'ph-star', 'visible' => $ability('reviews.view')],
+            ['route' => 'dashboard.disputes.index', 'active' => 'dashboard.disputes.*', 'key' => 'dashboard.Nav_Disputes', 'default' => 'Disputes', 'icon' => 'ph-scales', 'visible' => $ability('disputes.view')],
+            ['route' => 'dashboard.return-requests.index', 'active' => 'dashboard.return-requests.*', 'key' => 'dashboard.Nav_Return_Requests', 'default' => 'Return requests', 'icon' => 'ph-arrow-u-up-left', 'visible' => $ability('return-requests.view')],
+        ]],
+        ['key' => 'dashboard.Nav_Group_System', 'default' => 'System', 'items' => [
+            ['route' => 'dashboard.languages.index', 'active' => 'dashboard.languages.*', 'key' => 'dashboard.Nav_Languages', 'default' => 'Languages', 'icon' => 'ph-globe', 'visible' => $policy(App\Models\Language::class)],
+            ['route' => 'dashboard.translation-values.index', 'active' => 'dashboard.translation-values.*', 'key' => 'dashboard.Nav_Translations', 'default' => 'Translations', 'icon' => 'ph-translate', 'visible' => $policy(App\Models\TranslationValue::class)],
+            ['route' => 'dashboard.setting.index', 'active' => 'dashboard.setting.*', 'key' => 'dashboard.Nav_Settings', 'default' => 'Settings', 'icon' => 'ph-gear-six', 'visible' => $policy(App\Models\Setting::class)],
+            // AD-UI-CAT-M3: the media library (palgoal/media-library routes); the server checks media.view itself.
+            ['route' => 'media-library.page', 'active' => 'media-library.*', 'key' => 'dashboard.Nav_Media_Library', 'default' => 'Media Library', 'icon' => 'ph-images', 'visible' => $ability('media.view')],
+        ]],
+    ];
+
+    // Groups whose items are all hidden for this admin are not rendered.
+    $groups = array_values(array_filter(array_map(function (array $group): array {
+        $group['items'] = array_values(array_filter($group['items'], fn (array $item): bool => $item['visible']));
+
+        return $group;
+    }, $groups), fn (array $group): bool => $group['items'] !== []));
+@endphp
+{{-- data-admin-sidebar="managed": resources/js/admin-dashboard.js drives collapse, drawer and tooltips (AD-UI-01C-4B). --}}
+<nav class="pc-sidebar" id="admin-sidebar" data-admin-sidebar="managed" aria-label="{{ t('dashboard.Nav_Main', 'Main menu') }}">
     <div class="navbar-wrapper">
-        <div class="m-header flex items-center py-4 px-6 h-header-height">
-            <a href="{{route('dashboard.home')}}" class="b-brand flex items-center gap-3">
-                <!-- ========   Change your logo from here   ============ -->
-                <img src="{{asset('assets-dashboard/images/logo-dark.svg')}}" class="img-fluid logo-lg" alt="logo" style="display: none" />
-                <div style="width: 232px;">
-                    <img src="{{asset('asset/img/extra/marina.jpg')}}" class="img-fluid logo-lg" alt="logo" />
-                </div>
+        <div class="m-header admin-brand-header">
+            <a href="{{ route('dashboard.home') }}" class="b-brand admin-brand">
+                <span class="admin-brand-mark">
+                    <img src="{{ asset('images/brand/hirfah-logo.png') }}" alt="{{ t('dashboard.Hirfah_Logo', 'Hirfah logo') }}" width="40" height="40" />
+                </span>
+                <span class="admin-brand-text">
+                    <span class="admin-brand-name">{{ t('dashboard.Brand_Name', 'Hirfah') }}</span>
+                    <span class="admin-brand-sub">{{ t('dashboard.Nav_Brand_Subtitle', 'Admin panel') }}</span>
+                </span>
             </a>
         </div>
-        <div class="navbar-content h-[calc(100vh_-_74px)] py-2.5">
-            <div class="card pc-user-card mx-[15px] mb-[15px] bg-theme-sidebaruserbg dark:bg-themedark-sidebaruserbg">
-                <div class="card-body !p-5">
-                    <div class="flex items-center">
-                        <img class="shrink-0 w-[45px] h-[45px] rounded-full" src="https://ui-avatars.com/api/?name={{ urlencode($admin?->name ?? 'Admin') }}" alt="user-image" />
-                        <div class="ml-4 mr-2 grow">
-                            <h6 class="mb-0">{{ $admin?->name ?? 'Admin' }}</h6>
 
-                        </div>
-                        <a class="shrink-0 btn btn-icon inline-flex btn-link-secondary" data-pc-toggle="collapse" href="#pc_sidebar_userlink">
-                            <svg class="pc-icon w-[22px] h-[22px]">
-                                <use xlink:href="#custom-sort-outline"></use>
-                            </svg>
-                        </a>
-                    </div>
-                    <div class="hidden pc-user-links" id="pc_sidebar_userlink">
-                        <div class="pt-3 *:flex *:items-center *:py-2 *:gap-2.5 hover:*:text-primary-500">
-                            <a href="javascript:void(0)">
-                                <i class="text-lg leading-none ti ti-user"></i>
-                                <span>{{__('admin.My_account')}}</span>
-                            </a>
-                            <a href="{{ route('dashboard.admins.index') }}">
-                                <i class="text-lg leading-none ti ti-shield-lock"></i>
-                                <span>{{ t('dashboard.Permissions', 'Permissions') }}</span>
-                            </a>
-                            <form action="{{ route('admin.logout') }}" method="post">
-                                @csrf
-                                <button type="submit" style="display: flex; align-items: center; gap: 5px;">
-                                    <i class="text-lg leading-none ti ti-power"></i>
-                                    <span>{{__('admin.Logout')}}</span>
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <ul class="pc-navbar">
-                <li class="pc-item">
-                    <a href="{{ route('dashboard.home') }}" class="pc-link">
-                        <span class="pc-micon">
-                            <span class="pc-micon">
-                                <i class="fas fa-home"></i>
-                            </span>
-                        </span>
-                        <span class="pc-mtext">{{__('admin.Home')}}</span>
+        {{-- The admin's name, role and sign out live in the header account menu (AD-UI-01D-5). --}}
+        <div class="navbar-content admin-navbar-content">
+            <ul class="pc-navbar admin-navbar">
+                @php($isCurrent = request()->routeIs($home['active']))
+                <li class="pc-item {{ $isCurrent ? 'active' : '' }}">
+                    <a href="{{ route($home['route']) }}" class="pc-link" @if ($isCurrent) aria-current="page" @endif>
+                        <span class="pc-micon"><i class="ph-duotone {{ $home['icon'] }}" aria-hidden="true"></i></span>
+                        <span class="pc-mtext">{{ t($home['key'], $home['default']) }}</span>
                     </a>
                 </li>
-                @if ($canViewLanguages)
-                <li class="pc-item {{ request()->routeIs('dashboard.languages.*') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard.languages.index') }}" class="pc-link">
-                        <span class="pc-micon">
-                            <i class="fas fa-language"></i>
-                        </span>
-                        <span class="pc-mtext">{{ t('dashboard.Languages', 'Languages') }}</span>
-                    </a>
-                </li>
-                @endif
 
-                @if ($canViewTranslations)
-                <li class="pc-item {{ request()->routeIs('dashboard.translation-values.*') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard.translation-values.index') }}" class="pc-link">
-                        <span class="pc-micon">
-                            <i class="fas fa-language"></i>
-                        </span>
-                        <span class="pc-mtext">{{ t('dashboard.Translation_Values', 'Translation Values') }}</span>
-                    </a>
-                </li>
-                @endif
-
-                @if ($canViewAdmins)
-                <li class="pc-item {{ request()->routeIs('dashboard.admins.index') || request()->routeIs('dashboard.admins.edit') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard.admins.index') }}" class="pc-link">
-                        <span class="pc-micon">
-                            <i class="fas fa-user-shield"></i>
-                        </span>
-                        <span class="pc-mtext">{{ t('dashboard.Admins_Permissions', 'Admins & Permissions') }}</span>
-                    </a>
-                </li>
-                @endif
-
-                @if ($canCreateAdmins)
-                <li class="pc-item {{ request()->routeIs('dashboard.admins.create') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard.admins.create') }}" class="pc-link">
-                        <span class="pc-micon">
-                            <i class="fas fa-user-plus"></i>
-                        </span>
-                        <span class="pc-mtext">{{ t('dashboard.Add_Admin', 'Add Admin') }}</span>
-                    </a>
-                </li>
-                @endif
-                @if ($canViewCategories)
-                <li class="pc-item {{ request()->routeIs('dashboard.categories.*') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard.categories.index') }}" class="pc-link">
-                        <span class="pc-micon"><i class="fas fa-layer-group"></i></span>
-                        <span class="pc-mtext">{{ t('dashboard.Categories', 'Categories') }}</span>
-                    </a>
-                </li>
-                @endif
-                @if ($canViewProducts)
-                <li class="pc-item {{ request()->routeIs('dashboard.products.*') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard.products.index') }}" class="pc-link">
-                        <span class="pc-micon"><i class="fas fa-box-open"></i></span>
-                        <span class="pc-mtext">{{ t('dashboard.Products', 'Products') }}</span>
-                    </a>
-                </li>
-                @endif
-                @if ($canViewVendors)
-                <li class="pc-item {{ request()->routeIs('dashboard.vendors.*') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard.vendors.index') }}" class="pc-link">
-                        <span class="pc-micon">
-                            <i class="fas fa-store"></i>
-                        </span>
-                        <span class="pc-mtext">{{ t('dashboard.Vendors', 'Vendors') }}</span>
-                    </a>
-                </li>
-                @endif
-                @if ($canCreateVendors)
-                <li class="pc-item {{ request()->routeIs('dashboard.vendors.create') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard.vendors.create') }}" class="pc-link">
-                        <span class="pc-micon">
-                            <i class="fas fa-store-alt"></i>
-                        </span>
-                        <span class="pc-mtext">{{ t('dashboard.Add_Vendor', 'Add Vendor') }}</span>
-                    </a>
-                </li>
-                @endif
-                @if ($canViewCustomers)
-                <li class="pc-item {{ request()->routeIs('dashboard.customers.*') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard.customers.index') }}" class="pc-link">
-                        <span class="pc-micon"><i class="fas fa-users"></i></span>
-                        <span class="pc-mtext">{{ t('dashboard.Customers', 'Customers') }}</span>
-                    </a>
-                </li>
-                @endif
-                @if ($canViewDeliveryDrivers)
-                <li class="pc-item {{ request()->routeIs('dashboard.delivery-drivers.*') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard.delivery-drivers.index') }}" class="pc-link">
-                        <span class="pc-micon"><i class="fas fa-truck"></i></span>
-                        <span class="pc-mtext">{{ t('dashboard.Delivery_Drivers', 'Delivery Drivers') }}</span>
-                    </a>
-                </li>
-                @endif
-                @if ($canViewOrders)
-                <li class="pc-item {{ request()->routeIs('dashboard.orders.*') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard.orders.index') }}" class="pc-link">
-                        <span class="pc-micon"><i class="fas fa-receipt"></i></span>
-                        <span class="pc-mtext">{{ t('dashboard.Orders', 'Orders') }}</span>
-                    </a>
-                </li>
-                @endif
-
-                @if ($canViewVendorOrders)
-                <li class="pc-item {{ request()->routeIs('dashboard.vendor-orders.*') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard.vendor-orders.index') }}" class="pc-link">
-                        <span class="pc-micon">
-                            <i class="fas fa-clipboard-list"></i>
-                        </span>
-                        <span class="pc-mtext">{{ t('dashboard.Vendor_Orders', 'Vendor Orders') }}</span>
-                    </a>
-                </li>
-                @endif
-
-                @if ($canCreateVendorOrders)
-                <li class="pc-item {{ request()->routeIs('dashboard.vendor-orders.create') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard.vendor-orders.create') }}" class="pc-link">
-                        <span class="pc-micon">
-                            <i class="fas fa-plus-square"></i>
-                        </span>
-                        <span class="pc-mtext">{{ t('dashboard.Add_Vendor_Order', 'Add Vendor Order') }}</span>
-                    </a>
-                </li>
-                @endif
-                @if ($canViewReviews)
-                <li class="pc-item {{ request()->routeIs('dashboard.reviews.*') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard.reviews.index') }}" class="pc-link">
-                        <span class="pc-micon"><i class="fas fa-star"></i></span>
-                        <span class="pc-mtext">{{ t('dashboard.Reviews', 'Reviews') }}</span>
-                    </a>
-                </li>
-                @endif
-                @if ($canViewDisputes)
-                <li class="pc-item {{ request()->routeIs('dashboard.disputes.*') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard.disputes.index') }}" class="pc-link">
-                        <span class="pc-micon"><i class="fas fa-life-ring"></i></span>
-                        <span class="pc-mtext">{{ t('dashboard.Disputes', 'Disputes') }}</span>
-                    </a>
-                </li>
-                @endif
-                @if ($canViewReturnRequests)
-                <li class="pc-item {{ request()->routeIs('dashboard.return-requests.*') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard.return-requests.index') }}" class="pc-link">
-                        <span class="pc-micon"><i class="fas fa-undo"></i></span>
-                        <span class="pc-mtext">{{ t('dashboard.Return_Requests', 'Return Requests') }}</span>
-                    </a>
-                </li>
-                @endif
-                @if ($canViewSettings)
-                <li class="pc-item {{ request()->routeIs('dashboard.setting.*') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard.setting.index') }}" class="pc-link">
-                        <span class="pc-micon">
-                            <i class="fas fa-cog"></i>
-                        </span>
-                        <span class="pc-mtext">إعدادات الموقع</span>
-                    </a>
-                </li>
-                @endif
-                <li class="pc-item">
-                    <a href="javascript:void(0)" class="pc-link">
-                        <span class="pc-micon">
-                            <i class="fas fa-heading"></i>
-                        </span>
-                        <span class="pc-mtext">مقدمة الصفحة الرئيسية</span>
-                    </a>
-                </li>
-                {{-- <li class="pc-item pc-caption">
-                    <label>{{__('Basic')}}</label>
-                </li> --}}
-
-
-               
-                <li class="pc-item pc-hasmenu">
-                    <a href="javascript:void(0)" class="pc-link">
-                        <span class="pc-micon">
-                            <i class="fas fa-map-marker-alt"></i>
-                        </span>
-                        <span class="pc-mtext">
-                            {{__('admin.Area')}}
-                        </span>
-                        @if (App::getLocale() == 'en')
-                        <span class="pc-arrow"><i data-feather="chevron-right"></i></span>
-                        @else
-                        <span class="pc-arrow"><i data-feather="chevron-left"></i></span>
-                        @endif
-                    </a>
-                    <ul class="pc-submenu">
-                        <li class="pc-item">
-                            <a class="pc-link" href="javascript:void(0)">
-                                {{__('admin.Area show')}}
-                            </a>
-                        </li>
-                        <li class="pc-item">
-                            <a class="pc-link" href="javascript:void(0)" >
-                                {{__('admin.Add Area')}}
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-
-               
-
-                
-
-                 
-
-
-                
-
-
-                
-
-               
-
-                
-
-               
-              
-
-
+                @foreach ($groups as $index => $group)
+                    <li class="admin-nav-group">
+                        <span class="admin-nav-group-title" id="admin-nav-group-{{ $index }}">{{ t($group['key'], $group['default']) }}</span>
+                        <ul class="admin-nav-list" aria-labelledby="admin-nav-group-{{ $index }}">
+                            @foreach ($group['items'] as $item)
+                                {{-- Active on the item's route and its sub-routes (create, edit, show). --}}
+                                @php($isCurrent = request()->routeIs($item['active']))
+                                <li class="pc-item {{ $isCurrent ? 'active' : '' }}">
+                                    <a href="{{ route($item['route']) }}" class="pc-link" @if ($isCurrent) aria-current="page" @endif>
+                                        <span class="pc-micon"><i class="ph-duotone {{ $item['icon'] }}" aria-hidden="true"></i></span>
+                                        <span class="pc-mtext">{{ t($item['key'], $item['default']) }}</span>
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </li>
+                @endforeach
             </ul>
-
         </div>
     </div>
+    {{-- Mobile drawer overlay, shown by resources/js/admin-dashboard.js. --}}
+    <div class="pc-menu-overlay" data-admin-overlay hidden></div>
 </nav>
