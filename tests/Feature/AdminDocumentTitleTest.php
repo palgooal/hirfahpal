@@ -6,6 +6,7 @@ use App\Models\Admin;
 use App\Models\Language;
 use App\Models\TranslationValue;
 use Database\Seeders\AdminAuthTranslationSeeder;
+use Database\Seeders\AdminCategoryTranslationSeeder;
 use Database\Seeders\AdminDashboardTranslationSeeder;
 use Database\Seeders\AdminHeaderTranslationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,6 +32,7 @@ class AdminDocumentTitleTest extends TestCase
         $this->seed(AdminAuthTranslationSeeder::class);
         $this->seed(AdminDashboardTranslationSeeder::class);
         $this->seed(AdminHeaderTranslationSeeder::class);
+        $this->seed(AdminCategoryTranslationSeeder::class);
 
         // A page outside the sidebar, rendered with the real layout (pages may pass $pageTitle as a named slot).
         Route::middleware(['web', 'auth:admin', 'setLocale'])->group(function () {
@@ -46,7 +48,9 @@ class AdminDocumentTitleTest extends TestCase
         foreach ([
             ['dashboard.home', 'ar', 'الرئيسية | حِــرْفَة'],
             ['dashboard.categories.index', 'ar', 'التصنيفات | حِــرْفَة'],
-            ['dashboard.categories.create', 'ar', 'التصنيفات | حِــرْفَة'],
+            // AD-UI-CAT-01E-3B: the category form names its own page.
+            ['dashboard.categories.create', 'ar', 'إضافة تصنيف | حِــرْفَة'],
+            ['dashboard.categories.create', 'en', 'Add category | Hirfah'],
             ['dashboard.setting.index', 'ar', 'الإعدادات | حِــرْفَة'],
             ['dashboard.categories.index', 'en', 'Categories | Hirfah'],
             ['dashboard.products.index', 'en', 'Products | Hirfah'],

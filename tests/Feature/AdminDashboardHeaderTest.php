@@ -6,6 +6,7 @@ use App\Models\Admin;
 use App\Models\Language;
 use App\Models\RoleUser;
 use Database\Seeders\AdminAuthTranslationSeeder;
+use Database\Seeders\AdminCategoryTranslationSeeder;
 use Database\Seeders\AdminDashboardTranslationSeeder;
 use Database\Seeders\AdminHeaderTranslationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -110,11 +111,18 @@ class AdminDashboardHeaderTest extends TestCase
     {
         $admin = $this->admin(superAdmin: true);
 
-        foreach (['dashboard.home', 'dashboard.vendors.index', 'dashboard.categories.index', 'dashboard.categories.create', 'dashboard.languages.index', 'dashboard.translation-values.index', 'dashboard.setting.index'] as $route) {
+        foreach (['dashboard.home', 'dashboard.vendors.index', 'dashboard.categories.index', 'dashboard.languages.index', 'dashboard.translation-values.index', 'dashboard.setting.index'] as $route) {
             $html = $this->page($admin, $route);
             $this->assertSame(1, preg_match('#<a href="[^"]+" class="pc-link"\s+aria-current="page"\s*>.*?<span class="pc-mtext">([^<]+)</span>#s', $html, $current), $route);
             $this->assertStringContainsString('<h1 class="admin-header-title">'.$current[1].'</h1>', $this->header($html), $route);
         }
+
+        // AD-UI-CAT-01E-3B: the category form keeps Categories current in the sidebar but names its own page.
+        $this->seed(AdminCategoryTranslationSeeder::class);
+        $html = $this->page($admin, 'dashboard.categories.create');
+        $this->assertSame(1, preg_match('#<a href="[^"]+" class="pc-link"\s+aria-current="page"\s*>.*?<span class="pc-mtext">([^<]+)</span>#s', $html, $current));
+        $this->assertSame('التصنيفات', trim($current[1]));
+        $this->assertStringContainsString('<h1 class="admin-header-title">إضافة تصنيف</h1>', $this->header($html));
     }
 
     public function test_page_title_follows_the_locale(): void

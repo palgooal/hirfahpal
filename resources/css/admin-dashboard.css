@@ -22,6 +22,7 @@
 @source "../views/components/admin";
 @source "../js/admin-media-picker.js";
 @source "../js/admin-media";
+@source "../js/admin-categories.js";
 
 /* Approved identity tokens (DEC-AD-UI-04.a), prefixed so they cannot clash with Able Pro or Bootstrap class names. */
 @theme {
@@ -1176,6 +1177,593 @@ html.admin-shell .admin-media-field-error {
 
 html.admin-shell .admin-media-field-error[hidden] {
   display: none;
+}
+
+/* ---- Categories list (AD-UI-CAT-01E-3A): resources/views/dashboard/categories/index.blade.php ----
+ * The list reuses the media page pieces (head, alerts, panel, states, search field, dialog). */
+
+/* No breadcrumb on this page (DEC-AD-UI-03): hide the layout's empty band, here only. */
+html.admin-shell .pc-content:has(#admin-categories) > .page-header {
+  display: none;
+}
+
+html.admin-shell .pc-content:has(#admin-categories) {
+  padding-top: 1.5rem;
+}
+
+html.admin-shell .admin-cats-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-hf-line);
+}
+
+html.admin-shell .admin-cats-field {
+  display: flex;
+  flex: 0 1 12rem;
+  flex-direction: column;
+  min-width: 0;
+}
+
+html.admin-shell .admin-cats-field-search {
+  flex: 1 1 16rem;
+}
+
+/* The media page's search box grows along a row (flex: 1 1 16rem); in this column field that basis would
+ * become a 16rem height. Here it keeps its natural height. */
+html.admin-shell .admin-cats-field .admin-media-search {
+  flex: none;
+}
+
+html.admin-shell .admin-cats-field .form-label {
+  margin-bottom: 0.25rem;
+  color: var(--color-hf-ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-cats-filter-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+html.admin-shell .admin-cats-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Thumbnail | name and tags | figures | actions. Rows of 64px and more (DEC-AD-UI-06), text may wrap. */
+html.admin-shell .admin-cats-row {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--color-hf-line);
+}
+
+html.admin-shell .admin-cats-row:last-child {
+  border-bottom: 0;
+}
+
+html.admin-shell .admin-cats-row.is-root {
+  background-color: #fff;
+}
+
+/* A subcategory sits under its main category: indented, on the surface tone, with a rule on the start side. */
+html.admin-shell .admin-cats-row.is-child {
+  margin-inline-start: 1.75rem;
+  padding-inline-start: 1rem;
+  border-inline-start: 3px solid var(--color-hf-sage);
+  background-color: var(--color-hf-surface);
+}
+
+html.admin-shell .admin-cats-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  overflow: hidden;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 10px;
+  background-color: var(--color-hf-surface);
+}
+
+html.admin-shell .admin-cats-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+html.admin-shell .admin-cats-thumb [hidden] {
+  display: none;
+}
+
+html.admin-shell .admin-cats-thumb > i {
+  color: var(--color-hf-sage);
+  font-size: 1.5rem;
+}
+
+html.admin-shell .admin-cats-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+html.admin-shell .admin-cats-name {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0;
+  color: var(--color-hf-ink);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+html.admin-shell .admin-cats-row.is-child .admin-cats-name {
+  font-weight: 600;
+}
+
+html.admin-shell .admin-cats-branch {
+  color: var(--color-hf-muted);
+}
+
+/* The elbow points from the parent towards the row: mirrored in left-to-right pages. */
+html.admin-shell[dir="ltr"] .admin-cats-branch {
+  transform: scaleX(-1);
+}
+
+html.admin-shell .admin-cats-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 0.625rem;
+  margin: 0;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+}
+
+html.admin-shell .admin-cats-badge {
+  padding: 0.0625rem 0.5rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 9999px;
+  background-color: #fff;
+  color: var(--color-hf-ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-cats-badge.is-root {
+  border-color: var(--color-hf-olive);
+  color: var(--color-hf-olive);
+}
+
+html.admin-shell .admin-cats-badge.is-inactive {
+  border-color: var(--color-hf-copper);
+  color: #8a4520;
+}
+
+html.admin-shell .admin-cats-parent bdi {
+  color: var(--color-hf-ink);
+  font-weight: 600;
+}
+
+html.admin-shell .admin-cats-slug {
+  color: var(--color-hf-muted);
+}
+
+html.admin-shell .admin-cats-stats {
+  display: flex;
+  gap: 1.25rem;
+  margin: 0;
+}
+
+html.admin-shell .admin-cats-stats > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 4.5rem;
+  text-align: center;
+}
+
+html.admin-shell .admin-cats-stats dt {
+  color: var(--color-hf-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-cats-stats dd {
+  margin: 0;
+  color: var(--color-hf-ink);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+html.admin-shell .admin-cats-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  min-width: 11rem;
+}
+
+html.admin-shell .admin-cats-actions form {
+  margin: 0;
+}
+
+html.admin-shell .admin-cats-blocked {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 13rem;
+  margin: 0;
+  color: var(--color-hf-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-cats-confirm {
+  width: min(28rem, calc(100vw - 2rem));
+}
+
+html.admin-shell .admin-cats-confirm-body {
+  padding: 1rem 1.25rem;
+}
+
+html.admin-shell .admin-cats-confirm-body p {
+  margin: 0;
+  color: var(--color-hf-ink);
+}
+
+html.admin-shell .admin-cats-confirm-body bdi {
+  font-weight: 700;
+}
+
+html.admin-shell .admin-cats-confirm .btn-danger {
+  border-color: var(--color-hf-error);
+  background-color: var(--color-hf-error);
+  color: #fff;
+}
+
+/* Pagination (DEC-AD-UI-08). */
+html.admin-shell .admin-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-hf-line);
+}
+
+html.admin-shell .admin-pagination-summary {
+  margin: 0;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+}
+
+html.admin-shell .admin-pagination-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html.admin-shell .admin-page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 8px;
+  background-color: #fff;
+  color: var(--color-hf-ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+html.admin-shell a.admin-page:hover {
+  border-color: var(--color-hf-sage);
+  background-color: var(--color-hf-canvas);
+  color: var(--color-hf-ink);
+}
+
+html.admin-shell .admin-page.is-current {
+  border-color: var(--color-hf-olive);
+  background-color: var(--color-hf-olive);
+  color: #fff;
+}
+
+html.admin-shell .admin-page.is-disabled {
+  color: var(--color-hf-muted);
+  background-color: var(--color-hf-surface);
+}
+
+html.admin-shell .admin-page.is-gap {
+  border-color: transparent;
+  background: transparent;
+}
+
+html.admin-shell .admin-page-arrow {
+  display: inline-block;
+  direction: ltr;
+}
+
+/* Previous / next arrows point the reading way. */
+html.admin-shell[dir="rtl"] .admin-page-arrow {
+  transform: scaleX(-1);
+}
+
+@media (max-width: 1023.98px) {
+  html.admin-shell .admin-cats-row {
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+    align-items: start;
+  }
+
+  html.admin-shell .admin-cats-stats,
+  html.admin-shell .admin-cats-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  html.admin-shell .admin-cats-stats > div {
+    align-items: flex-start;
+    min-width: 0;
+    text-align: start;
+  }
+}
+
+@media (max-width: 575.98px) {
+  html.admin-shell .admin-cats-row.is-child {
+    margin-inline-start: 0.75rem;
+  }
+
+  html.admin-shell .admin-cats-filter-actions,
+  html.admin-shell .admin-cats-field {
+    flex-basis: 100%;
+  }
+
+  html.admin-shell .admin-cats-filter-actions .btn {
+    flex: 1 1 auto;
+  }
+}
+
+/* ---- Category form (AD-UI-CAT-01E-3B): resources/views/dashboard/categories/form.blade.php ----
+ * Reuses the media page pieces (head, alerts, panel, hints, buttons) and the media picker. */
+
+/* No breadcrumb (DEC-AD-UI-03) and no raw layout error list: the form shows its own translated summary. */
+html.admin-shell .pc-content:has(#admin-category-form) > .page-header,
+html.admin-shell .pc-content:has(#admin-category-form) > .row > .alert-danger {
+  display: none;
+}
+
+html.admin-shell .pc-content:has(#admin-category-form) {
+  padding-top: 1.5rem;
+}
+
+/* Delete confirmation page (N-CAT-1, AD-UI-CAT-01E-3C): resources/views/dashboard/categories/delete.blade.php. */
+html.admin-shell .pc-content:has(#admin-category-delete) > .page-header {
+  display: none;
+}
+
+html.admin-shell .pc-content:has(#admin-category-delete) {
+  padding-top: 1.5rem;
+}
+
+html.admin-shell .admin-cat-delete .admin-media-alert {
+  margin-bottom: 1rem;
+}
+
+html.admin-shell .admin-cat-delete-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-bottom: 1px solid var(--color-hf-line);
+}
+
+html.admin-shell .admin-cat-delete-icon {
+  flex-shrink: 0;
+  color: var(--color-hf-error);
+  font-size: 2rem;
+}
+
+html.admin-shell .admin-cat-delete-name {
+  margin: 0 0 0.375rem;
+  color: var(--color-hf-ink);
+  font-size: 1.125rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+html.admin-shell .admin-cat-delete-text {
+  margin: 0;
+  color: var(--color-hf-ink);
+}
+
+html.admin-shell .admin-cat-delete .admin-cat-form-actions form {
+  display: contents;
+}
+
+html.admin-shell .admin-cat-form {
+  max-width: 56rem;
+}
+
+html.admin-shell .admin-cat-form-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 10px;
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-ink);
+  font-size: 0.875rem;
+}
+
+html.admin-shell .admin-cat-form-note > i {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+  color: var(--color-hf-copper);
+  font-size: 1.125rem;
+}
+
+html.admin-shell .admin-cat-form-summary {
+  margin-bottom: 1rem;
+}
+
+html.admin-shell .admin-cat-form-summary ul {
+  margin: 0.25rem 0 0;
+  padding-inline-start: 1.25rem;
+}
+
+html.admin-shell .admin-cat-form-summary a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+html.admin-shell .admin-cat-form-card {
+  display: flex;
+  flex-direction: column;
+}
+
+html.admin-shell .admin-cat-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.75rem 1.25rem 1.25rem;
+  border: 0;
+  border-bottom: 1px solid var(--color-hf-line);
+}
+
+/* A rendered <legend> sits above the fieldset's padding, so its own padding gives the space above it. */
+html.admin-shell .admin-cat-form-legend {
+  float: none;
+  width: auto;
+  margin: 0;
+  padding: 1.25rem 0 0;
+  color: var(--color-hf-ink);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+html.admin-shell .admin-cat-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+html.admin-shell .admin-cat-form-row > .admin-cat-form-field {
+  flex: 1 1 18rem;
+}
+
+html.admin-shell .admin-cat-form-row > .admin-cat-form-field-narrow {
+  flex: 0 1 12rem;
+}
+
+html.admin-shell .admin-cat-form-field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+html.admin-shell .admin-cat-form-field .form-label {
+  margin-bottom: 0.375rem;
+  color: var(--color-hf-ink);
+  font-weight: 600;
+}
+
+html.admin-shell .admin-cat-form-mark {
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+
+html.admin-shell .admin-cat-form .form-control,
+html.admin-shell .admin-cat-form .form-select {
+  min-height: 44px;
+}
+
+/* A field reached from the error summary is not hidden under the fixed header. */
+html.admin-shell .admin-cat-form [id] {
+  scroll-margin-top: 6rem;
+}
+
+html.admin-shell .admin-cat-form .form-control.is-invalid,
+html.admin-shell .admin-cat-form .form-select.is-invalid {
+  border-color: var(--color-hf-error);
+}
+
+html.admin-shell .admin-cat-form-error {
+  margin: 0.25rem 0 0;
+  color: var(--color-hf-error);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-cat-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+}
+
+html.admin-shell .admin-cat-form-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  min-height: 44px;
+}
+
+html.admin-shell .admin-cat-form-actions .btn[aria-disabled="true"],
+html.admin-shell .admin-cat-form-actions .btn:disabled {
+  cursor: progress;
+  opacity: 0.75;
+}
+
+@media (max-width: 575.98px) {
+  html.admin-shell .admin-cat-form-section {
+    padding: 0.75rem 1rem 1rem;
+  }
+
+  html.admin-shell .admin-cat-form-legend {
+    padding-top: 1rem;
+  }
+
+  html.admin-shell .admin-cat-form-actions {
+    padding: 1rem;
+  }
+
+  html.admin-shell .admin-cat-form-row > .admin-cat-form-field-narrow {
+    flex-basis: 100%;
+  }
+
+  html.admin-shell .admin-cat-form-actions .btn {
+    flex: 1 1 100%;
+  }
 }
 
 /* ---- Media picker (AD-UI-CAT-M4-B): resources/views/components/admin/media-picker.blade.php ---- */

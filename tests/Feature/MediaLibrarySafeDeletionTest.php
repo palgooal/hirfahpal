@@ -20,6 +20,7 @@ use Palgoal\MediaLibrary\Http\Controllers\MediaController as PackageMediaControl
 use Palgoal\MediaLibrary\Models\Media;
 use PDOException;
 use RuntimeException;
+use Tests\Support\ConfirmsCategoryDeletion;
 use Tests\TestCase;
 
 /**
@@ -29,6 +30,7 @@ use Tests\TestCase;
  */
 class MediaLibrarySafeDeletionTest extends TestCase
 {
+    use ConfirmsCategoryDeletion;
     use RefreshDatabase;
 
     private const IN_USE = 'This media is used and cannot be deleted. Remove it from where it is used first.';
@@ -251,7 +253,7 @@ class MediaLibrarySafeDeletionTest extends TestCase
         $deleted = $this->category('Deleted', $media);
 
         $unlinked->forceFill(['image_media_id' => null])->save();
-        $this->actingAs(Admin::factory()->create(['super_admin' => true]), 'admin')->delete(route('dashboard.categories.destroy', $deleted))->assertRedirect();
+        $this->confirmedDelete(Admin::factory()->create(['super_admin' => true]), $deleted)->assertRedirect();
 
         $this->assertModelMissing($deleted);
         $this->assertModelExists($media);
