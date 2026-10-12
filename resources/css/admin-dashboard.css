@@ -17,6 +17,11 @@
 @source "../views/components/lang/language-switcher-dashboard.blade.php";
 @source "../views/dashboard";
 @source "../js/admin-dashboard.js";
+@source "../views/vendor/media-library/media.blade.php";
+@source "../js/admin-media-library.js";
+@source "../views/components/admin";
+@source "../js/admin-media-picker.js";
+@source "../js/admin-media";
 
 /* Approved identity tokens (DEC-AD-UI-04.a), prefixed so they cannot clash with Able Pro or Bootstrap class names. */
 @theme {
@@ -530,6 +535,809 @@ html.admin-shell .admin-account-menu button.admin-header-menu-item:hover {
   }
 }
 
+/* ---- Media library (AD-UI-CAT-M3) ----
+ * resources/views/vendor/media-library/media.blade.php with resources/js/admin-media-library.js.
+ * Logical properties only, so RTL and LTR need no separate rules.
+ */
+html.admin-shell .admin-media {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+/* D4 (AD-UI-CAT-M3-FIX): the library has no breadcrumb (DEC-AD-UI-03), so the layout's empty breadcrumb block
+ * would leave a blank band above the content. Hidden on this page only; the shared layout is unchanged. */
+html.admin-shell .pc-content:has(#admin-media-library) > .page-header {
+  display: none;
+}
+
+html.admin-shell .pc-content:has(#admin-media-library) {
+  padding-top: 1.5rem;
+}
+
+/* D2: Phosphor duotone draws its second layer with margin-left: -1em, which only lands on the first layer in
+ * left-to-right flow. In RTL the layers split (doubled icons, an icon over the text). Each icon is laid out
+ * left-to-right on its own; the page around it keeps its direction. Icons that point somewhere are not used here. */
+html.admin-shell .admin-media i.ph-duotone {
+  display: inline-block;
+  direction: ltr;
+  unicode-bidi: isolate;
+  line-height: 1;
+}
+
+/* The search icon is absolutely placed; with its own direction set to ltr, a logical inset would resolve to the
+ * left in RTL too, so it is placed by the page direction instead. */
+html.admin-shell .admin-media .admin-media-search > i.ph-duotone {
+  display: flex;
+  align-items: center;
+  inset-inline-start: auto;
+}
+
+html.admin-shell[dir="rtl"] .admin-media .admin-media-search > i.ph-duotone {
+  right: 0.75rem;
+  left: auto;
+}
+
+html.admin-shell[dir="ltr"] .admin-media .admin-media-search > i.ph-duotone {
+  left: 0.75rem;
+  right: auto;
+}
+
+/* D3: secondary buttons in the HIRFAH colours (measured in Edge: 13.4:1; hover, focus and active: 12.5:1). */
+html.admin-shell .admin-media .btn-light-secondary {
+  border: 1px solid var(--color-hf-line);
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-ink);
+}
+
+html.admin-shell .admin-media .btn-light-secondary:hover,
+html.admin-shell .admin-media .btn-light-secondary:focus-visible,
+html.admin-shell .admin-media .btn-light-secondary:active {
+  border-color: var(--color-hf-sage);
+  background-color: var(--color-hf-canvas);
+  color: var(--color-hf-ink);
+}
+
+/* Delete stays recognisably destructive with readable text (measured: 6.5:1 on white). */
+html.admin-shell .admin-media .btn-light-danger {
+  border: 1px solid rgb(161 61 43 / 35%);
+  background-color: #fff;
+  color: var(--color-hf-error);
+}
+
+html.admin-shell .admin-media .btn-light-danger:hover,
+html.admin-shell .admin-media .btn-light-danger:focus-visible,
+html.admin-shell .admin-media .btn-light-danger:active {
+  border-color: var(--color-hf-error);
+  background-color: rgb(161 61 43 / 8%);
+  color: var(--color-hf-error);
+}
+
+/* D5: names in result messages are isolated (<bdi>) so mixed Arabic and Latin file names keep their own order,
+ * and shown as small chips so the locale's list separators (Arabic "و" has no space after it) never read as
+ * part of a name. */
+html.admin-shell .admin-media-alert-content bdi {
+  display: inline-block;
+  margin: 0.125rem 0.25rem;
+  padding: 0 0.375rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 6px;
+  background-color: var(--color-hf-surface);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+html.admin-shell .admin-media-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+html.admin-shell .admin-media-intro {
+  margin: 0;
+  color: var(--color-hf-muted);
+  font-size: 0.9375rem;
+}
+
+html.admin-shell .admin-media-head-actions .btn,
+html.admin-shell .admin-media .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+}
+
+html.admin-shell .admin-media .btn-primary {
+  border-color: var(--color-hf-olive);
+  background-color: var(--color-hf-olive);
+  color: #fff;
+}
+
+html.admin-shell .admin-media .btn-primary:hover,
+html.admin-shell .admin-media .btn-primary:focus-visible {
+  border-color: var(--color-hf-olive-hover);
+  background-color: var(--color-hf-olive-hover);
+}
+
+html.admin-shell .admin-media .btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Inline result messages: text and icon, never colour alone. */
+html.admin-shell .admin-media-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+html.admin-shell .admin-media-alerts:empty {
+  display: none;
+}
+
+html.admin-shell .admin-media-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-hf-line);
+  border-inline-start-width: 4px;
+  border-radius: 10px;
+  background-color: #fff;
+  color: var(--color-hf-ink);
+}
+
+html.admin-shell .admin-media-alert > i {
+  flex-shrink: 0;
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+html.admin-shell .admin-media-alert.is-success {
+  border-inline-start-color: var(--color-hf-olive);
+}
+
+html.admin-shell .admin-media-alert.is-success > i {
+  color: var(--color-hf-olive);
+}
+
+html.admin-shell .admin-media-alert.is-warning {
+  border-inline-start-color: var(--color-hf-gold);
+}
+
+html.admin-shell .admin-media-alert.is-warning > i {
+  color: var(--color-hf-gold);
+}
+
+html.admin-shell .admin-media-alert.is-error {
+  border-inline-start-color: var(--color-hf-error);
+}
+
+html.admin-shell .admin-media-alert.is-error > i {
+  color: var(--color-hf-error);
+}
+
+html.admin-shell .admin-media-alert-content {
+  flex-grow: 1;
+  min-width: 0;
+  font-size: 0.875rem;
+}
+
+html.admin-shell .admin-media-alert-content p {
+  margin: 0;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-media-alert-content ul {
+  margin: 0.25rem 0 0;
+  padding-inline-start: 1.25rem;
+  overflow-wrap: anywhere;
+}
+
+html.admin-shell .admin-media-icon-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-hf-muted);
+  font-size: 1.125rem;
+}
+
+html.admin-shell .admin-media-icon-button:hover {
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-ink);
+}
+
+html.admin-shell .admin-media-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 1.25rem 1rem;
+  border: 2px dashed var(--color-hf-line);
+  border-radius: 14px;
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-muted);
+  text-align: center;
+}
+
+html.admin-shell .admin-media-dropzone > i {
+  color: var(--color-hf-sage);
+  font-size: 2rem;
+}
+
+html.admin-shell .admin-media-dropzone.is-active {
+  border-color: var(--color-hf-olive);
+  background-color: rgb(179 186 145 / 18%);
+}
+
+html.admin-shell .admin-media-dropzone-title {
+  margin: 0;
+  color: var(--color-hf-ink);
+  font-weight: 600;
+}
+
+html.admin-shell .admin-media-dropzone-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+html.admin-shell .admin-media-panel {
+  margin-bottom: 0;
+  border: 1px solid var(--color-hf-line);
+  box-shadow: none;
+}
+
+html.admin-shell .admin-media-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-hf-line);
+}
+
+html.admin-shell .admin-media-search {
+  position: relative;
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+html.admin-shell .admin-media-search > i {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0.75rem;
+  display: flex;
+  align-items: center;
+  color: var(--color-hf-muted);
+  pointer-events: none;
+}
+
+html.admin-shell .admin-media-search .form-control {
+  padding-inline-start: 2.25rem;
+}
+
+html.admin-shell .admin-media-count {
+  margin: 0;
+  margin-inline-start: auto;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+}
+
+html.admin-shell .admin-media-selection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-bottom: 1px solid var(--color-hf-line);
+  background-color: rgb(179 186 145 / 18%);
+  color: var(--color-hf-olive);
+  font-weight: 600;
+}
+
+html.admin-shell .admin-media-selection[hidden] {
+  display: none;
+}
+
+html.admin-shell .admin-media-selection-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+html.admin-shell .admin-media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html.admin-shell .admin-media-grid:empty {
+  display: none;
+}
+
+html.admin-shell .admin-media-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 12px;
+  background-color: #fff;
+}
+
+html.admin-shell .admin-media-card.is-selected {
+  border-color: var(--color-hf-olive);
+  box-shadow: 0 0 0 2px var(--color-hf-olive);
+}
+
+/* D1: a fixed square whatever the image's proportions. overflow:hidden removes the content-based minimum height
+ * that let a portrait image stretch the square; the whole image is shown (contain), never cropped. */
+html.admin-shell .admin-media-thumb {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+  overflow: hidden;
+  background-color: var(--color-hf-surface);
+}
+
+html.admin-shell .admin-media-open {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+html.admin-shell .admin-media-open img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+html.admin-shell .admin-media-open:focus-visible {
+  outline-offset: -3px;
+}
+
+html.admin-shell .admin-media-check {
+  position: absolute;
+  inset-block-start: 0.5rem;
+  inset-inline-start: 0.5rem;
+  display: flex;
+  padding: 0.25rem;
+  border-radius: 6px;
+  background-color: rgb(255 255 255 / 92%);
+}
+
+html.admin-shell .admin-media-check .form-check-input {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  cursor: pointer;
+}
+
+html.admin-shell .admin-media-check .form-check-input:checked {
+  border-color: var(--color-hf-olive);
+  background-color: var(--color-hf-olive);
+}
+
+html.admin-shell .admin-media-badge {
+  position: absolute;
+  inset-block-end: 0.5rem;
+  inset-inline-start: 0.5rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background-color: var(--color-hf-ink);
+  color: var(--color-hf-surface);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-media-badge[hidden] {
+  display: none;
+}
+
+html.admin-shell .admin-media-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.5rem 0.75rem 0.625rem;
+  min-width: 0;
+}
+
+html.admin-shell .admin-media-name {
+  overflow: hidden;
+  color: var(--color-hf-ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html.admin-shell .admin-media-facts-line {
+  overflow: hidden;
+  color: var(--color-hf-muted);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html.admin-shell .admin-media-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1rem;
+  color: var(--color-hf-muted);
+  text-align: center;
+}
+
+html.admin-shell .admin-media-state[hidden] {
+  display: none;
+}
+
+html.admin-shell .admin-media-state > i {
+  color: var(--color-hf-sage);
+  font-size: 2.25rem;
+}
+
+html.admin-shell .admin-media-state-error > i {
+  color: var(--color-hf-error);
+}
+
+html.admin-shell .admin-media-spinner {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 3px solid var(--color-hf-line);
+  border-block-start-color: var(--color-hf-olive);
+  border-radius: 9999px;
+  animation: admin-media-spin 0.8s linear infinite;
+}
+
+@keyframes admin-media-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+html.admin-shell .admin-media-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+html.admin-shell .admin-media-more .btn[hidden] {
+  display: none;
+}
+
+/* Details dialog: native <dialog> (focus kept inside, Escape closes). Above the header and sidebar. */
+html.admin-shell .admin-media-dialog {
+  width: min(56rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  padding: 0;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 16px;
+  background-color: #fff;
+  color: var(--color-hf-ink);
+  box-shadow: 0 16px 48px rgb(43 43 38 / 20%);
+}
+
+html.admin-shell .admin-media-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+html.admin-shell .admin-media-dialog::backdrop {
+  background-color: rgb(43 43 38 / 55%);
+}
+
+html.admin-shell .admin-media-dialog-header,
+html.admin-shell .admin-media-dialog-footer {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.875rem 1.25rem;
+}
+
+html.admin-shell .admin-media-dialog-header {
+  border-bottom: 1px solid var(--color-hf-line);
+}
+
+html.admin-shell .admin-media-dialog-footer {
+  border-top: 1px solid var(--color-hf-line);
+}
+
+html.admin-shell .admin-media-dialog-footer:empty {
+  display: none;
+}
+
+html.admin-shell .admin-media-dialog-footer .btn-primary {
+  margin-inline-start: auto;
+}
+
+html.admin-shell .admin-media-dialog-title {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+
+html.admin-shell .admin-media-dialog-body {
+  display: grid;
+  grid-template-columns: minmax(0, 17rem) minmax(0, 1fr);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+html.admin-shell .admin-media-dialog-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border-inline-end: 1px solid var(--color-hf-line);
+  background-color: var(--color-hf-surface);
+}
+
+html.admin-shell .admin-media-dialog-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 11rem;
+  overflow: hidden;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 12px;
+  background-color: #fff;
+}
+
+html.admin-shell .admin-media-dialog-image img {
+  max-width: 100%;
+  max-height: 14rem;
+  object-fit: contain;
+}
+
+html.admin-shell .admin-media-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+html.admin-shell .admin-media-facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+html.admin-shell .admin-media-facts dt {
+  color: var(--color-hf-muted);
+  font-weight: 600;
+}
+
+html.admin-shell .admin-media-facts dd {
+  margin: 0;
+  text-align: end;
+  overflow-wrap: anywhere;
+}
+
+html.admin-shell .admin-media-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  padding: 1.25rem;
+}
+
+html.admin-shell .admin-media-field .form-label {
+  margin-bottom: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-media-field .form-control[readonly] {
+  background-color: var(--color-hf-surface);
+}
+
+html.admin-shell .admin-media-field .form-control[aria-invalid="true"] {
+  border-color: var(--color-hf-error);
+}
+
+html.admin-shell .admin-media-hint,
+html.admin-shell .admin-media-field-error {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+}
+
+html.admin-shell .admin-media-hint {
+  color: var(--color-hf-muted);
+}
+
+html.admin-shell .admin-media-field-error {
+  color: var(--color-hf-error);
+  font-weight: 600;
+}
+
+html.admin-shell .admin-media-field-error[hidden] {
+  display: none;
+}
+
+/* ---- Media picker (AD-UI-CAT-M4-B): resources/views/components/admin/media-picker.blade.php ---- */
+html.admin-shell .admin-media-picker {
+  gap: 0.5rem;
+}
+
+html.admin-shell .admin-media-picker-label {
+  margin-bottom: 0;
+}
+
+html.admin-shell .admin-media-picker-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.875rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 12px;
+  background-color: #fff;
+}
+
+html.admin-shell .admin-media-picker-field.is-invalid {
+  border-color: var(--color-hf-error);
+}
+
+html.admin-shell .admin-media-picker-preview {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 10px;
+  background-color: var(--color-hf-surface);
+}
+
+html.admin-shell .admin-media-picker-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+html.admin-shell .admin-media-picker-preview img[hidden],
+html.admin-shell .admin-media-picker-preview i[hidden],
+html.admin-shell .admin-media-picker [hidden] {
+  display: none !important;
+}
+
+html.admin-shell .admin-media-picker-preview > i {
+  color: var(--color-hf-sage);
+  font-size: 2rem;
+}
+
+html.admin-shell .admin-media-picker-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+html.admin-shell .admin-media-picker-name {
+  margin: 0;
+  color: var(--color-hf-ink);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+html.admin-shell .admin-media-picker-note {
+  margin: 0;
+  color: var(--color-hf-copper);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-media-picker-actions,
+html.admin-shell .admin-media-picker-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+html.admin-shell .admin-media-picker-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--color-hf-line);
+}
+
+html.admin-shell .admin-media-dialog-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+  flex: 1 1 auto;
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+}
+
+html.admin-shell .admin-media-picker-grid {
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.75rem;
+}
+
+html.admin-shell .admin-media-picker-selection {
+  min-width: 0;
+  margin: 0;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+html.admin-shell .admin-media-picker-dialog .admin-media-card.is-selected .admin-media-open:focus-visible {
+  outline-color: var(--color-hf-copper);
+}
+
+@media (max-width: 767.98px) {
+  html.admin-shell .admin-media-picker-field {
+    flex-direction: column;
+  }
+
+  html.admin-shell .admin-media-picker-dialog .admin-media-dialog-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 767.98px) {
+  html.admin-shell .admin-media-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.75rem;
+  }
+
+  html.admin-shell .admin-media-head-actions,
+  html.admin-shell .admin-media-head-actions .btn {
+    width: 100%;
+  }
+
+  html.admin-shell .admin-media-count {
+    width: 100%;
+    margin-inline-start: 0;
+  }
+
+  html.admin-shell .admin-media-dialog-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html.admin-shell .admin-media-dialog-preview {
+    border-inline-end: 0;
+    border-bottom: 1px solid var(--color-hf-line);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.admin-shell .admin-media-spinner {
+    animation-duration: 2.4s;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   html.admin-shell .pc-sidebar[data-admin-sidebar="managed"],

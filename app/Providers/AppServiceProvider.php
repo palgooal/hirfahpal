@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Http\Controllers\Dashboard\MediaLibraryController;
 use App\Models\Admin;
 use App\Models\Language;
 use App\Models\Setting;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Palgoal\MediaLibrary\Http\Controllers\MediaController as PackageMediaController;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,6 +28,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind('abilities', function () {
             return include base_path('data/abilities.php');
         });
+
+        // AD-UI-CAT-M2-C: the media library routes resolve their controller through the container, so they
+        // reach the application subclass that deletes safely (vendor/ is not modified).
+        $this->app->bind(PackageMediaController::class, MediaLibraryController::class);
     }
 
     /**
