@@ -2,15 +2,19 @@
 
 namespace Tests\Feature;
 
+use App\Models\Admin;
+use App\Models\Language;
 use App\Models\TranslationValue;
 use Database\Seeders\AdminDashboardTranslationSeeder;
 use Database\Seeders\AdminHeaderTranslationSeeder;
+use Database\Seeders\AdminHomeTranslationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
  * AD-UI-01D-2: header strings are seeded in Arabic and English, and the English
  * dashboard.Admin_Control_Center row is corrected only while it holds the known wrong value.
+ * AD-UI-DASH-04: dashboard.Admin_Control_Center is also seeded in both languages when missing.
  */
 class AdminHeaderTranslationSeederTest extends TestCase
 {
@@ -43,9 +47,60 @@ class AdminHeaderTranslationSeederTest extends TestCase
             ['dashboard.Header_Role_Super_Admin', 'dashboard.Header_Role_Admin', self::KEY],
             TranslationValue::distinct()->pluck('key')->all(),
         );
-        // Two role keys in ar + en, and only the English row of the corrected key.
-        $this->assertSame(5, TranslationValue::count());
-        $this->assertSame(0, TranslationValue::where('key', self::KEY)->where('locale', 'ar')->count());
+        // AD-UI-DASH-04: two role keys and the dashboard home heading, each in ar + en.
+        $this->assertSame(6, TranslationValue::count());
+        $this->assertSame('لوحة الإدارة', $this->value(self::KEY, 'ar'));
+        $this->assertSame(self::RIGHT, $this->value(self::KEY, 'en'));
+    }
+
+    public function test_a_new_database_shows_the_arabic_heading_from_the_first_render_without_auto_creating_it(): void
+    {
+        $this->withoutVite();
+        Language::create(['name' => 'Arabic', 'native' => 'العربية', 'code' => 'ar', 'is_rtl' => true, 'is_active' => true]);
+        Language::create(['name' => 'English', 'native' => 'English', 'code' => 'en', 'is_rtl' => false, 'is_active' => true]);
+        foreach ([AdminDashboardTranslationSeeder::class, AdminHeaderTranslationSeeder::class, AdminHomeTranslationSeeder::class] as $seeder) {
+            $this->seed($seeder);
+        }
+        $rows = TranslationValue::where('key', self::KEY)->orderBy('id')->get(['id', 'locale', 'value', 'updated_at'])->toArray();
+        $this->assertCount(2, $rows);
+        $admin = Admin::factory()->create(['super_admin' => true]);
+
+        $ar = $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->get(route('dashboard.home'))->assertOk()->getContent();
+        $this->assertStringContainsString('<h4 class="mb-2">لوحة الإدارة</h4>', $ar, 'Arabic from the first render, not the English fallback.');
+        $en = $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])->get(route('dashboard.home'))->assertOk()->getContent();
+        $this->assertStringContainsString('<h4 class="mb-2">Admin panel</h4>', $en);
+
+        $this->assertSame($rows, TranslationValue::where('key', self::KEY)->orderBy('id')->get(['id', 'locale', 'value', 'updated_at'])->toArray(), 't() created or changed nothing.');
+        $homeKeys = array_keys(AdminHomeTranslationSeeder::TRANSLATIONS);
+        $this->assertSame(66, TranslationValue::whereIn('key', $homeKeys)->count());
+    }
+
+    public function test_an_edited_arabic_heading_is_never_overwritten(): void
+    {
+        $ar = TranslationValue::create(['key' => self::KEY, 'locale' => 'ar', 'value' => 'مركز الإدارة']);
+        $before = $ar->fresh()->only(['id', 'value', 'updated_at']);
+
+        $this->seed(AdminHeaderTranslationSeeder::class);
+        $this->seed(AdminHeaderTranslationSeeder::class);
+
+        $this->assertEquals($before, $ar->fresh()->only(['id', 'value', 'updated_at']));
+        $this->assertSame(self::RIGHT, $this->value(self::KEY, 'en'), 'The missing English row is added.');
+        $this->assertSame(2, TranslationValue::where('key', self::KEY)->count());
+    }
+
+    public function test_it_does_not_overlap_the_home_seeder(): void
+    {
+        $this->assertArrayNotHasKey(self::KEY, AdminHomeTranslationSeeder::TRANSLATIONS);
+        $this->assertSame([], array_values(array_intersect(array_keys(AdminHeaderTranslationSeeder::TRANSLATIONS), array_keys(AdminHomeTranslationSeeder::TRANSLATIONS))));
+
+        // Either order gives the same rows.
+        $this->seed(AdminHomeTranslationSeeder::class);
+        $this->seed(AdminHeaderTranslationSeeder::class);
+        $first = TranslationValue::orderBy('key')->orderBy('locale')->get(['key', 'locale', 'value'])->toArray();
+        TranslationValue::query()->delete();
+        $this->seed(AdminHeaderTranslationSeeder::class);
+        $this->seed(AdminHomeTranslationSeeder::class);
+        $this->assertSame($first, TranslationValue::orderBy('key')->orderBy('locale')->get(['key', 'locale', 'value'])->toArray());
     }
 
     public function test_the_wrong_english_value_is_corrected_and_the_arabic_row_is_kept(): void

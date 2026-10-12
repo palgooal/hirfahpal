@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Admin;
+use Database\Seeders\AdminHeaderTranslationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -19,6 +20,9 @@ class AdminDashboardTest extends TestCase
             'password' => 'password',
             'status' => 'active',
         ]);
+
+        // The Arabic heading comes from its seeded translation (the code default is English since AD-UI-DASH-04).
+        $this->seed(AdminHeaderTranslationSeeder::class);
 
         $this->actingAs($admin, 'admin')
             ->get(route('dashboard.home'))

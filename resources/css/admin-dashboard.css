@@ -585,8 +585,10 @@ html.admin-shell[dir="ltr"] .admin-media .admin-media-search > i.ph-duotone {
   right: auto;
 }
 
-/* D3: secondary buttons in the HIRFAH colours (measured in Edge: 13.4:1; hover, focus and active: 12.5:1). */
-html.admin-shell .admin-media .btn-light-secondary {
+/* D3: secondary buttons in the HIRFAH colours (measured in Edge: 13.4:1; hover, focus and active: 12.5:1).
+ * DASH-3: the same rules for the admin dashboard home (.admin-home, resources/views/dashboard/admin/index.blade.php). */
+html.admin-shell .admin-media .btn-light-secondary,
+html.admin-shell .admin-home .btn-light-secondary {
   border: 1px solid var(--color-hf-line);
   background-color: var(--color-hf-surface);
   color: var(--color-hf-ink);
@@ -594,10 +596,31 @@ html.admin-shell .admin-media .btn-light-secondary {
 
 html.admin-shell .admin-media .btn-light-secondary:hover,
 html.admin-shell .admin-media .btn-light-secondary:focus-visible,
-html.admin-shell .admin-media .btn-light-secondary:active {
+html.admin-shell .admin-media .btn-light-secondary:active,
+html.admin-shell .admin-home .btn-light-secondary:hover,
+html.admin-shell .admin-home .btn-light-secondary:focus-visible,
+html.admin-shell .admin-home .btn-light-secondary:active {
   border-color: var(--color-hf-sage);
   background-color: var(--color-hf-canvas);
   color: var(--color-hf-ink);
+}
+
+/* DASH-3: the home's warning button ("Open" on the response window alerts). Able Pro's orange on peach reads
+ * at 2:1; here dark copper text on the HIRFAH surface, with a copper border, in every state (Able Pro's
+ * :focus would otherwise turn it white on orange). The focus ring stays the admin shell's :focus-visible. */
+html.admin-shell .admin-home .btn-light-warning {
+  border: 1px solid var(--color-hf-copper);
+  background-color: var(--color-hf-surface);
+  color: #8a4520;
+}
+
+html.admin-shell .admin-home .btn-light-warning:hover,
+html.admin-shell .admin-home .btn-light-warning:focus,
+html.admin-shell .admin-home .btn-light-warning:focus-visible,
+html.admin-shell .admin-home .btn-light-warning:active {
+  border-color: #8a4520;
+  background-color: var(--color-hf-canvas);
+  color: #8a4520;
 }
 
 /* Delete stays recognisably destructive with readable text (measured: 6.5:1 on white). */

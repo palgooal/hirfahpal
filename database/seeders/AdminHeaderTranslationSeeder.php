@@ -31,6 +31,13 @@ class AdminHeaderTranslationSeeder extends Seeder
             'ar' => 'مشرف',
             'en' => 'Admin',
         ],
+        // The dashboard home heading (AD-UI-DASH-04). Seeded in both languages so a new database never shows the
+        // English fallback on the Arabic page, and t() never auto-creates either row. Inserted before the
+        // correction below runs: a missing row gets the right value, an existing row is left to the correction.
+        'dashboard.Admin_Control_Center' => [
+            'ar' => 'لوحة الإدارة',
+            'en' => 'Admin panel',
+        ],
     ];
 
     /**
