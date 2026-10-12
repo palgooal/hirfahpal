@@ -1,6 +1,6 @@
 <x-dashboard-layout>
     <x-slot:breadcrumbs>
-        <li class="breadcrumb-item" aria-current="page">{{ t('dashboard.Admin_Dashboard', 'لوحة الإدارة') }}</li>
+        <li class="breadcrumb-item" aria-current="page">{{ t('dashboard.Admin_Dashboard', 'Admin panel') }}</li>
     </x-slot:breadcrumbs>
 
     <div class="col-span-12">
@@ -8,7 +8,7 @@
             <div class="card-body d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-4">
                 <div>
                     <p class="text-muted mb-1">{{ t('dashboard.Hirfah_Operations', 'HIRFAH Operations') }}</p>
-                    <h4 class="mb-2">{{ t('dashboard.Admin_Control_Center', 'لوحة الإدارة') }}</h4>
+                    <h4 class="mb-2">{{ t('dashboard.Admin_Control_Center', 'Admin panel') }}</h4>
                     <p class="text-muted mb-0">{{ t('dashboard.Admin_Control_Center_Description', 'Monitor vendor approvals, vendor order response windows, and manual delivery assignment.') }}</p>
                 </div>
                 <div class="avtar avtar-xl bg-light-primary">
@@ -18,16 +18,30 @@
         </div>
     </div>
 
+    {{-- DASH-1c: results flashed by the admin pages (success / danger), already translated; escaped. --}}
+    @foreach (['success' => ['is-success', 'status', 'ph-check-circle'], 'danger' => ['is-error', 'alert', 'ph-info']] as $flash => [$tone, $role, $flashIcon])
+        @if (is_string(session($flash)) && session($flash) !== '')
+            <div class="col-span-12">
+                <div class="admin-media-alert {{ $tone }}" role="{{ $role }}" data-dashboard-flash="{{ $flash }}">
+                    <i class="ph-duotone {{ $flashIcon }}" aria-hidden="true"></i>
+                    <div class="admin-media-alert-content"><p>{{ session($flash) }}</p></div>
+                </div>
+            </div>
+        @endif
+    @endforeach
+
+    {{-- DASH-1a/1b: a figure is shown only to admins who may open its list (AdminDashboardController, $can). --}}
     @foreach ([
-        [t('dashboard.Pending_Vendors', 'Pending Vendors'), $stats['pending_vendors'], 'warning', 'ti-building-store', route('dashboard.vendors.index', ['approval_status' => 'pending'])],
-        [t('dashboard.Active_Vendors', 'Active Vendors'), $stats['active_vendors'], 'success', 'ti-store', route('dashboard.vendors.index')],
-        [t('dashboard.Pending_Vendor_Orders', 'Pending Vendor Orders'), $stats['pending_vendor_orders'], 'primary', 'ti-clipboard-list', route('dashboard.vendor-orders.index', ['status' => 'pending'])],
-        [t('dashboard.Needs_attention', 'Needs attention'), $stats['needs_attention'], 'danger', 'ti-alert-triangle', route('dashboard.vendor-orders.index', ['needs_attention' => 1])],
-        [t('dashboard.Active_Products', 'Active Products'), $stats['active_products'], 'success', 'ti-box', route('dashboard.products.index', ['status' => 'active'])],
-        [t('dashboard.Low_Stock', 'Low Stock'), $stats['low_stock_products'], 'warning', 'ti-alert-circle', route('dashboard.products.index')],
-        [t('dashboard.Pending_Drivers', 'Pending Drivers'), $stats['pending_drivers'], 'info', 'ti-truck', route('dashboard.delivery-drivers.index', ['approval_status' => 'pending'])],
-        [t('dashboard.Open_Disputes', 'Open Disputes'), $stats['open_disputes'], 'danger', 'ti-life-buoy', route('dashboard.disputes.index', ['status' => 'open'])],
-    ] as [$label, $value, $color, $icon, $url])
+        ['vendors.view', t('dashboard.Pending_Vendors', 'Pending Vendors'), $stats['pending_vendors'], 'warning', 'ti-building-store', route('dashboard.vendors.index', ['approval_status' => 'pending'])],
+        ['vendors.view', t('dashboard.Active_Vendors', 'Active Vendors'), $stats['active_vendors'], 'success', 'ti-store', route('dashboard.vendors.index')],
+        ['vendor-orders.view', t('dashboard.Pending_Vendor_Orders', 'Pending Vendor Orders'), $stats['pending_vendor_orders'], 'primary', 'ti-clipboard-list', route('dashboard.vendor-orders.index', ['status' => 'pending'])],
+        ['vendor-orders.view', t('dashboard.Needs_attention', 'Needs attention'), $stats['needs_attention'], 'danger', 'ti-alert-triangle', route('dashboard.vendor-orders.index', ['needs_attention' => 1])],
+        ['products.view', t('dashboard.Active_Products', 'Active Products'), $stats['active_products'], 'success', 'ti-box', route('dashboard.products.index', ['status' => 'active'])],
+        ['products.view', t('dashboard.Low_Stock', 'Low Stock'), $stats['low_stock_products'], 'warning', 'ti-alert-circle', route('dashboard.products.index')],
+        ['delivery-drivers.view', t('dashboard.Pending_Drivers', 'Pending Drivers'), $stats['pending_drivers'], 'info', 'ti-truck', route('dashboard.delivery-drivers.index', ['approval_status' => 'pending'])],
+        ['disputes.view', t('dashboard.Open_Disputes', 'Open Disputes'), $stats['open_disputes'], 'danger', 'ti-life-buoy', route('dashboard.disputes.index', ['status' => 'open'])],
+    ] as [$ability, $label, $value, $color, $icon, $url])
+        @continue(! $can[$ability] || $value === null)
         <div class="col-span-12 sm:col-span-6 xl:col-span-3">
             <a href="{{ $url }}" class="card d-block text-decoration-none">
                 <div class="card-body">
@@ -45,26 +59,39 @@
         </div>
     @endforeach
 
-    <div class="col-span-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">{{ t('dashboard.Admin_Quick_Actions', 'Admin Quick Actions') }}</h5>
-            </div>
-            <div class="card-body">
-                <div class="d-flex flex-wrap gap-2">
-                    <a href="{{ route('dashboard.categories.index') }}" class="btn btn-light-secondary">{{ t('dashboard.Categories', 'Categories') }}</a>
-                    <a href="{{ route('dashboard.products.index') }}" class="btn btn-light-secondary">{{ t('dashboard.Products', 'Products') }}</a>
-                    <a href="{{ route('dashboard.customers.index') }}" class="btn btn-light-secondary">{{ t('dashboard.Customers', 'Customers') }}</a>
-                    <a href="{{ route('dashboard.delivery-drivers.index') }}" class="btn btn-light-secondary">{{ t('dashboard.Delivery_Drivers', 'Delivery Drivers') }}</a>
-                    <a href="{{ route('dashboard.orders.index') }}" class="btn btn-light-secondary">{{ t('dashboard.Orders', 'Orders') }}</a>
-                    <a href="{{ route('dashboard.reviews.index', ['status' => 'pending']) }}" class="btn btn-light-secondary">{{ t('dashboard.Pending_Reviews', 'Pending Reviews') }}: {{ number_format($stats['pending_reviews']) }}</a>
-                    <a href="{{ route('dashboard.return-requests.index', ['status' => 'requested']) }}" class="btn btn-light-secondary">{{ t('dashboard.Open_Returns', 'Open Returns') }}: {{ number_format($stats['open_returns']) }}</a>
+    @php
+        // DASH-1a: only actions whose list this admin may open; the card is left out when none remains.
+        $quickActions = array_values(array_filter([
+            $can['categories.view'] ? [route('dashboard.categories.index'), t('dashboard.Categories', 'Categories')] : null,
+            $can['products.view'] ? [route('dashboard.products.index'), t('dashboard.Products', 'Products')] : null,
+            $can['customers.view'] ? [route('dashboard.customers.index'), t('dashboard.Customers', 'Customers')] : null,
+            $can['delivery-drivers.view'] ? [route('dashboard.delivery-drivers.index'), t('dashboard.Delivery_Drivers', 'Delivery Drivers')] : null,
+            $can['orders.view'] ? [route('dashboard.orders.index'), t('dashboard.Orders', 'Orders')] : null,
+            $can['reviews.view'] && $stats['pending_reviews'] !== null ? [route('dashboard.reviews.index', ['status' => 'pending']), t('dashboard.Pending_Reviews', 'Pending Reviews').': '.number_format($stats['pending_reviews'])] : null,
+            $can['return-requests.view'] && $stats['open_returns'] !== null ? [route('dashboard.return-requests.index', ['status' => 'requested']), t('dashboard.Open_Returns', 'Open Returns').': '.number_format($stats['open_returns'])] : null,
+        ]));
+    @endphp
+
+    {{-- DASH-3: .admin-home scopes the HIRFAH button colours (admin-dashboard.css) to the cards of this page. --}}
+    @if ($quickActions !== [])
+        <div class="col-span-12 admin-home">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ t('dashboard.Admin_Quick_Actions', 'Admin Quick Actions') }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach ($quickActions as [$actionUrl, $actionLabel])
+                            <a href="{{ $actionUrl }}" class="btn btn-light-secondary">{{ $actionLabel }}</a>
+                        @endforeach
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    @endif
 
-    <div class="col-span-12 xl:col-span-7">
+    @if ($can['vendors.view'])
+    <div class="col-span-12 xl:col-span-7 admin-home">
         <div class="card">
             <div class="card-header d-flex align-items-center justify-content-between">
                 <h5 class="mb-0">{{ t('dashboard.Vendors_waiting_review', 'Vendors Waiting Review') }}</h5>
@@ -100,8 +127,10 @@
             </div>
         </div>
     </div>
+    @endif
 
-    <div class="col-span-12 xl:col-span-5">
+    @if ($can['vendor-orders.view'])
+    <div class="col-span-12 xl:col-span-5 admin-home">
         <div class="card">
             <div class="card-header d-flex align-items-center justify-content-between">
                 <h5 class="mb-0">{{ t('dashboard.Response_Window_Alerts', 'Response Window Alerts') }}</h5>
@@ -133,4 +162,5 @@
             </div>
         </div>
     </div>
+    @endif
 </x-dashboard-layout>

@@ -7,9 +7,11 @@ use App\Http\Requests\VendorDashboard\StoreProductRequest;
 use App\Http\Requests\VendorDashboard\UpdateProductRequest;
 use App\Models\Category;
 use App\Models\Product;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -50,25 +52,29 @@ class ProductController extends Controller
         $vendor = $request->user('vendor');
         $data = $this->productData($request->validated());
 
-        $product = DB::transaction(function () use ($vendor, $data) {
-            $images = $data['images'] ?? [];
-            unset($data['images']);
+        try {
+            $product = DB::transaction(function () use ($vendor, $data) {
+                $images = $data['images'] ?? [];
+                unset($data['images']);
 
-            $product = $vendor->products()->create($data);
+                $product = $vendor->products()->create($data);
 
-            foreach ($images as $index => $image) {
-                $product->images()->create([
-                    'path' => $image['path'],
-                    'alt_text' => $image['alt_text'] ?? $product->name,
-                    'sort_order' => $image['sort_order'] ?? $index,
-                    'is_primary' => (bool) ($image['is_primary'] ?? $index === 0),
-                ]);
-            }
+                foreach ($images as $index => $image) {
+                    $product->images()->create([
+                        'path' => $image['path'],
+                        'alt_text' => $image['alt_text'] ?? $product->name,
+                        'sort_order' => $image['sort_order'] ?? $index,
+                        'is_primary' => (bool) ($image['is_primary'] ?? $index === 0),
+                    ]);
+                }
 
-            $this->normalizePrimaryImage($product);
+                $this->normalizePrimaryImage($product);
 
-            return $product->fresh(['category', 'images']);
-        });
+                return $product->fresh(['category', 'images']);
+            });
+        } catch (QueryException $exception) {
+            $this->failUnlessCategoryVanished($exception, $data);
+        }
 
         return response()->json([
             'message' => 'Product created successfully.',
@@ -96,22 +102,26 @@ class ProductController extends Controller
         // The FormRequest rule gives early feedback; this is the authoritative check
         // (VEN-BE-019). Product lock first, as in checkout and vendor accept, then the
         // outstanding reserved quantity is re-read under that lock before writing.
-        $product = DB::transaction(function () use ($request, $product, $data): Product {
-            $lockedProduct = Product::query()->whereKey($product->id)->lockForUpdate()->firstOrFail();
-            abort_unless((int) $lockedProduct->vendor_id === (int) $request->user('vendor')->id, 404);
+        try {
+            $product = DB::transaction(function () use ($request, $product, $data): Product {
+                $lockedProduct = Product::query()->whereKey($product->id)->lockForUpdate()->firstOrFail();
+                abort_unless((int) $lockedProduct->vendor_id === (int) $request->user('vendor')->id, 404);
 
-            $reserved = $lockedProduct->reservedStockQuantity();
+                $reserved = $lockedProduct->reservedStockQuantity();
 
-            if ((int) $data['stock_quantity'] < $reserved) {
-                throw ValidationException::withMessages([
-                    'stock_quantity' => UpdateProductRequest::reservedStockMessage($reserved),
-                ]);
-            }
+                if ((int) $data['stock_quantity'] < $reserved) {
+                    throw ValidationException::withMessages([
+                        'stock_quantity' => UpdateProductRequest::reservedStockMessage($reserved),
+                    ]);
+                }
 
-            $lockedProduct->update($data);
+                $lockedProduct->update($data);
 
-            return $lockedProduct;
-        });
+                return $lockedProduct;
+            });
+        } catch (QueryException $exception) {
+            $this->failUnlessCategoryVanished($exception, $data);
+        }
 
         return response()->json([
             'message' => 'Product updated successfully.',
@@ -140,6 +150,24 @@ class ProductController extends Controller
         $data['published_at'] = $data['status'] === 'active' ? ($product?->published_at ?? now()) : null;
 
         return $data;
+    }
+
+    /**
+     * The write failed after validation, inside the transaction (now rolled back, so no product or image
+     * row is left). If it was a foreign key failure and the submitted category no longer exists (deleted
+     * in between), report it exactly as the category_id rule would; anything else is re-thrown unchanged.
+     */
+    private function failUnlessCategoryVanished(QueryException $exception, array $data): never
+    {
+        // MySQL 1452 (child row references a missing parent) or SQLite's foreign key failure.
+        $foreignKeyFailure = ($exception->errorInfo[1] ?? null) === 1452
+            || str_contains($exception->getMessage(), 'FOREIGN KEY constraint failed');
+
+        if ($foreignKeyFailure && filled($data['category_id'] ?? null)) {
+            Validator::make(['category_id' => $data['category_id']], ['category_id' => ['exists:categories,id']])->validate();
+        }
+
+        throw $exception;
     }
 
     private function authorizeProduct(Request $request, Product $product): void

@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Vendor;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -49,7 +51,13 @@ class ProductManagementController extends Controller
     {
         $this->authorizeAbility($request, 'products.create');
 
-        Product::create($this->validatedData($request));
+        $data = $this->validatedData($request);
+
+        try {
+            Product::create($data);
+        } catch (QueryException $exception) {
+            $this->failUnlessCategoryVanished($exception, $data);
+        }
 
         return redirect()->route('dashboard.products.index')->with('success', t('dashboard.Product_saved', 'Product saved successfully.'));
     }
@@ -65,7 +73,13 @@ class ProductManagementController extends Controller
     {
         $this->authorizeAbility($request, 'products.edit');
 
-        $product->update($this->validatedData($request, $product));
+        $data = $this->validatedData($request, $product);
+
+        try {
+            $product->update($data);
+        } catch (QueryException $exception) {
+            $this->failUnlessCategoryVanished($exception, $data);
+        }
 
         return redirect()->route('dashboard.products.index')->with('success', t('dashboard.Product_saved', 'Product saved successfully.'));
     }
@@ -124,6 +138,24 @@ class ProductManagementController extends Controller
             'inactive' => t('dashboard.Inactive', 'Inactive'),
             'out_of_stock' => t('dashboard.Out_of_stock', 'Out of stock'),
         ];
+    }
+
+    /**
+     * The single-statement write failed after validation. If it was a foreign key failure and the submitted
+     * category no longer exists (deleted in between), report it exactly as the category_id rule would
+     * (redirect back with input and the field error); anything else is re-thrown unchanged.
+     */
+    private function failUnlessCategoryVanished(QueryException $exception, array $data): never
+    {
+        // MySQL 1452 (child row references a missing parent) or SQLite's foreign key failure.
+        $foreignKeyFailure = ($exception->errorInfo[1] ?? null) === 1452
+            || str_contains($exception->getMessage(), 'FOREIGN KEY constraint failed');
+
+        if ($foreignKeyFailure && filled($data['category_id'] ?? null)) {
+            Validator::make(['category_id' => $data['category_id']], ['category_id' => ['exists:categories,id']])->validate();
+        }
+
+        throw $exception;
     }
 
     private function authorizeAbility(Request $request, string $ability): void

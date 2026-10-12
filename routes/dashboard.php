@@ -20,6 +20,8 @@ Route::prefix('dashboard')
     ->group(function () {
 
         Route::resource('admins', AdminController::class)->except(['show']);
+        // N-CAT-1: the server-side delete confirmation (GET shows it; only the DELETE route deletes).
+        Route::get('categories/{category}/delete', [CategoryManagementController::class, 'confirmDelete'])->name('categories.delete');
         Route::resource('categories', CategoryManagementController::class)->except(['show']);
         Route::resource('products', ProductManagementController::class)->except(['show']);
 

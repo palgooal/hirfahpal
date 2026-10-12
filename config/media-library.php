@@ -36,7 +36,9 @@ return [
     | guard here (e.g. ['web', 'auth', 'can:access-admin']).
     |
     */
-    'middleware' => ['web', 'auth:admin'],
+    // setLocale (AD-UI-CAT-M3): the admin's chosen language, as on the dashboard routes (page and JSON messages).
+    // EnsureSafeMediaUpload (AD-UI-CAT-M2-A): binds the stored extension to the real image content.
+    'middleware' => ['web', 'auth:admin', 'setLocale', \App\Http\Middleware\EnsureSafeMediaUpload::class],
 
     /*
     |--------------------------------------------------------------------------
@@ -82,6 +84,10 @@ return [
     'allowed_mimes'      => ['jpeg', 'jpg', 'png', 'gif', 'webp'],
     'allowed_mimetypes'  => ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
 
+    // HIRFAH (AD-UI-CAT-M2-A): read by App\Http\Middleware\EnsureSafeMediaUpload, not by the package.
+    // Width x height ceiling checked before an upload is decoded (GD keeps every pixel in memory).
+    'max_image_pixels'   => 25_000_000,
+
     /*
     |--------------------------------------------------------------------------
     | User model
@@ -115,7 +121,8 @@ return [
     | or your own role system) before going to production.
     |
     */
-    'policy' => \Palgoal\MediaLibrary\Policies\MediaPolicy::class,
+    // HIRFAH (AD-UI-CAT-M2-A): one media.* ability per action instead of the package's allow-all default.
+    'policy' => \App\Policies\MediaPolicy::class,
 
     /*
     |--------------------------------------------------------------------------
@@ -175,7 +182,9 @@ return [
     |   that layout; it only references it by name through config.
     |
     */
-    'layout' => null,
+    // HIRFAH (AD-UI-CAT-M3): the admin shell (App\View\Components\DashboardLayout); the published
+    // resources/views/vendor/media-library/media.blade.php renders the admin library inside it.
+    'layout' => 'dashboard-layout',
 
     /*
     |--------------------------------------------------------------------------
@@ -197,9 +206,7 @@ return [
     |   ],
     |
     */
-    'breadcrumb' => [
-        ['label' => 'لوحة التحكم', 'url' => '/dashboard'],
-        ['label' => 'مكتبة الوسائط', 'url' => null],
-    ],
+    // HIRFAH (AD-UI-CAT-M3): no permanent breadcrumb in the admin (DEC-AD-UI-03); the page title is in the header.
+    'breadcrumb' => null,
 
 ];

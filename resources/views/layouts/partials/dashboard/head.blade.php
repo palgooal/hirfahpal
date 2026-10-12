@@ -1,9 +1,15 @@
+@php
+    // Direction comes from the current Language row (is_rtl), as on the admin login
+    // and vendor dashboard. If the locale has no Language row, fall back to ltr.
+    $pageDirection = $currentLanguage?->is_rtl ? 'rtl' : 'ltr';
+@endphp
 <!doctype html>
-<html lang="en" class="preset-1" data-pc-sidebar-caption="true" data-pc-layout="vertical" data-pc-direction="ltr" dir="ltr" data-pc-theme_contrast="" data-pc-theme="light">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="preset-1 admin-shell"data-pc-sidebar-caption="true" data-pc-layout="vertical" data-pc-direction="{{ $pageDirection }}" dir="{{ $pageDirection }}" data-pc-theme_contrast="" data-pc-theme="light">
 <!-- [Head] start -->
 
 <head>
-    <title>{{$title}}</title>
+    {{-- "{page title} | {brand}", resolved in dashboard-layout.blade.php (AD-UI-01D-6). --}}
+    <title>{{ $adminDocumentTitle }}</title>
     <!-- [Meta] -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
@@ -17,6 +23,10 @@
     <link rel="icon" href="{{asset('assets-dashboard/images/favicon.svg')}}" type="image/x-icon" />
     <!-- [Font] Family -->
     <link rel="stylesheet" href="{{asset('assets-dashboard/fonts/inter/inter.css')}}" id="main-font-link" />
+    {{-- Cairo is the HIRFAH font (DEC-AD-UI-04.b), loaded as on the vendor dashboard; applied under html.admin-shell. --}}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <!-- [phosphor Icons] https://phosphoricons.com/ -->
     <link rel="stylesheet" href="{{asset('assets-dashboard/fonts/phosphor/duotone/style.css')}}" />
     <!-- [Tabler Icons] https://tablericons.com -->
@@ -30,7 +40,7 @@
     <link rel="stylesheet" href="{{asset('assets-dashboard/fonts/material.css')}}" />
     <!-- [Template CSS Files] -->
     <link rel="stylesheet" href="{{asset('assets-dashboard/css/style.css')}}" id="" />
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/admin-dashboard.css', 'resources/js/admin-dashboard.js'])
 
     <style>
         .offcanvas.offcanvas-end {
@@ -45,15 +55,7 @@
 <!-- [Body] Start -->
 
 <body>
-    <!-- [ Pre-loader ] start -->
-    <div class="loader-bg fixed inset-0 bg-white dark:bg-themedark-cardbg z-[1034]">
-        <div class="loader-track h-[5px] w-full inline-block absolute overflow-hidden top-0">
-            <div
-                class="loader-fill w-[300px] h-[5px] bg-primary-500 absolute top-0 left-0 transition-[transform_0.2s_linear] origin-left animate-[2.1s_cubic-bezier(0.65,0.815,0.735,0.395)_0s_infinite_normal_none_running_loader-animate]">
-            </div>
-        </div>
-    </div>
-    <!-- [ Pre-loader ] End -->
+    {{-- No template pre-loader: it was removed by Able Pro script.js, which the admin no longer loads (AD-UI-01C-4B). --}}
     {{--
     @auth
     <script>

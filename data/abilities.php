@@ -40,6 +40,13 @@ return [
         'edit' => t('dashboard.Edit_Category', 'Edit Category'),
         'delete' => t('dashboard.Delete_Category', 'Delete Category'),
     ],
+    'media' => [
+        'name' => t('dashboard.Media_Library', 'Media Library'),
+        'view' => t('dashboard.View_Media', 'View Media Library'),
+        'create' => t('dashboard.Upload_Media', 'Upload Media'),
+        'edit' => t('dashboard.Edit_Media', 'Edit Media Details'),
+        'delete' => t('dashboard.Delete_Media', 'Delete Media'),
+    ],
     'products' => [
         'name' => t('dashboard.Products', 'Products'),
         'view' => t('dashboard.View_Products', 'View Products'),
