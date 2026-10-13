@@ -8,6 +8,9 @@ use App\Http\Controllers\Auth\AccountRegisteredUserController;
 use App\Http\Controllers\Auth\AdminAuthenticatedSessionController;
 use App\Http\Controllers\Auth\AdminNewPasswordController;
 use App\Http\Controllers\Auth\AdminPasswordResetLinkController;
+use App\Http\Controllers\Customer\AccountDetailsController as CustomerAccountDetailsController;
+use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
+use App\Http\Controllers\Customer\FavoriteController as CustomerFavoriteController;
 use App\Http\Controllers\Dashboard\AdminDashboardController;
 use App\Http\Controllers\DeliveryDriverDashboard\AssignmentController as DeliveryDriverAssignmentController;
 use App\Http\Controllers\HomeController;
@@ -265,14 +268,28 @@ Route::prefix('customer')
             ->name('cart.items.destroy');
 
         Route::middleware('auth:customer')->group(function () {
-            Route::view('account-details', 'pages.customer-account-details')
+            Route::get('account-details', [CustomerAccountDetailsController::class, 'edit'])
                 ->name('account-details');
+            Route::patch('account-details', [CustomerAccountDetailsController::class, 'update'])
+                ->name('account-details.update');
+            Route::patch('account-details/password', [CustomerAccountDetailsController::class, 'updatePassword'])
+                ->name('account-details.password.update');
 
-            Route::view('addresses', 'pages.customer-addresses')
+            Route::get('addresses', [CustomerAddressController::class, 'index'])
                 ->name('addresses');
+            Route::post('addresses', [CustomerAddressController::class, 'store'])
+                ->name('addresses.store');
+            Route::patch('addresses/{address}', [CustomerAddressController::class, 'update'])
+                ->name('addresses.update');
+            Route::delete('addresses/{address}', [CustomerAddressController::class, 'destroy'])
+                ->name('addresses.destroy');
 
-            Route::view('favorites', 'pages.customer-favorites')
+            Route::get('favorites', [CustomerFavoriteController::class, 'index'])
                 ->name('favorites');
+            Route::post('favorites', [CustomerFavoriteController::class, 'store'])
+                ->name('favorites.store');
+            Route::delete('favorites/{favorite}', [CustomerFavoriteController::class, 'destroy'])
+                ->name('favorites.destroy');
 
             Route::view('checkout', 'pages.checkout')
                 ->name('checkout.show');

@@ -25,6 +25,14 @@ class CheckoutController extends Controller
         ]);
 
         $customer = $request->user('customer');
+        if (! empty($data['customer_address_id'])) {
+            abort_unless(
+                $customer->addresses()->whereKey($data['customer_address_id'])->exists(),
+                403,
+                'The selected address does not belong to this customer.'
+            );
+        }
+
         $cart = $this->checkoutCart($request, $customer->id);
 
         abort_if($cart->items->isEmpty(), 422, 'Cart is empty.');

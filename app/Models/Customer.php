@@ -18,6 +18,16 @@ class Customer extends Authenticatable
         return $this->hasMany(CustomerAddress::class);
     }
 
+    public function favorites()
+    {
+        return $this->hasMany(CustomerFavorite::class);
+    }
+
+    public function favoriteProducts()
+    {
+        return $this->belongsToMany(Product::class, 'customer_favorites')->withTimestamps();
+    }
+
     public function carts()
     {
         return $this->hasMany(Cart::class);

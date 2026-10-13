@@ -133,13 +133,13 @@ class CustomerFavoritesPageTest extends TestCase
         $this->assertDoesNotMatchRegularExpression('/href="[^"]*\.html/', $page);
     }
 
-    public function test_no_favorites_mutation_routes_are_registered(): void
+    public function test_favorites_mutation_routes_are_registered(): void
     {
         $favoriteRoutes = collect(app('router')->getRoutes()->getRoutes())
             ->filter(fn ($route) => str_contains($route->uri(), 'favorite'));
 
-        $this->assertSame(['customer/favorites'], $favoriteRoutes->map->uri()->unique()->values()->all());
-        $this->assertEqualsCanonicalizing(['GET', 'HEAD'], $favoriteRoutes->flatMap->methods()->unique()->values()->all());
+        $this->assertSame(['customer/favorites', 'customer/favorites/{favorite}'], $favoriteRoutes->map->uri()->unique()->values()->all());
+        $this->assertEqualsCanonicalizing(['GET', 'HEAD', 'POST', 'DELETE'], $favoriteRoutes->flatMap->methods()->unique()->values()->all());
     }
 
     public function test_rendering_does_not_query_favorites_products_or_vendors(): void

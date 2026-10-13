@@ -20,6 +20,7 @@ class AccountGuard
                 'route' => 'customer',
                 'dashboard_route' => 'customer.dashboard',
                 'login_view' => 'pages.customer-login',
+                'register_view' => 'pages.customer-login',
                 'dashboard_view' => 'pages.customer-dashboard',
                 'label' => 'Customer',
             ],

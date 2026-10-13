@@ -13,7 +13,7 @@ if ($) {
         const $loginPanel = $('#loginPanel');
         const $registerPanel = $('#registerPanel');
 
-        // Local tab switch only; the login form keeps its native POST and register stays backend-inert.
+        // Local tab switch only; login and registration both keep their native POSTs.
         function activateAuthTab(target) {
             const isLogin = target === 'login';
 

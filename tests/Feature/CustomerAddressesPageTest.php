@@ -105,16 +105,16 @@ class CustomerAddressesPageTest extends TestCase
         $this->assertStringNotContainsString('name="_method"', $page);
     }
 
-    public function test_no_address_crud_routes_are_registered(): void
+    public function test_address_crud_routes_are_registered(): void
     {
         $addressRoutes = collect(app('router')->getRoutes()->getRoutes())
             ->filter(fn ($route) => str_contains($route->uri(), 'address'));
 
-        $this->assertSame(['customer/addresses'], $addressRoutes->map->uri()->unique()->values()->all());
-        $this->assertEqualsCanonicalizing(['GET', 'HEAD'], $addressRoutes->flatMap->methods()->unique()->values()->all());
+        $this->assertSame(['customer/addresses', 'customer/addresses/{address}'], $addressRoutes->map->uri()->unique()->values()->all());
+        $this->assertEqualsCanonicalizing(['GET', 'HEAD', 'POST', 'PATCH', 'DELETE'], $addressRoutes->flatMap->methods()->unique()->values()->all());
     }
 
-    public function test_rendering_does_not_query_address_or_location_tables(): void
+    public function test_rendering_queries_only_customer_address_and_location_tables(): void
     {
         $customer = Customer::factory()->create();
 
@@ -123,7 +123,9 @@ class CustomerAddressesPageTest extends TestCase
         $queries = collect(DB::getQueryLog())->pluck('query')->implode("\n");
         DB::disableQueryLog();
 
-        $this->assertDoesNotMatchRegularExpression('/\b(customer_addresses|governorates|cities)\b/', $queries);
+        $this->assertMatchesRegularExpression('/\bcustomer_addresses\b/', $queries);
+        $this->assertMatchesRegularExpression('/\bgovernorates\b/', $queries);
+        $this->assertDoesNotMatchRegularExpression('/\b(vendors|products|orders)\b/', $queries);
     }
 
     public function test_blocked_customer_is_forced_out(): void

@@ -118,14 +118,24 @@ class CustomerAccountDetailsPageTest extends TestCase
         $this->assertMatchesRegularExpression('/<p data-password-error class="hidden [^"]*"\s+role="alert"><\/p>/', $main);
     }
 
-    public function test_no_update_route_is_registered(): void
+    public function test_update_routes_are_registered(): void
     {
-        $methods = collect(app('router')->getRoutes()->getRoutes())
-            ->filter(fn ($route) => $route->uri() === 'customer/account-details')
-            ->flatMap(fn ($route) => $route->methods())
-            ->unique()->values()->all();
+        $routes = collect(app('router')->getRoutes()->getRoutes());
 
-        $this->assertEqualsCanonicalizing(['GET', 'HEAD'], $methods);
+        $this->assertEqualsCanonicalizing(
+            ['GET', 'HEAD', 'PATCH'],
+            $routes
+                ->filter(fn ($route) => $route->uri() === 'customer/account-details')
+                ->flatMap(fn ($route) => $route->methods())
+                ->unique()->values()->all()
+        );
+        $this->assertEqualsCanonicalizing(
+            ['PATCH'],
+            $routes
+                ->filter(fn ($route) => $route->uri() === 'customer/account-details/password')
+                ->flatMap(fn ($route) => $route->methods())
+                ->unique()->values()->all()
+        );
     }
 
     public function test_blocked_customer_is_forced_out(): void
