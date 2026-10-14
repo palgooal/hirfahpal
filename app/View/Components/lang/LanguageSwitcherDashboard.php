@@ -19,13 +19,15 @@ use Illuminate\View\Component;
 class LanguageSwitcherDashboard extends Component
 {
     public $languages;
+
     public $currentLocale;
+
     public $currentLanguage;
 
     public function __construct()
     {
-        $this->languages       = Language::where('is_active', true)->get();
-        $this->currentLocale   = app()->getLocale();
+        $this->languages = Language::where('is_active', true)->get();
+        $this->currentLocale = app()->getLocale();
         $this->currentLanguage = Language::where('code', $this->currentLocale)->first();
     }
 

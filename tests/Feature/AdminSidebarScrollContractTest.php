@@ -5,8 +5,8 @@ namespace Tests\Feature;
 use App\Models\Admin;
 use App\Models\Language;
 use Database\Seeders\AdminDashboardTranslationSeeder;
-use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 /**
  * AD-UI-01C-4E: regression guard for the admin sidebar scroll (AD-UI-01C-4D).

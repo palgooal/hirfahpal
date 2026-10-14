@@ -28,7 +28,7 @@ class ModelPolicy
         }
 
         return $admin->roles()
-            ->where('role_name', $resource . '.' . Str::kebab($name))
+            ->where('role_name', $resource.'.'.Str::kebab($name))
             ->where('ability', 'allow')
             ->exists();
     }

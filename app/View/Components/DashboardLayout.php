@@ -10,6 +10,7 @@ use Illuminate\View\Component;
 class DashboardLayout extends Component
 {
     public $title;
+
     /**
      * Create a new component instance.
      */

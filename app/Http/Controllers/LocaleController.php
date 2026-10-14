@@ -6,7 +6,6 @@ use App\Models\Language;
 use App\Models\Portfolio;
 use App\Models\Template;
 use App\Models\TranslationValue;
-use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 /**
@@ -55,8 +54,8 @@ class LocaleController extends Controller
                 if ($translated) {
                     return match ($variant) {
                         'redesign' => redirect()->route('template.show.redesign', ['slug' => $translated->slug]),
-                        'preview'  => redirect()->route('template.preview',       ['slug' => $translated->slug]),
-                        default    => redirect()->route('template.show',          ['slug' => $translated->slug]),
+                        'preview' => redirect()->route('template.preview', ['slug' => $translated->slug]),
+                        default => redirect()->route('template.show', ['slug' => $translated->slug]),
                     };
                 }
             }
@@ -133,7 +132,7 @@ class LocaleController extends Controller
         }
 
         $redirectHost = strtolower((string) parse_url($redirect, PHP_URL_HOST));
-        $appHost      = strtolower((string) parse_url(config('app.url') ?: url('/'), PHP_URL_HOST));
+        $appHost = strtolower((string) parse_url(config('app.url') ?: url('/'), PHP_URL_HOST));
 
         if ($redirectHost === '' || $appHost === '' || $redirectHost !== $appHost) {
             return null;

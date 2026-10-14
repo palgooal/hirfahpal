@@ -13,6 +13,8 @@ use App\Http\Controllers\Customer\AddressController as CustomerAddressController
 use App\Http\Controllers\Customer\FavoriteController as CustomerFavoriteController;
 use App\Http\Controllers\Dashboard\AdminDashboardController;
 use App\Http\Controllers\DeliveryDriverDashboard\AssignmentController as DeliveryDriverAssignmentController;
+use App\Http\Controllers\DeliveryDriverDashboard\OverviewController as DeliveryDriverOverviewController;
+use App\Http\Controllers\DeliveryDriverDashboard\ProfileController as DeliveryDriverProfileController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Store\CartController;
 use App\Http\Controllers\Store\CheckoutController;
@@ -228,7 +230,13 @@ foreach (AccountGuard::all() as $accountType => $account) {
                         ->defaults('account_type', $accountType);
 
                     if ($accountType === 'delivery_driver') {
-                        Route::prefix('dashboard')->group(function (): void {
+                        Route::prefix('dashboard')->middleware('delivery-driver.approved')->group(function (): void {
+                            Route::get('overview', DeliveryDriverOverviewController::class)
+                                ->name('dashboard.overview');
+                            Route::get('profile', [DeliveryDriverProfileController::class, 'show'])
+                                ->name('dashboard.profile.show');
+                            Route::put('profile', [DeliveryDriverProfileController::class, 'update'])
+                                ->name('dashboard.profile.update');
                             Route::get('assignments', [DeliveryDriverAssignmentController::class, 'index'])
                                 ->name('dashboard.assignments.index');
                             Route::get('assignments/{assignment}', [DeliveryDriverAssignmentController::class, 'show'])
@@ -239,6 +247,8 @@ foreach (AccountGuard::all() as $accountType => $account) {
                                 ->name('dashboard.assignments.pick-up');
                             Route::patch('assignments/{assignment}/delivered', [DeliveryDriverAssignmentController::class, 'markDelivered'])
                                 ->name('dashboard.assignments.delivered');
+                            Route::patch('assignments/{assignment}/failed', [DeliveryDriverAssignmentController::class, 'markFailed'])
+                                ->name('dashboard.assignments.failed');
                         });
                     }
                 });

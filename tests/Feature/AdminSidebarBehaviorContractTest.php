@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Admin;
 use App\Models\Language;
+use Database\Seeders\AdminDashboardTranslationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -71,7 +72,7 @@ class AdminSidebarBehaviorContractTest extends TestCase
     {
         $this->withoutVite();
         Language::create(['name' => 'Arabic', 'native' => 'العربية', 'code' => 'ar', 'is_rtl' => true, 'is_active' => true]);
-        $this->seed(\Database\Seeders\AdminDashboardTranslationSeeder::class);
+        $this->seed(AdminDashboardTranslationSeeder::class);
 
         $admin = Admin::create([
             'name' => 'Admin',

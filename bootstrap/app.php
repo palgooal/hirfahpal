@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\DisableTranslationAutoCreate;
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureDeliveryDriverIsApproved;
 use App\Http\Middleware\EnsureVendorIsApproved;
 use App\Http\Middleware\SetLocale;
 use App\Support\Auth\AccountGuard;
@@ -40,6 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'setLocale' => SetLocale::class,
             'disableTranslationAutoCreate' => DisableTranslationAutoCreate::class,
             'vendor.approved' => EnsureVendorIsApproved::class,
+            'delivery-driver.approved' => EnsureDeliveryDriverIsApproved::class,
         ]);
 
         $middleware->web(append: [

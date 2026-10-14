@@ -6,7 +6,6 @@ use App\Models\Language;
 use App\Models\TranslationValue;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 /**
  * TranslationValueController
@@ -37,16 +36,16 @@ class TranslationValueController extends Controller
         $this->authorize('view', TranslationValue::class);
 
         $localeFilter = $request->get('locale');
-        $search       = $request->get('search');
-        $typeFilter   = $request->get('type');
+        $search = $request->get('search');
+        $typeFilter = $request->get('type');
 
         $translations = TranslationValue::when($localeFilter, fn ($q) => $q->where('locale', $localeFilter))
-            ->when($search,       fn ($q) => $q->where('key', 'like', "%$search%"))
+            ->when($search, fn ($q) => $q->where('key', 'like', "%$search%"))
             ->when($typeFilter, function ($q) use ($typeFilter) {
                 match ($typeFilter) {
                     'dashboard' => $q->where('key', 'like', 'dashboard.%'),
-                    'frontend'  => $q->where('key', 'like', 'frontend.%'),
-                    'general'   => $q->where(fn ($sq) => $sq
+                    'frontend' => $q->where('key', 'like', 'frontend.%'),
+                    'general' => $q->where(fn ($sq) => $sq
                         ->where('key', 'not like', 'dashboard.%')
                         ->where('key', 'not like', 'frontend.%')),
                     default => null,
@@ -71,6 +70,7 @@ class TranslationValueController extends Controller
         $this->authorize('create', TranslationValue::class);
 
         $languages = Language::where('is_active', true)->get();
+
         return view('dashboard.lang.translation-values.create', compact('languages'));
     }
 
@@ -79,7 +79,7 @@ class TranslationValueController extends Controller
         $this->authorize('create', TranslationValue::class);
 
         $request->validate([
-            'key'    => 'required|string|max:150',
+            'key' => 'required|string|max:150',
             'values' => 'required|array',
         ]);
 
@@ -97,7 +97,7 @@ class TranslationValueController extends Controller
     {
         $this->authorize('edit', TranslationValue::class);
 
-        $languages    = Language::where('is_active', true)->get();
+        $languages = Language::where('is_active', true)->get();
         $translations = TranslationValue::where('key', $key)->get()->keyBy('locale');
 
         return view('dashboard.lang.translation-values.edit', compact('key', 'languages', 'translations'));
@@ -142,8 +142,8 @@ class TranslationValueController extends Controller
 
         $translations = TranslationValue::all();
 
-        $filename = 'translations_export_' . now()->format('Y_m_d_His') . '.csv';
-        $handle   = fopen('php://output', 'w');
+        $filename = 'translations_export_'.now()->format('Y_m_d_His').'.csv';
+        $handle = fopen('php://output', 'w');
 
         header('Content-Type: text/csv');
         header("Content-Disposition: attachment; filename={$filename}");

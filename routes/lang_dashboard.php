@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\TranslationValueController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,31 +25,31 @@ Route::resource('languages', LanguageController::class)
     ->names('languages');
 
 // AJAX toggle endpoints
-Route::post('languages/{language}/toggle-rtl',    [LanguageController::class, 'toggleRtl'])
+Route::post('languages/{language}/toggle-rtl', [LanguageController::class, 'toggleRtl'])
     ->name('languages.toggle-rtl');
 
 Route::post('languages/{language}/toggle-status', [LanguageController::class, 'toggleStatus'])
     ->name('languages.toggle-status');
 
-Route::delete('languages/{language}/delete',      [LanguageController::class, 'destroy'])
+Route::delete('languages/{language}/delete', [LanguageController::class, 'destroy'])
     ->name('languages.destroy-ajax');
 
 // ── Translation Values (dictionary) ───────────────────────────────────────
 Route::resource('translation-values', TranslationValueController::class)
     ->except(['show', 'edit', 'update', 'destroy']);
 
-Route::get('translation-values/{key}/edit',      [TranslationValueController::class, 'edit'])
+Route::get('translation-values/{key}/edit', [TranslationValueController::class, 'edit'])
     ->name('translation-values.edit');
 
-Route::post('translation-values/{key}/update',   [TranslationValueController::class, 'update'])
+Route::post('translation-values/{key}/update', [TranslationValueController::class, 'update'])
     ->name('translation-values.update');
 
 Route::delete('translation-values/{key}/delete', [TranslationValueController::class, 'destroy'])
     ->name('translation-values.destroy');
 
 // Export / Import
-Route::get('translation-values/export',          [TranslationValueController::class, 'export'])
+Route::get('translation-values/export', [TranslationValueController::class, 'export'])
     ->name('translation-values.export');
 
-Route::post('translation-values/import',         [TranslationValueController::class, 'import'])
+Route::post('translation-values/import', [TranslationValueController::class, 'import'])
     ->name('translation-values.import');

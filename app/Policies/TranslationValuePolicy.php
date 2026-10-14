@@ -2,6 +2,4 @@
 
 namespace App\Policies;
 
-class TranslationValuePolicy extends ModelPolicy
-{
-}
+class TranslationValuePolicy extends ModelPolicy {}

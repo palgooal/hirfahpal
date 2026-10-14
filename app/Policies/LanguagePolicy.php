@@ -2,6 +2,4 @@
 
 namespace App\Policies;
 
-class LanguagePolicy extends ModelPolicy
-{
-}
+class LanguagePolicy extends ModelPolicy {}

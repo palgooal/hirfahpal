@@ -11,6 +11,7 @@ use App\Models\Vendor;
 use App\Support\Auth\AccountGuard;
 use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -78,7 +79,7 @@ class CreateAccountUser
         $slug = $base;
         $counter = 2;
 
-        while (\Illuminate\Support\Facades\DB::table($table)->where('slug', $slug)->exists()) {
+        while (DB::table($table)->where('slug', $slug)->exists()) {
             $slug = $base.'-'.$counter;
             $counter++;
         }

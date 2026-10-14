@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Middleware\EnsureSafeMediaUpload;
+use App\Models\Admin;
+use App\Policies\MediaPolicy;
+
 return [
 
     /*
@@ -38,7 +42,7 @@ return [
     */
     // setLocale (AD-UI-CAT-M3): the admin's chosen language, as on the dashboard routes (page and JSON messages).
     // EnsureSafeMediaUpload (AD-UI-CAT-M2-A): binds the stored extension to the real image content.
-    'middleware' => ['web', 'auth:admin', 'setLocale', \App\Http\Middleware\EnsureSafeMediaUpload::class],
+    'middleware' => ['web', 'auth:admin', 'setLocale', EnsureSafeMediaUpload::class],
 
     /*
     |--------------------------------------------------------------------------
@@ -81,12 +85,12 @@ return [
     |
     */
     'max_upload_size_kb' => 10240, // 10MB
-    'allowed_mimes'      => ['jpeg', 'jpg', 'png', 'gif', 'webp'],
-    'allowed_mimetypes'  => ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+    'allowed_mimes' => ['jpeg', 'jpg', 'png', 'gif', 'webp'],
+    'allowed_mimetypes' => ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
 
     // HIRFAH (AD-UI-CAT-M2-A): read by App\Http\Middleware\EnsureSafeMediaUpload, not by the package.
     // Width x height ceiling checked before an upload is decoded (GD keeps every pixel in memory).
-    'max_image_pixels'   => 25_000_000,
+    'max_image_pixels' => 25_000_000,
 
     /*
     |--------------------------------------------------------------------------
@@ -97,7 +101,7 @@ return [
     | app's configured auth provider model.
     |
     */
-    'user_model' => App\Models\Admin::class, // matches the 'admin' guard used by the middleware above
+    'user_model' => Admin::class, // matches the 'admin' guard used by the middleware above
 
     /*
     |--------------------------------------------------------------------------
@@ -122,7 +126,7 @@ return [
     |
     */
     // HIRFAH (AD-UI-CAT-M2-A): one media.* ability per action instead of the package's allow-all default.
-    'policy' => \App\Policies\MediaPolicy::class,
+    'policy' => MediaPolicy::class,
 
     /*
     |--------------------------------------------------------------------------

@@ -92,6 +92,7 @@ class VendorOrderLifecycleTest extends TestCase
     {
         $vendor = Vendor::factory()->approved()->create();
         $driver = DeliveryDriver::factory()->create();
+        $driver->profile()->create(['approval_status' => 'approved', 'approved_at' => now(), 'is_available' => true]);
         [$order, $vendorOrder] = $this->orderWithVendorOrder($vendor, status: 'out_for_delivery');
         $order->update(['status' => 'processing', 'payment_status' => 'pending']);
         Payment::query()->create([

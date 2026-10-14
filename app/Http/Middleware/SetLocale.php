@@ -5,8 +5,8 @@ namespace App\Http\Middleware;
 use App\Models\Language;
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response;
 
 class SetLocale
 {
@@ -19,7 +19,7 @@ class SetLocale
      * 3. palgoals-locale.default_language_resolver → optional callable in config
      * 4. config('app.locale')             → .env fallback
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -28,7 +28,7 @@ class SetLocale
 
         // ── Handle ?change-locale=xx on any URL ────────────────────────────────
         if ($request->has('change-locale')) {
-            $newLocale        = Str::lower($request->query('change-locale'));
+            $newLocale = Str::lower($request->query('change-locale'));
             $supportedLocales = $this->getSupportedLocales();
 
             if (in_array($newLocale, $supportedLocales)) {
@@ -41,7 +41,7 @@ class SetLocale
         }
 
         // ── Apply locale from session or default ───────────────────────────────
-        $locale           = Str::lower(session('locale', $default_language));
+        $locale = Str::lower(session('locale', $default_language));
         $supportedLocales = $this->getSupportedLocales();
 
         app()->setLocale(

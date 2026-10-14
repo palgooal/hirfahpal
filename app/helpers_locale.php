@@ -18,7 +18,9 @@
  */
 
 use App\Models\Language;
+use App\Models\Page;
 use App\Models\TranslationValue;
+use Illuminate\Support\Collection;
 
 // ═════════════════════════════════════════════════════════════════════════════
 // 1) current_dir() — RTL / LTR direction for the active language
@@ -47,7 +49,7 @@ if (! function_exists('available_locales')) {
     /**
      * Return a Collection of all active Language models.
      *
-     * @return \Illuminate\Support\Collection|\App\Models\Language[]
+     * @return Collection|Language[]
      */
     function available_locales()
     {
@@ -69,8 +71,8 @@ if (! function_exists('t')) {
      *  - Fallback: if the current locale has no value, tries fallback_locale,
      *    then returns $default (or the key itself as last resort).
      *
-     * @param  string      $key     Dot-notation key, e.g. "frontend.nav.home"
-     * @param  string|null $default Value to return when no translation exists
+     * @param  string  $key  Dot-notation key, e.g. "frontend.nav.home"
+     * @param  string|null  $default  Value to return when no translation exists
      * @return string
      *
      * Usage:
@@ -80,10 +82,10 @@ if (! function_exists('t')) {
      */
     function t(string $key, ?string $default = null): string
     {
-        $locale         = app()->getLocale();
+        $locale = app()->getLocale();
         $fallbackLocale = config('app.fallback_locale', 'en');
-        $cacheTtl       = (int) config('palgoals-locale.cache_ttl', 60);
-        $autoCreate     = (bool) config('palgoals-locale.auto_create', true);
+        $cacheTtl = (int) config('palgoals-locale.cache_ttl', 60);
+        $autoCreate = (bool) config('palgoals-locale.auto_create', true);
 
         $cacheKey = "translation.{$locale}.{$key}";
 
@@ -94,9 +96,9 @@ if (! function_exists('t')) {
 
             if (! $translation && $autoCreate) {
                 TranslationValue::create([
-                    'key'    => $key,
+                    'key' => $key,
                     'locale' => $locale,
-                    'value'  => $default ?? '',
+                    'value' => $default ?? '',
                 ]);
             }
 
@@ -121,9 +123,9 @@ if (! function_exists('t')) {
 
                     if (! $translation && $autoCreate) {
                         TranslationValue::create([
-                            'key'    => $key,
+                            'key' => $key,
                             'locale' => $fallbackLocale,
-                            'value'  => $default ?? '',
+                            'value' => $default ?? '',
                         ]);
                     }
 
@@ -168,8 +170,8 @@ if (! function_exists('page_slug')) {
      *   → translated slug (fallback locale)
      *   → $canonicalKey as-is
      *
-     * @param  string      $canonicalKey  Slug in the fallback/default language
-     * @param  string|null $locale        Force a specific locale (optional)
+     * @param  string  $canonicalKey  Slug in the fallback/default language
+     * @param  string|null  $locale  Force a specific locale (optional)
      * @return string
      *
      * Usage:
@@ -178,15 +180,15 @@ if (! function_exists('page_slug')) {
     function page_slug(string $canonicalKey, ?string $locale = null): string
     {
         // Guard: Page model is optional — only available in projects that have it
-        if (! class_exists(\App\Models\Page::class)) {
+        if (! class_exists(Page::class)) {
             return $canonicalKey;
         }
 
-        $locale         = $locale ?: app()->getLocale();
+        $locale = $locale ?: app()->getLocale();
         $fallbackLocale = config('app.fallback_locale', 'en');
 
         // 1. Find the page by its canonical slug in the fallback locale
-        $page = \App\Models\Page::query()
+        $page = Page::query()
             ->whereHas('translations', fn ($q) => $q
                 ->where('slug', $canonicalKey)
                 ->where('locale', $fallbackLocale))
@@ -194,7 +196,7 @@ if (! function_exists('page_slug')) {
 
         // 2. If not found, try any locale
         if (! $page) {
-            $page = \App\Models\Page::query()
+            $page = Page::query()
                 ->whereHas('translations', fn ($q) => $q->where('slug', $canonicalKey))
                 ->first();
 

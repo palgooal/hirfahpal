@@ -31,4 +31,14 @@ class DeliveryDriverProfile extends Model
     {
         return $this->belongsTo(DeliveryDriver::class);
     }
+
+    public function governorate()
+    {
+        return $this->belongsTo(Governorate::class);
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(City::class);
+    }
 }

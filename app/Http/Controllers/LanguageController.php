@@ -28,6 +28,7 @@ class LanguageController extends Controller
         $this->authorize('view', Language::class);
 
         $langs = Language::paginate(10);
+
         return view('dashboard.lang.index', compact('langs'));
     }
 
@@ -43,18 +44,18 @@ class LanguageController extends Controller
         $this->authorize('create', Language::class);
 
         $request->validate([
-            'name'   => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'native' => 'required|string|max:255',
-            'code'   => 'required|string|max:10|unique:languages,code',
-            'flag'   => 'nullable|string|max:255',
+            'code' => 'required|string|max:10|unique:languages,code',
+            'flag' => 'nullable|string|max:255',
         ]);
 
         Language::create([
-            'name'      => $request->name,
-            'native'    => $request->native,
-            'code'      => strtolower($request->code),
-            'flag'      => $request->flag,
-            'is_rtl'    => $request->has('is_rtl'),
+            'name' => $request->name,
+            'native' => $request->native,
+            'code' => strtolower($request->code),
+            'flag' => $request->flag,
+            'is_rtl' => $request->has('is_rtl'),
             'is_active' => $request->has('is_active'),
         ]);
 
@@ -73,18 +74,18 @@ class LanguageController extends Controller
         $this->authorize('edit', Language::class);
 
         $request->validate([
-            'name'   => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'native' => 'required|string|max:255',
-            'code'   => 'required|string|max:10|unique:languages,code,' . $language->id,
-            'flag'   => 'nullable|string|max:255',
+            'code' => 'required|string|max:10|unique:languages,code,'.$language->id,
+            'flag' => 'nullable|string|max:255',
         ]);
 
         $language->update([
-            'name'      => $request->name,
-            'native'    => $request->native,
-            'code'      => strtolower($request->code),
-            'flag'      => $request->flag,
-            'is_rtl'    => $request->has('is_rtl'),
+            'name' => $request->name,
+            'native' => $request->native,
+            'code' => strtolower($request->code),
+            'flag' => $request->flag,
+            'is_rtl' => $request->has('is_rtl'),
             'is_active' => $request->has('is_active'),
         ]);
 
@@ -138,7 +139,7 @@ class LanguageController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'error'   => 'Failed to delete: ' . $e->getMessage(),
+                'error' => 'Failed to delete: '.$e->getMessage(),
             ], 500);
         }
     }

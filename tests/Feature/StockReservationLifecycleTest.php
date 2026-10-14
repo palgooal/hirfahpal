@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Requests\VendorDashboard\UpdateProductRequest;
 use App\Models\CartItem;
 use App\Models\Customer;
 use App\Models\Order;
@@ -10,7 +11,6 @@ use App\Models\Product;
 use App\Models\StockReservation;
 use App\Models\Vendor;
 use App\Models\VendorOrder;
-use App\Http\Requests\VendorDashboard\UpdateProductRequest;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Testing\TestResponse;
