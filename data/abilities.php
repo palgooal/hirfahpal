@@ -53,6 +53,11 @@ return [
         'create' => t('dashboard.Create_Product', 'Create Product'),
         'edit' => t('dashboard.Edit_Product', 'Edit Product'),
         'delete' => t('dashboard.Delete_Product', 'Delete Product'),
+        'audit' => t('dashboard.Audit_Products', 'View product action log'),
+        'suspend' => t('dashboard.Suspend_Products', 'Suspend products'),
+        'unsuspend' => t('dashboard.Unsuspend_Products', 'Lift product suspensions'),
+        'archive' => t('dashboard.Archive_Products', 'Archive products'),
+        'restore' => t('dashboard.Restore_Products', 'Restore archived products'),
     ],
     'customers' => [
         'name' => t('dashboard.Customers', 'Customers'),

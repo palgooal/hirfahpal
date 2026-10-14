@@ -1568,6 +1568,640 @@ html.admin-shell[dir="rtl"] .admin-page-arrow {
   }
 }
 
+/* ---- Products list (AD-UI-PROD-M3): resources/views/dashboard/products/index.blade.php ----
+ * Reuses the media page pieces (head, alerts, panel, states, search field), the categories filter bar and the
+ * shared pagination. A table on wide screens (5.2), one card per product below 1024px (5.13). Logical properties,
+ * HIRFAH colour tokens only; everything is scoped to .admin-products. */
+
+/* No breadcrumb on this page (DEC-AD-UI-03): hide the layout's empty band, here only. */
+html.admin-shell .pc-content:has(#admin-products) > .page-header {
+  display: none;
+}
+
+html.admin-shell .pc-content:has(#admin-products) {
+  padding-top: 1.5rem;
+}
+
+html.admin-shell .admin-products .admin-products-table-wrap {
+  overflow-x: auto;
+}
+
+html.admin-shell .admin-products .admin-products-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--color-hf-ink);
+  font-size: 0.875rem;
+}
+
+html.admin-shell .admin-products .admin-products-table th {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--color-hf-line);
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: start;
+  white-space: nowrap;
+}
+
+/* Rows of 56px and more (DEC-AD-UI-06). */
+html.admin-shell .admin-products .admin-products-table td {
+  height: 3.5rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--color-hf-line);
+  text-align: start;
+  vertical-align: middle;
+}
+
+html.admin-shell .admin-products .admin-products-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+html.admin-shell .admin-products .admin-products-table .is-number {
+  text-align: end;
+  white-space: nowrap;
+}
+
+html.admin-shell .admin-products .admin-products-table .is-actions {
+  text-align: end;
+  white-space: nowrap;
+}
+
+html.admin-shell .admin-products .admin-products-name {
+  margin: 0;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+html.admin-shell .admin-products .admin-products-code {
+  margin: 0;
+  color: var(--color-hf-muted);
+  font-size: 0.75rem;
+  text-align: start;
+  unicode-bidi: plaintext;
+}
+
+html.admin-shell .admin-products .admin-products-muted {
+  color: var(--color-hf-muted);
+}
+
+/* The cell labels are for the card layout only; on wide screens the column headers name the cells. */
+html.admin-shell .admin-products .admin-products-label {
+  display: none;
+}
+
+html.admin-shell .admin-products .admin-products-stock {
+  display: flex;
+  gap: 0.875rem;
+  margin: 0;
+}
+
+html.admin-shell .admin-products .admin-products-stock > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 3.25rem;
+}
+
+html.admin-shell .admin-products .admin-products-stock dt {
+  color: var(--color-hf-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-products .admin-products-stock dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+html.admin-shell .admin-products .admin-products-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+html.admin-shell .admin-products .admin-products-badge {
+  display: inline-block;
+  margin-top: 0.25rem;
+  padding: 0.0625rem 0.5rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 9999px;
+  background-color: #fff;
+  color: var(--color-hf-ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+html.admin-shell .admin-products .admin-products-badge.is-active {
+  border-color: var(--color-hf-olive);
+  color: var(--color-hf-olive);
+}
+
+html.admin-shell .admin-products .admin-products-badge.is-draft,
+html.admin-shell .admin-products .admin-products-badge.is-inactive {
+  color: var(--color-hf-muted);
+}
+
+html.admin-shell .admin-products .admin-products-badge.is-out_of_stock,
+html.admin-shell .admin-products .admin-products-badge.is-low {
+  border-color: var(--color-hf-copper);
+  color: #8a4520;
+}
+
+html.admin-shell .admin-products .admin-products-badge.is-suspended {
+  border-color: var(--color-hf-error);
+  background-color: var(--color-hf-error);
+  color: #fff;
+}
+
+html.admin-shell .admin-products .admin-products-badge.is-archived {
+  border-style: dashed;
+  border-color: var(--color-hf-muted);
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-ink);
+}
+
+/* Cards (5.13): each row becomes a card; the cells stack with their labels. */
+@media (max-width: 1023.98px) {
+  html.admin-shell .admin-products .admin-products-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  html.admin-shell .admin-products .admin-products-table,
+  html.admin-shell .admin-products .admin-products-table tbody,
+  html.admin-shell .admin-products .admin-products-table tr,
+  html.admin-shell .admin-products .admin-products-table td {
+    display: block;
+    width: 100%;
+  }
+
+  /* Vendor, category, price and status side by side; the product, its stock and the actions span the card. */
+  html.admin-shell .admin-products .admin-products-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1rem;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-hf-line);
+    border-radius: 12px;
+    background-color: #fff;
+  }
+
+  html.admin-shell .admin-products .admin-products-table .admin-products-cell-product,
+  html.admin-shell .admin-products .admin-products-table .admin-products-cell-stock,
+  html.admin-shell .admin-products .admin-products-table .is-actions {
+    grid-column: 1 / -1;
+  }
+
+  /* Price and status pair up; the stock and the actions close the card. Visual order only, the DOM is unchanged. */
+  html.admin-shell .admin-products .admin-products-table .admin-products-cell-stock {
+    order: 1;
+  }
+
+  html.admin-shell .admin-products .admin-products-table .is-actions {
+    order: 2;
+  }
+
+  html.admin-shell .admin-products .admin-products-table td,
+  html.admin-shell .admin-products .admin-products-table tbody tr:last-child td {
+    height: auto;
+    padding: 0.375rem 0;
+    border-bottom: 0;
+  }
+
+  html.admin-shell .admin-products .admin-products-table .is-number,
+  html.admin-shell .admin-products .admin-products-table .is-actions {
+    text-align: start;
+  }
+
+  html.admin-shell .admin-products .admin-products-table .is-actions {
+    padding-top: 0.625rem;
+  }
+
+  html.admin-shell .admin-products .admin-products-label {
+    display: block;
+    color: var(--color-hf-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+}
+
+/* Products list → details link (AD-UI-PROD-M4). */
+html.admin-shell .admin-products .admin-products-name-link {
+  color: var(--color-hf-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--color-hf-sage);
+  text-underline-offset: 3px;
+}
+
+html.admin-shell .admin-products .admin-products-name-link:hover,
+html.admin-shell .admin-products .admin-products-name-link:focus-visible {
+  color: var(--color-hf-olive);
+  text-decoration-color: var(--color-hf-olive);
+}
+
+/* ---- Product details (AD-UI-PROD-M4): resources/views/dashboard/products/show.blade.php ----
+ * Five groups; resources/js/admin-product-show.js makes them tabs (.is-tabbed). Without it every group is shown. */
+html.admin-shell .pc-content:has(#admin-product-show) > .page-header {
+  display: none;
+}
+
+html.admin-shell .pc-content:has(#admin-product-show) {
+  padding-top: 1.5rem;
+}
+
+html.admin-shell .admin-product-show [hidden] {
+  display: none !important;
+}
+
+html.admin-shell .admin-product-show .admin-product-head {
+  align-items: flex-start;
+}
+
+html.admin-shell .admin-product-show .admin-product-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+html.admin-shell .admin-product-show .admin-product-back,
+html.admin-shell .admin-product-form .admin-product-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  align-self: flex-start;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+html.admin-shell .admin-product-show .admin-product-back:hover,
+html.admin-shell .admin-product-show .admin-product-back:focus-visible,
+html.admin-shell .admin-product-form .admin-product-back:hover,
+html.admin-shell .admin-product-form .admin-product-back:focus-visible {
+  color: var(--color-hf-olive);
+}
+
+/* "Back" points against the reading direction. */
+html.admin-shell[dir="rtl"] .admin-product-show .admin-product-back-arrow,
+html.admin-shell[dir="rtl"] .admin-product-form .admin-product-back-arrow {
+  transform: scaleX(-1);
+}
+
+html.admin-shell .admin-product-show .admin-product-title,
+html.admin-shell .admin-product-form .admin-product-title {
+  margin: 0;
+  color: var(--color-hf-ink);
+  font-size: 1.25rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+html.admin-shell .admin-product-show .admin-product-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+html.admin-shell .admin-product-show .admin-product-tablist {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--color-hf-line);
+}
+
+html.admin-shell .admin-product-show .admin-product-tab {
+  flex: none;
+  min-height: 2.75rem;
+  margin-bottom: -1px;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--color-hf-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+html.admin-shell .admin-product-show .admin-product-tab:hover {
+  color: var(--color-hf-ink);
+}
+
+html.admin-shell .admin-product-show .admin-product-tab[aria-selected="true"] {
+  border-bottom-color: var(--color-hf-olive);
+  color: var(--color-hf-olive);
+}
+
+html.admin-shell .admin-product-show .admin-product-tab:focus-visible {
+  outline: 2px solid var(--color-hf-olive);
+  outline-offset: -2px;
+}
+
+html.admin-shell .admin-product-show .admin-product-panel {
+  padding: 1.25rem;
+}
+
+html.admin-shell .admin-product-show .admin-product-panel:focus-visible {
+  outline: 2px solid var(--color-hf-olive);
+  outline-offset: 2px;
+}
+
+html.admin-shell .admin-product-show .admin-product-panel-title {
+  margin: 0 0 1rem;
+  color: var(--color-hf-ink);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* With tabs, the tab names the panel: its heading stays for assistive technology only. */
+html.admin-shell .admin-product-show .is-tabbed .admin-product-panel-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+html.admin-shell .admin-product-show .admin-product-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.5rem;
+  margin: 0;
+}
+
+html.admin-shell .admin-product-show .admin-product-facts > div {
+  min-width: 0;
+}
+
+html.admin-shell .admin-product-show .admin-product-facts > .is-wide {
+  grid-column: 1 / -1;
+}
+
+html.admin-shell .admin-product-show .admin-product-facts dt {
+  color: var(--color-hf-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-product-show .admin-product-facts dd {
+  margin: 0.125rem 0 0;
+  color: var(--color-hf-ink);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Codes, numbers and dates read left to right inside a cell that follows the page direction. */
+html.admin-shell .admin-product-show .admin-product-facts dd > span[dir="ltr"] {
+  unicode-bidi: isolate;
+}
+
+/* Vendor text keeps its line breaks without any HTML (escaped output only). */
+html.admin-shell .admin-product-show .admin-product-text {
+  font-weight: 400;
+  white-space: pre-line;
+}
+
+html.admin-shell .admin-product-show .admin-product-since {
+  margin-inline-start: 0.5rem;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+}
+
+html.admin-shell .admin-product-show .admin-product-images {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html.admin-shell .admin-product-show .admin-product-image-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 10px;
+  background-color: var(--color-hf-surface);
+}
+
+html.admin-shell .admin-product-show .admin-product-image-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+html.admin-shell .admin-product-show .admin-product-image-frame > i {
+  color: var(--color-hf-sage);
+  font-size: 2rem;
+}
+
+html.admin-shell .admin-product-show .admin-product-image-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  min-width: 0;
+}
+
+html.admin-shell .admin-product-show .admin-product-image-refused {
+  color: #8a4520;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-product-show .admin-product-image-path {
+  max-width: 100%;
+  color: var(--color-hf-muted);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+html.admin-shell .admin-product-show .admin-product-log {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html.admin-shell .admin-product-show .admin-product-log-entry {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-hf-line);
+}
+
+html.admin-shell .admin-product-show .admin-product-log-entry:last-child {
+  border-bottom: 0;
+}
+
+html.admin-shell .admin-product-show .admin-product-log-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 0.75rem;
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+html.admin-shell .admin-product-show .admin-product-log-action {
+  padding: 0.0625rem 0.5rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 9999px;
+  color: var(--color-hf-ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+html.admin-shell .admin-product-show .admin-product-log-action.is-suspended {
+  border-color: var(--color-hf-error);
+  color: var(--color-hf-error);
+}
+
+html.admin-shell .admin-product-show .admin-product-log-action.is-unsuspended,
+html.admin-shell .admin-product-show .admin-product-log-action.is-restored {
+  border-color: var(--color-hf-olive);
+  color: var(--color-hf-olive);
+}
+
+html.admin-shell .admin-product-show .admin-product-log-action.is-archived {
+  border-style: dashed;
+  border-color: var(--color-hf-muted);
+}
+
+html.admin-shell .admin-product-show .admin-product-log-who {
+  color: var(--color-hf-ink);
+  font-weight: 600;
+}
+
+html.admin-shell .admin-product-show .admin-product-log-when {
+  color: var(--color-hf-muted);
+}
+
+html.admin-shell .admin-product-show .admin-product-log-reason {
+  margin: 0.375rem 0 0;
+  color: var(--color-hf-ink);
+}
+
+html.admin-shell .admin-product-show .admin-product-log-changes {
+  margin: 0.25rem 0 0;
+  padding-inline-start: 1.25rem;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+}
+
+/* AD-UI-PROD-M5: the suspension form in the moderation tab. The field error is shown by the field, so the layout's
+ * raw error list is hidden on this page. */
+html.admin-shell .pc-content:has(#admin-product-show) > .row > .alert-danger {
+  display: none;
+}
+
+html.admin-shell .admin-product-show .admin-product-moderation {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  max-width: 40rem;
+  margin-top: 1.25rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-hf-line);
+  border-inline-start-width: 4px;
+  border-radius: 12px;
+  background-color: var(--color-hf-surface);
+}
+
+html.admin-shell .admin-product-show .admin-product-moderation.is-suspend {
+  border-inline-start-color: var(--color-hf-error);
+}
+
+html.admin-shell .admin-product-show .admin-product-moderation.is-lift,
+html.admin-shell .admin-product-show .admin-product-moderation.is-restore {
+  border-inline-start-color: var(--color-hf-olive);
+}
+
+/* AD-UI-PROD-M6: archiving keeps everything; its rule is muted and dashed, like the archived badge. */
+html.admin-shell .admin-product-show .admin-product-moderation.is-archive {
+  border-inline-start-style: dashed;
+  border-inline-start-color: var(--color-hf-muted);
+}
+
+html.admin-shell .admin-product-show .admin-product-moderation-title {
+  margin: 0;
+  color: var(--color-hf-ink);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+html.admin-shell .admin-product-show .admin-product-moderation-hint,
+html.admin-shell .admin-product-show .admin-product-moderation-limits {
+  margin: 0;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+}
+
+html.admin-shell .admin-product-show .admin-product-moderation .form-label {
+  margin: 0.375rem 0 0;
+  color: var(--color-hf-ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-product-show .admin-product-moderation textarea {
+  resize: vertical;
+}
+
+html.admin-shell .admin-product-show .admin-product-moderation textarea.is-invalid {
+  border-color: var(--color-hf-error);
+}
+
+html.admin-shell .admin-product-show .admin-product-moderation-error {
+  margin: 0;
+  color: var(--color-hf-error);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-product-show .admin-product-moderation-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.375rem;
+}
+
+html.admin-shell .admin-product-show .admin-product-moderation .btn-danger {
+  border-color: var(--color-hf-error);
+  background-color: var(--color-hf-error);
+  color: #fff;
+}
+
+@media (max-width: 767.98px) {
+  html.admin-shell .admin-product-show .admin-product-moderation-actions .btn {
+    flex: 1 1 auto;
+  }
+
+  html.admin-shell .admin-product-show .admin-product-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html.admin-shell .admin-product-show .admin-product-images {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  html.admin-shell .admin-product-show .admin-product-panel {
+    padding: 1rem;
+  }
+}
+
 /* ---- Category form (AD-UI-CAT-01E-3B): resources/views/dashboard/categories/form.blade.php ----
  * Reuses the media page pieces (head, alerts, panel, hints, buttons) and the media picker. */
 
@@ -1786,6 +2420,66 @@ html.admin-shell .admin-cat-form-actions .btn:disabled {
 
   html.admin-shell .admin-cat-form-actions .btn {
     flex: 1 1 100%;
+  }
+}
+
+/* ---- Product form (AD-UI-PROD-M7-FIX-01): resources/views/dashboard/products/form.blade.php ----
+ * Built on the category form pieces above (admin-cat-form-*); only what differs is here. */
+html.admin-shell .pc-content:has(#admin-product-form) > .page-header,
+html.admin-shell .pc-content:has(#admin-product-form) > .row > .alert-danger {
+  display: none;
+}
+
+html.admin-shell .pc-content:has(#admin-product-form) {
+  padding-top: 1.5rem;
+}
+
+html.admin-shell .admin-product-form .admin-product-form-head {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+html.admin-shell .admin-product-form-note p {
+  margin: 0;
+}
+
+html.admin-shell .admin-product-form-note p + p {
+  margin-top: 0.25rem;
+}
+
+html.admin-shell .admin-product-form-note a {
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+html.admin-shell .admin-product-form .admin-product-form-narrow {
+  max-width: 18rem;
+}
+
+html.admin-shell .admin-product-form-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+}
+
+html.admin-shell .admin-product-form-check .form-check-input {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0.125rem 0 0;
+}
+
+html.admin-shell .admin-product-form-check .form-label {
+  margin-bottom: 0.125rem;
+  color: var(--color-hf-ink);
+  font-weight: 600;
+}
+
+@media (max-width: 575.98px) {
+  html.admin-shell .admin-product-form .admin-product-form-narrow {
+    max-width: none;
   }
 }
 

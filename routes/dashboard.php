@@ -23,7 +23,14 @@ Route::prefix('dashboard')
         // N-CAT-1: the server-side delete confirmation (GET shows it; only the DELETE route deletes).
         Route::get('categories/{category}/delete', [CategoryManagementController::class, 'confirmDelete'])->name('categories.delete');
         Route::resource('categories', CategoryManagementController::class)->except(['show']);
-        Route::resource('products', ProductManagementController::class)->except(['show']);
+        Route::resource('products', ProductManagementController::class);
+        // AD-UI-PROD-M5: suspension. The id is a plain number (no model binding), so the ability is checked before
+        // the product is read; the controller then reads it locked inside its transaction.
+        Route::post('products/{product}/suspend', [ProductManagementController::class, 'suspend'])->whereNumber('product')->name('products.suspend');
+        Route::post('products/{product}/unsuspend', [ProductManagementController::class, 'unsuspend'])->whereNumber('product')->name('products.unsuspend');
+        // AD-UI-PROD-M6: archiving instead of deleting, and restoring, on the same pattern.
+        Route::post('products/{product}/archive', [ProductManagementController::class, 'archive'])->whereNumber('product')->name('products.archive');
+        Route::post('products/{product}/restore', [ProductManagementController::class, 'restore'])->whereNumber('product')->name('products.restore');
 
         Route::get('customers', [CustomerManagementController::class, 'index'])->name('customers.index');
         Route::get('customers/{customer}', [CustomerManagementController::class, 'show'])->name('customers.show');

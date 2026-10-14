@@ -26,6 +26,17 @@ class Product extends Model
         'published_at',
     ];
 
+    /**
+     * AD-UI-PROD-M1: the administrative state (suspended_at, archived_at) is not fillable, so no vendor or admin
+     * form write can change it; only the moderation actions set it (forceFill under the product lock). It is
+     * hidden from JSON so the vendor and storefront responses keep their current shape; the application still
+     * reads it as attributes.
+     */
+    protected $hidden = [
+        'suspended_at',
+        'archived_at',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -35,6 +46,8 @@ class Product extends Model
             'dimensions' => 'array',
             'is_featured' => 'boolean',
             'published_at' => 'datetime',
+            'suspended_at' => 'datetime',
+            'archived_at' => 'datetime',
         ];
     }
 
@@ -63,6 +76,24 @@ class Product extends Model
         return $this->hasMany(StockReservation::class);
     }
 
+    /** AD-UI-PROD-M1: the administrative actions on this product, newest first. */
+    public function adminActions()
+    {
+        return $this->hasMany(ProductAdminAction::class)->latest('created_at')->latest('id');
+    }
+
+    /** AD-UI-PROD-M1: an administrative suspension (DEC-PROD-01). Not yet part of sellability (M2). */
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
+    }
+
+    /** AD-UI-PROD-M1: archived instead of deleted (OPEN-PROD-04). Not yet part of sellability (M2). */
+    public function isArchived(): bool
+    {
+        return $this->archived_at !== null;
+    }
+
     public function reservedStockQuantity(): int
     {
         return (int) $this->stockReservations()
@@ -78,11 +109,15 @@ class Product extends Model
     /**
      * Storefront sellability requires both an active product and a vendor that
      * is currently allowed to sell. Checkout reuses this contract at write time.
+     * AD-UI-PROD-M2: and a product that is neither suspended nor archived by the
+     * administration (DEC-PROD-01, OPEN-PROD-04).
      */
     public function scopeSellable(Builder $query): Builder
     {
         return $query
             ->where('status', 'active')
+            ->whereNull('products.suspended_at')
+            ->whereNull('products.archived_at')
             ->whereHas('vendor', fn (Builder $vendor) => $vendor->where('status', 'active'))
             ->whereHas('vendor.profile', fn (Builder $profile) => $profile->where('approval_status', 'approved'));
     }
@@ -92,8 +127,24 @@ class Product extends Model
         $this->loadMissing('vendor.profile');
 
         return $this->status === 'active'
+            && $this->isClearedByAdministration()
             && $this->vendor?->status === 'active'
             && $this->vendor?->isApproved();
+    }
+
+    /**
+     * AD-UI-PROD-M2: read from the model's raw attributes (as loaded from the row, independent of $hidden and of
+     * any serialization). Fail-closed: a product loaded without suspended_at or archived_at (a partial select)
+     * cannot show it is cleared, so it is not sellable.
+     */
+    private function isClearedByAdministration(): bool
+    {
+        $attributes = $this->getAttributes();
+
+        return array_key_exists('suspended_at', $attributes)
+            && array_key_exists('archived_at', $attributes)
+            && $attributes['suspended_at'] === null
+            && $attributes['archived_at'] === null;
     }
 
     /**

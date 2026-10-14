@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\Dashboard\ProductManagementController;
 use App\Http\Requests\VendorDashboard\StoreProductRequest;
 use App\Http\Requests\VendorDashboard\UpdateProductRequest;
 use App\Models\Admin;
@@ -20,8 +21,10 @@ use Tests\TestCase;
  *
  * Limits: a real race needs two database connections. These tests delete the category at the exact point
  * between validation and the write instead (vendor: after the FormRequest has validated, before the
- * controller's transaction; admin: in the model's creating/updating event, the admin write has no
- * transaction), so the write itself hits the foreign key, as it would in the race.
+ * controller's transaction; admin create: in the model's creating event, the admin create has no
+ * transaction; admin update: just before the update's transaction starts, AD-UI-PROD-M0 PRD-02), so the
+ * write itself hits the foreign key, as it would in the race. A deletion inside the transaction would be
+ * rolled back with it, which a committed deletion by another connection never is.
  */
 class ProductCategoryForeignKeyTest extends TestCase
 {
@@ -58,11 +61,15 @@ class ProductCategoryForeignKeyTest extends TestCase
         $current = Category::create(['name' => 'Current', 'slug' => 'current']);
         $target = Category::create(['name' => 'Target', 'slug' => 'target']);
         $product = $this->product($vendor, $current, 'Original');
-        Product::updating(fn () => DB::table('categories')->where('id', $target->id)->delete());
+        DB::connection()->beforeStartingTransaction(fn () => DB::table('categories')->where('id', $target->id)->delete());
 
         $this->actingAs($this->superAdmin(), 'admin')
             ->from(route('dashboard.products.edit', $product))
-            ->put(route('dashboard.products.update', $product), $this->adminPayload($vendor, $target, 'Renamed'))
+            ->put(route('dashboard.products.update', $product), $this->adminPayload($vendor, $target, 'Renamed') + [
+                // The edit form's stock basis (AD-UI-PROD-M0-FIX); the stock is not changed here.
+                'stock_quantity_original' => $product->stock_quantity,
+                'stock_version' => ProductManagementController::stockVersion($product),
+            ])
             ->assertRedirect(route('dashboard.products.edit', $product))
             ->assertSessionHasErrors('category_id');
 
