@@ -61,6 +61,16 @@ class Product extends Model
         return $this->belongsTo(Category::class);
     }
 
+    public function reviews()
+    {
+        return $this->hasMany(Review::class)->where('reviewable_type', 'product');
+    }
+
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
     public function images()
     {
         return $this->hasMany(ProductImage::class)->orderBy('sort_order');
@@ -156,6 +166,11 @@ class Product extends Model
     public function scopeLowAvailableStock(Builder $query): Builder
     {
         return $query->whereRaw('products.stock_quantity <= products.low_stock_threshold + ('.self::reservedStockSql().')');
+    }
+
+    public function scopeInStock(Builder $query): Builder
+    {
+        return $query->whereRaw('products.stock_quantity > ('.self::reservedStockSql().')');
     }
 
     /**

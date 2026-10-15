@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Dashboard\UpdateHomeContentRequest;
 use App\Http\Requests\Dashboard\UpdateSettingRequest;
 use App\Models\Setting;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -11,6 +12,25 @@ use Illuminate\Support\Facades\Storage;
 class SettingController extends Controller
 {
     use AuthorizesRequests;
+
+    public function homeContent()
+    {
+        $this->authorize('view', Setting::class);
+
+        return response()->json([
+            'home_content' => array_replace(config('homepage'), Setting::query()->first()?->home_content ?? []),
+        ]);
+    }
+
+    public function updateHomeContent(UpdateHomeContentRequest $request)
+    {
+        $setting = Setting::singleton();
+        $setting->update([
+            'home_content' => array_replace($setting->home_content ?? [], $request->validated('home_content')),
+        ]);
+
+        return response()->json(['message' => 'تم تحديث محتوى الصفحة الرئيسية.']);
+    }
 
     public function index()
     {

@@ -1,8 +1,8 @@
 @extends('layouts.storefront')
 
-@section('title', 'إبريق فخار مقدسي مزخرف | حِرفة')
+@section('title', $product->name.' | '.($siteSetting?->site_name ?: 'حِرفة'))
 
-@section('meta_description', 'إبريق فخار مقدسي مزخرف يدوياً من حِرفة')
+@section('meta_description', $product->short_description ?: $product->name)
 
 @section('content')
     @include('storefront.product.index')

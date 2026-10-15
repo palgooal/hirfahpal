@@ -1,7 +1,10 @@
 @extends('layouts.storefront')
 
+@section('title', $siteSetting?->site_name ?: 'حِرفة | سوق الصنعة الفلسطينية الأصيلة')
+@section('meta_description', $siteSetting?->site_description ?: 'حِرفة - سوق الصنعة الفلسطينية الأصيلة')
+
 @section('content')
-<main>
+<main data-homepage>
     @include('storefront.home.hero')
     @include('storefront.home.popular-products')
     @include('storefront.home.categories')
@@ -13,3 +16,7 @@
     @include('storefront.home.newsletter')
 </main>
 @endsection
+
+@push('scripts')
+    @include('storefront.home-actions')
+@endpush

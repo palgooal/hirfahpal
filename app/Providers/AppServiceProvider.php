@@ -7,6 +7,7 @@ use App\Models\Admin;
 use App\Models\Language;
 use App\Models\Setting;
 use App\Models\Vendor;
+use App\Support\Storefront\StorefrontContext;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -39,6 +40,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        View::composer(['layouts.storefront', 'pages.*', 'storefront.*'], function ($view) {
+            $view->with(array_replace(StorefrontContext::forRequest(request()), $view->getData()));
+        });
         // Only the stored super_admin flag grants the global bypass; row order never does.
         Gate::before(function ($user) {
             return $user instanceof Admin && $user->isSuperAdmin() ? true : null;

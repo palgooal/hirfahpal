@@ -1,3 +1,4 @@
+<form id="checkoutForm" method="POST" action="{{ route('customer.checkout.store') }}">@csrf
 <main data-checkout-page>
   <section class="border-b border-line/60 bg-canvas px-4 py-6 lg:px-8">
     <div class="mx-auto flex max-w-[1216px] flex-col gap-5">
@@ -34,35 +35,24 @@
           </div>
 
           <div class="mt-5 grid gap-3 md:grid-cols-3">
-            <label tabindex="0"
+            @foreach ($addresses as $address)
+<label tabindex="0"
               class="address-card cursor-pointer rounded-[16px] border border-olive bg-olive/5 p-4 text-start shadow-card transition-colors">
-              <input type="radio" name="addressChoice" value="home" class="sr-only" checked>
+              <input type="radio" name="addressChoice" value="{{ $address->id }}" class="sr-only" @checked((string) old('addressChoice', $addresses->first()?->id) === (string) $address->id)>
               <span class="flex items-center justify-between gap-3">
-                <strong class="text-base font-bold leading-6 text-ink">المنزل</strong>
+                <strong class="text-base font-bold leading-6 text-ink">{{ $address->label }}</strong>
                 <span class="flex h-7 w-7 items-center justify-center rounded-full bg-olive text-surface"><i
                     data-lucide="check" class="h-4 w-4"></i></span>
               </span>
-              <span class="mt-3 block text-sm leading-6 text-muted">ليان خليل</span>
-              <span class="block text-sm leading-6 text-muted">رام الله، حي الطيرة، قرب دوار الساعة</span>
-              <span class="mt-2 block text-sm font-semibold leading-6 text-ink"><bdi>0599123456</bdi></span>
+              <span class="mt-3 block text-sm leading-6 text-muted">{{ $address->recipient_name }}</span>
+              <span class="block text-sm leading-6 text-muted">{{ $address->governorate?->name }} {{ $address->city?->name }}، {{ $address->address_line }}</span>
+              <span class="mt-2 block text-sm font-semibold leading-6 text-ink"><bdi>{{ $address->phone }}</bdi></span>
             </label>
+@endforeach
 
             <label tabindex="0"
               class="address-card cursor-pointer rounded-[16px] border border-line bg-surface p-4 text-start transition-colors hover:border-olive/50">
-              <input type="radio" name="addressChoice" value="work" class="sr-only">
-              <span class="flex items-center justify-between gap-3">
-                <strong class="text-base font-bold leading-6 text-ink">العمل</strong>
-                <span class="flex h-7 w-7 items-center justify-center rounded-full border border-line text-muted"><i
-                    data-lucide="building-2" class="h-4 w-4"></i></span>
-              </span>
-              <span class="mt-3 block text-sm leading-6 text-muted">ليان خليل</span>
-              <span class="block text-sm leading-6 text-muted">القدس، شارع صلاح الدين، الطابق <bdi>2</bdi></span>
-              <span class="mt-2 block text-sm font-semibold leading-6 text-ink"><bdi>0599123456</bdi></span>
-            </label>
-
-            <label tabindex="0"
-              class="address-card cursor-pointer rounded-[16px] border border-line bg-surface p-4 text-start transition-colors hover:border-olive/50">
-              <input type="radio" name="addressChoice" value="new" class="sr-only">
+              <input type="radio" name="addressChoice" value="new" class="sr-only" @checked(old('addressChoice', $addresses->isEmpty() ? 'new' : null) === 'new')>
               <span class="flex items-center justify-between gap-3">
                 <strong class="text-base font-bold leading-6 text-ink">إضافة عنوان جديد</strong>
                 <span class="flex h-7 w-7 items-center justify-center rounded-full border border-line text-muted"><i
@@ -72,38 +62,30 @@
             </label>
           </div>
 
-          <div id="newAddressForm" class="mt-5 hidden rounded-[16px] border border-line bg-canvas p-4">
+          <div id="newAddressForm" class="mt-5 {{ old('addressChoice', $addresses->isEmpty() ? 'new' : null) === 'new' ? '' : 'hidden' }} rounded-[16px] border border-line bg-canvas p-4">
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="text-start">
                 <span class="mb-2 block text-sm font-semibold leading-5 text-ink">اسم المستلم</span>
-                <input type="text"
+                <input type="text" name="recipient_name" value="{{ old('recipient_name', auth('customer')->user()->name) }}"
                   class="h-12 w-full rounded-[14px] border border-line bg-surface px-4 text-sm outline-none transition-colors focus:border-olive"
                   placeholder="الاسم الكامل">
               </label>
               <label class="text-start">
                 <span class="mb-2 block text-sm font-semibold leading-5 text-ink">رقم الهاتف</span>
-                <input type="tel"
+                <input type="tel" name="phone" value="{{ old('phone', auth('customer')->user()->phone) }}"
                   class="h-12 w-full rounded-[14px] border border-line bg-surface px-4 text-sm outline-none transition-colors focus:border-olive"
                   placeholder="05xxxxxxxx">
               </label>
               <label class="text-start">
                 <span class="mb-2 block text-sm font-semibold leading-5 text-ink">المحافظة</span>
-                <select
-                  class="h-12 w-full rounded-[14px] border border-line bg-surface px-4 text-sm outline-none transition-colors focus:border-olive">
-                  <option>القدس</option>
-                  <option>الخليل</option>
-                  <option>بيت لحم</option>
-                  <option>رام الله</option>
-                  <option>نابلس</option>
-                  <option>جنين</option>
-                  <option>الجليل</option>
-                </select>
+                <select name="governorate_id"
+                  class="h-12 w-full rounded-[14px] border border-line bg-surface px-4 text-sm outline-none transition-colors focus:border-olive">@foreach ($governorates as $governorate)<option value="{{ $governorate->id }}">{{ $governorate->name }}</option>@endforeach</select>
               </label>
               <label class="text-start sm:col-span-2">
                 <span class="mb-2 block text-sm font-semibold leading-5 text-ink">الشارع ووصف العنوان</span>
-                <textarea rows="3"
+                <textarea name="address_line" rows="3"
                   class="w-full rounded-[14px] border border-line bg-surface px-4 py-3 text-sm leading-6 outline-none transition-colors focus:border-olive"
-                  placeholder="الحي، الشارع، أقرب علامة واضحة، وأي تفاصيل تساعد التوصيل"></textarea>
+                  placeholder="الحي، الشارع، أقرب علامة واضحة، وأي تفاصيل تساعد التوصيل">{{ old('address_line') }}</textarea>
               </label>
             </div>
           </div>
@@ -115,14 +97,16 @@
             <p class="mt-1 text-sm leading-6 text-muted">كل تاجر سيُنشئ طلباً فرعياً مستقلاً بتكلفة توصيله الخاصة.</p>
           </div>
 
-          <article class="cart-vendor-group overflow-hidden rounded-[20px] border border-line bg-surface shadow-card"
-            data-vendor-slug="dar-al-karma">
+          @foreach ($cartGroups as $items)
+@php($groupVendor = $items->first()->product->vendor)
+<article class="cart-vendor-group overflow-hidden rounded-[20px] border border-line bg-surface shadow-card"
+            data-vendor-slug="{{ $groupVendor->profile->slug }}">
             <header class="flex flex-col gap-4 border-b border-line/70 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-              <a role="link" aria-disabled="true" data-deferred-navigation="vendor.html?id=dar-al-karma" class="flex min-w-0 items-center justify-start gap-3 text-start">
+              <a href="{{ route('vendors.profile', ['storeSlug' => $groupVendor->profile->slug]) }}" class="flex min-w-0 items-center justify-start gap-3 text-start">
                 <span
-                  class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-copper/20 bg-copper/10 text-lg font-bold leading-7 text-copper">د.ك</span>
+                  class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-copper/20 bg-copper/10 text-lg font-bold leading-7 text-copper">{{ $groupVendor->profile->store_initials }}</span>
                 <span class="min-w-0">
-                  <strong class="block truncate text-base font-bold leading-6 text-ink">دار الكرمة للخزف</strong>
+                  <strong class="block truncate text-base font-bold leading-6 text-ink">{{ $groupVendor->profile->store_name }}</strong>
                   <span class="block text-xs leading-4 text-muted">كل قطعة من هذا المشغل تُجهّز يدوياً</span>
                 </span>
               </a>
@@ -131,250 +115,54 @@
             </header>
 
             <div class="divide-y divide-line/70">
-              <article class="cart-line-item grid gap-4 px-4 py-5 sm:grid-cols-[96px_minmax(0,1fr)] sm:px-5 lg:grid-cols-[104px_minmax(0,1fr)_150px]">
-                <a role="link" aria-disabled="true" data-deferred-navigation="product.html" class="block h-24 w-24 overflow-hidden rounded-[16px] border border-line bg-canvas sm:h-24 sm:w-24 lg:h-[104px] lg:w-[104px]">
-                  <img src="{{ asset('assets/storefront/imgs/mcp/arrival-pitcher.png') }}" alt="إبريق فخار مقدسي مزخرف"
+              @foreach ($items as $item)
+<article class="cart-line-item grid gap-4 px-4 py-5 sm:grid-cols-[96px_minmax(0,1fr)] sm:px-5 lg:grid-cols-[104px_minmax(0,1fr)_150px]">
+                <a href="{{ route('product', ['slug' => $item->product->slug]) }}" class="block h-24 w-24 overflow-hidden rounded-[16px] border border-line bg-canvas sm:h-24 sm:w-24 lg:h-[104px] lg:w-[104px]">
+                  <img src="{{ \App\Support\Storefront\HomepageMedia::url($item->product->primaryImage?->path) }}" alt="{{ $item->product->name }}"
                     class="h-full w-full object-cover">
                 </a>
                 <div class="min-w-0 text-start">
-                  <h3 class="text-base font-bold leading-6 text-ink">إبريق فخار مقدسي مزخرف</h3>
-                  <p class="mt-1 text-xs leading-5 text-muted">قطعة تقديم مرسومة يدوياً من خزف الخليل.</p>
+                  <h3 class="text-base font-bold leading-6 text-ink">{{ $item->product->name }}</h3>
+                  <p class="mt-1 text-xs leading-5 text-muted">{{ $item->product->short_description }}</p>
                   <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:max-w-[420px]">
                     <div>
                       <span class="block text-[11px] font-semibold leading-4 text-muted">سعر القطعة</span>
-                      <strong class="block text-sm font-bold leading-6 text-ink"><bdi>₪145</bdi></strong>
+                      <strong class="block text-sm font-bold leading-6 text-ink"><bdi>{{ number_format($item->product->price, 2) }} {{ $currency }}</bdi></strong>
                     </div>
                     <div>
                       <span class="block text-[11px] font-semibold leading-4 text-muted">الكمية</span>
-                      <strong class="mt-1 inline-flex h-[42px] items-center rounded-xl border border-line bg-canvas px-4 text-sm font-bold text-ink"><bdi>1</bdi></strong>
+                      <strong class="mt-1 inline-flex h-[42px] items-center rounded-xl border border-line bg-canvas px-4 text-sm font-bold text-ink"><bdi>{{ $item->quantity }}</bdi></strong>
                     </div>
                   </div>
                 </div>
                 <div class="flex items-center justify-between gap-3 border-t border-line/60 pt-4 sm:col-start-2 lg:col-start-auto lg:flex-col lg:items-end lg:border-t-0 lg:pt-0">
                   <div class="text-start lg:text-end">
                     <span class="block text-[11px] font-semibold leading-4 text-muted">إجمالي السطر</span>
-                    <strong class="block text-lg font-bold leading-7 text-olive"><bdi>₪145</bdi></strong>
+                    <strong class="block text-lg font-bold leading-7 text-olive"><bdi>{{ number_format($item->quantity * $item->product->price, 2) }} {{ $currency }}</bdi></strong>
                   </div>
                 </div>
               </article>
+@endforeach
 
-              <article class="cart-line-item grid gap-4 px-4 py-5 sm:grid-cols-[96px_minmax(0,1fr)] sm:px-5 lg:grid-cols-[104px_minmax(0,1fr)_150px]">
-                <a role="link" aria-disabled="true" data-deferred-navigation="product.html" class="block h-24 w-24 overflow-hidden rounded-[16px] border border-line bg-canvas sm:h-24 sm:w-24 lg:h-[104px] lg:w-[104px]">
-                  <img src="{{ asset('assets/storefront/imgs/mcp/category-ceramics.png') }}" alt="طبق تقديم خزفي أزرق"
-                    class="h-full w-full object-cover">
-                </a>
-                <div class="min-w-0 text-start">
-                  <h3 class="text-base font-bold leading-6 text-ink">طبق تقديم خزفي أزرق</h3>
-                  <p class="mt-1 text-xs leading-5 text-muted">طبق متوسط بزخرفة نباتية هادئة للمائدة اليومية.</p>
-                  <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:max-w-[420px]">
-                    <div>
-                      <span class="block text-[11px] font-semibold leading-4 text-muted">سعر القطعة</span>
-                      <strong class="block text-sm font-bold leading-6 text-ink"><bdi>₪135</bdi></strong>
-                    </div>
-                    <div>
-                      <span class="block text-[11px] font-semibold leading-4 text-muted">الكمية</span>
-                      <strong class="mt-1 inline-flex h-[42px] items-center rounded-xl border border-line bg-canvas px-4 text-sm font-bold text-ink"><bdi>2</bdi></strong>
-                    </div>
-                  </div>
-                </div>
-                <div class="flex items-center justify-between gap-3 border-t border-line/60 pt-4 sm:col-start-2 lg:col-start-auto lg:flex-col lg:items-end lg:border-t-0 lg:pt-0">
-                  <div class="text-start lg:text-end">
-                    <span class="block text-[11px] font-semibold leading-4 text-muted">إجمالي السطر</span>
-                    <strong class="block text-lg font-bold leading-7 text-olive"><bdi>₪270</bdi></strong>
-                  </div>
-                </div>
-              </article>
             </div>
 
             <footer class="grid gap-3 border-t border-line bg-canvas px-4 py-4 text-start sm:px-5">
               <div class="flex items-center justify-between gap-4">
                 <span class="text-sm font-semibold leading-6 text-muted">المجموع الفرعي</span>
-                <strong class="text-xl font-bold leading-8 text-ink"><bdi>₪415</bdi></strong>
+                <strong class="text-xl font-bold leading-8 text-ink"><bdi>{{ number_format($items->sum(fn ($item) => $item->quantity * $item->product->price), 2) }} {{ $currency }}</bdi></strong>
               </div>
               <div class="flex items-center justify-between gap-4">
                 <span class="text-sm font-semibold leading-6 text-muted">توصيل هذا التاجر</span>
-                <strong class="text-base font-bold leading-7 text-ink"><bdi>₪18</bdi></strong>
+                <strong class="text-base font-bold leading-7 text-ink"><bdi>{{ number_format(config('marketplace.delivery_fee'), 2) }} {{ $currency }}</bdi></strong>
               </div>
               <div class="flex items-center justify-between gap-4 border-t border-line/70 pt-3">
                 <span class="text-sm font-bold leading-6 text-ink">المجموع مع التوصيل</span>
-                <strong class="text-xl font-bold leading-8 text-olive"><bdi>₪433</bdi></strong>
+                <strong class="text-xl font-bold leading-8 text-olive"><bdi>{{ number_format($items->sum(fn ($item) => $item->quantity * $item->product->price) + config('marketplace.delivery_fee'), 2) }} {{ $currency }}</bdi></strong>
               </div>
             </footer>
           </article>
+@endforeach
 
-          <article class="cart-vendor-group overflow-hidden rounded-[20px] border border-line bg-surface shadow-card"
-            data-vendor-slug="bethlehem-women">
-            <header class="flex flex-col gap-4 border-b border-line/70 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-              <a role="link" aria-disabled="true" data-deferred-navigation="vendor.html?id=bethlehem-women" class="flex min-w-0 items-center justify-start gap-3 text-start">
-                <span
-                  class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-sage/40 bg-sage/20 text-lg font-bold leading-7 text-olive">ن.ب</span>
-                <span class="min-w-0">
-                  <strong class="block truncate text-base font-bold leading-6 text-ink">جمعية نساء بيت لحم</strong>
-                  <span class="block text-xs leading-4 text-muted">تعاونية نسوية تجمع التطريز والبيت الدافئ</span>
-                </span>
-              </a>
-              <span class="w-fit rounded-full border border-copper/20 bg-copper/10 px-3 py-1 text-xs font-bold text-copper">مجموعة
-                تاجر مستقلة</span>
-            </header>
-
-            <div class="divide-y divide-line/70">
-              <article class="cart-line-item grid gap-4 px-4 py-5 sm:grid-cols-[96px_minmax(0,1fr)] sm:px-5 lg:grid-cols-[104px_minmax(0,1fr)_150px]">
-                <a role="link" aria-disabled="true" data-deferred-navigation="product.html" class="block h-24 w-24 overflow-hidden rounded-[16px] border border-line bg-canvas sm:h-24 sm:w-24 lg:h-[104px] lg:w-[104px]">
-                  <img src="{{ asset('assets/storefront/imgs/mcp/arrival-cushion.png') }}" alt="وسادة تطريز فلاحي كنعاني"
-                    class="h-full w-full object-cover">
-                </a>
-                <div class="min-w-0 text-start">
-                  <h3 class="text-base font-bold leading-6 text-ink">وسادة تطريز فلاحي كنعاني</h3>
-                  <p class="mt-1 text-xs leading-5 text-muted">قماش كتان مطرز بغرزة الفلاحي ونقوش النجمة.</p>
-                  <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:max-w-[420px]">
-                    <div>
-                      <span class="block text-[11px] font-semibold leading-4 text-muted">سعر القطعة</span>
-                      <strong class="block text-sm font-bold leading-6 text-ink"><bdi>₪220</bdi></strong>
-                    </div>
-                    <div>
-                      <span class="block text-[11px] font-semibold leading-4 text-muted">الكمية</span>
-                      <strong class="mt-1 inline-flex h-[42px] items-center rounded-xl border border-line bg-canvas px-4 text-sm font-bold text-ink"><bdi>1</bdi></strong>
-                    </div>
-                  </div>
-                </div>
-                <div class="flex items-center justify-between gap-3 border-t border-line/60 pt-4 sm:col-start-2 lg:col-start-auto lg:flex-col lg:items-end lg:border-t-0 lg:pt-0">
-                  <div class="text-start lg:text-end">
-                    <span class="block text-[11px] font-semibold leading-4 text-muted">إجمالي السطر</span>
-                    <strong class="block text-lg font-bold leading-7 text-olive"><bdi>₪220</bdi></strong>
-                  </div>
-                </div>
-              </article>
-
-              <article class="cart-line-item grid gap-4 px-4 py-5 sm:grid-cols-[96px_minmax(0,1fr)] sm:px-5 lg:grid-cols-[104px_minmax(0,1fr)_150px]">
-                <a role="link" aria-disabled="true" data-deferred-navigation="product.html" class="block h-24 w-24 overflow-hidden rounded-[16px] border border-line bg-canvas sm:h-24 sm:w-24 lg:h-[104px] lg:w-[104px]">
-                  <img src="{{ asset('assets/storefront/imgs/mcp/category-embroidery.png') }}" alt="شال مطرز بخيوط قطنية"
-                    class="h-full w-full object-cover">
-                </a>
-                <div class="min-w-0 text-start">
-                  <h3 class="text-base font-bold leading-6 text-ink">شال مطرز بخيوط قطنية</h3>
-                  <p class="mt-1 text-xs leading-5 text-muted">شال خفيف بنقشة ريفية مناسبة للهدايا اليومية.</p>
-                  <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:max-w-[420px]">
-                    <div>
-                      <span class="block text-[11px] font-semibold leading-4 text-muted">سعر القطعة</span>
-                      <strong class="block text-sm font-bold leading-6 text-ink"><bdi>₪180</bdi></strong>
-                    </div>
-                    <div>
-                      <span class="block text-[11px] font-semibold leading-4 text-muted">الكمية</span>
-                      <strong class="mt-1 inline-flex h-[42px] items-center rounded-xl border border-line bg-canvas px-4 text-sm font-bold text-ink"><bdi>1</bdi></strong>
-                    </div>
-                  </div>
-                </div>
-                <div class="flex items-center justify-between gap-3 border-t border-line/60 pt-4 sm:col-start-2 lg:col-start-auto lg:flex-col lg:items-end lg:border-t-0 lg:pt-0">
-                  <div class="text-start lg:text-end">
-                    <span class="block text-[11px] font-semibold leading-4 text-muted">إجمالي السطر</span>
-                    <strong class="block text-lg font-bold leading-7 text-olive"><bdi>₪180</bdi></strong>
-                  </div>
-                </div>
-              </article>
-            </div>
-
-            <footer class="grid gap-3 border-t border-line bg-canvas px-4 py-4 text-start sm:px-5">
-              <div class="flex items-center justify-between gap-4">
-                <span class="text-sm font-semibold leading-6 text-muted">المجموع الفرعي</span>
-                <strong class="text-xl font-bold leading-8 text-ink"><bdi>₪400</bdi></strong>
-              </div>
-              <div class="flex items-center justify-between gap-4">
-                <span class="text-sm font-semibold leading-6 text-muted">توصيل هذا التاجر</span>
-                <strong class="text-base font-bold leading-7 text-ink"><bdi>₪22</bdi></strong>
-              </div>
-              <div class="flex items-center justify-between gap-4 border-t border-line/70 pt-3">
-                <span class="text-sm font-bold leading-6 text-ink">المجموع مع التوصيل</span>
-                <strong class="text-xl font-bold leading-8 text-olive"><bdi>₪422</bdi></strong>
-              </div>
-            </footer>
-          </article>
-
-          <article class="cart-vendor-group overflow-hidden rounded-[20px] border border-line bg-surface shadow-card"
-            data-vendor-slug="noor-alzaytouna">
-            <header class="flex flex-col gap-4 border-b border-line/70 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-              <a role="link" aria-disabled="true" data-deferred-navigation="vendor.html?id=noor-alzaytouna" class="flex min-w-0 items-center justify-start gap-3 text-start">
-                <span
-                  class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-copper/20 bg-copper/10 text-lg font-bold leading-7 text-copper">ن.ز</span>
-                <span class="min-w-0">
-                  <strong class="block truncate text-base font-bold leading-6 text-ink">مشغل نور الزيتونة</strong>
-                  <span class="block text-xs leading-4 text-muted">شموع وصابون بروائح طبيعية هادئة</span>
-                </span>
-              </a>
-              <span class="w-fit rounded-full border border-copper/20 bg-copper/10 px-3 py-1 text-xs font-bold text-copper">مجموعة
-                تاجر مستقلة</span>
-            </header>
-
-            <div class="divide-y divide-line/70">
-              <article class="cart-line-item grid gap-4 px-4 py-5 sm:grid-cols-[96px_minmax(0,1fr)] sm:px-5 lg:grid-cols-[104px_minmax(0,1fr)_150px]">
-                <a role="link" aria-disabled="true" data-deferred-navigation="product.html" class="block h-24 w-24 overflow-hidden rounded-[16px] border border-line bg-canvas sm:h-24 sm:w-24 lg:h-[104px] lg:w-[104px]">
-                  <img src="{{ asset('assets/storefront/imgs/mcp/arrival-candle.png') }}" alt="شمعة صويا وزيت زيتون"
-                    class="h-full w-full object-cover">
-                </a>
-                <div class="min-w-0 text-start">
-                  <h3 class="text-base font-bold leading-6 text-ink">شمعة صويا وزيت زيتون</h3>
-                  <p class="mt-1 text-xs leading-5 text-muted">شمعة في وعاء فخاري صغير بخيط خشبي آمن.</p>
-                  <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:max-w-[420px]">
-                    <div>
-                      <span class="block text-[11px] font-semibold leading-4 text-muted">سعر القطعة</span>
-                      <strong class="block text-sm font-bold leading-6 text-ink"><bdi>₪68</bdi></strong>
-                    </div>
-                    <div>
-                      <span class="block text-[11px] font-semibold leading-4 text-muted">الكمية</span>
-                      <strong class="mt-1 inline-flex h-[42px] items-center rounded-xl border border-line bg-canvas px-4 text-sm font-bold text-ink"><bdi>2</bdi></strong>
-                    </div>
-                  </div>
-                </div>
-                <div class="flex items-center justify-between gap-3 border-t border-line/60 pt-4 sm:col-start-2 lg:col-start-auto lg:flex-col lg:items-end lg:border-t-0 lg:pt-0">
-                  <div class="text-start lg:text-end">
-                    <span class="block text-[11px] font-semibold leading-4 text-muted">إجمالي السطر</span>
-                    <strong class="block text-lg font-bold leading-7 text-olive"><bdi>₪136</bdi></strong>
-                  </div>
-                </div>
-              </article>
-
-              <article class="cart-line-item grid gap-4 px-4 py-5 sm:grid-cols-[96px_minmax(0,1fr)] sm:px-5 lg:grid-cols-[104px_minmax(0,1fr)_150px]">
-                <a role="link" aria-disabled="true" data-deferred-navigation="product.html" class="block h-24 w-24 overflow-hidden rounded-[16px] border border-line bg-canvas sm:h-24 sm:w-24 lg:h-[104px] lg:w-[104px]">
-                  <img src="{{ asset('assets/storefront/imgs/mcp/category-candle.png') }}" alt="مجموعة شموع زيت زيتون صغيرة"
-                    class="h-full w-full object-cover">
-                </a>
-                <div class="min-w-0 text-start">
-                  <h3 class="text-base font-bold leading-6 text-ink">مجموعة شموع زيت زيتون صغيرة</h3>
-                  <p class="mt-1 text-xs leading-5 text-muted">ثلاث شموع بروائح هادئة للحجرات الصغيرة والهدايا.</p>
-                  <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:max-w-[420px]">
-                    <div>
-                      <span class="block text-[11px] font-semibold leading-4 text-muted">سعر المجموعة</span>
-                      <strong class="block text-sm font-bold leading-6 text-ink"><bdi>₪60</bdi></strong>
-                    </div>
-                    <div>
-                      <span class="block text-[11px] font-semibold leading-4 text-muted">الكمية</span>
-                      <strong class="mt-1 inline-flex h-[42px] items-center rounded-xl border border-line bg-canvas px-4 text-sm font-bold text-ink"><bdi>1</bdi></strong>
-                    </div>
-                  </div>
-                </div>
-                <div class="flex items-center justify-between gap-3 border-t border-line/60 pt-4 sm:col-start-2 lg:col-start-auto lg:flex-col lg:items-end lg:border-t-0 lg:pt-0">
-                  <div class="text-start lg:text-end">
-                    <span class="block text-[11px] font-semibold leading-4 text-muted">إجمالي السطر</span>
-                    <strong class="block text-lg font-bold leading-7 text-olive"><bdi>₪60</bdi></strong>
-                  </div>
-                </div>
-              </article>
-            </div>
-
-            <footer class="grid gap-3 border-t border-line bg-canvas px-4 py-4 text-start sm:px-5">
-              <div class="flex items-center justify-between gap-4">
-                <span class="text-sm font-semibold leading-6 text-muted">المجموع الفرعي</span>
-                <strong class="text-xl font-bold leading-8 text-ink"><bdi>₪196</bdi></strong>
-              </div>
-              <div class="flex items-center justify-between gap-4">
-                <span class="text-sm font-semibold leading-6 text-muted">توصيل هذا التاجر</span>
-                <strong class="text-base font-bold leading-7 text-ink"><bdi>₪15</bdi></strong>
-              </div>
-              <div class="flex items-center justify-between gap-4 border-t border-line/70 pt-3">
-                <span class="text-sm font-bold leading-6 text-ink">المجموع مع التوصيل</span>
-                <strong class="text-xl font-bold leading-8 text-olive"><bdi>₪211</bdi></strong>
-              </div>
-            </footer>
-          </article>
         </section>
 
         <section data-payment-selector class="rounded-[20px] border border-line bg-surface p-5 shadow-card sm:p-6" aria-labelledby="paymentTitle">
@@ -430,7 +218,7 @@
         <div class="flex items-center justify-between gap-4 border-b border-line pb-4">
           <div class="text-start">
             <h2 class="text-[22px] font-semibold leading-8 text-ink">الإجمالي النهائي</h2>
-            <p class="text-xs leading-5 text-muted"><bdi>6</bdi> منتجات من <bdi>3</bdi> متاجر</p>
+            <p class="text-xs leading-5 text-muted"><bdi>{{ $cartItems->count() }}</bdi> منتجات من <bdi>{{ $cartGroups->count() }}</bdi> متاجر</p>
           </div>
           <span class="flex h-11 w-11 items-center justify-center rounded-full bg-copper/10 text-copper">
             <i data-lucide="receipt-text" class="h-5 w-5"></i>
@@ -440,25 +228,25 @@
         <div class="grid gap-3 py-5 text-sm">
           <div class="flex items-center justify-between gap-4 text-muted">
             <span>مجموع المنتجات</span>
-            <strong class="font-bold text-ink"><bdi>₪1,011</bdi></strong>
+            <strong class="font-bold text-ink"><bdi>{{ number_format($subtotal, 2) }} {{ $currency }}</bdi></strong>
           </div>
           <div class="rounded-[16px] border border-copper/30 bg-copper/10 p-4 text-start">
             <div class="flex items-center justify-between gap-4">
               <span class="text-sm font-bold leading-6 text-copper">إجمالي تكلفة التوصيل</span>
-              <strong class="text-lg font-bold leading-7 text-copper"><bdi>₪55</bdi></strong>
+              <strong class="text-lg font-bold leading-7 text-copper"><bdi>{{ number_format($deliveryTotal, 2) }} {{ $currency }}</bdi></strong>
             </div>
             <p class="mt-1 text-xs leading-5 text-muted">مجموع توصيل الطلبات الفرعية الثلاثة.</p>
           </div>
           <div class="flex items-center justify-between gap-4 text-muted">
             <span>إجمالي التوصيل</span>
-            <strong class="font-bold text-ink"><bdi>₪55</bdi></strong>
+            <strong class="font-bold text-ink"><bdi>{{ number_format($deliveryTotal, 2) }} {{ $currency }}</bdi></strong>
           </div>
         </div>
 
         <div class="border-t border-line pt-5">
           <div class="flex items-end justify-between gap-4">
             <span class="text-base font-bold leading-7 text-ink">المجموع الكلي</span>
-            <strong class="text-3xl font-bold leading-10 text-olive"><bdi>₪1,066</bdi></strong>
+            <strong class="text-3xl font-bold leading-10 text-olive"><bdi>{{ number_format($subtotal + $deliveryTotal, 2) }} {{ $currency }}</bdi></strong>
           </div>
           <div class="mt-4 rounded-[16px] border border-line bg-canvas p-4 text-start">
             <span class="block text-xs font-semibold leading-5 text-muted">طريقة الدفع المختارة</span>
@@ -500,7 +288,7 @@
       </div>
       <div class="flex items-center justify-between gap-4 rounded-[14px] border border-line bg-canvas px-4 py-3">
         <span class="font-semibold text-muted">المجموع الكلي</span>
-        <strong class="text-lg font-bold text-olive"><bdi>₪1,066</bdi></strong>
+        <strong class="text-lg font-bold text-olive"><bdi>{{ number_format($subtotal + $deliveryTotal, 2) }} {{ $currency }}</bdi></strong>
       </div>
     </div>
 
@@ -509,7 +297,7 @@
         class="inline-flex h-12 items-center justify-center rounded-[16px] border border-line bg-canvas px-5 text-sm font-bold text-ink transition-colors hover:border-olive/40">
         رجوع للمراجعة
       </button>
-      <button id="finalConfirmButton" type="button"
+      <button id="finalConfirmButton" type="submit"
         class="inline-flex h-12 items-center justify-center gap-2 rounded-[16px] bg-olive px-5 text-sm font-bold text-surface shadow-sm transition-colors hover:bg-[#313923]">
         <span>تأكيد الطلب نهائياً</span>
         <i data-lucide="check-circle-2" class="h-4 w-4"></i>
@@ -517,3 +305,5 @@
     </div>
   </div>
 </div>
+
+</form>

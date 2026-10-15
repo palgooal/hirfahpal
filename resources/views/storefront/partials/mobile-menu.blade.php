@@ -10,16 +10,16 @@
             <i data-lucide="chevron-down" class="h-4 w-4 transition-transform duration-200"></i>
           </button>
           <div class="mobile-nav-dropdown-panel hidden ps-4">
-            <a href="{{ route('browse', ['category' => 'pottery']) }}" class="block py-2 text-muted">الفخار والخزف</a>
-            <a href="{{ route('browse', ['category' => 'embroidery']) }}" class="block py-2 text-muted">التطريز الفلسطيني</a>
-            <a href="{{ route('browse', ['category' => 'baskets']) }}" class="block py-2 text-muted">السلال والقش</a>
-            <a href="{{ route('browse', ['category' => 'candles-soaps']) }}" class="block py-2 text-muted">الشموع والصابون</a>
+            @foreach ($navigationCategories as $navigationCategory)
+<a href="{{ route('browse', ['category' => $navigationCategory->slug]) }}" class="block py-2 text-muted">{{ $navigationCategory->name }}</a>
+@endforeach
+
             <a href="{{ route('categories') }}" class="block py-2 font-bold text-olive">استعراض جميع الفئات</a>
           </div>
         </div>
 
         <a href="{{ route('vendors') }}" class="py-2">الحرفيون والمتاجر</a>
-        <a role="link" aria-disabled="true" data-deferred-navigation="browse.html?sale=1" class="py-2">العروض</a>
+        <a href="{{ route('browse', ['sale' => 1]) }}" class="py-2">العروض</a>
         <a href="{{ $onHome ? '#season' : route('home') . '#season' }}" class="py-2">مختارات الموسم</a>
         <a href="{{ $onHome ? '#artisans' : route('home') . '#artisans' }}" class="py-2">حكايات حِرفة</a>
       </nav>

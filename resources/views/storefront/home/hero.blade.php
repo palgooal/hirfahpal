@@ -8,36 +8,32 @@
           <div
             class="flex max-w-full items-center gap-2 rounded-full border border-copper/20 bg-copper/10 px-3 py-1.5 text-[10px] font-bold leading-4 text-copper sm:px-[15px] sm:text-xs"
             data-node-id="223:96"><span class="h-2 w-2 shrink-0 rounded-full bg-copper"></span><span
-              class="truncate">سوق رقمي مباشر للحِرف اليدوية والمشاغل الفلسطينية الأصيلة</span></div>
+              class="truncate">{{ $homeContent['hero_text_1'] }}</span></div>
           <h1
             class="w-full font-amiri text-[36px] font-bold leading-[1.25] text-ink sm:text-5xl lg:text-[40px] lg:leading-[60px]"
-            data-node-id="223:100">كل قطعة تحكي حكاية...<br><em class="font-normal text-[#4a5d3a]">صنعتها أيدٍ
-              فلسطينية</em> شغوفة</h1>
-          <p class="w-full max-w-[576px] text-base leading-7 text-muted lg:text-lg" data-node-id="223:102">مئات القطع
-            الحرفية الأصيلة، مصنوعة يدوياً في مشاغل القدس والخليل ونابلس ورام الله. اشترِ مباشرة من الحرفيين وادعم
-            استمرارية التراث.</p>
+            data-node-id="223:100">{{ $homeContent['hero_text_2'] }}<br><em class="font-normal text-[#4a5d3a]">{{ $homeContent['hero_text_3'] }}</em>{{ $homeContent['hero_text_4'] }}</h1>
+          <p class="w-full max-w-[576px] text-base leading-7 text-muted lg:text-lg" data-node-id="223:102">{{ $homeContent['hero_text_5'] }}</p>
           <div class="grid w-full grid-cols-2 gap-3 pt-2 sm:flex sm:flex-wrap sm:justify-start sm:gap-[16.01px]"
             data-node-id="223:104">
             <a href="#shop"
               class="relative inline-flex min-w-0 items-center justify-center gap-2 rounded-[16px] bg-sage px-3 py-3.5 text-sm font-bold leading-6 shadow-[0_4px_6px_-1px_rgba(74,93,58,.2),0_2px_4px_-2px_rgba(74,93,58,.2)] sm:px-7 sm:py-4 sm:text-base"><span
-                class="whitespace-nowrap">تسوّق الآن</span><img src="{{ asset('assets/storefront/imgs/mcp/hero-cart.svg') }}" alt=""
+                class="whitespace-nowrap">{{ $homeContent['hero_text_6'] }}</span><img src="{{ asset('assets/storefront/imgs/mcp/hero-cart.svg') }}" alt=""
                 class="h-[11.625px] w-[11.625px]"></a>
             <a href="#artisans"
               class="inline-flex min-w-0 items-center justify-center gap-2 rounded-[16px] border border-line bg-surface px-2 py-3.5 text-sm font-medium leading-6 shadow-sm sm:px-[25px] sm:py-[15px] sm:text-base"><img
                 src="{{ asset('assets/storefront/imgs/mcp/hero-arrow.svg') }}" alt="" class="h-[15.777px] w-[17.917px]"><span
-                class="whitespace-nowrap">تعرّف على حِرفيينا</span></a>
+                class="whitespace-nowrap">{{ $homeContent['hero_text_7'] }}</span></a>
           </div>
           <div
             class="grid min-h-[75px] w-full max-w-[512px] grid-cols-3 gap-2 border-t border-line/80 pt-5 sm:gap-4 sm:pt-[25px]"
             data-node-id="223:116">
             <div class="border-l border-line pl-2 text-right sm:pl-[17px]"><strong
-                class="block text-xl leading-8 text-olive sm:text-2xl"><bdi>100%</bdi></strong><span
-                class="block text-[10px] leading-4 text-muted sm:text-xs">صنع يدوي أصيل</span></div>
+                class="block text-xl leading-8 text-olive sm:text-2xl"><bdi>{{ $homeContent['hero_authenticity'] }}</bdi></strong><span
+                class="block text-[10px] leading-4 text-muted sm:text-xs">{{ $homeContent['hero_text_8'] }}</span></div>
             <div class="border-l border-line pl-2 text-right sm:pl-[17px]"><strong
-                class="block text-xl leading-8 text-olive sm:text-2xl"><bdi>+40</bdi></strong><span
-                class="block text-[10px] leading-4 text-muted sm:text-xs">مشغل وتعاونية نسوية</span></div>
-            <div class="text-right"><strong class="block whitespace-nowrap text-xl leading-8 text-olive sm:text-2xl">شحن
-                آمن</strong><span class="block text-[10px] leading-4 text-muted sm:text-xs">تغليف حرفي فاخر</span></div>
+                class="block text-xl leading-8 text-olive sm:text-2xl"><bdi>{{ $artisanCount }}</bdi></strong><span
+                class="block text-[10px] leading-4 text-muted sm:text-xs">{{ $homeContent['hero_text_9'] }}</span></div>
+            <div class="text-right"><strong class="block whitespace-nowrap text-xl leading-8 text-olive sm:text-2xl">{{ $homeContent['hero_text_10'] }}</strong><span class="block text-[10px] leading-4 text-muted sm:text-xs">{{ $homeContent['hero_text_11'] }}</span></div>
           </div>
         </div>
 
@@ -48,7 +44,7 @@
           <div
             class="relative h-[410px] overflow-hidden rounded-[24px] border border-line bg-surface p-px shadow-[0_20px_25px_-5px_rgba(0,0,0,.1),0_8px_10px_-6px_rgba(0,0,0,.1)] sm:h-[463.59px]">
             <div class="relative h-[408px] w-full overflow-hidden sm:h-[461.59px]">
-              <img src="{{ asset('assets/storefront/imgs/mcp/hero-main.png') }}"
+              <img src="{{ \App\Support\Storefront\HomepageMedia::url($homeContent['hero_image_hero-main']) }}"
                 alt="مجموعة مشغولات فلسطينية يدوية أصيلة من التطريز والفخار والقش"
                 class="absolute left-[-35.01%] top-0 h-full w-[170.03%] max-w-none">
             </div>
@@ -61,22 +57,18 @@
                 <div class="flex items-center gap-3">
                   <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-olive"><img
                       src="{{ asset('assets/storefront/imgs/mcp/hero-seal.svg') }}" alt="" class="h-[21px] w-[22px]"></span>
-                  <span class="text-right"><strong class="block text-xs leading-4">منتجات أصيلة 100% مصنوعة
-                      يدوياً</strong><small class="block text-[11px] leading-[16.5px] text-muted">مضمونة المصدر والهوية
-                      من أصحاب الحرفة</small></span>
+                  <span class="text-right"><strong class="block text-xs leading-4">{{ $homeContent['hero_text_12'] }}</strong><small class="block text-[11px] leading-[16.5px] text-muted">{{ $homeContent['hero_text_13'] }}</small></span>
                 </div>
-                <span class="rounded-md bg-copper/10 px-2 py-1 text-xs font-bold leading-4 text-copper">فلسطين</span>
+                <span class="rounded-md bg-copper/10 px-2 py-1 text-xs font-bold leading-4 text-copper">{{ $homeContent['hero_text_14'] }}</span>
               </div>
             </div>
           </div>
           <div
             class="absolute -top-4 left-0 flex max-w-[190px] items-center gap-2.5 rounded-[16px] border border-line bg-surface p-[9px] shadow-[0_10px_15px_-3px_rgba(0,0,0,.1),0_4px_6px_-4px_rgba(0,0,0,.1)] sm:-left-5 sm:-top-5">
-            <img src="{{ asset('assets/storefront/imgs/mcp/hero-detail.png') }}" alt="تطريز فلسطيني"
+            <img src="{{ \App\Support\Storefront\HomepageMedia::url($homeContent['hero_image_hero-detail']) }}" alt="تطريز فلسطيني"
               class="h-11 w-11 shrink-0 rounded-xl border border-line/50 object-cover">
-            <span class="pb-[3px] text-right"><b class="block whitespace-nowrap text-[11px] leading-[13.75px]">تطريز
-                قطبة الفلاحي</b><small
-                class="mt-1.5 block whitespace-nowrap text-[10px] font-medium leading-[15px] text-copper">خيوط الحرير
-                الطبيعي</small></span>
+            <span class="pb-[3px] text-right"><b class="block whitespace-nowrap text-[11px] leading-[13.75px]">{{ $homeContent['hero_text_15'] }}</b><small
+                class="mt-1.5 block whitespace-nowrap text-[10px] font-medium leading-[15px] text-copper">{{ $homeContent['hero_text_16'] }}</small></span>
           </div>
         </div>
       </div>

@@ -3,10 +3,10 @@
     <div class="mx-auto flex max-w-[1216px] flex-wrap items-center justify-between gap-3 text-sm text-muted">
       <nav class="flex w-full min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap text-xs font-medium sm:w-auto sm:text-sm"><a href="{{ route('home') }}" class="shrink-0 hover:text-olive">الرئيسية</a><img
           src="{{ asset('assets/storefront/imgs/product-page/breadcrumb-chevron.svg') }}" alt="" class="h-[7px] w-1"><a href="{{ route('home') }}#shop"
-          class="shrink-0 hover:text-olive">الفخار والخزف</a><img src="{{ asset('assets/storefront/imgs/product-page/breadcrumb-chevron.svg') }}" alt=""
-          class="h-[7px] w-1 shrink-0"><span class="min-w-0 truncate font-semibold text-olive">إبريق فخار مقدسي مزخرف يدوياً</span></nav><span
+          class="shrink-0 hover:text-olive">{{ $product->category?->name }}</a><img src="{{ asset('assets/storefront/imgs/product-page/breadcrumb-chevron.svg') }}" alt=""
+          class="h-[7px] w-1 shrink-0"><span class="min-w-0 truncate font-semibold text-olive">{{ $product->name }}</span></nav><span
         class="flex w-full items-center justify-center gap-1.5 rounded-full border border-copper/20 bg-copper/10 px-[13px] py-[5px] text-center text-[11px] leading-4 text-copper sm:w-auto sm:text-xs"><img
-          src="{{ asset('assets/storefront/imgs/product-page/breadcrumb-verified.svg') }}" alt="" class="h-3 w-[13px]">قطعة أصلية موثقة - مشاغل البلدة القديمة، الخليل</span>
+          src="{{ asset('assets/storefront/imgs/product-page/breadcrumb-verified.svg') }}" alt="" class="h-3 w-[13px]">قطعة أصلية موثقة - مشاغل {{ $product->vendor->profile->location_name }}</span>
     </div>
   </section>
 
@@ -15,16 +15,15 @@
       <div class="w-full min-w-0 shrink-0 lg:w-[509px]" data-product-gallery>
         <div
           class="group relative aspect-[4/5] overflow-hidden rounded-[24px] border border-line bg-surface shadow-sm">
-          <img id="productMainImage" src="{{ asset('assets/storefront/imgs/product-page/pitcher-main.png') }}" alt="إبريق فخار مقدسي أزرق أصيل" draggable="false"
+          <img id="productMainImage" src="{{ \App\Support\Storefront\HomepageMedia::url($product->primaryImage?->path ?? $product->images->first()?->path) }}" alt="{{ $product->name }}" draggable="false"
             class="h-full w-full object-cover transition-[opacity,transform] duration-300 ease-out will-change-[opacity,transform]">
           <div class="absolute right-4 top-4 flex flex-col items-start gap-2"><span
               class="rounded-full bg-copper px-3 py-1 text-xs font-bold text-white shadow-sm">إصدار حرفي
-              محدود</span><span class="rounded-full bg-olive px-3 py-1 text-xs font-bold text-surface shadow-sm">صنع
-              في الخليل</span></div>
-          <button
+              محدود</span><span class="rounded-full bg-olive px-3 py-1 text-xs font-bold text-surface shadow-sm">{{ $product->vendor->profile->location_name }}</span></div>
+          <button form="main-favorite-{{ $product->id }}" type="submit"
             class="favorite absolute left-4 top-4 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-line bg-surface/95 shadow-sm backdrop-blur-sm"
             aria-label="أضف إلى المفضلة"><img src="{{ asset('assets/storefront/imgs/product-page/hero-heart.svg') }}" alt=""
-              class="h-[18px] w-5"></button>
+              class="h-[18px] w-5"></button><form hidden id="main-favorite-{{ $product->id }}" method="POST" action="{{ route('customer.favorites.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $product->id }}"></form>
           <div
             class="absolute inset-x-3 top-1/2 flex -translate-y-1/2 justify-between opacity-100 transition-opacity lg:inset-x-4 lg:opacity-0 lg:group-hover:opacity-100">
             <button class="gallery-prev flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-line bg-surface shadow"
@@ -35,74 +34,57 @@
                 class="h-3 w-[7px]"></button>
           </div>
           <bdi id="galleryCounter"
-            class="absolute bottom-4 left-4 rounded-full bg-black/60 px-3 py-1 text-xs text-white backdrop-blur-sm">1 / 4</bdi>
+            class="absolute bottom-4 left-4 rounded-full bg-black/60 px-3 py-1 text-xs text-white backdrop-blur-sm">1 / {{ $productImages->count() }}</bdi>
         </div>
         <div
           class="gallery-thumbnails mt-4 flex cursor-grab snap-x snap-mandatory gap-2 overflow-x-auto overscroll-x-contain touch-pan-y select-none active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <button
-            type="button" aria-pressed="true"
-            class="gallery-thumb relative aspect-square w-[31%] min-w-[31%] shrink-0 snap-center cursor-pointer overflow-hidden rounded-[16px] border-2 border-olive p-0.5 opacity-100 shadow-[0_0_0_2px_rgba(74,93,58,.2)] transition-[opacity,border-color,box-shadow] duration-300 after:absolute after:inset-0 after:z-10 after:content-[''] lg:w-[159.5px] lg:min-w-[159.5px]"
-            data-image="{{ asset('assets/storefront/imgs/product-page/pitcher-main.png') }}"><img
-              src="{{ asset('assets/storefront/imgs/product-page/pitcher-main.png') }}" alt="الإبريق كاملاً" draggable="false"
+          @foreach ($productImages as $productImage)
+<button
+            type="button" aria-pressed="{{ $loop->first ? 'true' : 'false' }}"
+            class="gallery-thumb relative aspect-square w-[31%] min-w-[31%] shrink-0 snap-center cursor-pointer overflow-hidden rounded-[16px] {{ $loop->first ? 'border-2 border-olive p-0.5 opacity-100 shadow-[0_0_0_2px_rgba(74,93,58,.2)]' : 'border border-line opacity-70' }} transition-[opacity,border-color,box-shadow] duration-300 after:absolute after:inset-0 after:z-10 after:content-[''] lg:w-[159.5px] lg:min-w-[159.5px]"
+            data-image="{{ \App\Support\Storefront\HomepageMedia::url($productImage->path) }}"><img
+              src="{{ \App\Support\Storefront\HomepageMedia::url($productImage->path) }}" alt="{{ $productImage->alt_text ?: $product->name }}" draggable="false"
               class="pointer-events-none h-full w-full select-none object-cover"></button>
-          <button type="button" aria-pressed="false"
-            class="gallery-thumb relative aspect-square w-[31%] min-w-[31%] shrink-0 snap-center cursor-pointer overflow-hidden rounded-[16px] border border-line opacity-70 transition-[opacity,border-color,box-shadow] duration-300 after:absolute after:inset-0 after:z-10 after:content-[''] lg:w-[159.5px] lg:min-w-[159.5px]"
-            data-image="{{ asset('assets/storefront/imgs/product-page/pitcher-detail.png') }}"><img
-              src="{{ asset('assets/storefront/imgs/product-page/pitcher-detail.png') }}" alt="تفاصيل الزخرفة" draggable="false"
-              class="pointer-events-none h-full w-full select-none object-cover"></button>
-          <button type="button" aria-pressed="false"
-            class="gallery-thumb relative aspect-square w-[31%] min-w-[31%] shrink-0 snap-center cursor-pointer overflow-hidden rounded-[16px] border border-line opacity-70 transition-[opacity,border-color,box-shadow] duration-300 after:absolute after:inset-0 after:z-10 after:content-[''] lg:w-[159.5px] lg:min-w-[159.5px]"
-            data-image="{{ asset('assets/storefront/imgs/product-page/artisan-workshop.png') }}"><img
-              src="{{ asset('assets/storefront/imgs/product-page/artisan-workshop.png') }}" alt="الحرفي في المشغل" draggable="false"
-              class="pointer-events-none h-full w-full select-none object-cover"></button>
-          <button type="button" aria-pressed="false"
-            class="gallery-thumb relative aspect-square w-[31%] min-w-[31%] shrink-0 snap-center cursor-pointer overflow-hidden rounded-[16px] border border-line opacity-70 transition-[opacity,border-color,box-shadow] duration-300 after:absolute after:inset-0 after:z-10 after:content-[''] lg:w-[159.5px] lg:min-w-[159.5px]"
-            data-image="{{ asset('assets/storefront/imgs/product-page/pitcher-styled.png') }}"><img
-              src="{{ asset('assets/storefront/imgs/product-page/pitcher-styled.png') }}" alt="تنسيق الإبريق في المنزل" draggable="false"
-              class="pointer-events-none h-full w-full select-none object-cover"></button>
+@endforeach
+
         </div>
       </div>
 
       <div class="w-full min-w-0 flex-1 lg:max-w-[686px]" data-node-id="223:2748">
         <div class="flex flex-col items-start gap-3"><span
             class="flex max-w-full items-center gap-1.5 rounded-lg border border-surface bg-[#ffd0ba] px-[13px] py-[5px] text-[11px] font-bold leading-4 text-olive sm:text-xs"><img
-              src="{{ asset('assets/storefront/imgs/product-page/hero-store.svg') }}" alt="" class="h-[11px] w-3">مشغل دار الكرمة للفخار الخليلي • معتمد منذ
-            1974</span>
-          <h1 class="text-[26px] font-bold leading-tight sm:text-4xl">إبريق فخار مقدسي مزخرف</h1>
+              src="{{ asset('assets/storefront/imgs/product-page/hero-store.svg') }}" alt="" class="h-[11px] w-3">{{ $product->vendor->profile->store_name }}</span>
+          <h1 class="text-[26px] font-bold leading-tight sm:text-4xl">{{ $product->name }}</h1>
         </div>
         <div class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm"><span class="flex gap-1">
             <img src="{{ asset('assets/storefront/imgs/product-page/hero-star.svg') }}" alt="" class="h-[14px] w-[15px]"><img
               src="{{ asset('assets/storefront/imgs/product-page/hero-star.svg') }}" alt="" class="h-[14px] w-[15px]"><img
               src="{{ asset('assets/storefront/imgs/product-page/hero-star.svg') }}" alt="" class="h-[14px] w-[15px]"><img
               src="{{ asset('assets/storefront/imgs/product-page/hero-star.svg') }}" alt="" class="h-[14px] w-[15px]"><img
-              src="{{ asset('assets/storefront/imgs/product-page/hero-star.svg') }}" alt="" class="h-[14px] w-[15px]"></span><strong>4.9</strong><span
-            class="text-muted">(38 تقييماً موثقاً من مشترين فعليين)</span><span class="flex items-center gap-1 text-olive"><img
+              src="{{ asset('assets/storefront/imgs/product-page/hero-star.svg') }}" alt="" class="h-[14px] w-[15px]"></span><strong>{{ number_format($product->reviews_avg_rating ?? 0, 1) }}</strong><span
+            class="text-muted">({{ $product->reviews_count }} تقييماً موثقاً من مشترين فعليين)</span><span class="flex items-center gap-1 text-olive"><img
               src="{{ asset('assets/storefront/imgs/product-page/hero-authentic.svg') }}" alt="" class="h-[15px] w-[15px]">100% صناعة يدوية أصيلة</span></div>
         <div class="mt-6 rounded-[24px] border border-line bg-surface p-5 shadow-sm"><strong
-            class="block text-4xl leading-10 text-olive"><bdi>145 ₪</bdi></strong><span
+            class="block text-4xl leading-10 text-olive"><bdi>{{ number_format($product->price, 2) }} {{ $currency }}</bdi></strong><span
             class="text-xs text-muted">شامل الضريبة والشحن من المشغل</span>
           <div class="mt-3 flex flex-wrap gap-2"><span class="rounded-full bg-olive px-3 py-1 text-xs text-white"><i
-                class="ms-1 inline-block h-2 w-2 rounded-full bg-sage"></i>متوفر وجاهز للشحن الفوري</span><span
-              class="rounded-full bg-copper/10 px-3 py-1 text-xs font-semibold text-copper">بقي 3 قطع فقط مصنوعة بهذا
-              النمط</span></div>
+                class="ms-1 inline-block h-2 w-2 rounded-full bg-sage"></i>{{ $product->availableStockQuantity() > 0 ? 'متوفر وجاهز للطلب' : 'غير متوفر حالياً' }}</span><span
+              class="rounded-full bg-copper/10 px-3 py-1 text-xs font-semibold text-copper">{{ $product->availableStockQuantity() }} قطعة متاحة</span></div>
         </div>
-        <p class="mt-6 text-sm leading-7 text-ink sm:text-[15px]">كل إبريق هو تحفة متفردة تم تشكيلها على الدولاب اليدوي وزخرفتها
-          بالريشة الطبيعية بأيدي حرفيي الخليل المتوارثين للمهنة. يستغرق إنتاج كل قطعة 4 أيام من التشكيل والحرق
-          والزخرفة اليدوية بأكاسيد طبيعية تدوم لأجيال دون أن تفقد رونقها. الاختلافات الطفيفة في تموجات الأزرق ونقوش
-          الأرابيسك هي بصمة الصانع ودليل أصالته الخالصة.</p>
+        <p class="mt-6 text-sm leading-7 text-ink sm:text-[15px]">{{ $product->short_description ?: $product->description }}</p>
         <div class="mt-6 grid grid-cols-[auto_1fr] items-center gap-3 text-xs sm:flex sm:flex-wrap sm:gap-4"><strong>الكمية المطلوبة:</strong>
           <div class="flex h-[42px] items-center overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
-            <button id="quantityIncrease" class="flex h-10 w-10 cursor-pointer items-center justify-center transition-colors hover:bg-canvas active:bg-sage/40"
-              aria-label="زيادة الكمية"><i data-lucide="plus" class="h-4 w-4"></i></button><span id="productQuantity"
-              class="flex h-10 w-9 items-center justify-center font-bold">1</span><button id="quantityDecrease"
+            <button form="quantity-plus" type="submit" id="quantityIncrease" @disabled($selectedQuantity >= min(3, $product->availableStockQuantity())) class="flex h-10 w-10 cursor-pointer items-center justify-center transition-colors hover:bg-canvas active:bg-sage/40"
+              aria-label="زيادة الكمية"><i data-lucide="plus" class="h-4 w-4"></i></button><form hidden id="quantity-plus" method="GET" action="{{ route('product') }}"><input type="hidden" name="slug" value="{{ $product->slug }}"><input type="hidden" name="quantity" value="{{ min(3, max(1, $product->availableStockQuantity()), $selectedQuantity + 1) }}"></form><span id="productQuantity"
+              class="flex h-10 w-9 items-center justify-center font-bold">{{ $selectedQuantity }}</span><button form="quantity-minus" type="submit" id="quantityDecrease" @disabled($selectedQuantity <= 1)
               class="flex h-10 w-10 cursor-pointer items-center justify-center transition-colors hover:bg-canvas active:bg-sage/40" aria-label="تقليل الكمية"><i data-lucide="minus"
-                class="h-4 w-4"></i></button>
-          </div><span class="col-span-2 text-muted sm:col-auto">الحد الأقصى للطلب: 3 قطع</span>
+                class="h-4 w-4"></i></button><form hidden id="quantity-minus" method="GET" action="{{ route('product') }}"><input type="hidden" name="slug" value="{{ $product->slug }}"><input type="hidden" name="quantity" value="{{ max(1, $selectedQuantity - 1) }}"></form>
+          </div><span class="col-span-2 text-muted sm:col-auto">الحد الأقصى للطلب: {{ min(3, $product->availableStockQuantity()) }} قطع</span>
         </div>
-        <div class="mt-4 flex gap-3"><button
+        <div class="mt-4 flex gap-3"><button form="main-cart-{{ $product->id }}" type="submit"
             class="add-cart flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-sage font-bold shadow-md transition-[background-color,transform,box-shadow] hover:bg-[#a7af82] hover:shadow-lg active:scale-[0.99]"
-            data-price="145"><i data-lucide="shopping-bag" class="h-4 w-4"></i>أضف إلى السلة</button><button
-            class="h-12 shrink-0 cursor-pointer rounded-2xl border border-olive bg-surface px-4 font-bold text-olive transition-[background-color,color,transform] hover:bg-olive hover:text-white active:scale-[0.98] sm:px-7">اشتري الآن</button>
+            data-price="{{ $product->price }}" @disabled($product->availableStockQuantity() < 1)><i data-lucide="shopping-bag" class="h-4 w-4"></i>أضف إلى السلة</button><form hidden id="main-cart-{{ $product->id }}" method="POST" action="{{ route('customer.cart.items.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $product->id }}"><input type="hidden" name="quantity" value="{{ $selectedQuantity }}"></form><button form="buy-now-{{ $product->id }}" @disabled($product->availableStockQuantity() < 1) type="submit"
+            class="h-12 shrink-0 cursor-pointer rounded-2xl border border-olive bg-surface px-4 font-bold text-olive transition-[background-color,color,transform] hover:bg-olive hover:text-white active:scale-[0.98] sm:px-7">اشتري الآن</button><form hidden id="buy-now-{{ $product->id }}" method="POST" action="{{ route('customer.cart.items.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $product->id }}"><input type="hidden" name="quantity" value="{{ $selectedQuantity }}"><input type="hidden" name="checkout" value="1"></form>
         </div>
         <div class="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div class="flex items-center gap-2 rounded-2xl border border-line bg-surface p-3"><span
@@ -114,8 +96,7 @@
           <div class="flex items-center gap-2 rounded-2xl border border-line bg-surface p-3"><span
               class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-olive text-sage"><i
                 data-lucide="truck" class="h-4 w-4"></i></span>
-            <p class="text-xs"><strong class="block">شحن مباشر</strong><span class="text-[10px] text-muted">من ورش
-                الخليل القديمة</span></p>
+            <p class="text-xs"><strong class="block">شحن مباشر</strong><span class="text-[10px] text-muted">{{ $product->vendor->profile->location_name }}</span></p>
           </div>
           <div class="flex items-center gap-2 rounded-2xl border border-line bg-surface p-3"><span
               class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-olive text-sage"><i
@@ -132,21 +113,20 @@
         </div>
         <article class="mt-6 rounded-[24px] border border-line bg-surface p-5 shadow-sm">
           <div class="flex items-center gap-4"><span
-              class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-olive text-xl font-bold text-surface">أ.ك</span>
+              class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-olive text-xl font-bold text-surface">{{ $product->vendor->profile->store_initials }}</span>
             <div>
-              <h2 class="font-bold"><i data-lucide="badge-check" class="ms-1 inline h-4 w-4 text-olive"></i>دار الكرمة
-                للخزف والفخار</h2>
-              <p class="text-xs text-copper">البلدة القديمة، الخليل</p>
-              <p class="mt-1 text-xs text-muted">المعلم أبو إبراهيم - الجيل الرابع في صناعة الخزف التقليدي</p>
+              <h2 class="font-bold"><i data-lucide="badge-check" class="ms-1 inline h-4 w-4 text-olive"></i>{{ $product->vendor->profile->store_name }}</h2>
+              <p class="text-xs text-copper">{{ $product->vendor->profile->location_name }}</p>
+              <p class="mt-1 text-xs text-muted">{{ $product->vendor->profile->short_description }}</p>
             </div>
           </div>
           <div class="mt-4 grid grid-cols-3 gap-2 border-t border-line/60 pt-3 text-center text-xs">
-            <div><span class="block text-muted">التقييم</span><strong>4.8 من 5</strong></div>
-            <div><span class="block text-muted">الأعمال</span><strong>16 منتجاً معتمداً</strong></div>
-            <div><span class="block text-muted">التجهيز</span><strong>خلال 48 ساعة</strong></div>
-          </div><a href="{{ route('vendors.show') }}"
+            <div><span class="block text-muted">التقييم</span><strong>{{ $product->vendor->published_reviews_count ? number_format($product->vendor->published_rating, 1) : '—' }} من 5</strong></div>
+            <div><span class="block text-muted">الأعمال</span><strong>{{ $product->vendor->available_products_count }} منتجاً</strong></div>
+            <div><span class="block text-muted">التجهيز</span><strong>غير محدد</strong></div>
+          </div><a href="{{ route('vendors.profile', ['storeSlug' => $product->vendor->profile->slug]) }}"
             class="mt-4 flex h-10 cursor-pointer items-center justify-center rounded-2xl border border-line text-xs font-bold text-olive transition-colors hover:border-olive hover:bg-canvas">تصفح
-            كافة أعمال دار الكرمة <i data-lucide="chevron-left" class="me-1 h-3 w-3"></i></a>
+            كافة أعمال {{ $product->vendor->profile->store_name }} <i data-lucide="chevron-left" class="me-1 h-3 w-3"></i></a>
         </article>
       </div>
     </div>
@@ -155,44 +135,36 @@
   <section class="relative overflow-hidden bg-olive px-4 py-16 text-white lg:px-8 lg:pb-16 lg:pt-[104px]"
     data-node-id="223:2894">
     <div class="mx-auto grid max-w-[1216px] gap-10 lg:grid-cols-2 lg:items-center">
-      <div class="relative"><img src="{{ asset('assets/storefront/imgs/product-page/artisan-workshop.png') }}"
-          alt="الخزاف الفلسطيني أبو إبراهيم يشكل الطين على دولاب الفخار"
+      <div class="relative"><img src="{{ \App\Support\Storefront\HomepageMedia::url($product->vendor->profile->cover_image) }}"
+          alt="{{ $product->vendor->profile->store_name }}"
           class="h-[340px] w-full rounded-[24px] border border-white/10 object-cover shadow-2xl sm:h-[402px]"><span
           class="absolute right-4 top-4 rounded-full border border-white/20 bg-black/60 px-4 py-2 text-xs text-[#fde68a] backdrop-blur-md"><i
-            data-lucide="map-pin" class="ms-1 inline h-3 w-3"></i>حارة الفواخير، البلدة القديمة، الخليل</span>
+            data-lucide="map-pin" class="ms-1 inline h-3 w-3"></i>حارة الفواخير، {{ $product->vendor->profile->location_name }}</span>
         <div
           class="absolute -bottom-5 right-3 flex max-w-[320px] items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-ink shadow-xl sm:-right-5">
           <span
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-copper/10 text-lg font-bold text-copper">4</span>
-          <p class="text-xs"><strong class="block">أربعة أجيال متوارثة</strong><span class="text-[11px] text-muted">في
-              صناعة الخزف والصلصال الفلسطيني</span></p>
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-copper/10 text-lg font-bold text-copper">—</span>
+          <p class="text-xs"><strong class="block">{{ $product->vendor->profile->store_name }}</strong><span class="text-[11px] text-muted">في
+              {{ $product->category?->name }}</span></p>
         </div>
       </div>
       <div class="lg:pr-6">
         <p class="text-xs font-medium text-[#fcd34d]">حكاية صانع وميراث وطن <i data-lucide="badge-help"
             class="inline h-3 w-3"></i></p>
-        <blockquote class="mt-5 text-[24px] font-bold leading-9 sm:mt-6 sm:text-[30px]">«نحن لا نبيع مجرد قطع خزف أو خيوط
-          حرير، بل ننقل روح الأرض وعراقة الأجداد إلى بيوتكم بكل اعتزاز.»</blockquote>
-        <p class="mt-5 text-[13px] font-light leading-6 text-surface sm:mt-6 sm:text-sm">يعود تاريخ هذا النمط من الزخرفة الزرقاء إلى أكثر من
-          400 عام في مدينة الخليل العريقة، حيث يتم تحضير الطين الصلصالي بالطريقة التقليدية وتجفيفه تحت شمس فلسطين قبل
-          حرقه في الأفران القديمة بدرجة 1000 مئوية، ثم تُخط الزخارف يدوياً باستخدام أكاسيد معدنية طبيعية تدوم لأجيال
-          دون أن تفقد بريقها.</p>
+        <blockquote class="mt-5 text-[24px] font-bold leading-9 sm:mt-6 sm:text-[30px]">{{ $product->vendor->profile->short_description ?: $product->vendor->profile->store_name }}</blockquote>
+        <p class="mt-5 text-[13px] font-light leading-6 text-surface sm:mt-6 sm:text-sm">{{ $product->vendor->profile->description }}</p>
         <div class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4"><span
-              class="text-[11px] text-[#fde68a]/80">نوع الحرفة</span><strong class="mt-1 block text-sm">فخار وخزف
-              يدوي</strong></div>
+              class="text-[11px] text-[#fde68a]/80">نوع الحرفة</span><strong class="mt-1 block text-sm">{{ $product->category?->name }}</strong></div>
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4"><span
-              class="text-[11px] text-[#fde68a]/80">المادة الأساسية</span><strong class="mt-1 block text-sm">طين محلي
-              صلصالي مزجج</strong></div>
+              class="text-[11px] text-[#fde68a]/80">المادة الأساسية</span><strong class="mt-1 block text-sm">غير محدد</strong></div>
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4"><span
-              class="text-[11px] text-[#fde68a]/80">مكان الصنع</span><strong class="mt-1 block text-sm">البلدة
-              القديمة، الخليل</strong></div>
+              class="text-[11px] text-[#fde68a]/80">مكان الصنع</span><strong class="mt-1 block text-sm">{{ $product->vendor->profile->location_name }}</strong></div>
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4"><span
-              class="text-[11px] text-[#fde68a]/80">زمن الإنجاز</span><strong class="mt-1 block text-sm">4 أيام عمل
-              متواصلة</strong></div>
+              class="text-[11px] text-[#fde68a]/80">زمن الإنجاز</span><strong class="mt-1 block text-sm">غير محدد</strong></div>
           <div class="col-span-2 rounded-2xl border border-white/15 bg-white/10 p-4"><span
               class="text-[11px] text-[#fde68a]/80">طريقة العناية الموصى بها</span><strong
-              class="mt-1 block text-sm">تنظيف يدوي بماء فاتر وتجفيف فوري</strong></div>
+              class="mt-1 block text-sm">يرجى الرجوع لتعليمات المتجر</strong></div>
         </div>
       </div>
     </div>
@@ -203,7 +175,7 @@
       <div class="pb-4 text-center">
         <p class="text-xs font-bold leading-4 tracking-[0.6px] text-copper">تفاصيل الصنعة</p>
         <h2 class="mt-2 text-[26px] font-bold leading-9 text-ink sm:text-[30px]">المواصفات والتفاصيل الدقيقة</h2>
-        <p class="mt-1 text-sm leading-5 text-muted">كل ما يلزمك معرفته عن إبريق الفخار المقدسي وتفاصيل صناعته الدقيقة</p>
+        <p class="mt-1 text-sm leading-5 text-muted">كل ما يلزمك معرفته عن {{ $product->name }}</p>
       </div>
       <div class="space-y-4" id="productAccordion">
         <article class="accordion-item overflow-hidden rounded-[24px] border border-line bg-surface shadow-sm"><button
@@ -216,7 +188,7 @@
           <div id="spec-description" aria-hidden="false"
             class="accordion-content grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-300 ease-out">
             <div class="min-h-0 overflow-hidden">
-              <p class="px-4 pb-5 text-sm leading-6 text-muted sm:px-6">صُمم هذا الإبريق مستوحياً الهندسة التقليدية لأواني الماء في القدس والخليل القديمة، وهو مثالي لتقديم المشروبات الباردة والماء العذب بفضل مسامية الطين الطبيعي التي تحتفظ ببرودة السوائل ونقائها، أو يمكن اقتناؤه كقطعة ديكور فاخرة تُضفي عمقاً وأصالة على مجالس الضيافة.</p>
+              <p class="px-4 pb-5 text-sm leading-6 text-muted sm:px-6">{{ $product->description }}</p>
             </div>
           </div>
         </article>
@@ -229,7 +201,7 @@
           <div id="spec-measurements" aria-hidden="true"
             class="accordion-content grid grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity] duration-300 ease-out">
             <div class="min-h-0 overflow-hidden">
-              <p class="px-4 pb-5 text-sm leading-6 text-muted sm:px-6">صُنع الإبريق من طين صلصالي محلي مزجج، ويبلغ ارتفاعه نحو 32 سم بسعة تقريبية 1.8 لتر ووزن يقارب 1.2 كغم. ولأن كل قطعة تُشكّل وتُزخرف يدوياً، قد تظهر فروقات طفيفة وطبيعية في القياسات والنقوش تجعل كل إبريق قطعة فريدة.</p>
+              <p class="px-4 pb-5 text-sm leading-6 text-muted sm:px-6">الوزن: {{ $product->weight ?? 'غير محدد' }} — الأبعاد: {{ $product->dimensions ? json_encode($product->dimensions, JSON_UNESCAPED_UNICODE) : 'غير محدد' }}</p>
             </div>
           </div>
         </article>
@@ -242,7 +214,7 @@
           <div id="spec-care" aria-hidden="true"
             class="accordion-content grid grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity] duration-300 ease-out">
             <div class="min-h-0 overflow-hidden">
-              <p class="px-4 pb-5 text-sm leading-6 text-muted sm:px-6">يُنظف الإبريق يدوياً بماء فاتر وإسفنجة ناعمة، ثم يُجفف مباشرة بقطعة قماش نظيفة. يُنصح بتجنب غسالة الصحون والمنظفات القوية والتغيرات الحرارية المفاجئة، حفاظاً على التزجيج اليدوي ولمعان الزخرفة لأطول فترة ممكنة.</p>
+              <p class="px-4 pb-5 text-sm leading-6 text-muted sm:px-6">يرجى الرجوع إلى المتجر لمعرفة تعليمات العناية الخاصة بهذا المنتج.</p>
             </div>
           </div>
         </article>
@@ -256,7 +228,7 @@
           <div id="spec-shipping" aria-hidden="true"
             class="accordion-content grid grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity] duration-300 ease-out">
             <div class="min-h-0 overflow-hidden">
-              <p class="px-4 pb-5 text-sm leading-6 text-muted sm:px-6">تُلف القطعة بطبقات واقية قابلة لإعادة التدوير، ثم تُثبت داخل صندوق مقوّى ومصمم لحماية الخزف أثناء النقل. يرفق الطلب ببطاقة توثيق تحمل قصة الصانع وتعليمات العناية، ويُرسل عبر شحن مؤمّن مع رقم تتبع حتى لحظة التسليم.</p>
+              <p class="px-4 pb-5 text-sm leading-6 text-muted sm:px-6">{{ $product->vendor->profile->short_description }}</p>
             </div>
           </div>
         </article>
@@ -268,7 +240,7 @@
     <div
       class="mx-auto max-w-[1216px] rounded-[24px] border border-line bg-surface px-4 pb-8 pt-8 shadow-sm sm:px-5 sm:pb-10 sm:pt-10 lg:px-[41px] lg:pb-[41px] lg:pt-[81px]">
       <div class="grid gap-8 border-b border-line/60 pb-8 lg:grid-cols-12 lg:items-center lg:pb-[33px]">
-        <div class="lg:col-span-4"><strong class="block text-5xl font-bold leading-[48px] text-olive">4.9</strong>
+        <div class="lg:col-span-4"><strong class="block text-5xl font-bold leading-[48px] text-olive">{{ number_format($product->reviews_avg_rating ?? 0, 1) }}</strong>
           <div class="mt-2 flex gap-1" aria-label="5 من 5 نجوم">
             <img src="{{ asset('assets/storefront/imgs/product-page/review-star-large.svg') }}" alt="" class="h-4 w-[17px]">
             <img src="{{ asset('assets/storefront/imgs/product-page/review-star-large.svg') }}" alt="" class="h-4 w-[17px]">
@@ -276,22 +248,13 @@
             <img src="{{ asset('assets/storefront/imgs/product-page/review-star-large.svg') }}" alt="" class="h-4 w-[17px]">
             <img src="{{ asset('assets/storefront/imgs/product-page/review-star-large.svg') }}" alt="" class="h-4 w-[17px]">
           </div>
-          <p class="mt-2 text-xs font-semibold leading-4 text-muted">مبني على 38 تقييماً موثقاً من مشترين فعليين</p>
+          <p class="mt-2 text-xs font-semibold leading-4 text-muted">مبني على {{ $product->reviews_count }} تقييماً موثقاً من مشترين فعليين</p>
         </div>
         <div class="space-y-2 text-xs font-medium lg:col-span-5">
-          <div class="flex items-center gap-3"><span class="w-12">5 نجوم</span><span
+          @foreach (range(5, 1) as $rating)<div class="flex items-center gap-3"><span class="w-12">{{ $rating }} نجوم</span><span
               class="h-2 flex-1 overflow-hidden rounded-full bg-canvas"><i
-                class="block h-full w-[88%] rounded-full bg-copper"></i></span><span class="w-8">88%</span></div>
-          <div class="flex items-center gap-3"><span class="w-12">4 نجوم</span><span
-              class="h-2 flex-1 overflow-hidden rounded-full bg-canvas"><i
-                class="block h-full w-[10%] rounded-full bg-copper"></i></span><span class="w-8">10%</span></div>
-          <div class="flex items-center gap-3"><span class="w-12">3 نجوم</span><span
-              class="h-2 flex-1 overflow-hidden rounded-full bg-canvas"><i
-                class="block h-full w-[2%] rounded-full bg-copper"></i></span><span class="w-8">2%</span></div>
-          <div class="flex items-center gap-3"><span class="w-12">نجمتان</span><span
-              class="h-2 flex-1 rounded-full bg-canvas"></span><span class="w-8">0%</span></div>
-          <div class="flex items-center gap-3"><span class="w-12">نجمة</span><span
-              class="h-2 flex-1 rounded-full bg-canvas"></span><span class="w-8">0%</span></div>
+                class="block h-full rounded-full bg-copper" style="width: {{ $reviewDistribution[$rating] }}%"></i></span><span class="w-8">{{ $reviewDistribution[$rating] }}%</span></div>@endforeach
+
         </div>
         <div class="rounded-2xl border border-line/70 p-[17px] lg:col-span-3"><strong
             class="flex items-center gap-1.5 text-xs leading-5 text-olive"><img
@@ -301,69 +264,23 @@
         </div>
       </div>
       <div class="mt-7 space-y-5 lg:mt-0 lg:pt-7">
-        <article class="rounded-2xl border border-line/60 p-4 sm:p-[21px]">
+        @forelse ($productReviews as $review)
+<article class="rounded-2xl border border-line/60 p-4 sm:p-[21px]">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div class="flex items-center gap-3"><span
-                class="flex h-10 w-10 items-center justify-center rounded-full bg-olive font-bold text-surface">س</span>
+                class="flex h-10 w-10 items-center justify-center rounded-full bg-olive font-bold text-surface">{{ mb_substr($review->customer?->name ?? 'عميل', 0, 1) }}</span>
               <div>
-                <h3 class="text-sm font-bold">سارة القواسمي <span
-                    class="rounded-md bg-olive px-2 py-0.5 text-[10px] text-surface">شراء موثق</span></h3><time
-                  class="text-[11px] text-muted">12 أكتوبر 2024</time>
+                <h3 class="text-sm font-bold">{{ $review->customer?->name ?? 'عميل' }}</h3><time
+                  class="text-[11px] text-muted">{{ $review->created_at->format('Y/m/d') }}</time>
               </div>
-            </div><div class="flex self-start" aria-label="5 من 5 نجوم">
-              <img src="{{ asset('assets/storefront/imgs/product-page/review-star-small.svg') }}" alt="" class="h-[11px] w-3">
-              <img src="{{ asset('assets/storefront/imgs/product-page/review-star-small.svg') }}" alt="" class="h-[11px] w-3">
-              <img src="{{ asset('assets/storefront/imgs/product-page/review-star-small.svg') }}" alt="" class="h-[11px] w-3">
-              <img src="{{ asset('assets/storefront/imgs/product-page/review-star-small.svg') }}" alt="" class="h-[11px] w-3">
-              <img src="{{ asset('assets/storefront/imgs/product-page/review-star-small.svg') }}" alt="" class="h-[11px] w-3">
-            </div>
+            </div><div class="flex self-start" aria-label="{{ $review->rating }} من 5 نجوم">@for ($star = 0; $star < $review->rating; $star++)<img src="{{ asset('assets/storefront/imgs/product-page/review-star-small.svg') }}" alt="" class="h-[11px] w-3">@endfor</div>
           </div>
-          <p class="mt-4 text-sm leading-6 text-muted">القطعة في الواقع أجمل بكثير من الصور، تفاصيل الزخرفة متقنة
-            وتدرج اللون الكوبالت الأزرق يعكس أصالة حقيقية. وصل التغليف بحالة ممتازة دون أي خدش، بارك الله في أيدي
-            حرفيينا في الخليل.</p>
+          <p class="mt-4 text-sm leading-6 text-muted">{{ $review->comment }}</p>
         </article>
-        <article class="rounded-2xl border border-line/60 p-4 sm:p-[21px]">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div class="flex items-center gap-3"><span
-                class="flex h-10 w-10 items-center justify-center rounded-full bg-copper/10 font-bold text-copper">ع</span>
-              <div>
-                <h3 class="text-sm font-bold">د. عمر حنون <span
-                    class="rounded-md bg-olive px-2 py-0.5 text-[10px] text-surface">شراء موثق</span></h3><time
-                  class="text-[11px] text-muted">28 سبتمبر 2024</time>
-              </div>
-            </div><div class="flex self-start" aria-label="5 من 5 نجوم">
-              <img src="{{ asset('assets/storefront/imgs/product-page/review-star-small.svg') }}" alt="" class="h-[11px] w-3">
-              <img src="{{ asset('assets/storefront/imgs/product-page/review-star-small.svg') }}" alt="" class="h-[11px] w-3">
-              <img src="{{ asset('assets/storefront/imgs/product-page/review-star-small.svg') }}" alt="" class="h-[11px] w-3">
-              <img src="{{ asset('assets/storefront/imgs/product-page/review-star-small.svg') }}" alt="" class="h-[11px] w-3">
-              <img src="{{ asset('assets/storefront/imgs/product-page/review-star-small.svg') }}" alt="" class="h-[11px] w-3">
-            </div>
-          </div>
-          <p class="mt-4 text-sm leading-6 text-muted">هدية استثنائية لأصدقائي في المهجر، تشعر بفخر كبير حين ترى هذه
-            الحرفية العالية من ورشات الخليل القديمة. التوثيق المرفق مع القطعة أعطاها قيمة معنوية لا تُقدّر بثمن.</p>
-          <img src="{{ asset('assets/storefront/imgs/product-page/review-customer.png') }}" alt="صورة المشتري للمنتج في البيت"
-            class="mt-4 block h-28 w-28 rounded-2xl border border-line object-cover shadow-sm">
-        </article>
-        <article class="rounded-2xl border border-line/60 p-4 sm:p-[21px]">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div class="flex items-center gap-3"><span
-                class="flex h-10 w-10 items-center justify-center rounded-full bg-olive font-bold text-surface">م</span>
-              <div>
-                <h3 class="text-sm font-bold">مريم عبد الهادي <span
-                    class="rounded-md bg-olive px-2 py-0.5 text-[10px] text-surface">شراء موثق</span></h3><time
-                  class="text-[11px] text-muted">15 سبتمبر 2024</time>
-              </div>
-            </div><div class="flex self-start" aria-label="5 من 5 نجوم">
-              <img src="{{ asset('assets/storefront/imgs/product-page/review-star-small.svg') }}" alt="" class="h-[11px] w-3">
-              <img src="{{ asset('assets/storefront/imgs/product-page/review-star-small.svg') }}" alt="" class="h-[11px] w-3">
-              <img src="{{ asset('assets/storefront/imgs/product-page/review-star-small.svg') }}" alt="" class="h-[11px] w-3">
-              <img src="{{ asset('assets/storefront/imgs/product-page/review-star-small.svg') }}" alt="" class="h-[11px] w-3">
-              <img src="{{ asset('assets/storefront/imgs/product-page/review-star-small.svg') }}" alt="" class="h-[11px] w-3">
-            </div>
-          </div>
-          <p class="mt-4 text-sm leading-6 text-muted">سعة الإبريق ممتازة وجودة الطين ممتازة وباردة للماء. شكراً لدار
-            الكرمة ولمنصة حرفة على دعم هذه المشاغل وإتاحة اقتنائها بكل سهولة وثقة.</p>
-        </article>
+@empty
+<p class="text-sm text-muted">لا توجد تقييمات منشورة لهذا المنتج بعد.</p>
+@endforelse
+
       </div>
     </div>
   </section>
@@ -380,110 +297,35 @@
             src="{{ asset('assets/storefront/imgs/product-page/related-arrow.svg') }}" alt="" class="h-[7px] w-1"></a>
       </div>
       <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <article class="product-card group flex overflow-hidden rounded-[24px] border border-line bg-surface">
+        @foreach ($relatedProducts as $related)
+<article class="product-card group flex overflow-hidden rounded-[24px] border border-line bg-surface">
           <div class="flex w-full flex-col">
-            <div class="relative h-[240px] overflow-hidden sm:h-[284px]"><img src="{{ asset('assets/storefront/imgs/product-page/related-basket.png') }}"
-                alt="سلة قش قمحية بنقش هندسي" class="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]">
+            <div class="relative h-[240px] overflow-hidden sm:h-[284px]"><img src="{{ \App\Support\Storefront\HomepageMedia::url($related->primaryImage?->path ?? $related->images->first()?->path) }}"
+                alt="{{ $related->name }}" class="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]">
               <div class="absolute right-3 top-3 flex flex-col items-start gap-1.5"><span
                   class="rounded-lg bg-gold px-2.5 py-0.5 text-[11px] font-bold leading-[17px] text-white shadow-sm">قطعة نادرة</span><span
-                  class="rounded-md border border-line bg-surface/95 px-2.5 py-0.5 text-[10px] font-bold leading-[15px] text-olive backdrop-blur-sm">نسج الجليل</span></div>
-              <button type="button" aria-label="أضف سلة القش إلى المفضلة"
+                  class="rounded-md border border-line bg-surface/95 px-2.5 py-0.5 text-[10px] font-bold leading-[15px] text-olive backdrop-blur-sm">{{ $related->vendor->profile->store_name }}</span></div>
+              <button form="related-favorite-{{ $related->id }}" type="submit" aria-label="أضف سلة القش إلى المفضلة"
                 class="favorite absolute left-3 top-3 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-surface shadow-sm"><img
-                  src="{{ asset('assets/storefront/imgs/product-page/related-heart.svg') }}" alt="" class="h-[14px] w-[15px]"></button>
-              <button type="button" data-price="95"
+                  src="{{ asset('assets/storefront/imgs/product-page/related-heart.svg') }}" alt="" class="h-[14px] w-[15px]"></button><form hidden id="related-favorite-{{ $related->id }}" method="POST" action="{{ route('customer.favorites.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $related->id }}"></form>
+              <button form="related-cart-{{ $related->id }}" type="submit" data-price="{{ $related->price }}"
                 class="add-cart absolute inset-x-3 bottom-3 flex translate-y-0 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-sage px-4 py-2.5 text-xs font-bold text-ink opacity-100 shadow-md transition-[opacity,transform] duration-300 sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 sm:group-focus-within:translate-y-0 sm:group-focus-within:opacity-100"><span>إضافة إلى السلة</span><img
-                  src="{{ asset('assets/storefront/imgs/product-page/related-cart.svg') }}" alt="" class="h-[14px] w-[13px]"></button>
+                  src="{{ asset('assets/storefront/imgs/product-page/related-cart.svg') }}" alt="" class="h-[14px] w-[13px]"></button><form hidden id="related-cart-{{ $related->id }}" method="POST" action="{{ route('customer.cart.items.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $related->id }}"><input type="hidden" name="quantity" value="1"></form>
             </div>
             <div class="flex flex-1 flex-col p-4">
-              <div class="flex items-center justify-between pb-1 text-[11px] leading-4 text-muted"><span>نسج الجليل التراثي</span><span
+              <div class="flex items-center justify-between pb-1 text-[11px] leading-4 text-muted"><span>{{ $related->vendor->profile->store_name }}</span><span
                   class="flex items-center gap-1"><img src="{{ asset('assets/storefront/imgs/product-page/related-star.svg') }}" alt="" class="h-[11px] w-3"><bdi
-                    class="text-xs font-bold text-ink">4.7</bdi><bdi class="text-[#918f83]">(19)</bdi></span></div>
-              <a role="link" aria-disabled="true" data-deferred-navigation="product.html"><h3 class="pb-2 text-base font-bold leading-6 text-ink">سلة قش قمحية بنقش هندسي</h3></a>
-              <p class="pb-3 text-xs leading-4 text-[#918f83]">مجدولة بدقة من قش القمح الطبيعي المصبوغ بنباتات أصيلة صديقة للبيئة.</p>
+                    class="text-xs font-bold text-ink">{{ number_format($related->reviews_avg_rating ?? 0, 1) }}</bdi><bdi class="text-[#918f83]">({{ $related->reviews_count }})</bdi></span></div>
+              <a href="{{ route('product', ['slug' => $related->slug]) }}"><h3 class="pb-2 text-base font-bold leading-6 text-ink">{{ $related->name }}</h3></a>
+              <p class="pb-3 text-xs leading-4 text-[#918f83]">{{ $related->short_description }}</p>
               <div class="mt-auto flex items-center justify-between border-t border-line/60 pt-[13px]"><span
-                  class="flex items-baseline gap-1"><span class="text-xs text-[#918f83]">السعر:</span><bdi class="text-lg font-bold leading-7 text-ink">₪95</bdi></span><span
+                  class="flex items-baseline gap-1"><span class="text-xs text-[#918f83]">السعر:</span><bdi class="text-lg font-bold leading-7 text-ink">{{ number_format($related->price, 2) }} {{ $currency }}</bdi></span><span
                   class="text-[11px] text-muted">قطعة وحيدة</span></div>
             </div>
           </div>
         </article>
-        <article class="product-card group flex overflow-hidden rounded-[24px] border border-line bg-surface">
-          <div class="flex w-full flex-col">
-            <div class="relative h-[240px] overflow-hidden sm:h-[284px]"><img src="{{ asset('assets/storefront/imgs/product-page/related-cushion.png') }}"
-                alt="وسادة تطريز فلاحي كنعاني أصيل" class="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]">
-              <div class="absolute right-3 top-3 flex flex-col items-start gap-1.5"><span
-                  class="rounded-lg bg-olive px-2.5 py-0.5 text-[11px] font-bold leading-[17px] text-white shadow-sm">تطريز يدوي 100%</span><span
-                  class="rounded-md border border-line bg-surface/95 px-2.5 py-0.5 text-[10px] font-bold leading-[15px] text-olive backdrop-blur-sm">بيت لحم</span></div>
-              <button type="button" aria-label="أضف وسادة التطريز إلى المفضلة"
-                class="favorite absolute left-3 top-3 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-surface shadow-sm"><img
-                  src="{{ asset('assets/storefront/imgs/product-page/related-heart.svg') }}" alt="" class="h-[14px] w-[15px]"></button>
-              <button type="button" data-price="220"
-                class="add-cart absolute inset-x-3 bottom-3 flex translate-y-0 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-sage px-4 py-2.5 text-xs font-bold text-ink opacity-100 shadow-md transition-[opacity,transform] duration-300 sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 sm:group-focus-within:translate-y-0 sm:group-focus-within:opacity-100"><span>إضافة إلى السلة</span><img
-                  src="{{ asset('assets/storefront/imgs/product-page/related-cart.svg') }}" alt="" class="h-[14px] w-[13px]"></button>
-            </div>
-            <div class="flex flex-1 flex-col p-4">
-              <div class="flex items-center justify-between pb-1 text-[11px] leading-4 text-muted"><span>تعاونية نساء بيت لحم</span><span
-                  class="flex items-center gap-1"><img src="{{ asset('assets/storefront/imgs/product-page/related-star.svg') }}" alt="" class="h-[11px] w-3"><bdi
-                    class="text-xs font-bold text-ink">4.9</bdi><bdi class="text-[#918f83]">(24)</bdi></span></div>
-              <a role="link" aria-disabled="true" data-deferred-navigation="product.html"><h3 class="pb-2 text-base font-bold leading-6 text-ink">وسادة تطريز فلاحي كنعاني أصيل</h3></a>
-              <p class="pb-3 text-xs leading-4 text-[#918f83]">قماش كتان طبيعي مطرز بغرزة الفلاحي الأصلية، بنقوش النجمة والريش التراثية.</p>
-              <div class="mt-auto flex items-center justify-between border-t border-line/60 pt-[13px]"><span
-                  class="flex items-baseline gap-1"><span class="text-xs text-[#918f83]">السعر:</span><bdi class="text-lg font-bold leading-7 text-ink">₪220</bdi></span><span
-                  class="rounded-md bg-copper/10 px-2 py-0.5 text-[11px] text-copper">عمل 30 ساعة</span></div>
-            </div>
-          </div>
-        </article>
-        <article class="product-card group flex overflow-hidden rounded-[24px] border border-line bg-surface">
-          <div class="flex w-full flex-col">
-            <div class="relative h-[240px] overflow-hidden sm:h-[284px]"><img src="{{ asset('assets/storefront/imgs/product-page/related-candle.png') }}"
-                alt="شمعة شمع الصويا وزيت الزيتون" class="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]">
-              <div class="absolute right-3 top-3 flex flex-col items-start gap-1.5"><span
-                  class="rounded-lg bg-[#617a4d] px-2.5 py-0.5 text-[11px] font-bold leading-[17px] text-white shadow-sm">طبيعي 100%</span><span
-                  class="rounded-md border border-line bg-surface/95 px-2.5 py-0.5 text-[10px] font-bold leading-[15px] text-olive backdrop-blur-sm">نابلس</span></div>
-              <button type="button" aria-label="أضف شمعة زيت الزيتون إلى المفضلة"
-                class="favorite absolute left-3 top-3 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-surface shadow-sm"><img
-                  src="{{ asset('assets/storefront/imgs/product-page/related-heart.svg') }}" alt="" class="h-[14px] w-[15px]"></button>
-              <button type="button" data-price="68"
-                class="add-cart absolute inset-x-3 bottom-3 flex translate-y-0 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-sage px-4 py-2.5 text-xs font-bold text-ink opacity-100 shadow-md transition-[opacity,transform] duration-300 sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 sm:group-focus-within:translate-y-0 sm:group-focus-within:opacity-100"><span>إضافة إلى السلة</span><img
-                  src="{{ asset('assets/storefront/imgs/product-page/related-cart.svg') }}" alt="" class="h-[14px] w-[13px]"></button>
-            </div>
-            <div class="flex flex-1 flex-col p-4">
-              <div class="flex items-center justify-between pb-1 text-[11px] leading-4 text-muted"><span>مشغل نور الزيتونة • نابلس</span><span
-                  class="flex items-center gap-1"><img src="{{ asset('assets/storefront/imgs/product-page/related-star.svg') }}" alt="" class="h-[11px] w-3"><bdi
-                    class="text-xs font-bold text-ink">4.9</bdi><bdi class="text-[#918f83]">(42)</bdi></span></div>
-              <a role="link" aria-disabled="true" data-deferred-navigation="product.html"><h3 class="pb-2 text-base font-bold leading-6 text-ink">شمعة شمع الصويا وزيت الزيتون</h3></a>
-              <p class="pb-3 text-xs leading-4 text-[#918f83]">مصنوعة في فخار حجري يدوي مع خيط خشب يعطي صوتاً دافئاً واحتراقاً آمناً.</p>
-              <div class="mt-auto flex items-center justify-between border-t border-line/60 pt-[13px]"><span
-                  class="flex items-baseline gap-1"><span class="text-xs text-[#918f83]">السعر:</span><bdi class="text-lg font-bold leading-7 text-ink">₪68</bdi></span><span
-                  class="rounded-md bg-olive px-2 py-0.5 text-[11px] text-white">الأكثر مبيعاً</span></div>
-            </div>
-          </div>
-        </article>
-        <article class="product-card group flex overflow-hidden rounded-[24px] border border-line bg-surface">
-          <div class="flex w-full flex-col">
-            <div class="relative h-[240px] overflow-hidden sm:h-[284px]"><img src="{{ asset('assets/storefront/imgs/product-page/related-plate.png') }}"
-                alt="طبق خزفي مقدسي مزخرف يدوياً" class="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]">
-              <div class="absolute right-3 top-3 flex flex-col items-start gap-1.5"><span
-                  class="rounded-lg bg-copper px-2.5 py-0.5 text-[11px] font-bold leading-[17px] text-white shadow-sm">قطعة مميزة</span><span
-                  class="rounded-md border border-line bg-surface/95 px-2.5 py-0.5 text-[10px] font-bold leading-[15px] text-olive backdrop-blur-sm">الخليل</span></div>
-              <button type="button" aria-label="أضف الطبق الخزفي إلى المفضلة"
-                class="favorite absolute left-3 top-3 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-surface shadow-sm"><img
-                  src="{{ asset('assets/storefront/imgs/product-page/related-heart.svg') }}" alt="" class="h-[14px] w-[15px]"></button>
-              <button type="button" data-price="120"
-                class="add-cart absolute inset-x-3 bottom-3 flex translate-y-0 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-sage px-4 py-2.5 text-xs font-bold text-ink opacity-100 shadow-md transition-[opacity,transform] duration-300 sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 sm:group-focus-within:translate-y-0 sm:group-focus-within:opacity-100"><span>إضافة إلى السلة</span><img
-                  src="{{ asset('assets/storefront/imgs/product-page/related-cart.svg') }}" alt="" class="h-[14px] w-[13px]"></button>
-            </div>
-            <div class="flex flex-1 flex-col p-4">
-              <div class="flex items-center justify-between pb-1 text-[11px] leading-4 text-muted"><span>مشغل دار الكرمة • الخليل</span><span
-                  class="flex items-center gap-1"><img src="{{ asset('assets/storefront/imgs/product-page/related-star.svg') }}" alt="" class="h-[11px] w-3"><bdi
-                    class="text-xs font-bold text-ink">4.9</bdi><bdi class="text-[#918f83]">(31)</bdi></span></div>
-              <a role="link" aria-disabled="true" data-deferred-navigation="product.html"><h3 class="pb-2 text-base font-bold leading-6 text-ink">طبق خزفي مقدسي مزخرف يدوي</h3></a>
-              <p class="pb-3 text-xs leading-4 text-[#918f83]">طبق جداري وتقديمي من الخزف المصقول والطلاء الأزرق المقاوم للحرارة والزمن.</p>
-              <div class="mt-auto flex items-center justify-between border-t border-line/60 pt-[13px]"><span
-                  class="flex items-baseline gap-1"><span class="text-xs text-[#918f83]">السعر:</span><bdi class="text-lg font-bold leading-7 text-ink">₪120</bdi></span><span
-                  class="rounded-md bg-olive px-2 py-0.5 text-[11px] text-white">متبقي 4 قطع</span></div>
-            </div>
-          </div>
-        </article>
+@endforeach
+
       </div>
     </div>
   </section>

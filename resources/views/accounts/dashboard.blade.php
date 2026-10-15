@@ -22,12 +22,12 @@
 
   <main class="mx-auto grid max-w-6xl gap-5 px-4 py-8 sm:grid-cols-3">
     <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:col-span-2">
-      <h2 class="text-xl font-extrabold">Welcome</h2>
-      <p class="mt-2 text-sm leading-6 text-slate-600">This area is ready for {{ strtolower($account['label']) }} features.</p>
+      <h2 class="text-xl font-extrabold">{{ $user->name }}</h2>
+      <p class="mt-2 text-sm leading-6 text-slate-600">{{ $user->status }} — {{ $user->profile?->approval_status ?? '—' }}</p>
     </section>
     <aside class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p class="text-sm font-bold text-slate-500">Guard</p>
-      <p class="mt-1 font-extrabold">{{ $account['guard'] }}</p>
+      <p class="text-sm font-bold text-slate-500">{{ $account['label'] }}</p>
+      <p class="mt-1 font-extrabold">{{ $account['guard'] === 'delivery_driver' ? $user->deliveryAssignments()->count() : $user->products()->count() }}</p>
     </aside>
   </main>
 </body>

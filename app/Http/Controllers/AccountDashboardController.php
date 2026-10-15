@@ -12,9 +12,13 @@ class AccountDashboardController extends Controller
     {
         $account = AccountGuard::get($request->route('account_type'));
 
+        $user = $request->user($account['guard']);
+
         return view($account['dashboard_view'] ?? 'accounts.dashboard', [
             'account' => $account,
-            'user' => $request->user($account['guard']),
+            'user' => $user,
+            'latestOrder' => $account['guard'] === 'customer' ? $user->orders()->with(['vendorOrders.vendor.profile', 'items'])->latest('id')->first() : null,
+            'favoriteCount' => $account['guard'] === 'customer' ? $user->favorites()->count() : 0,
         ]);
     }
 }

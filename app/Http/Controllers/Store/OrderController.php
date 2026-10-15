@@ -9,25 +9,29 @@ use App\Support\Orders\OrderStatusLifecycle;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class OrderController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): JsonResponse|View
     {
-        return response()->json(
-            Order::query()
-                ->with('vendorOrders.vendor.profile')
-                ->where('customer_id', $request->user('customer')->id)
-                ->latest()
-                ->paginate($request->integer('per_page', 10))
-        );
+        $orders = Order::query()
+            ->with(['vendorOrders.vendor.profile', 'vendorOrders.items', 'items'])
+            ->where('customer_id', $request->user('customer')->id)
+            ->latest()
+            ->paginate(min(100, max(1, $request->integer('per_page', 10))));
+
+        return $request->expectsJson() ? response()->json($orders) : view('pages.customer-dashboard', [
+            'user' => $request->user('customer'), 'latestOrder' => $orders->first(), 'displayOrders' => $orders,
+            'favoriteCount' => $request->user('customer')->favorites()->count(), 'orderPage' => true,
+        ]);
     }
 
-    public function show(Request $request, Order $order): JsonResponse
+    public function show(Request $request, Order $order): JsonResponse|View
     {
         abort_unless($order->customer_id === $request->user('customer')->id, 403);
 
-        return response()->json($order->load([
+        $order->load([
             'address',
             'items.product.primaryImage',
             'payment',
@@ -35,7 +39,12 @@ class OrderController extends Controller
             'vendorOrders.deliveryDriver',
             'vendorOrders.deliveryAssignment',
             'vendorOrders.items.product.primaryImage',
-        ]));
+        ]);
+
+        return $request->expectsJson() ? response()->json($order) : view('pages.customer-dashboard', [
+            'user' => $request->user('customer'), 'latestOrder' => $order, 'displayOrders' => collect([$order]),
+            'favoriteCount' => $request->user('customer')->favorites()->count(), 'orderPage' => true,
+        ]);
     }
 
     public function confirmReceipt(Request $request, Order $order, VendorOrder $vendorOrder, OrderStatusLifecycle $orders): JsonResponse

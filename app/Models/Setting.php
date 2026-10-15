@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 
 class Setting extends Model
 {
@@ -20,9 +21,20 @@ class Setting extends Model
         'timezone',
         'default_locale',
         'default_currency',
+        'home_content',
     ];
 
     protected $hidden = ['singleton_key'];
+
+    public static function current(): ?self
+    {
+        return Schema::hasTable('settings') ? static::query()->first() : null;
+    }
+
+    protected function casts(): array
+    {
+        return ['home_content' => 'array'];
+    }
 
     public static function defaults(): array
     {

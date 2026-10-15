@@ -1,8 +1,8 @@
 @extends('layouts.storefront')
 
-@section('title', 'دار الكرمة للخزف | حِرفة')
+@section('title', $vendor->profile->store_name.' | '.($siteSetting?->site_name ?: 'حِرفة'))
 
-@section('meta_description', 'متجر دار الكرمة للخزف في حِرفة - خزف وفخار فلسطيني من الخليل القديمة')
+@section('meta_description', $vendor->profile->short_description ?: $vendor->profile->store_name)
 
 @section('content')
     @include('storefront.vendor.index')

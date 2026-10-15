@@ -1,8 +1,8 @@
-{{-- Shared customer account sidebar. $active: dashboard|orders|addresses|account|favorites. Items without a route stay deferred. --}}
+
 @php
   $accountSections = [
       ['key' => 'dashboard', 'label' => 'لوحة التحكم', 'icon' => 'layout-dashboard', 'href' => route('customer.dashboard'), 'deferred' => null],
-      ['key' => 'orders', 'label' => 'الطلبات', 'icon' => 'package-search', 'href' => null, 'deferred' => 'dashboard/orders.html'],
+      ['key' => 'orders', 'label' => 'الطلبات', 'icon' => 'package-search', 'href' => route('customer.orders.index'), 'deferred' => null],
       ['key' => 'addresses', 'label' => 'العنوان', 'icon' => 'map-pin', 'href' => route('customer.addresses'), 'deferred' => null],
       ['key' => 'account', 'label' => 'تفاصيل الحساب', 'icon' => 'user-round-cog', 'href' => route('customer.account-details'), 'deferred' => null],
       ['key' => 'favorites', 'label' => 'المفضلة', 'icon' => 'heart', 'href' => route('customer.favorites'), 'deferred' => null],

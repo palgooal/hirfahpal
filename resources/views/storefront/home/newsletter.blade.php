@@ -6,21 +6,21 @@
         </div>
         <div class="relative flex w-full max-w-[672px] flex-col items-center gap-4 pt-[5.5px] text-center"
           data-node-id="223:948">
-          <p class="text-xs font-bold uppercase leading-4 tracking-[.6px] text-copper">مجتمع أصالة الحِرفة</p>
+          <p class="text-xs font-bold uppercase leading-4 tracking-[.6px] text-copper">{{ $homeContent['newsletter_text_1'] }}</p>
           <h2
-            class="pt-[2.5px] text-[22px] font-bold leading-8 sm:text-2xl sm:leading-9 lg:whitespace-nowrap lg:text-[30px]">
-            انضم إلى عائلة «حِرفة» وكن أول من يعلم بجديد القطع</h2>
-          <p class="text-sm leading-[22.75px] text-muted">اشترك في نشرتنا البريدية لتحصل على خصم <bdi
-              class="font-bold text-copper">10%</bdi> على أول طلب، وقصص دورية ملهمة من قلب المشاغل الفلسطينية.</p>
-          <form id="newsletter" class="flex w-full max-w-[448px] flex-col gap-3 pt-4 sm:flex-row"
+            class="pt-[2.5px] text-[22px] font-bold leading-8 sm:text-2xl sm:leading-9 lg:whitespace-nowrap lg:text-[30px]">{{ $homeContent['newsletter_text_2'] }}</h2>
+          <p class="text-sm leading-[22.75px] text-muted">{{ $homeContent['newsletter_text_3'] }}<bdi
+              class="font-bold text-copper">10%</bdi>{{ $homeContent['newsletter_text_4'] }}</p>
+          <form id="newsletter" method="POST" action="{{ route('newsletter.store') }}" class="flex w-full max-w-[448px] flex-col gap-3 pt-4 sm:flex-row"
             data-node-id="223:956">
-            <input id="email" type="email" required placeholder="أدخل بريدك الإلكتروني..."
+            @csrf
+            <input id="email" name="email" value="{{ old('email') }}" type="email" required maxlength="255" placeholder="أدخل بريدك الإلكتروني..."
               class="h-[46px] min-w-0 flex-1 rounded-[16px] border border-line bg-surface px-[17px] text-right text-sm text-ink outline-none placeholder:text-[#6b7280] focus:border-sage">
-            <button type="submit" disabled aria-disabled="true"
-              class="h-[46px] shrink-0 rounded-[16px] bg-sage px-6 text-sm font-bold leading-5 text-ink shadow-sm">اشترك
-              الآن</button>
+            <button type="submit"
+              class="h-[46px] shrink-0 rounded-[16px] bg-sage px-6 text-sm font-bold leading-5 text-ink shadow-sm">{{ $homeContent['newsletter_text_5'] }}</button>
           </form>
-          <p class="pt-2 text-[11px] leading-[16.5px] text-[#918f83]">نحترم خصوصيتك، بدون أي رسائل مزعجة إطلاقاً.</p>
+          <p id="newsletterStatus" role="status" @if (!session('newsletter_status') && !$errors->has('email')) hidden @endif class="text-xs text-copper">{{ session('newsletter_status') ?: $errors->first('email') }}</p>
+          <p class="pt-2 text-[11px] leading-[16.5px] text-[#918f83]">{{ $homeContent['newsletter_text_6'] }}</p>
         </div>
       </div>
     </section>

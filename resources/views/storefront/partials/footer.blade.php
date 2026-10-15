@@ -7,11 +7,11 @@
           <div class="flex w-full items-center justify-start gap-3" data-node-id="223:968">
             <span
               class="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[16px] bg-surface p-1 shadow-sm"><img
-                src="{{ asset('assets/storefront/imgs/mcp/footer-logo.png') }}" alt="شعار حِرفة" class="h-[50px] w-[50px] object-cover"></span>
+                src="{{ \App\Support\Storefront\HomepageMedia::url($siteSetting?->logo, 'assets/storefront/imgs/mcp/footer-logo.png') }}" alt="شعار حِرفة" class="h-[50px] w-[50px] object-cover"></span>
             <div class="flex flex-col items-start">
               <div class="flex items-center justify-start gap-1.5"><i
                   class="h-1.5 w-1.5 rounded-full bg-copper"></i><strong
-                  class="text-2xl font-bold leading-8 text-[#fef3c7]">حِــرْفَة</strong></div>
+                  class="text-2xl font-bold leading-8 text-[#fef3c7]">{{ $siteSetting->site_name ?? 'حِــرْفَة' }}</strong></div>
               <p class="text-[10px] font-medium uppercase leading-[15px] tracking-[.5px] text-white/70">سوق الصنعة
                 الفلسطينية الأصيلة</p>
             </div>
@@ -41,7 +41,7 @@
         <div class="flex flex-col items-start gap-[14px] text-right" data-node-id="223:1004">
           <h3 class="w-full text-right text-sm font-bold leading-5 tracking-[.35px] text-[#fde68a]">روابط مفيدة</h3>
           <ul class="flex w-full flex-col gap-[9.5px] text-xs leading-4 text-white/75">
-            <li><a role="link" aria-disabled="true" data-deferred-navigation="orders.html" class="flex items-center justify-start gap-1.5"><i
+            <li><a href="{{ route('customer.orders.index') }}" class="flex items-center justify-start gap-1.5"><i
                   class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>طلباتي</span></a></li>
             <li><a href="{{ route('cart') }}" class="flex items-center justify-start gap-1.5"><i
                   class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>سلة المشتريات</span></a></li>
@@ -66,7 +66,7 @@
       <div
         class="flex w-full flex-col gap-5 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between"
         data-node-id="223:1030">
-        <p class="text-right text-xs leading-4 text-white/70"><bdi>© 2026</bdi> حِرفة. جميع الحقوق محفوظة لرواد الحِرف
+        <p class="text-right text-xs leading-4 text-white/70"><bdi>© {{ now()->year }}</bdi> {{ $siteSetting->site_name ?? 'حِرفة' }}. جميع الحقوق محفوظة لرواد الحِرف
           الأصيلة في فلسطين.</p>
         <div class="flex flex-col items-start gap-3 text-[11px] leading-4 sm:flex-row sm:flex-wrap sm:items-center">
           <span class="text-white/50">طرق الدفع الآمنة:</span>

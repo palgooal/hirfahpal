@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\StoreCustomerAddressRequest;
 use App\Models\CustomerAddress;
 use App\Models\Governorate;
+use App\Support\Storefront\BrowserResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -15,7 +17,10 @@ class AddressController extends Controller
 {
     public function index(Request $request): View
     {
+        $editingAddress = $request->filled('edit') ? $request->user('customer')->addresses()->findOrFail($request->input('edit')) : null;
+
         return view('pages.customer-addresses', [
+            'editingAddress' => $editingAddress,
             'addresses' => $request->user('customer')
                 ->addresses()
                 ->with(['governorate', 'city'])
@@ -30,7 +35,7 @@ class AddressController extends Controller
         ]);
     }
 
-    public function store(StoreCustomerAddressRequest $request): JsonResponse
+    public function store(StoreCustomerAddressRequest $request): JsonResponse|RedirectResponse
     {
         $address = DB::transaction(function () use ($request): CustomerAddress {
             $customer = $request->user('customer');
@@ -44,10 +49,10 @@ class AddressController extends Controller
             return $customer->addresses()->create($data);
         });
 
-        return response()->json($address->load(['governorate', 'city']), 201);
+        return BrowserResponse::saved($request, $address->load(['governorate', 'city']), 201, 'customer.addresses');
     }
 
-    public function update(StoreCustomerAddressRequest $request, CustomerAddress $address): JsonResponse
+    public function update(StoreCustomerAddressRequest $request, CustomerAddress $address): JsonResponse|RedirectResponse
     {
         $this->authorizeAddress($request, $address);
 
@@ -61,10 +66,10 @@ class AddressController extends Controller
             $address->update($data);
         });
 
-        return response()->json($address->fresh(['governorate', 'city']));
+        return BrowserResponse::saved($request, $address->fresh(['governorate', 'city']), 200, 'customer.addresses');
     }
 
-    public function destroy(Request $request, CustomerAddress $address): JsonResponse
+    public function destroy(Request $request, CustomerAddress $address): JsonResponse|RedirectResponse
     {
         $this->authorizeAddress($request, $address);
         $wasDefault = $address->is_default;
@@ -74,7 +79,7 @@ class AddressController extends Controller
             $request->user('customer')->addresses()->oldest()->first()?->update(['is_default' => true]);
         }
 
-        return response()->json(['message' => 'Address deleted.']);
+        return BrowserResponse::saved($request, ['message' => 'Address deleted.']);
     }
 
     private function authorizeAddress(Request $request, CustomerAddress $address): void

@@ -6,36 +6,35 @@
           <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-olive"><img
               src="{{ asset('assets/storefront/imgs/mcp/trust-authentic.svg') }}" alt="" class="h-[19.471px] w-[15.5px]"></span>
           <div class="flex min-w-0 flex-1 flex-col items-start gap-1">
-            <h3 class="w-full text-right text-sm font-bold leading-5">أصالة وحرفية يدوية</h3>
-            <p class="w-full text-right text-xs leading-[19.5px] text-muted">كل قطعة معتمدة ومصنوعة يدوياً بأيدي<br
-                class="hidden lg:block"> حرفيين مستقلين بنسبة 100%.</p>
+            <h3 class="w-full text-right text-sm font-bold leading-5">{{ $homeContent['trust_text_1'] }}</h3>
+            <p class="w-full text-right text-xs leading-[19.5px] text-muted">{{ $homeContent['trust_text_2'] }}<br
+                class="hidden lg:block">{{ $homeContent['trust_text_3'] }}</p>
           </div>
         </div>
         <div class="flex min-w-0 items-start justify-start gap-4" data-node-id="223:927">
           <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-copper/10"><img
               src="{{ asset('assets/storefront/imgs/mcp/trust-support.svg') }}" alt="" class="h-[20.106px] w-[20.399px]"></span>
           <div class="flex min-w-0 flex-1 flex-col items-start gap-1">
-            <h3 class="w-full text-right text-sm font-bold leading-5">دعم مباشر للحرفيين</h3>
-            <p class="w-full text-right text-xs leading-[19.5px] text-muted">عائد المبيعات يذهب بشكل عادل ومباشر<br
-                class="hidden lg:block"> للحرفيين لدعم عائلاتهم ومشاغلهم.</p>
+            <h3 class="w-full text-right text-sm font-bold leading-5">{{ $homeContent['trust_text_4'] }}</h3>
+            <p class="w-full text-right text-xs leading-[19.5px] text-muted">{{ $homeContent['trust_text_5'] }}<br
+                class="hidden lg:block">{{ $homeContent['trust_text_6'] }}</p>
           </div>
         </div>
         <div class="flex min-w-0 items-start justify-start gap-4" data-node-id="223:918">
           <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-olive"><img
               src="{{ asset('assets/storefront/imgs/mcp/trust-truck.svg') }}" alt="" class="h-[15.529px] w-[21.654px]"></span>
           <div class="flex min-w-0 flex-1 flex-col items-start gap-1">
-            <h3 class="w-full text-right text-sm font-bold leading-5">شحن منظم وتوصيل مؤمّن</h3>
-            <p class="w-full text-right text-xs leading-[19.5px] text-muted">توصيل دقيق لكافة المدن مع تتبع لحظي
-              وخيار<br class="hidden lg:block"> الدفع عند الباب.</p>
+            <h3 class="w-full text-right text-sm font-bold leading-5">{{ $homeContent['trust_text_7'] }}</h3>
+            <p class="w-full text-right text-xs leading-[19.5px] text-muted">{{ $homeContent['trust_text_8'] }}<br class="hidden lg:block">{{ $homeContent['trust_text_9'] }}</p>
           </div>
         </div>
         <div class="flex min-w-0 items-start justify-start gap-4" data-node-id="223:909">
           <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-gold/15"><img
               src="{{ asset('assets/storefront/imgs/mcp/trust-gift.svg') }}" alt="" class="h-[20.49px] w-[19.5px]"></span>
           <div class="flex min-w-0 flex-1 flex-col items-start gap-1">
-            <h3 class="w-full text-right text-sm font-bold leading-5">تغليف هدايا تراثي فاخر</h3>
-            <p class="w-full text-right text-xs leading-[19.5px] text-muted">تغليف مستدام أنيق مع بطاقة تعريفية بقصة<br
-                class="hidden lg:block"> الحرفي وتاريخ القطعة.</p>
+            <h3 class="w-full text-right text-sm font-bold leading-5">{{ $homeContent['trust_text_10'] }}</h3>
+            <p class="w-full text-right text-xs leading-[19.5px] text-muted">{{ $homeContent['trust_text_11'] }}<br
+                class="hidden lg:block">{{ $homeContent['trust_text_12'] }}</p>
           </div>
         </div>
       </div>

@@ -9,20 +9,36 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Models\VendorOrder;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class CheckoutController extends Controller
 {
-    public function store(Request $request): JsonResponse
+    public function store(Request $request): JsonResponse|RedirectResponse
     {
+        if (! $request->expectsJson()) {
+            $choice = $request->input('addressChoice');
+            $request->merge([
+                'payment_method' => $request->input('paymentMethod'),
+                'customer_address_id' => is_string($choice) && ctype_digit($choice) ? (int) $choice : null,
+            ]);
+        }
         $data = $request->validate([
             'customer_address_id' => ['nullable', 'integer', 'exists:customer_addresses,id'],
             'payment_method' => ['required', 'in:online,cod'],
             'delivery_fees' => ['array'],
             'delivery_fees.*' => ['numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'recipient_name' => [$request->input('addressChoice') === 'new' ? 'required' : 'nullable', 'string', 'max:255'],
+            'phone' => [$request->input('addressChoice') === 'new' ? 'required' : 'nullable', 'string', 'max:32'],
+            'governorate_id' => ['nullable', 'integer', 'exists:governorates,id'],
+            'address_line' => [$request->input('addressChoice') === 'new' ? 'required' : 'nullable', 'string', 'max:500'],
         ]);
+
+        if (! $request->expectsJson() && $request->input('addressChoice') !== 'new') {
+            $request->validate(['customer_address_id' => ['required']]);
+        }
 
         $customer = $request->user('customer');
         if (! empty($data['customer_address_id'])) {
@@ -37,12 +53,24 @@ class CheckoutController extends Controller
 
         abort_if($cart->items->isEmpty(), 422, 'Cart is empty.');
 
+        $data['delivery_fees'] = $cart->items->pluck('product.vendor_id')->unique()
+            ->mapWithKeys(fn ($vendorId) => [$vendorId => max(0, (float) config('marketplace.delivery_fee', 0))])->all();
+
         foreach ($cart->items as $item) {
             abort_unless($item->product->isSellable(), 422, "Product [{$item->product->name}] is no longer available for sale.");
             abort_if($item->product->availableStockQuantity() < $item->quantity, 422, "Product [{$item->product->name}] is out of stock.");
         }
 
-        $order = DB::transaction(function () use ($cart, $customer, $data) {
+        $order = DB::transaction(function () use ($cart, $customer, $data, $request) {
+            $lockedCart = Cart::query()->whereKey($cart->id)->lockForUpdate()->firstOrFail();
+            abort_unless($lockedCart->status === 'active', 422, 'This cart has already been submitted.');
+            if ($request->input('addressChoice') === 'new') {
+                $address = $customer->addresses()->create([
+                    'label' => 'عنوان الطلب', 'recipient_name' => $data['recipient_name'], 'phone' => $data['phone'],
+                    'governorate_id' => $data['governorate_id'] ?? null, 'address_line' => $data['address_line'],
+                ]);
+                $data['customer_address_id'] = $address->id;
+            }
             // Lock every product up front in ascending id order, so concurrent checkouts
             // (and vendor accepts) always take product locks in the same order (VEN-BE-019).
             $lockedProducts = Product::query()
@@ -125,7 +153,9 @@ class CheckoutController extends Controller
             return $order;
         });
 
-        return response()->json($order->load(['vendorOrders.items', 'payment']), 201);
+        return $request->expectsJson()
+            ? response()->json($order->load(['vendorOrders.items', 'payment']), 201)
+            : redirect()->route('customer.dashboard')->with('success', 'تم إنشاء الطلب '.$order->number.' بنجاح.');
     }
 
     private function nextOrderNumber(): string

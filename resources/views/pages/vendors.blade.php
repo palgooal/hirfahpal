@@ -1,6 +1,6 @@
 @extends('layouts.storefront')
 
-@section('title', 'كل المتاجر | حِرفة')
+@section('title', 'كل المتاجر | '.($siteSetting?->site_name ?: 'حِرفة'))
 
 @section('meta_description', 'كل المتاجر في حِرفة - دليل الحرفيين والمشاغل الفلسطينية المسجلة')
 

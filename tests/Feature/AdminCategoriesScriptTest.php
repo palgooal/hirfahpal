@@ -22,8 +22,8 @@ class AdminCategoriesScriptTest extends TestCase
         fclose($pipes[2]);
 
         $this->assertSame(0, proc_close($process), $output);
-        $this->assertMatchesRegularExpression('/^ℹ fail 0$/m', $output);
-        $this->assertDoesNotMatchRegularExpression('/^ℹ pass 0$/m', $output);
+        $this->assertMatchesRegularExpression('/^(?:ℹ|#) fail 0$/m', $output);
+        $this->assertDoesNotMatchRegularExpression('/^(?:ℹ|#) pass 0$/m', $output);
     }
 
     public function test_the_script_holds_no_wording_and_no_html_injection(): void

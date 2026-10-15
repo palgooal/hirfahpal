@@ -18,9 +18,12 @@ use App\Http\Controllers\DeliveryDriverDashboard\ProfileController as DeliveryDr
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Store\CartController;
 use App\Http\Controllers\Store\CheckoutController;
+use App\Http\Controllers\Store\NewsletterSubscriptionController;
 use App\Http\Controllers\Store\OrderController;
 use App\Http\Controllers\Store\ProductCatalogController;
 use App\Http\Controllers\Store\ReviewController;
+use App\Http\Controllers\Store\StorefrontPageController;
+use App\Http\Controllers\Store\VendorDirectoryController;
 use App\Http\Controllers\VendorDashboard\ApprovalStatusController as VendorApprovalStatusController;
 use App\Http\Controllers\VendorDashboard\CommissionController as VendorCommissionController;
 use App\Http\Controllers\VendorDashboard\DisputeController as VendorDisputeController;
@@ -40,19 +43,24 @@ Route::middleware(['setLocale'])->group(function () {
     require __DIR__.'/lang.php';
 });
 
-Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/', [HomeController::class, 'index'])->middleware('setLocale')->name('home');
+Route::post('/newsletter', [NewsletterSubscriptionController::class, 'store'])
+    ->middleware('throttle:5,1')->name('newsletter.store');
 
-Route::view('/categories', 'pages.categories')->middleware('setLocale')->name('categories');
+Route::get('/categories', [StorefrontPageController::class, 'categories'])->middleware('setLocale')->name('categories');
 
-Route::view('/browse', 'pages.browse')->middleware('setLocale')->name('browse');
+Route::get('/browse', [StorefrontPageController::class, 'browse'])->middleware('setLocale')->name('browse');
 
-Route::view('/product', 'pages.product')->middleware('setLocale')->name('product');
+Route::get('/product', [StorefrontPageController::class, 'product'])->middleware('setLocale')->name('product');
 
-Route::view('/vendors', 'pages.vendors')->middleware('setLocale')->name('vendors');
+Route::get('/vendors', [VendorDirectoryController::class, 'index'])->middleware('setLocale')->name('vendors');
 
-Route::view('/vendors/dar-al-karma', 'pages.vendor')->middleware('setLocale')->name('vendors.show');
+Route::get('/vendors/dar-al-karma', [VendorDirectoryController::class, 'show'])
+    ->defaults('storeSlug', 'dar-al-karma')->middleware('setLocale')->name('vendors.show');
+Route::get('/vendors/{storeSlug}', [VendorDirectoryController::class, 'show'])
+    ->middleware('setLocale')->name('vendors.profile');
 
-Route::view('/cart', 'pages.cart')->middleware('setLocale')->name('cart');
+Route::get('/cart', [StorefrontPageController::class, 'cart'])->middleware('setLocale')->name('cart');
 
 /*
 |--------------------------------------------------------------------------
@@ -301,7 +309,7 @@ Route::prefix('customer')
             Route::delete('favorites/{favorite}', [CustomerFavoriteController::class, 'destroy'])
                 ->name('favorites.destroy');
 
-            Route::view('checkout', 'pages.checkout')
+            Route::get('checkout', [StorefrontPageController::class, 'checkout'])
                 ->name('checkout.show');
 
             Route::post('checkout', [CheckoutController::class, 'store'])

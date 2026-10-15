@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
+use App\Support\Storefront\BrowserResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
@@ -18,7 +20,7 @@ class CartController extends Controller
         );
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request): JsonResponse|RedirectResponse
     {
         $data = $request->validate([
             'product_id' => ['required', 'integer', 'exists:products,id'],
@@ -42,10 +44,11 @@ class CartController extends Controller
             'unit_price' => $product->price,
         ])->save();
 
-        return response()->json($cart->fresh(['items.product.vendor.profile', 'items.product.primaryImage']), 201);
+        return BrowserResponse::saved($request, $cart->fresh(['items.product.vendor.profile', 'items.product.primaryImage']), 201,
+            $request->boolean('checkout') ? 'customer.checkout.show' : null);
     }
 
-    public function update(Request $request, CartItem $cartItem): JsonResponse
+    public function update(Request $request, CartItem $cartItem): JsonResponse|RedirectResponse
     {
         $data = $request->validate([
             'quantity' => ['required', 'integer', 'min:1'],
@@ -57,18 +60,18 @@ class CartController extends Controller
 
         $cartItem->update(['quantity' => $data['quantity']]);
 
-        return response()->json($this->activeCart($request)->load(['items.product.vendor.profile', 'items.product.primaryImage']));
+        return BrowserResponse::saved($request, $this->activeCart($request)->load(['items.product.vendor.profile', 'items.product.primaryImage']));
     }
 
-    public function destroy(Request $request, CartItem $cartItem): JsonResponse
+    public function destroy(Request $request, CartItem $cartItem): JsonResponse|RedirectResponse
     {
         $this->authorizeCartItem($request, $cartItem);
         $cartItem->delete();
 
-        return response()->json($this->activeCart($request)->load(['items.product.vendor.profile', 'items.product.primaryImage']));
+        return BrowserResponse::saved($request, $this->activeCart($request)->load(['items.product.vendor.profile', 'items.product.primaryImage']));
     }
 
-    private function activeCart(Request $request): Cart
+    public function activeCart(Request $request): Cart
     {
         if ($customer = $request->user('customer')) {
             $customerCart = Cart::query()->firstOrCreate([

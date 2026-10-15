@@ -51,9 +51,9 @@ class VendorRegisterPageTest extends TestCase
         $this->page()->assertOk()->assertViewIs('auth.vendor.register');
     }
 
-    public function test_other_account_types_keep_the_shared_register_view(): void
+    public function test_other_account_types_keep_their_existing_register_views(): void
     {
-        $this->get(route('customer.register'))->assertOk()->assertViewIs('auth.accounts.register');
+        $this->get(route('customer.register'))->assertOk()->assertViewIs('pages.customer-login');
         $this->get(route('delivery-driver.register'))->assertOk()->assertViewIs('auth.accounts.register');
     }
 

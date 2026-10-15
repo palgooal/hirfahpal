@@ -74,6 +74,8 @@ Route::prefix('dashboard')
 
         Route::get('settings', [SettingController::class, 'index'])->name('setting.index');
         Route::put('settings', [SettingController::class, 'update'])->name('setting.update');
+        Route::get('settings/home-content', [SettingController::class, 'homeContent'])->name('setting.home-content');
+        Route::patch('settings/home-content', [SettingController::class, 'updateHomeContent'])->name('setting.home-content.update');
 
         require __DIR__.'/lang_dashboard.php';
 

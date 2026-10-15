@@ -24,6 +24,9 @@ class ArabicEncodingTest extends TestCase
         $badFiles = [];
 
         foreach ($paths as $path) {
+            if (! is_dir($path)) {
+                continue;
+            }
             $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path));
 
             foreach ($files as $file) {

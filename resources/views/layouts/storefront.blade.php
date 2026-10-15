@@ -23,6 +23,12 @@
 
     @include('storefront.partials.search-panel')
 
+    @if (session('success') || $errors->any())
+        <div class="mx-auto max-w-[1216px] px-4 py-3 text-sm text-copper" role="status">
+            {{ session('success') ?: $errors->first() }}
+        </div>
+    @endif
+
     @yield('content')
 
     @include('storefront.partials.footer')

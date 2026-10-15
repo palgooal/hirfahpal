@@ -24,8 +24,8 @@ class MediaLibraryAdminScriptTest extends TestCase
         $exitCode = proc_close($process);
 
         $this->assertSame(0, $exitCode, $output);
-        $this->assertMatchesRegularExpression('/^ℹ fail 0$/m', $output);
-        $this->assertDoesNotMatchRegularExpression('/^ℹ pass 0$/m', $output, 'The JS tests must actually run.');
+        $this->assertMatchesRegularExpression('/^(?:ℹ|#) fail 0$/m', $output);
+        $this->assertDoesNotMatchRegularExpression('/^(?:ℹ|#) pass 0$/m', $output, 'The JS tests must actually run.');
     }
 
     public function test_the_script_holds_no_hard_coded_wording(): void
