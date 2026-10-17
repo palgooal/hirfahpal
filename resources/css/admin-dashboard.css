@@ -1805,6 +1805,29 @@ html.admin-shell .admin-products .admin-products-name-link:focus-visible {
   text-decoration-color: var(--color-hf-olive);
 }
 
+/* ---- Customers list (CUS-UI-05): resources/views/dashboard/customers/index.blade.php ----
+ * Built on the products list pieces above (admin-products-*); only the page band is its own. */
+
+/* No breadcrumb on this page (DEC-AD-UI-03): hide the layout's empty band, here only. */
+html.admin-shell .pc-content:has(#admin-customers) > .page-header {
+  display: none;
+}
+
+html.admin-shell .pc-content:has(#admin-customers) {
+  padding-top: 1.5rem;
+}
+
+/* Customer details (CUS-UI-06): resources/views/dashboard/customers/show.blade.php, on the product details pieces.
+ * The empty band only. The layout's error list stays visible here: requests that return through back() can bring
+ * errors of fields this page does not show, so hiding it could hide an error (CUS-UI-06B). */
+html.admin-shell .pc-content:has(#admin-customer-show) > .page-header {
+  display: none;
+}
+
+html.admin-shell .pc-content:has(#admin-customer-show) {
+  padding-top: 1.5rem;
+}
+
 /* ---- Product details (AD-UI-PROD-M4): resources/views/dashboard/products/show.blade.php ----
  * Five groups; resources/js/admin-product-show.js makes them tabs (.is-tabbed). Without it every group is shown. */
 html.admin-shell .pc-content:has(#admin-product-show) > .page-header {

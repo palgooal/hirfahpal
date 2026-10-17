@@ -147,7 +147,26 @@ class MediaLibraryAdminPageTest extends TestCase
         $html = $this->page($this->admin(superAdmin: true), 'ar');
 
         $this->assertStringContainsString('Upload images', $html);
-        $this->assertSame(0, TranslationValue::query()->where('key', 'like', 'dashboard.Media\_%')->count(), 'The page never auto-creates its keys.');
+        $this->assertSame([], $this->mediaKeyRows(), 'The page never auto-creates its keys.');
+    }
+
+    public function test_the_translation_row_check_detects_a_written_media_key(): void
+    {
+        // CUS-UI-06B: matched by prefix in PHP; on SQLite 'dashboard.Media\_%' (LIKE without an escape character)
+        // matches nothing, so the assertion above could never fail.
+        TranslationValue::create(['key' => 'dashboard.Media_Upload', 'locale' => 'ar', 'value' => 'Upload images']);
+        TranslationValue::create(['key' => 'dashboard.Media', 'locale' => 'ar', 'value' => 'الوسائط']);
+
+        $this->assertSame(['dashboard.Media_Upload'], $this->mediaKeyRows());
+        $this->assertSame(0, TranslationValue::query()->where('key', 'like', 'dashboard.Media\_%')->count(), 'The LIKE form misses the row it should find.');
+    }
+
+    /** @return list<string> the rows of the media page keys (dashboard.Media_*), matched by prefix in PHP */
+    private function mediaKeyRows(): array
+    {
+        return TranslationValue::query()->orderBy('key')->pluck('key')
+            ->filter(fn (string $key) => str_starts_with($key, 'dashboard.Media_'))
+            ->values()->all();
     }
 
     // ---------------------------------------------------------------- abilities
