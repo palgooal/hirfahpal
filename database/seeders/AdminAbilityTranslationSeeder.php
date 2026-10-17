@@ -12,6 +12,10 @@ use Illuminate\Database\Seeder;
  * default exactly (a customised value is kept). Several of these keys are shared with other pages (Admins, Settings,
  * Vendors, Reviews, …); only their Arabic row is corrected, and only from the English default.
  *
+ * TR-INIT-01: on a database where a CORRECTIONS key has no row yet (a new environment), its rows are inserted too,
+ * Arabic from `to` and English from `from` (the default in data/abilities.php), so the 32 labels no longer depend on
+ * t() creating them first with English text. Existing rows are never overwritten by that insert.
+ *
  * Only missing (key, locale) rows are inserted; no row is deleted; no other key is touched. Not called from
  * DatabaseSeeder.
  */
@@ -87,7 +91,14 @@ class AdminAbilityTranslationSeeder extends Seeder
     {
         $now = now();
 
-        foreach (self::TRANSLATIONS as $key => $values) {
+        // The 17 labels, then the 32 CORRECTIONS keys with their approved values (TR-INIT-01): inserted only where the
+        // (key, locale) row does not exist yet, so the guarded corrections below still handle the old English rows.
+        $initial = self::TRANSLATIONS + array_map(
+            fn (array $correction): array => ['ar' => $correction['to'], 'en' => $correction['from']],
+            self::CORRECTIONS
+        );
+
+        foreach ($initial as $key => $values) {
             foreach ($values as $locale => $value) {
                 // insertOrIgnore relies on unique(key, locale): an existing row is never overwritten.
                 $inserted = TranslationValue::query()->insertOrIgnore([

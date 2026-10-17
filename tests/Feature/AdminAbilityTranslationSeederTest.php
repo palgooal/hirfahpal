@@ -11,7 +11,8 @@ use Tests\TestCase;
  * AD-UI-PROD-M6 (A3): AdminAbilityTranslationSeeder. Exactly 49 ability-label keys (17 inserted in Arabic and
  * English, 32 Arabic rows corrected from the English default), English equal to the defaults in data/abilities.php,
  * customised values kept, nothing deleted, no other key touched, idempotent, stale cache cleared, not called from
- * DatabaseSeeder.
+ * DatabaseSeeder. TR-INIT-01: on a new database the 32 CORRECTIONS keys are inserted too (ar = to, en = from), so all
+ * 49 labels exist in both languages (98 rows), without duplicates.
  */
 class AdminAbilityTranslationSeederTest extends TestCase
 {
@@ -42,7 +43,7 @@ class AdminAbilityTranslationSeederTest extends TestCase
         }
     }
 
-    public function test_the_17_missing_labels_are_inserted_in_both_languages(): void
+    public function test_a_new_database_gets_all_49_labels_in_both_languages(): void
     {
         $this->seed(AdminAbilityTranslationSeeder::class);
 
@@ -50,7 +51,32 @@ class AdminAbilityTranslationSeederTest extends TestCase
             $this->assertSame($values['ar'], $this->value($key, 'ar'));
             $this->assertSame($values['en'], $this->value($key, 'en'));
         }
-        $this->assertSame(34, TranslationValue::count(), 'Corrections never insert.');
+        // TR-INIT-01: the CORRECTIONS keys are initialised with their approved values.
+        foreach (AdminAbilityTranslationSeeder::CORRECTIONS as $key => $correction) {
+            $this->assertSame($correction['to'], $this->value($key, 'ar'), $key);
+            $this->assertSame($correction['from'], $this->value($key, 'en'), $key);
+        }
+        $this->assertSame(98, TranslationValue::count(), '49 keys x 2 languages.');
+        $this->assertSame('التقييمات', $this->value('dashboard.Reviews', 'ar'));
+        $this->assertNoDuplicates();
+    }
+
+    public function test_old_english_arabic_rows_without_an_english_row_are_corrected_and_completed(): void
+    {
+        foreach (AdminAbilityTranslationSeeder::CORRECTIONS as $key => $correction) {
+            TranslationValue::create(['key' => $key, 'locale' => 'ar', 'value' => $correction['from']]);
+        }
+        cache()->put('translation.en.dashboard.Settings', 'stale', 60);
+
+        $this->seed(AdminAbilityTranslationSeeder::class);
+
+        foreach (AdminAbilityTranslationSeeder::CORRECTIONS as $key => $correction) {
+            $this->assertSame($correction['to'], $this->value($key, 'ar'), "{$key} [ar] corrected.");
+            $this->assertSame($correction['from'], $this->value($key, 'en'), "{$key} [en] inserted.");
+        }
+        $this->assertSame(98, TranslationValue::count());
+        $this->assertNull(cache()->get('translation.en.dashboard.Settings'), 'The inserted row clears its cache entry.');
+        $this->assertNoDuplicates();
     }
 
     public function test_the_32_english_arabic_rows_are_corrected_and_the_english_rows_kept(): void
@@ -66,7 +92,8 @@ class AdminAbilityTranslationSeederTest extends TestCase
             $this->assertSame($correction['to'], $this->value($key, 'ar'), $key);
             $this->assertSame($correction['from'], $this->value($key, 'en'), $key);
         }
-        $this->assertSame(64 + 34, TranslationValue::count());
+        $this->assertSame(64 + 34, TranslationValue::count(), 'The existing rows are corrected, not duplicated.');
+        $this->assertNoDuplicates();
     }
 
     public function test_customised_values_are_never_replaced_even_if_they_differ_only_in_case_or_spaces(): void
@@ -81,6 +108,8 @@ class AdminAbilityTranslationSeederTest extends TestCase
             TranslationValue::create(['key' => $key, 'locale' => 'ar', 'value' => $value]);
         }
         TranslationValue::create(['key' => 'dashboard.View_Products', 'locale' => 'en', 'value' => 'See products']);
+        // A customised English row of a CORRECTIONS key is kept too.
+        TranslationValue::create(['key' => 'dashboard.Disputes', 'locale' => 'en', 'value' => 'Customer disputes']);
 
         $this->seed(AdminAbilityTranslationSeeder::class);
 
@@ -88,6 +117,11 @@ class AdminAbilityTranslationSeederTest extends TestCase
             $this->assertSame($value, $this->value($key, 'ar'), $key);
         }
         $this->assertSame('See products', $this->value('dashboard.View_Products', 'en'));
+        $this->assertSame('Customer disputes', $this->value('dashboard.Disputes', 'en'));
+        $this->assertSame('النزاعات', $this->value('dashboard.Disputes', 'ar'), 'Its missing Arabic row is inserted.');
+        $this->assertSame('Admins', $this->value('dashboard.Admins', 'en'), 'A missing English row is inserted beside a custom Arabic one.');
+        $this->assertSame(98, TranslationValue::count());
+        $this->assertNoDuplicates();
     }
 
     public function test_other_keys_are_untouched_and_nothing_is_deleted(): void
@@ -101,7 +135,7 @@ class AdminAbilityTranslationSeederTest extends TestCase
         $this->seed(AdminAbilityTranslationSeeder::class);
 
         $this->assertSame($before, TranslationValue::whereIn('key', array_keys($others))->orderBy('id')->get(['id', 'key', 'locale', 'value', 'updated_at'])->toArray());
-        $this->assertSame(count($others) + 34, TranslationValue::count());
+        $this->assertSame(count($others) + 98, TranslationValue::count());
     }
 
     public function test_running_twice_changes_nothing(): void
@@ -114,6 +148,18 @@ class AdminAbilityTranslationSeederTest extends TestCase
         $this->seed(AdminAbilityTranslationSeeder::class);
 
         $this->assertSame($first, TranslationValue::orderBy('id')->get(['id', 'key', 'locale', 'value', 'updated_at'])->toArray());
+    }
+
+    public function test_running_twice_on_a_new_database_changes_nothing(): void
+    {
+        $this->seed(AdminAbilityTranslationSeeder::class);
+        $first = TranslationValue::orderBy('id')->get(['id', 'key', 'locale', 'value', 'updated_at'])->toArray();
+
+        $this->travel(1)->minutes();
+        $this->seed(AdminAbilityTranslationSeeder::class);
+
+        $this->assertSame($first, TranslationValue::orderBy('id')->get(['id', 'key', 'locale', 'value', 'updated_at'])->toArray());
+        $this->assertSame(98, TranslationValue::count());
     }
 
     public function test_t_serves_the_new_values_after_a_stale_cache_entry(): void
@@ -143,6 +189,11 @@ class AdminAbilityTranslationSeederTest extends TestCase
         preg_match_all("/t\\('(dashboard\\.[A-Za-z_]+)',\\s*'([^']+)'\\)/", file_get_contents(base_path('data/abilities.php')), $matches, PREG_SET_ORDER);
 
         return array_column($matches, 2, 1);
+    }
+
+    private function assertNoDuplicates(): void
+    {
+        $this->assertSame(0, TranslationValue::query()->select('key', 'locale')->groupBy('key', 'locale')->havingRaw('COUNT(*) > 1')->get()->count(), 'No duplicate (key, locale).');
     }
 
     private function value(string $key, string $locale): ?string
