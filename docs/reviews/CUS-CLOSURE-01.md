@@ -2,14 +2,16 @@
 
 | البند | القيمة |
 |---|---|
-| Version | 1.0 |
-| Status | CLOSED WITH DEFERRALS — Pending Owner Review |
+| Version | 1.1 |
+| Status | CLOSED WITH DEFERRALS — Phase closure approved by owner; deployment not approved |
 | Project | HIRFAH |
 | Scope | Admin Customers (`/dashboard/customers`) |
 | Date | 2026-10-17 |
 | References | CUS-ACCEPT-01 (تقرير الجلسة، غير محفوظ كملف) / [CUS-DESIGN-01.md](CUS-DESIGN-01.md) v0.2 (DEFERRED) / HIRFAH SRS v0.5 (Draft) / HIRFAH Architecture v0.1 (Draft) / AD-UI-01 v0.1 |
 
-> وثيقة إغلاق فقط. لم يُعدَّل أي كود أو اختبار أو Seeder أو Migration في هذه الجولة، ولم يُكتب شيء على قاعدة البيانات، ولم يُنفَّذ Commit أو Push أو نشر.
+> وثيقة إغلاق فقط. لم يُعدَّل أي كود أو اختبار أو Seeder أو Migration ضمن جولات هذه الوثيقة، ولم يُكتب شيء على قاعدة البيانات، ولم يُنفَّذ Push أو نشر.
+>
+> **v1.1 (CUS-CLOSURE-DOC-SYNC-01):** مزامنة مع الحالة بعد الـ Commits الثلاثة (`64bf203`، `005a8d6`، `b9f8a5a`) والتحقق اللاحق (CUS-POST-COMMIT-VERIFY-01: PASS WITH CONDITIONS). اعتمد المالك إغلاق مرحلة CUS-MVP؛ النشر غير معتمد. لم يتغير النطاق ولا المتطلبات ولا المؤجل ولا شروط النشر.
 
 ---
 
@@ -60,11 +62,11 @@
 | `AdminCustomerShowTest` | 2026-10-17 (جولة الإغلاق) | **57 passed** (632 assertions) |
 | `AdminCustomerTranslationSeederTest` | 2026-10-17 (جولة الإغلاق) | **11 passed** (259 assertions) |
 | الملفات الثلاثة + `AccountStatusEnforcementTest` + `AuthRateLimitingTest` + `AdminDashboardSidebarTest` | 2026-10-17 (CUS-ACCEPT-01) | **193 passed** (2157 assertions)، 0 failed |
-| المجموعة الكاملة `php artisan test` | 2026-10-17 (بعد CUS-UI-CLEANUP-01، آخر تعديل للكود) | **1260 passed، 30 skipped، 0 failed** (13087 assertions) |
+| المجموعة الكاملة `php artisan test` | 2026-10-17 (CUS-POST-COMMIT-VERIFY-01، على HEAD `b9f8a5a`) | **1263 passed، 30 skipped، 0 failed** (13102 assertions) |
 | `LIKE … escape '!'` على MySQL 8.4.3 (تعابير ثابتة، دون جداول) | 2026-10-17 (CUS-ACCEPT-01) | **12/12** مطابقة لنتائج SQLite |
 
 - **البيئة:** SQLite في الذاكرة (`phpunit.xml`)، لا قاعدة dev.
-- **لم يتغير أي ملف كود أو اختبار** منذ تشغيل المجموعة الكاملة: إحصاء الملفات المتتبعة ما زال `7 files changed, 554 insertions(+), 57 deletions(-)`، والتغييرات اللاحقة وثائق فقط.
+- **التشغيل الشامل الأخير** تم على HEAD بعد الـ Commits الثلاثة، وشجرة العمل نظيفة. المرجع السابق (1260 / 30 / 0، قبل الـ Commits) يختلف بـ +3 passed فقط، وكلها من الـ Commit الوسيط `e652c2e front` (واجهة المتجر، سُحب من `origin` قبل الـ Commits الثلاثة): أضاف ثلاثة اختبارات ولم يحذف أيًا منها. لا فشل جديد.
 - **الاختبارات الـ30 المتخطاة** كلها تحتاج قاعدة MySQL معزولة (`CATEGORY_FK_MYSQL_DATABASE`): CategoryAuditFixes (4)، CategoryForeignKeyRestrict (5)، CategoryHierarchyConcurrency (4)، MediaDeletionConcurrency (13)، TranslationCorrectionCase (4). **لا يتعلق أي منها بإدارة العملاء.**
 
 ---
@@ -99,6 +101,8 @@
 - الحظر لا يطلب تأكيدًا.
 
 هذا مقبول ضمن MVP بقرار المالك.
+
+**غير معتمد للتنفيذ:** سجل التدقيق (Audit Trail، DEF-2)، والدخول بصفة العميل (Customer Impersonation)، وإعادة تعيين كلمة مرور العميل من الإدارة (Password Reset) تبقى كلها مؤجلة وخارج المرحلة الحالية. الأخيرتان لا تصميم لهما ولا متطلب في SRS v0.5، وأي تنفيذ لاحق يحتاج قرارًا وتصميمًا مستقلين.
 
 ---
 
@@ -149,7 +153,7 @@
 | التكرار | تشغيله مرتين لا يغيّر شيئًا (`test_running_twice_changes_nothing`) |
 | الاختبارات | 11 passed (القسم 3) |
 | حالة dev (قراءة فقط، 2026-10-17) | 80/80 صفًا موجودة، والرسالة العربية صحيحة؛ لم يُشغَّل في هذه الجولة |
-| الملف | غير متتبع في git حتى الآن (`??`) |
+| الملف | متتبع في git، ضمن `005a8d6` (CUS-MVP) |
 
 ### 8.2 مفاتيح معاد استخدامها تعتمد عليها الصفحتان
 
@@ -183,47 +187,43 @@ php artisan db:seed --class=AdminCustomerTranslationSeeder --force
 
 ## 9. الملفات
 
-### 9.1 المعدّلة (متتبعة)
+كل الملفات **متتبعة** في git ومثبتة في الـ Commits الثلاثة (القسم 10). شجرة العمل نظيفة بعد الـ Commits (`git status --short` فارغ في CUS-POST-COMMIT-VERIFY-01).
 
-| الملف | المجموعة |
-|---|---|
-| `app/Http/Controllers/Dashboard/CustomerManagementController.php` | A — العملاء |
-| `resources/views/dashboard/customers/index.blade.php` | A |
-| `resources/views/dashboard/customers/show.blade.php` | A |
-| `resources/css/admin-dashboard.css` | A |
-| `tests/Feature/MediaLibraryAdminPageTest.php` | A (CUS-UI-06B: نفس تصحيح فحص صفوف الترجمة) |
-| `database/seeders/AdminAbilityTranslationSeeder.php` | **B — TR-INIT-01** |
-| `tests/Feature/AdminAbilityTranslationSeederTest.php` | **B — TR-INIT-01** |
+| الملف | المجموعة | الـ Commit |
+|---|---|---|
+| `database/seeders/AdminAbilityTranslationSeeder.php` | **B — TR-INIT-01** | `64bf203` |
+| `tests/Feature/AdminAbilityTranslationSeederTest.php` | **B — TR-INIT-01** | `64bf203` |
+| `app/Http/Controllers/Dashboard/CustomerManagementController.php` | A — العملاء | `005a8d6` |
+| `database/seeders/AdminCustomerTranslationSeeder.php` | A (ملف جديد) | `005a8d6` |
+| `resources/css/admin-dashboard.css` | A | `005a8d6` |
+| `resources/views/dashboard/customers/index.blade.php` | A | `005a8d6` |
+| `resources/views/dashboard/customers/show.blade.php` | A | `005a8d6` |
+| `tests/Feature/AdminCustomerShowTest.php` | A (ملف جديد) | `005a8d6` |
+| `tests/Feature/AdminCustomerTranslationSeederTest.php` | A (ملف جديد) | `005a8d6` |
+| `tests/Feature/AdminCustomersIndexTest.php` | A (ملف جديد) | `005a8d6` |
+| `tests/Feature/MediaLibraryAdminPageTest.php` | A (CUS-UI-06B: نفس تصحيح فحص صفوف الترجمة) | `005a8d6` |
+| `docs/reviews/CUS-CLOSURE-01.md` | C — الوثائق (ملف جديد) | `b9f8a5a` |
+| `docs/reviews/CUS-DESIGN-01.md` | C (ملف جديد) | `b9f8a5a` |
 
-### 9.2 غير المتتبعة
-
-| الملف | المجموعة |
-|---|---|
-| `database/seeders/AdminCustomerTranslationSeeder.php` | A |
-| `tests/Feature/AdminCustomersIndexTest.php` | A |
-| `tests/Feature/AdminCustomerShowTest.php` | A |
-| `tests/Feature/AdminCustomerTranslationSeederTest.php` | A |
-| `docs/reviews/CUS-DESIGN-01.md` | C — الوثائق |
-| `docs/reviews/CUS-CLOSURE-01.md` | C |
-
-لا ملفات أخرى معدلة أو غير متتبعة. لا Migrations ولا Routes ولا `.env` ضمن التغييرات.
+لا Migrations ولا Routes ولا `.env` ضمن الـ Commits الثلاثة.
 
 ---
 
-## 10. خطة Commits المقترحة
+## 10. الـ Commits المنفذة
 
-على `main` مباشرة، أو على فرع مستقل (`feature/admin-customers`) ثم PR، بحسب قرار المالك. قبل كل Commit: `./vendor/bin/pint --test` على ملفات PHP المعنية، و`git diff --check`، والاختبارات المذكورة.
+على `main` محليًا، فوق `e652c2e`. **لم تُدفع بعد** (`main...origin/main [ahead 3]`)؛ الـ Push يحتاج موافقة المالك.
 
-| # | المحتوى | الملفات | العنوان المقترح | الاختبارات قبل الـ Commit |
+| # | Commit | المجموعة | الرسالة | الملفات |
 |---|---|---|---|---|
-| 1 | TR-INIT-01 | المجموعة B (ملفان) | `Initialize ability label translations on new databases` | `AdminAbilityTranslationSeederTest` |
-| 2 | إدارة العملاء MVP | المجموعة A (9 ملفات) | `Rebuild admin customers list and details pages` | الملفات الثلاثة للعملاء + `MediaLibraryAdminPageTest` + `AccountStatusEnforcementTest` |
-| 3 | الوثائق | المجموعة C (ملفان) | `Document admin customers closure and deferred design` | — |
+| 1 | `64bf203` | TR-INIT-01 | `fix(admin): initialize ability translations safely` | 2 (المجموعة B) |
+| 2 | `005a8d6` | CUS-MVP | `feat(admin): complete customer management MVP` | 9 (المجموعة A) |
+| 3 | `b9f8a5a` | CUS-DOCS | `docs(admin): close customer management MVP phase` | 2 (المجموعة C) |
 
-- **فصل TR-INIT-01:** Commit 1 لا يحتوي أي ملف عملاء، وCommit 2 لا يحتوي ملفات TR-INIT-01. الترتيب 1 ثم 2 يوافق تبعية النشر في 8.2، وأي ترتيب آخر لا يكسر الاختبارات.
-- **بعد Commit 2** تُشغَّل المجموعة الكاملة `php artisan test` للتأكد من النتيجة نفسها (1260 / 30 / 0).
+- **الفصل (متحقق منه في CUS-POST-COMMIT-VERIFY-01):** `64bf203` لا يحتوي أي ملف عملاء، و`005a8d6` لا يحتوي ملفات TR-INIT-01، ولا ملفات إضافية غير مقصودة في أي منها. الترتيب يوافق تبعية النشر في 8.2.
+- **مطابقة المحتوى:** إجمالي `005a8d6` (`2460 insertions, 51 deletions`) مع `64bf203` (`68 insertions, 6 deletions`) يطابق ما رُوجع قبل الـ Commits.
+- **`git diff --check`** نظيف على الـ Commits الثلاثة.
+- **بعد الـ Commits** شُغّلت المجموعة الكاملة: 1263 / 30 / 0 (القسم 3).
 - **وصف الـ PR** (إن وُجد) يذكر: الغرض، وأوامر الاختبار، و**لا Migrations**، و**Seeders جديدة غير مستدعاة من `DatabaseSeeder`** (القسم 8.3)، واللقطات (V-1)، والمؤجل (القسم 5).
-- **إن رغب المالك في Commit واحد** بدل 2 و3: يبقى TR-INIT-01 منفصلًا على الأقل.
 
 ---
 
@@ -231,8 +231,8 @@ php artisan db:seed --class=AdminCustomerTranslationSeeder --force
 
 | الجانب | الحكم | السبب |
 |---|---|---|
-| **إغلاق المرحلة (MVP)** | **CLOSED WITH DEFERRALS** | FR-ADM-005 منفذ؛ الإصلاحات الست مغلقة؛ لا Release Blockers؛ المؤجل بقرار المالك (القسم 5) |
-| **جاهزية الكود للـ Commit** | **READY** | الاختبارات ناجحة؛ `git diff --check` نظيف؛ النطاق محدد؛ بشرط فصل TR-INIT-01 (القسم 10) |
+| **إغلاق المرحلة (MVP)** | **CLOSED WITH DEFERRALS** — معتمد من المالك | FR-ADM-005 منفذ؛ الإصلاحات الست مغلقة؛ لا Release Blockers؛ المؤجل بقرار المالك (القسم 5) |
+| **الـ Commits** | **DONE** — `64bf203` و`005a8d6` و`b9f8a5a`؛ CUS-POST-COMMIT-VERIFY-01: PASS WITH CONDITIONS | الفصل صحيح؛ 1263 / 30 / 0؛ `git diff --check` نظيف؛ لم تُدفع (Push غير معتمد بعد) |
 | **جاهزية النشر** | **NOT YET READY** | يتطلب: (1) V-1..V-6 على الأقل، ولقطات للـ PR؛ (2) نسخة احتياطية ثم الـ Seeders الخمسة في البيئة المستهدفة (القسم 8.3)؛ (3) `npm run build` لأن `admin-dashboard.css` تغيّر؛ (4) موافقة المالك على النشر |
 
 الملاحظات N-1..N-5 لا تمنع الـ Commit ولا النشر.
