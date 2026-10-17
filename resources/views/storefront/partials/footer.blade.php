@@ -30,11 +30,11 @@
         <div class="flex flex-col items-start gap-[14px] text-right" data-node-id="223:991">
           <h3 class="w-full text-right text-sm font-bold leading-5 tracking-[.35px] text-[#fde68a]">عن حِرفة</h3>
           <ul class="flex w-full flex-col gap-[9.5px] text-xs leading-4 text-white/75">
-            <li><a role="link" aria-disabled="true" data-deferred-navigation="#" class="flex items-center justify-start gap-1.5"><i
+            <li><a href="{{ route('content.show', 'about') }}" class="flex items-center justify-start gap-1.5"><i
                   class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>قصة المنصة ورؤيتها</span></a></li>
-            <li><a role="link" aria-disabled="true" data-deferred-navigation="#" class="flex items-center justify-start gap-1.5"><i
+            <li><a href="{{ route('content.show', 'authenticity') }}" class="flex items-center justify-start gap-1.5"><i
                   class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>ميثاق الأصالة والجودة</span></a></li>
-            <li><a role="link" aria-disabled="true" data-deferred-navigation="#" class="flex items-center justify-start gap-1.5"><i
+            <li><a href="{{ route('contact.create') }}" class="flex items-center justify-start gap-1.5"><i
                   class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>تواصل واستفسارات</span></a></li>
           </ul>
         </div>
@@ -54,11 +54,11 @@
         <div class="flex flex-col items-start gap-[14px] text-right" data-node-id="223:1017">
           <h3 class="w-full text-right text-sm font-bold leading-5 tracking-[.35px] text-[#fde68a]">خدمة العملاء</h3>
           <ul class="flex w-full flex-col gap-[9.5px] text-xs leading-4 text-white/75">
-            <li><a role="link" aria-disabled="true" data-deferred-navigation="#" class="flex items-center justify-start gap-1.5"><i
+            <li><a href="{{ route('content.show', 'shipping') }}" class="flex items-center justify-start gap-1.5"><i
                   class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>الشحن والتوصيل المنظم</span></a></li>
-            <li><a role="link" aria-disabled="true" data-deferred-navigation="#" class="flex items-center justify-start gap-1.5"><i
+            <li><a href="{{ route('content.show', 'returns') }}" class="flex items-center justify-start gap-1.5"><i
                   class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>سياسة الاستبدال والإرجاع</span></a></li>
-            <li><a role="link" aria-disabled="true" data-deferred-navigation="#" class="flex items-center justify-start gap-1.5"><i
+            <li><a href="{{ route('content.show', 'faq') }}" class="flex items-center justify-start gap-1.5"><i
                   class="h-1 w-1 rounded-full bg-[#fde68a]/50"></i><span>الأسئلة الأكثر شيوعاً</span></a></li>
           </ul>
         </div>

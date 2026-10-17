@@ -26,6 +26,35 @@ class DynamicStorefrontPagesTest extends TestCase
         $this->get(route('product', ['slug' => 'missing']))->assertNotFound();
     }
 
+    public function test_browse_honors_storefront_category_vendor_city_price_and_sort_links(): void
+    {
+        $category = Category::query()->create(['name' => 'Filtered category', 'slug' => 'filtered-category', 'is_active' => true]);
+        $otherCategory = Category::query()->create(['name' => 'Other category', 'slug' => 'other-category', 'is_active' => true]);
+        $vendor = Vendor::factory()->approved()->create();
+        $vendor->profile()->update(['store_name' => 'Filtered store', 'slug' => 'filtered-store']);
+        $otherVendor = Vendor::factory()->approved()->create();
+        $otherVendor->profile()->update(['store_name' => 'Other store', 'slug' => 'other-store']);
+
+        $matching = Product::query()->create([
+            'vendor_id' => $vendor->id, 'category_id' => $category->id, 'name' => 'Matching product',
+            'slug' => 'matching-product', 'price' => 30, 'stock_quantity' => 3, 'status' => 'active',
+        ]);
+        Product::query()->create([
+            'vendor_id' => $otherVendor->id, 'category_id' => $otherCategory->id, 'name' => 'Other product',
+            'slug' => 'other-product', 'price' => 10, 'stock_quantity' => 3, 'status' => 'active',
+        ]);
+
+        $this->get(route('browse', [
+            'category' => $category->slug,
+            'vendor' => $vendor->profile->slug,
+            'priceMin' => 25,
+            'priceMax' => 35,
+            'sort' => 'price-desc',
+        ]))->assertOk()
+            ->assertSee($matching->name)
+            ->assertViewHas('products', fn ($products) => $products->pluck('id')->all() === [$matching->id]);
+    }
+
     public function test_cart_browser_forms_persist_quantity_and_removal(): void
     {
         $product = $this->product();

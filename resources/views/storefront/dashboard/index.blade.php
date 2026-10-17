@@ -34,6 +34,22 @@
                     @foreach ($vendorOrder->items as $orderItem)
                         <span class="text-sm leading-6 text-muted">{{ $orderItem->product_name }} — {{ $orderItem->quantity }} × {{ number_format($orderItem->unit_price, 2) }} {{ $currency }} — {{ number_format($orderItem->line_total, 2) }} {{ $currency }}</span>
                     @endforeach
+                    @if ($vendorOrder->status === 'delivered')
+                      <form method="POST" action="{{ route('customer.orders.vendor-orders.confirm-receipt', [$latestOrder, $vendorOrder]) }}" class="shrink-0">@csrf @method('PATCH')
+                        <button type="submit" class="rounded-[12px] border border-olive bg-surface px-3 py-2 text-xs font-bold text-olive">تأكيد الاستلام</button>
+                      </form>
+                    @elseif ($vendorOrder->status === 'completed')
+                      @php($vendorReview = $latestOrder->reviews->first(fn ($review) => $review->vendor_order_id === $vendorOrder->id && $review->reviewable_type === 'vendor'))
+                      @if ($vendorReview)
+                        <span class="text-xs font-bold text-olive">تم إرسال تقييمك: {{ $vendorReview->rating }}/5</span>
+                      @else
+                        <form method="POST" action="{{ route('customer.orders.reviews.store', $latestOrder) }}" class="flex items-center gap-2">@csrf
+                          <input type="hidden" name="vendor_order_id" value="{{ $vendorOrder->id }}">
+                          <label class="text-xs font-semibold text-muted">تقييم المتجر <select name="vendor_rating" required class="rounded-lg border border-line bg-canvas px-2 py-1 text-ink"><option value="">—</option>@foreach (range(1, 5) as $rating)<option value="{{ $rating }}">{{ $rating }}</option>@endforeach</select></label>
+                          <button type="submit" class="rounded-[12px] border border-olive bg-surface px-3 py-2 text-xs font-bold text-olive">إرسال التقييم</button>
+                        </form>
+                      @endif
+                    @endif
                 @endif
               </div>
 @endforeach

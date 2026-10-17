@@ -11,6 +11,7 @@ use App\Models\ProductImage;
 use App\Models\Vendor;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class StorefrontPageController extends Controller
 {
@@ -23,16 +24,42 @@ class StorefrontPageController extends Controller
 
     public function browse(Request $request)
     {
-        $request->validate(['q' => ['nullable', 'string', 'max:200'], 'sale' => ['nullable', 'boolean']]);
+        $request->validate([
+            'q' => ['nullable', 'string', 'max:200'],
+            'sale' => ['nullable', 'boolean'],
+            'priceMin' => ['nullable', 'numeric', 'min:0'],
+            'priceMax' => ['nullable', 'numeric', 'min:0'],
+            'sort' => ['nullable', Rule::in(['newest', 'price-asc', 'price-desc', 'rating-desc'])],
+        ]);
+
+        $categories = $this->filterValues($request, 'category');
+        $vendors = $this->filterValues($request, 'vendor');
+        $cities = $this->filterValues($request, 'city');
+
+        $products = $this->products()
+            ->when($request->boolean('sale'), fn (Builder $query) => $query->whereColumn('compare_at_price', '>', 'price'))
+            ->when($categories !== [], fn (Builder $query) => $query->whereHas('category', fn (Builder $category) => $category->whereIn('slug', $categories)))
+            ->when($vendors !== [], fn (Builder $query) => $query->whereHas('vendor.profile', fn (Builder $profile) => $profile->whereIn('slug', $vendors)))
+            ->when($cities !== [], fn (Builder $query) => $query->whereHas('vendor.profile.city', fn (Builder $city) => $city->whereIn('slug', $cities)))
+            ->when($request->filled('priceMin'), fn (Builder $query) => $query->where('price', '>=', $request->input('priceMin')))
+            ->when($request->filled('priceMax'), fn (Builder $query) => $query->where('price', '<=', $request->input('priceMax')))
+            ->when($request->filled('q'), function (Builder $query) use ($request) {
+                $term = '%'.addcslashes($request->string('q')->trim()->toString(), '%_\\').'%';
+
+                $query->where(fn (Builder $query) => $query->where('name', 'like', $term)->orWhere('short_description', 'like', $term)
+                    ->orWhereHas('category', fn (Builder $category) => $category->where('name', 'like', $term))
+                    ->orWhereHas('vendor.profile', fn (Builder $profile) => $profile->where('store_name', 'like', $term)));
+            });
+
+        match ($request->input('sort', 'newest')) {
+            'price-asc' => $products->orderBy('price')->orderBy('id'),
+            'price-desc' => $products->orderByDesc('price')->orderByDesc('id'),
+            'rating-desc' => $products->orderByDesc('reviews_avg_rating')->orderByDesc('reviews_count')->latest('published_at')->latest('id'),
+            default => $products->latest('published_at')->latest('id'),
+        };
 
         return view('pages.browse', [
-            'products' => $this->products()->when($request->boolean('sale'), fn ($query) => $query->whereColumn('compare_at_price', '>', 'price'))
-                ->when($request->filled('q'), function (Builder $query) use ($request) {
-                    $term = '%'.addcslashes($request->string('q')->trim()->toString(), '%_\\').'%';
-                    $query->where(fn ($query) => $query->where('name', 'like', $term)->orWhere('short_description', 'like', $term)
-                        ->orWhereHas('category', fn ($category) => $category->where('name', 'like', $term))
-                        ->orWhereHas('vendor.profile', fn ($profile) => $profile->where('store_name', 'like', $term)));
-                })->latest('published_at')->latest('id')->get(),
+            'products' => $products->get(),
             'filterCategories' => Category::query()->where('is_active', true)->orderBy('sort_order')->orderBy('id')->get(),
             'filterVendors' => Vendor::query()->storefrontVisible()->with('profile')->orderBy('id')->get(),
             'filterCities' => City::query()->where('status', 'active')->orderBy('name')->get(),
@@ -98,5 +125,25 @@ class StorefrontPageController extends Controller
             'subtotal' => $items->sum(fn ($item) => $item->quantity * (float) $item->product->price),
             'deliveryTotal' => $items->pluck('product.vendor_id')->unique()->count() * max(0, (float) config('marketplace.delivery_fee', 0)),
         ];
+    }
+
+    /**
+     * Accept both the single-value links emitted by storefront cards and the
+     * repeated values submitted by the browse filter checkboxes.
+     *
+     * @return list<string>
+     */
+    private function filterValues(Request $request, string $key): array
+    {
+        $values = $request->input($key, []);
+
+        return collect(is_array($values) ? $values : [$values])
+            ->filter(fn ($value) => is_string($value))
+            ->map(fn (string $value) => trim($value))
+            ->filter()
+            ->unique()
+            ->take(20)
+            ->values()
+            ->all();
     }
 }

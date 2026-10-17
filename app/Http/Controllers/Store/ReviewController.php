@@ -5,11 +5,12 @@ namespace App\Http\Controllers\Store;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class ReviewController extends Controller
 {
-    public function store(Request $request, Order $order): JsonResponse
+    public function store(Request $request, Order $order): JsonResponse|RedirectResponse
     {
         abort_unless($order->customer_id === $request->user('customer')->id, 403);
 
@@ -35,36 +36,41 @@ class ReviewController extends Controller
                 'Product was not received in this vendor order.'
             );
 
-            $reviews[] = $order->reviews()->create([
-                'customer_id' => $order->customer_id,
+            $reviews[] = $order->reviews()->updateOrCreate([
                 'vendor_order_id' => $vendorOrder->id,
                 'product_id' => $data['product_id'],
                 'reviewable_type' => 'product',
+            ], [
+                'customer_id' => $order->customer_id,
                 'rating' => $data['product_rating'],
                 'comment' => $data['product_comment'] ?? null,
             ]);
         }
 
-        $reviews[] = $order->reviews()->create([
-            'customer_id' => $order->customer_id,
+        $reviews[] = $order->reviews()->updateOrCreate([
             'vendor_order_id' => $vendorOrder->id,
             'vendor_id' => $vendorOrder->vendor_id,
             'reviewable_type' => 'vendor',
+        ], [
+            'customer_id' => $order->customer_id,
             'rating' => $data['vendor_rating'],
             'comment' => $data['vendor_comment'] ?? null,
         ]);
 
         if (! empty($data['driver_rating']) && $vendorOrder->delivery_driver_id) {
-            $reviews[] = $order->reviews()->create([
-                'customer_id' => $order->customer_id,
+            $reviews[] = $order->reviews()->updateOrCreate([
                 'vendor_order_id' => $vendorOrder->id,
                 'delivery_driver_id' => $vendorOrder->delivery_driver_id,
                 'reviewable_type' => 'delivery_driver',
+            ], [
+                'customer_id' => $order->customer_id,
                 'rating' => $data['driver_rating'],
                 'comment' => $data['driver_comment'] ?? null,
             ]);
         }
 
-        return response()->json($reviews, 201);
+        return $request->expectsJson()
+            ? response()->json($reviews, 201)
+            : back()->with('success', 'تم حفظ تقييمك بنجاح.');
     }
 }

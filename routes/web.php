@@ -18,10 +18,12 @@ use App\Http\Controllers\DeliveryDriverDashboard\ProfileController as DeliveryDr
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Store\CartController;
 use App\Http\Controllers\Store\CheckoutController;
+use App\Http\Controllers\Store\ContactMessageController;
 use App\Http\Controllers\Store\NewsletterSubscriptionController;
 use App\Http\Controllers\Store\OrderController;
 use App\Http\Controllers\Store\ProductCatalogController;
 use App\Http\Controllers\Store\ReviewController;
+use App\Http\Controllers\Store\StorefrontContentPageController;
 use App\Http\Controllers\Store\StorefrontPageController;
 use App\Http\Controllers\Store\VendorDirectoryController;
 use App\Http\Controllers\VendorDashboard\ApprovalStatusController as VendorApprovalStatusController;
@@ -46,6 +48,10 @@ Route::middleware(['setLocale'])->group(function () {
 Route::get('/', [HomeController::class, 'index'])->middleware('setLocale')->name('home');
 Route::post('/newsletter', [NewsletterSubscriptionController::class, 'store'])
     ->middleware('throttle:5,1')->name('newsletter.store');
+
+Route::get('/contact', [ContactMessageController::class, 'create'])->middleware('setLocale')->name('contact.create');
+Route::post('/contact', [ContactMessageController::class, 'store'])->middleware(['setLocale', 'throttle:5,1'])->name('contact.store');
+Route::get('/pages/{slug}', [StorefrontContentPageController::class, 'show'])->middleware('setLocale')->name('content.show');
 
 Route::get('/categories', [StorefrontPageController::class, 'categories'])->middleware('setLocale')->name('categories');
 

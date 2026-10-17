@@ -17,7 +17,7 @@ class AccountDashboardController extends Controller
         return view($account['dashboard_view'] ?? 'accounts.dashboard', [
             'account' => $account,
             'user' => $user,
-            'latestOrder' => $account['guard'] === 'customer' ? $user->orders()->with(['vendorOrders.vendor.profile', 'items'])->latest('id')->first() : null,
+            'latestOrder' => $account['guard'] === 'customer' ? $user->orders()->with(['vendorOrders.vendor.profile', 'items', 'reviews'])->latest('id')->first() : null,
             'favoriteCount' => $account['guard'] === 'customer' ? $user->favorites()->count() : 0,
         ]);
     }
