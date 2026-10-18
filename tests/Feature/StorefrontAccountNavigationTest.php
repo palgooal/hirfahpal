@@ -7,8 +7,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * The storefront shell's account controls always point at the customer dashboard;
- * ARCH-04 sends guests through customer login and back.
+ * The storefront shell's account controls: the header icon points guests at customer login
+ * and signed-in customers at their dashboard (CUSTOMER-AUTH-B1); the footer link points at
+ * the dashboard, and ARCH-04 sends guests through customer login and back.
  */
 class StorefrontAccountNavigationTest extends TestCase
 {
@@ -16,8 +17,20 @@ class StorefrontAccountNavigationTest extends TestCase
 
     private const PASSWORD = 'Account-nav-1';
 
-    public function test_header_account_icon_points_to_the_customer_dashboard(): void
+    public function test_header_account_icon_points_guests_to_the_customer_login(): void
     {
+        $header = $this->section($this->get(route('home'))->getContent(), '<header', '</header>');
+
+        $this->assertMatchesRegularExpression(
+            '/<a href="'.preg_quote(route('customer.login'), '/').'"[^>]*aria-label="الحساب"/',
+            $header
+        );
+    }
+
+    public function test_header_account_icon_points_signed_in_customers_to_the_dashboard(): void
+    {
+        $this->actingAs(Customer::factory()->create(), 'customer');
+
         $header = $this->section($this->get(route('home'))->getContent(), '<header', '</header>');
 
         $this->assertMatchesRegularExpression(

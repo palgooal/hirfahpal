@@ -40,14 +40,14 @@
             class="flex h-[30px] w-[30px] items-center justify-center overflow-hidden rounded-full border border-olive bg-olive p-px"
             aria-label="بحث"><img src="{{ asset('assets/storefront/imgs/mcp/header-search-exact.svg') }}" alt=""
               class="h-[28.667px] w-[14.663px] max-w-none"></button>
-          <a href="{{ route('customer.dashboard') }}" class="flex h-[30px] w-[30px] items-center justify-center rounded-full" aria-label="الحساب"><img
-              src="{{ asset('assets/storefront/imgs/mcp/header-user.svg') }}" alt="" class="h-[16.283px] w-[17.875px]"></a>
+          <a href="{{ auth('customer')->check() ? route('customer.dashboard') : route('customer.login') }}" class="flex h-[30px] w-[30px] items-center justify-center rounded-full" aria-label="الحساب"><img
+              src="{{ asset('assets/storefront/imgs/mcp/header-eye.svg') }}" alt="" class="h-[14.032px] w-[14.208px]"></a>
           <button type="button" disabled aria-disabled="true" class="relative flex h-[30px] w-[30px] items-center justify-center rounded-full"
             aria-label="الإشعارات"><img src="{{ asset('assets/storefront/imgs/mcp/header-bell.svg') }}" alt=""
               class="h-[17.963px] w-[14.208px]"><span
               class="absolute right-[5.42px] top-[2.33px] h-2 w-2 rounded-full bg-copper"></span></button>
           <button type="button" disabled aria-disabled="true" class="flex h-[30px] w-[30px] items-center justify-center rounded-full" aria-label="المشاهدة"><img
-              src="{{ asset('assets/storefront/imgs/mcp/header-eye.svg') }}" alt="" class="h-[14.032px] w-[14.208px]"></button>
+              src="{{ asset('assets/storefront/imgs/mcp/header-user.svg') }}" alt="" class="h-[16.283px] w-[17.875px]"></button>
           <button type="submit" form="header-cart-form" id="cartButton"
             class="relative flex h-[30px] w-[86.208px] items-center justify-center gap-2.5 rounded-full border border-olive bg-olive px-[11px] text-surface"
             aria-label="سلة المشتريات">
