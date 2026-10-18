@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Support\Auth\AccountGuard;
 use App\Support\Auth\GuardLoginService;
+use App\Support\Storefront\GuestCartMerger;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,7 +24,7 @@ class AccountAuthenticatedSessionController extends Controller
         ]);
     }
 
-    public function store(Request $request, GuardLoginService $guardLoginService): RedirectResponse
+    public function store(Request $request, GuardLoginService $guardLoginService, GuestCartMerger $guestCarts): RedirectResponse
     {
         $account = AccountGuard::get($request->route('account_type'));
 
@@ -47,8 +49,15 @@ class AccountAuthenticatedSessionController extends Controller
             throttleScope: $account['guard'],
         );
 
+        // CUSTOMER-AUTH-A1: the guest cart is found by the session id before regenerate() replaces it.
+        $guestCartId = $user instanceof Customer ? $guestCarts->guestCartId($request->session()->getId()) : null;
+
         Auth::guard($account['guard'])->login($user, $request->boolean('remember'));
         $request->session()->regenerate();
+
+        if ($user instanceof Customer) {
+            $guestCarts->mergeAfterAuthentication($guestCartId, $user);
+        }
 
         return redirect()->intended(route($account['dashboard_route']));
     }
