@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Http\Controllers\Dashboard\MediaLibraryController;
 use App\Models\Admin;
+use App\Models\Customer;
 use App\Models\Language;
 use App\Models\Setting;
 use App\Models\Vendor;
@@ -110,15 +111,20 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * ARCH-03 / VEN-BE-002: the default reset email links to Fortify's
-     * password.reset, which resets the web "users" broker. Vendor links go to
-     * the vendor reset route so the token reaches the "vendors" broker. Other
-     * account types keep the framework default until their flows are moved.
+     * ARCH-03 / VEN-BE-002 / ADM-BE-001: the default reset email links to Fortify's
+     * password.reset, which resets the web "users" broker. Vendor and customer
+     * links go to their own reset routes so the token reaches the "vendors" /
+     * "customers" broker. Admins and delivery drivers still keep the framework
+     * default (ADM-BE-001, open for them).
      */
     private function configurePasswordResetLinks(): void
     {
         ResetPassword::createUrlUsing(function ($notifiable, #[\SensitiveParameter] string $token): string {
-            $route = $notifiable instanceof Vendor ? 'vendor.password.reset' : 'password.reset';
+            $route = match (true) {
+                $notifiable instanceof Vendor => 'vendor.password.reset',
+                $notifiable instanceof Customer => 'customer.password.reset',
+                default => 'password.reset',
+            };
 
             return url(route($route, [
                 'token' => $token,

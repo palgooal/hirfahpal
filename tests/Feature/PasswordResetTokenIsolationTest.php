@@ -18,7 +18,9 @@ use Tests\TestCase;
 
 /**
  * Tokens are issued through the brokers and captured from faked notifications;
- * resets go through each type's own endpoint because the emailed link is ARCH-03.
+ * resets go through each type's own endpoint. The emailed link points at the
+ * vendor and customer reset routes; admins and delivery drivers still get
+ * Fortify's (ARCH-03 / ADM-BE-001, open for them).
  */
 class PasswordResetTokenIsolationTest extends TestCase
 {
@@ -311,15 +313,29 @@ class PasswordResetTokenIsolationTest extends TestCase
         $this->assertTrue(Password::broker('users')->tokenExists($user, $legacyToken));
     }
 
-    public function test_emailed_reset_link_is_still_the_known_arch_03_route(): void
+    public function test_customer_emailed_reset_link_is_the_customer_reset_route(): void
     {
-        // Documents ARCH-03 (still open): custom account emails point at Fortify's reset route.
+        // ADM-BE-001 (fixed for customers): the customer email opens the customer reset flow.
         $customer = $this->account('customer');
         $token = $this->issue('customers', $customer);
 
         $link = Notification::sent($customer, ResetPassword::class)->last()->toMail($customer)->actionUrl;
 
-        $this->assertSame('/reset-password/'.$token, parse_url($link, PHP_URL_PATH));
+        $this->assertSame('/customer/reset-password/'.$token, parse_url($link, PHP_URL_PATH));
+    }
+
+    public function test_admin_and_delivery_driver_emailed_links_are_still_the_known_arch_03_route(): void
+    {
+        // Compatibility only, not the intended behaviour: ADM-BE-001 is still open for these types,
+        // whose emails point at Fortify's reset route. Update this test when they are fixed.
+        foreach (['admin' => 'admins', 'delivery_driver' => 'delivery_drivers'] as $type => $broker) {
+            $account = $this->account($type);
+            $token = $this->issue($broker, $account);
+
+            $link = Notification::sent($account, ResetPassword::class)->last()->toMail($account)->actionUrl;
+
+            $this->assertSame('/reset-password/'.$token, parse_url($link, PHP_URL_PATH), $type);
+        }
     }
 
     public function test_sec_03_http_limits_still_apply_on_top_of_broker_isolation(): void

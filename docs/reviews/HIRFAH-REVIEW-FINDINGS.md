@@ -98,7 +98,7 @@ This applies in particular to Orders, Finance, Reports, media upload, Returns, D
 | [VEN-BE-029](#ven-be-029--stock-reservation-and-checkout-lifecycle-has-no-automated-tests) | Vendor Backend | Stock, reservation and checkout lifecycle has no automated tests | HIGH | OPEN |
 | [VEN-BE-030](#ven-be-030--checkout-uses-the-carts-stale-unit-price) | Vendor Backend | Checkout uses the cart's stale unit price | MEDIUM | OPEN |
 | [VEN-BE-031](#ven-be-031--review-eligibility-incorrectly-depends-on-parent-order-completion) | Vendor Backend | Review eligibility incorrectly depends on Parent Order completion | MEDIUM | OPEN |
-| [ADM-BE-001](#adm-be-001--non-vendor-password-reset-emails-use-the-general-fortify-reset-route) | Admin Backend | Non-vendor password-reset emails use the general Fortify reset route | HIGH | OPEN |
+| [ADM-BE-001](#adm-be-001--non-vendor-password-reset-emails-use-the-general-fortify-reset-route) | Admin Backend | Non-vendor password-reset emails use the general Fortify reset route | HIGH | OPEN (customer fixed; admin and delivery driver remain) |
 | [ADM-BE-002](#adm-be-002--admin-can-create-inconsistent-vendor-accountapproval-states) | Admin Backend | Admin can create inconsistent Vendor account/approval states | HIGH | OPEN |
 | [ADM-BE-003](#adm-be-003--vendor-approvalrejection-has-no-transition-contract-or-decision-history) | Admin Backend | Vendor approval/rejection has no transition contract or decision history | MEDIUM | OPEN |
 | [ADM-BE-004](#adm-be-004--admin-driver-assignment-does-not-enforce-full-driver-eligibility) | Admin Backend | Admin driver assignment does not enforce full driver eligibility | HIGH | OPEN |
@@ -1951,10 +1951,12 @@ Review eligibility is tied to a genuinely completed vendor experience, not to al
 - **ID:** ADM-BE-001
 - **Area:** Admin Backend
 - **Priority:** HIGH
-- **Status:** OPEN
+- **Status:** OPEN — partially fixed: the customer link is fixed (CUSTOMER-AUTH-B2-01); admin and delivery-driver links are still open.
 - **Discovered During:** VEN-BE-002 fix.
 
 **Current Behavior**
+*Update (CUSTOMER-AUTH-B2-01): customer reset emails now link to `customer.password.reset`; see Resolution Notes. The rest of this section still applies to admins and delivery drivers.*
+
 Admin password-reset emails, and according to the current review also customer and delivery-driver emails, still use Laravel's default `ResetPassword` link: Fortify's general `/reset-password/{token}` (`password.reset`, web `users` broker), instead of each account type's own reset route (`admin.password.reset`, `customer.password.reset`, `delivery-driver.password.reset`). Their tokens are issued by their own brokers, so the emailed link cannot complete the reset. This is an extension of **ARCH-03**. It was intentionally not fixed in VEN-BE-002, which was scoped to vendors only; `AppServiceProvider::configurePasswordResetLinks()` deliberately keeps the framework default for every non-vendor account.
 
 **Expected Behavior**
@@ -1971,7 +1973,8 @@ ARCH-03 (existing technical debt). SRS reference to be linked.
 - `app/Http/Controllers/Auth/AccountNewPasswordController.php`
 - `app/Providers/AppServiceProvider.php` (`configurePasswordResetLinks`)
 - `app/Providers/FortifyServiceProvider.php`
-- `tests/Feature/PasswordResetTokenIsolationTest.php` (`test_emailed_reset_link_is_still_the_known_arch_03_route`)
+- `tests/Feature/PasswordResetTokenIsolationTest.php` (`test_customer_emailed_reset_link_is_the_customer_reset_route`, `test_admin_and_delivery_driver_emailed_links_are_still_the_known_arch_03_route`; formerly `test_emailed_reset_link_is_still_the_known_arch_03_route`)
+- `tests/Feature/CustomerPasswordResetFlowTest.php`
 
 **Backend Guidance**
 - Review the routes, brokers, token tables and reset controllers of each account type first; do not assume the final solution before that review.
@@ -1989,7 +1992,9 @@ ARCH-03 (existing technical debt). SRS reference to be linked.
 - Existing `PasswordResetTokenIsolationTest` and `VendorPasswordResetFlowTest` stay green.
 
 **Resolution Notes**
-—
+- **Customers — fixed (CUSTOMER-AUTH-B2-01, 2026-10-18, not yet committed).** `AppServiceProvider::configurePasswordResetLinks()` now gives a `Customer` notifiable `customer.password.reset` (with `token` and `email`), beside the vendor route from VEN-BE-002; the URL is built the same way. Broker (`customers`), token table, routes, controllers, views and password rules are unchanged. `CustomerPasswordResetFlowTest` covers request → emailed link → reset form → reset → login, token reuse, invalid and other-email tokens, and token isolation from admin, vendor, delivery driver and the web `users` broker.
+- **Admins and delivery drivers — still open.** Their emails still link to Fortify's `password.reset`, so their reset journey cannot be completed from the email. The compatibility tests that keep this behaviour (`test_admin_and_delivery_driver_emailed_links_are_still_the_known_arch_03_route`, `VendorPasswordResetFlowTest::test_other_account_types_keep_their_current_reset_link`) document the remaining debt; they are not the intended behaviour and must be updated when these types are fixed.
+- This finding is **not closed**.
 
 ---
 
