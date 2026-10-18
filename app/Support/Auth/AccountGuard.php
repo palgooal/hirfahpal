@@ -21,6 +21,9 @@ class AccountGuard
                 'dashboard_route' => 'customer.dashboard',
                 'login_view' => 'pages.customer-login',
                 'register_view' => 'pages.customer-login',
+                // CUSTOMER-AUTH-B2-02: the storefront recovery pages (delivery drivers keep auth.accounts.*).
+                'forgot_password_view' => 'pages.customer-forgot-password',
+                'reset_password_view' => 'pages.customer-reset-password',
                 'dashboard_view' => 'pages.customer-dashboard',
                 'label' => 'Customer',
             ],

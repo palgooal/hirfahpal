@@ -41,7 +41,7 @@ class CustomerPasswordResetFlowTest extends TestCase
         $customer = $this->customer();
 
         // 1. Request the link from the customer forgot-password page.
-        $this->get(route('customer.password.request'))->assertOk()->assertViewIs('auth.accounts.forgot-password')
+        $this->get(route('customer.password.request'))->assertOk()->assertViewIs('pages.customer-forgot-password')
             ->assertSee('action="'.route('customer.password.email').'"', false);
         $this->from(route('customer.password.request'))
             ->post(route('customer.password.email'), ['email' => self::EMAIL])
@@ -57,7 +57,7 @@ class CustomerPasswordResetFlowTest extends TestCase
         // 3. Opening the link reaches the customer reset form, which posts to the customer endpoint.
         $this->get($link)
             ->assertOk()
-            ->assertViewIs('auth.accounts.reset-password')
+            ->assertViewIs('pages.customer-reset-password')
             ->assertViewHas('account', fn (array $account) => $account['guard'] === 'customer')
             ->assertViewHas('token', $token)
             ->assertViewHas('email', self::EMAIL)

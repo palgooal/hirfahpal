@@ -58,9 +58,10 @@ class VendorResetPasswordPageTest extends TestCase
             ->assertViewHas('email', self::EMAIL);
     }
 
-    public function test_other_account_types_keep_the_shared_view(): void
+    public function test_other_account_types_keep_their_own_view(): void
     {
-        $this->get(route('customer.password.reset', ['token' => self::TOKEN]))->assertOk()->assertViewIs('auth.accounts.reset-password');
+        // CUSTOMER-AUTH-B2-02: customers have the storefront page; delivery drivers keep the shared view.
+        $this->get(route('customer.password.reset', ['token' => self::TOKEN]))->assertOk()->assertViewIs('pages.customer-reset-password');
         $this->get(route('delivery-driver.password.reset', ['token' => self::TOKEN]))->assertOk()->assertViewIs('auth.accounts.reset-password');
     }
 

@@ -52,9 +52,10 @@ class VendorForgotPasswordPageTest extends TestCase
         $this->page()->assertOk()->assertViewIs('auth.vendor.forgot-password');
     }
 
-    public function test_other_account_types_keep_the_shared_view(): void
+    public function test_other_account_types_keep_their_own_view(): void
     {
-        $this->get(route('customer.password.request'))->assertOk()->assertViewIs('auth.accounts.forgot-password');
+        // CUSTOMER-AUTH-B2-02: customers have the storefront page; delivery drivers keep the shared view.
+        $this->get(route('customer.password.request'))->assertOk()->assertViewIs('pages.customer-forgot-password');
         $this->get(route('delivery-driver.password.request'))->assertOk()->assertViewIs('auth.accounts.forgot-password');
     }
 
