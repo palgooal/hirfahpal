@@ -18,7 +18,7 @@ This document is a review log intended for handoff to the **Palgoals Backend Tea
 
 **Terminology.** In review-decision rounds, "approved" / "decided" means **approved as a review recommendation** by this review workstream. It does not mean implemented by, or accepted by, the Palgoals Backend Team unless a finding states so explicitly. Where a finding cites an "approved" VEN-BE-020 rule or lifecycle, read it as the proposed Phase 1 contract below.
 
-**Historical exceptions.** Before this ownership boundary was clarified, some Backend changes were already made in the current working tree during earlier review work. They are marked **IMPLEMENTED & VERIFIED** on their findings (VEN-BE-001, VEN-BE-002, VEN-BE-019). VEN-BE-010 is a later, limited integration exception of the same kind: the vendor dashboard route split completed by the Vendor Auth/Frontend workstream (VUI-01C) to finish the vendor auth/approval flow. Other Backend-adjacent changes in the working tree only support the approved Vendor Auth UI screens (vendor view selection in `AccountGuard` and the account auth controllers, `VendorAuthTranslationSeeder`, the `vendor-auth.css` Vite entry); they are not fixes for any finding.
+**Historical exceptions.** Before this ownership boundary was clarified, some Backend changes were already made in the current working tree during earlier review work. They are marked **IMPLEMENTED & VERIFIED** on their findings (VEN-BE-001, VEN-BE-002, VEN-BE-019). VEN-BE-010 is a later, limited integration exception of the same kind: the vendor dashboard route split completed by the Vendor Auth/Frontend workstream (VUI-01C) to finish the vendor auth/approval flow. Two later Backend changes were made in the current working tree by the customer-account workstream with the project owner's explicit approval: **ORD-BE-001** (immutable order delivery-address snapshot), implemented and verified on SQLite and on an isolated MySQL database and marked **IMPLEMENTED & VERIFIED**; and the **customer-specific part of ADM-BE-001** (customer reset emails now link to `customer.password.reset`, CUSTOMER-AUTH-B2-01), implemented and verified while ADM-BE-001 itself stays **OPEN** for the admin and delivery-driver reset links. Both remain subject to Palgoals Backend Team review. Other Backend-adjacent changes in the working tree only support the approved Vendor Auth UI screens (vendor view selection in `AccountGuard` and the account auth controllers, `VendorAuthTranslationSeeder`, the `vendor-auth.css` Vite entry); they are not fixes for any finding.
 
 ### Maturity labels
 
@@ -56,6 +56,7 @@ This applies in particular to Orders, Finance, Reports, media upload, Returns, D
 | `VEN-UI-###` | Vendor UI |
 | `ADM-BE-###` | Admin Backend |
 | `ADM-UI-###` | Admin UI |
+| `ORD-BE-###` | Order Backend |
 | `SEC-###` | Security |
 | `SRS-###` | SRS/Implementation discrepancy |
 
@@ -105,14 +106,15 @@ This applies in particular to Orders, Finance, Reports, media upload, Returns, D
 | [ADM-BE-005](#adm-be-005--admin-can-set-the-parent-order-lifecycle-and-payment-status-independently-of-its-vendor-orders) | Admin Backend | Admin can set the parent order lifecycle and payment status independently of its vendor orders | HIGH | OPEN |
 | [ADM-BE-006](#adm-be-006--admin-can-attach-a-header-only-vendor-order-to-an-existing-customer-order) | Admin Backend | Admin can attach a header-only vendor order to an existing customer order | MEDIUM | OPEN |
 | [ADM-BE-007](#adm-be-007--admin-generic-vendororder-creation-can-bypass-the-approved-lifecycle) | Admin Backend | Admin generic VendorOrder creation can bypass the approved lifecycle | HIGH | OPEN |
+| [ORD-BE-001](#ord-be-001--order-delivery-address-is-a-live-reference-to-the-customers-saved-address) | Order Backend | Order delivery address is a live reference to the customer's saved address | HIGH | PASS |
 | [SRS-001](#srs-001--vendor-reports-backend-is-missing) | SRS/Implementation discrepancy | Vendor reports backend is missing | HIGH | OPEN |
 
-**Totals: 39 findings**
+**Totals: 40 findings**
 
 | Priority | Count | | Status | Count |
 |---|---|---|---|---|
 | CRITICAL | 2 | | OPEN | 34 |
-| HIGH | 17 | | PASS | 4 |
+| HIGH | 18 | | PASS | 5 |
 | MEDIUM | 11 | | DEFERRED | 1 |
 | LOW | 5 | | | |
 | REVIEW | 4 | | | |
@@ -2238,6 +2240,65 @@ VEN-BE-020 proposed Phase 1 contract (for Palgoals Backend Team review) (Parts A
 
 **Resolution Notes**
 —
+
+---
+
+### ORD-BE-001 — Order delivery address is a live reference to the customer's saved address
+
+- **ID:** ORD-BE-001
+- **Area:** Order Backend
+- **Priority:** HIGH
+- **Status:** PASS
+- **Maturity:** IMPLEMENTED & VERIFIED — implemented in the current working tree by the customer-account workstream on the project owner's explicit approval (CUSTOMER-ACCOUNT-A1 design, IMPLEMENTATION-01, FIX-03, MYSQL-VERIFY-04); not yet committed. It is still subject to Palgoals Backend Team review.
+- **Discovered During:** CUSTOMER-ACCOUNT-01 (customer account review) and CUSTOMER-ACCOUNT-A1 (address integrity discovery), 2026-10-18.
+
+**Current Behavior**
+An order stores only `orders.customer_address_id` (nullable, `ON DELETE SET NULL`); there is no copy of the delivery address on the order. Every reader uses the live `Order::address()` relation: vendor order JSON, delivery-driver assignment and overview JSON, the customer order page/JSON and the admin order pages. When the customer edits a saved address, the delivery address of every order that used it changes, including completed orders and orders out for delivery; when the customer deletes it, those orders lose their delivery address. Deleting a city or governorate also nulls it on the saved address and therefore on the order. The admin order pages load the address but do not display it.
+
+**Expected Behavior**
+Each order keeps the delivery address as it was at checkout (recipient, phone, governorate/city IDs and names, address line, notes, coordinates). Vendor, delivery-driver, customer and admin readers use that immutable copy as the authoritative delivery address; later edits or deletion of saved addresses, cities or governorates do not change it.
+
+**SRS / Architecture Reference**
+SRS v0.5 FR-CUS-016/017 (order and delivery tracking), FR-DEL-006 (the driver sees the details needed to deliver), NFR-010 (no data loss between order stages), FR-ADM-019 (assignment by geographic area). Design: `docs/reviews/CUSTOMER-ACCOUNT-A1-DESIGN.md`.
+
+**Related Routes / Files**
+- Routes: `customer.checkout.store`, `customer.addresses.update`, `customer.addresses.destroy`, `vendor.dashboard.orders.*`, `delivery-driver.dashboard.assignments.*`, `delivery-driver.dashboard.overview`, `customer.orders.*`, `dashboard.orders.show`, `dashboard.vendor-orders.show`
+- `database/migrations/2026_09_24_130010_create_orders_table.php` (`customer_address_id`)
+- `app/Models/Order.php` (`address()`)
+- `app/Http/Controllers/Store/CheckoutController.php` (`store`)
+- `app/Http/Controllers/Customer/AddressController.php` (`update`, `destroy`)
+- `app/Http/Controllers/VendorDashboard/OrderController.php`
+- `app/Http/Controllers/DeliveryDriverDashboard/AssignmentController.php`, `OverviewController.php`
+- `app/Http/Controllers/Store/OrderController.php`
+- `app/Http/Controllers/Dashboard/OrderManagementController.php`, `VendorOrderManagementController.php`
+
+**Backend Guidance**
+- Approved design (implemented; see Resolution Notes): explicit `delivery_*` snapshot columns on `orders`, captured inside the checkout transaction from the address row read `FOR UPDATE` with ownership re-checked; `customer_address_id` kept only as an optional reference; a `delivery_address` payload (with `source` and `is_historical`) as the canonical JSON key, and the existing `address` key kept for compatibility with the same snapshot payload, never the live saved address.
+- No historical backfill: the project has no production orders. Development orders created before the change use an explicitly identified fallback (`legacy_saved_address`, `is_historical = false`).
+- JSON checkout without an address is unchanged in this phase (recorded as `source = none`).
+- Keep the checkout lock order (cart → address → products ascending, VEN-BE-019).
+
+**Acceptance Criteria**
+- New orders keep their delivery address after the saved address, its city or its governorate is edited or deleted.
+- Vendor and delivery-driver responses expose the snapshot as the delivery address; the live saved address is not exposed as the order's delivery address.
+- Orders without a snapshot are explicitly identified as such.
+
+**Required Tests**
+- Snapshot content at checkout (saved and new address); unchanged after address edit/delete and city/governorate rename/delete.
+- Ownership re-check inside the checkout transaction.
+- Vendor, driver and customer JSON expose the snapshot (`delivery_address` and compatible `address`).
+- Legacy fallback identification; snapshot immutability; migration up/down guards.
+
+**Resolution Notes**
+*PASS (ORD-BE-001-CLOSURE-05, 2026-10-18) — implemented and verified on SQLite and on isolated MySQL; not yet committed.*
+- **Immutable snapshot on `orders`:** migration `2026_10_18_000000_add_delivery_address_snapshot_to_orders_table` adds eleven nullable `delivery_*` columns (recipient, phone, governorate/city ids and names, address line, notes, coordinates, `delivery_address_source`); both ids reference their tables `ON DELETE SET NULL`, so deleted or renamed cities and governorates keep their copied names. `up()` verifies nullability, exact column types, both indexes and both keys; `down()` is refused while any order has a non-null `delivery_address_source`. `Order` rejects Eloquent updates of `delivery_*` (raw queries are not stopped, documented in the model). `customer_address_id` stays an optional reference only.
+- **Captured in the checkout transaction:** `CheckoutController::store()` copies the address into `Order::create`; lock order cart → address → products ascending (VEN-BE-019) is kept.
+- **Ownership revalidated under lock:** a saved address is re-read `FOR UPDATE` with its owner inside the transaction; a foreign or concurrently deleted address ends in 403 and nothing is created. JSON checkout without an address is unchanged and recorded as `source = none`.
+- **Scoped serialization:** the raw `delivery_*` columns are hidden. Vendor orders index/show, delivery-driver assignments index/show and overview, and the customer order show opt in through `Order::exposeDeliveryAddress()`: `delivery_address` is the snapshot, and the deprecated `address` key is the same snapshot plus `id` (`customer_address_id`, null when the saved address is gone) and `customer_id` (`label`, `is_default` and the saved-address timestamps are no longer present).
+- **Unintended exposure prevented:** a first global `Order::toArray()` override, which added the delivery address to every serialized order, was removed (ORD-BE-001-REVIEW-02 / FIX-03). Vendor disputes, returns, reviews, commissions and overview, checkout and receipt-confirmation responses and the customer orders index carry no delivery address (tested).
+- **Legacy development orders without backfill:** orders created before the migration (`delivery_address_source` NULL) fall back to the saved address marked `source = legacy_saved_address`, `is_historical = false`, or `legacy_missing` when it is gone; no backfill command exists.
+- **Verification:** SQLite in memory — full suite **1318 passed, 30 skipped, 0 failed** (`OrderDeliveryAddressSnapshotTest` 15, `OrderDeliveryAddressSnapshotMigrationTest` 6). Isolated MySQL 8.4.3, database `hirfah_fk_test_ordbe001` — `OrderDeliveryAddressSnapshotMySqlTest` **4 passed, 76 assertions** (exact column types, indexes, keys `ON DELETE SET NULL`, one `ALTER` up/down, idempotent `up()`, partial and mistyped states refused, rollback refused for `checkout` and `none`, real checkout snapshot surviving city and governorate deletion).
+- **No development database migration executed:** the development database (`multi_vendor_commerce`) was compared with a baseline taken before the MySQL run and was identical (schema, 44 migrations, row counts); the snapshot migration is not recorded there. Running it on development and committing the change remain separate, approved steps.
 
 ---
 

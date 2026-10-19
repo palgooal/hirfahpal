@@ -19,7 +19,7 @@ class OrderController extends Controller
         $vendor = $request->user('vendor');
 
         $orders = VendorOrder::query()
-            ->with(['order.customer', 'order.address', 'items.product.primaryImage', 'deliveryAssignment.deliveryDriver.profile'])
+            ->with(['order.customer', 'order.address.governorate', 'order.address.city', 'items.product.primaryImage', 'deliveryAssignment.deliveryDriver.profile'])
             ->where('vendor_id', $vendor->id)
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = $request->input('search');
@@ -36,6 +36,9 @@ class OrderController extends Controller
             ->paginate($request->integer('per_page', 12))
             ->withQueryString();
 
+        // ORD-BE-001: the order's delivery address is the checkout snapshot.
+        $orders->getCollection()->each(fn (VendorOrder $vendorOrder) => $vendorOrder->order?->exposeDeliveryAddress());
+
         return response()->json([
             'orders' => $orders,
             'statuses' => $this->statuses(),
@@ -46,15 +49,20 @@ class OrderController extends Controller
     {
         $this->authorizeOrder($request, $vendorOrder);
 
+        $vendorOrder->load([
+            'order.customer',
+            'order.address.governorate',
+            'order.address.city',
+            'items.product.images',
+            'deliveryAssignment.deliveryDriver.profile',
+            'deliveryDriver.profile',
+            'stockReservations.product',
+        ]);
+        // ORD-BE-001: the order's delivery address is the checkout snapshot.
+        $vendorOrder->order?->exposeDeliveryAddress();
+
         return response()->json([
-            'order' => $vendorOrder->load([
-                'order.customer',
-                'order.address',
-                'items.product.images',
-                'deliveryAssignment.deliveryDriver.profile',
-                'deliveryDriver.profile',
-                'stockReservations.product',
-            ]),
+            'order' => $vendorOrder,
             'allowed_actions' => $this->allowedActions($vendorOrder),
         ]);
     }

@@ -23,10 +23,12 @@ class OverviewController extends Controller
                 'failed' => (clone $assignments)->where('status', 'failed')->count(),
             ],
             'recent_assignments' => $assignments
-                ->with(['vendorOrder.vendor.profile', 'vendorOrder.order.address'])
+                ->with(['vendorOrder.vendor.profile', 'vendorOrder.order.address.governorate', 'vendorOrder.order.address.city'])
                 ->latest()
                 ->limit(5)
-                ->get(),
+                ->get()
+                // ORD-BE-001: the order's delivery address is the checkout snapshot.
+                ->each(fn (DeliveryAssignment $assignment) => $assignment->vendorOrder?->order?->exposeDeliveryAddress()),
         ]);
     }
 }
