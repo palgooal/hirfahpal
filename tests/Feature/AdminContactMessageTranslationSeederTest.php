@@ -9,8 +9,9 @@ use Tests\TestCase;
 
 /**
  * CONTACT-ADMIN-IMPLEMENTATION-01: AdminContactMessageTranslationSeeder. Exactly the keys the contact-message pages
- * and their controller read (CONTACT-ADMIN-DELETE-02 added 6), Arabic and English, English equal to the defaults in
- * the code, edited values kept, nothing deleted, idempotent, stale cache cleared, not called from DatabaseSeeder.
+ * and their controller read (CONTACT-ADMIN-DELETE-02 added 6, CONTACT-ADMIN-TRASH-02 20), Arabic and English,
+ * English equal to the defaults in the code, edited values kept, nothing deleted, idempotent, stale cache cleared,
+ * not called from DatabaseSeeder.
  */
 class AdminContactMessageTranslationSeederTest extends TestCase
 {
@@ -18,12 +19,15 @@ class AdminContactMessageTranslationSeederTest extends TestCase
 
     public function test_it_covers_exactly_the_contact_message_keys_the_code_reads_with_their_english_defaults(): void
     {
-        $this->assertCount(26, AdminContactMessageTranslationSeeder::TRANSLATIONS);
+        $this->assertCount(46, AdminContactMessageTranslationSeeder::TRANSLATIONS);
 
-        // The views read their keys through $msgText(), the controller (CONTACT-ADMIN-DELETE-02 messages) through $this->text().
+        // The views read their keys through $msgText(), the controller (delete, restore and purge messages) through
+        // $this->text(). CONTACT-ADMIN-TRASH-02 added the Trash list and the Inbox / Trash switcher.
         $sources = [
             resource_path('views/dashboard/contact-messages/index.blade.php'),
             resource_path('views/dashboard/contact-messages/show.blade.php'),
+            resource_path('views/dashboard/contact-messages/trash.blade.php'),
+            resource_path('views/dashboard/contact-messages/partials/switcher.blade.php'),
             app_path('Http/Controllers/Dashboard/ContactMessageManagementController.php'),
         ];
         $defaults = [];
@@ -54,7 +58,7 @@ class AdminContactMessageTranslationSeederTest extends TestCase
             $this->assertSame($values['ar'], $this->value($key, 'ar'));
             $this->assertSame($values['en'], $this->value($key, 'en'));
         }
-        $this->assertSame(52, TranslationValue::count());
+        $this->assertSame(92, TranslationValue::count());
     }
 
     public function test_edited_values_are_never_overwritten_and_nothing_is_deleted(): void
@@ -67,7 +71,7 @@ class AdminContactMessageTranslationSeederTest extends TestCase
         $this->assertSame('غير مقروءة', $this->value('dashboard.Contact_Messages_Status_Unread', 'ar'));
         $this->assertSame('New', $this->value('dashboard.Contact_Messages_Status_Unread', 'en'));
         $this->assertSame('قيمة أخرى', $this->value('dashboard.Something_else', 'ar'));
-        $this->assertSame(52 + 1, TranslationValue::count());
+        $this->assertSame(92 + 1, TranslationValue::count());
     }
 
     public function test_running_twice_changes_nothing(): void

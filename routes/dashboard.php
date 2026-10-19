@@ -65,6 +65,11 @@ Route::prefix('dashboard')
         Route::get('contact-messages/{contactMessage}', [ContactMessageManagementController::class, 'show'])->whereNumber('contactMessage')->name('contact-messages.show');
         // CONTACT-ADMIN-DELETE-02: soft delete, super admins only.
         Route::delete('contact-messages/{contactMessage}', [ContactMessageManagementController::class, 'destroy'])->whereNumber('contactMessage')->name('contact-messages.destroy');
+        // CONTACT-ADMIN-TRASH-02: the soft-deleted messages, restore and permanent deletion, super admins only.
+        Route::get('contact-messages/trash', [ContactMessageManagementController::class, 'trash'])->name('contact-messages.trash');
+        Route::get('contact-messages/trash/{contactMessage}', [ContactMessageManagementController::class, 'trashShow'])->whereNumber('contactMessage')->name('contact-messages.trash.show');
+        Route::patch('contact-messages/trash/{contactMessage}/restore', [ContactMessageManagementController::class, 'restore'])->whereNumber('contactMessage')->name('contact-messages.restore');
+        Route::delete('contact-messages/trash/{contactMessage}', [ContactMessageManagementController::class, 'purge'])->whereNumber('contactMessage')->name('contact-messages.purge');
 
         Route::get('vendors', [VendorManagementController::class, 'index'])->name('vendors.index');
         Route::get('vendors/create', [VendorManagementController::class, 'create'])->name('vendors.create');

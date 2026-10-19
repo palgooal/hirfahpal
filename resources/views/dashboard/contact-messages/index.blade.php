@@ -28,6 +28,9 @@
         {{-- Content header (5.1): the page title is in the admin header. --}}
         <div class="admin-media-head">
             <p class="admin-media-intro">{{ $msgText('Contact_Messages_Intro', 'Messages sent from the store contact page.') }}</p>
+            @if (($trashCount ?? null) !== null)
+                @include('dashboard.contact-messages.partials.switcher', ['current' => 'inbox', 'trashCount' => $trashCount, 'msgText' => $msgText])
+            @endif
         </div>
 
         {{-- Result messages (success, danger), inline as on the other admin lists (CONTACT-ADMIN-DELETE-02). --}}

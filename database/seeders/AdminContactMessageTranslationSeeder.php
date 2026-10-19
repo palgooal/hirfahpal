@@ -62,6 +62,43 @@ class AdminContactMessageTranslationSeeder extends Seeder
         'dashboard.Contact_Messages_Delete_Button' => ['ar' => 'حذف الرسالة', 'en' => 'Delete message'],
         'dashboard.Contact_Messages_Delete_Not_Confirmed' => ['ar' => 'لم يتم تأكيد الحذف.', 'en' => 'The deletion was not confirmed.'],
         'dashboard.Contact_Messages_Deleted' => ['ar' => 'تم حذف الرسالة.', 'en' => 'The message was deleted.'],
+
+        // CONTACT-ADMIN-TRASH-02: the Inbox / Trash switcher, the Trash list and details, restore and permanent deletion.
+        'dashboard.Contact_Messages_Tabs_Label' => ['ar' => 'عرض رسائل التواصل', 'en' => 'Contact message views'],
+        'dashboard.Contact_Messages_Tab_Inbox' => ['ar' => 'الرسائل', 'en' => 'Inbox'],
+        'dashboard.Contact_Messages_Tab_Trash' => ['ar' => 'سلة المحذوفات', 'en' => 'Trash'],
+        'dashboard.Contact_Messages_Trash_Intro' => [
+            'ar' => 'الرسائل المحذوفة. يمكن للمشرف العام استعادتها أو حذفها نهائيًا.',
+            'en' => 'Deleted messages. A super admin can restore them or delete them permanently.',
+        ],
+        'dashboard.Contact_Messages_Trash_Empty_Title' => ['ar' => 'سلة المحذوفات فارغة', 'en' => 'The trash is empty'],
+        'dashboard.Contact_Messages_Trash_Empty_Text' => [
+            'ar' => 'تظهر هنا الرسائل بعد حذفها من قائمة الرسائل.',
+            'en' => 'Messages appear here after they are deleted from the inbox.',
+        ],
+        'dashboard.Contact_Messages_Column_Deleted' => ['ar' => 'تاريخ الحذف', 'en' => 'Deleted'],
+        'dashboard.Contact_Messages_Status_Deleted' => ['ar' => 'محذوفة', 'en' => 'Deleted'],
+        'dashboard.Contact_Messages_Show_Deleted_At' => ['ar' => 'تاريخ الحذف', 'en' => 'Deleted on'],
+        'dashboard.Contact_Messages_Trash_Show_Back' => ['ar' => 'العودة إلى سلة المحذوفات', 'en' => 'Back to the trash'],
+        'dashboard.Contact_Messages_Restore_Title' => ['ar' => 'استعادة الرسالة', 'en' => 'Restore this message'],
+        'dashboard.Contact_Messages_Restore_Hint' => [
+            'ar' => 'تعود الرسالة إلى قائمة الرسائل كما كانت، دون تغيير حالة قراءتها.',
+            'en' => 'The message returns to the inbox as it was, with its read status unchanged.',
+        ],
+        'dashboard.Contact_Messages_Restore_Button' => ['ar' => 'استعادة الرسالة', 'en' => 'Restore message'],
+        'dashboard.Contact_Messages_Restored' => ['ar' => 'تمت استعادة الرسالة.', 'en' => 'The message was restored.'],
+        'dashboard.Contact_Messages_Purge_Title' => ['ar' => 'حذف نهائي', 'en' => 'Delete permanently'],
+        'dashboard.Contact_Messages_Purge_Hint' => [
+            'ar' => 'تُحذف الرسالة من قاعدة البيانات نهائيًا، ولا يمكن استعادتها بعد ذلك.',
+            'en' => 'The message is removed from the database for good and can no longer be restored.',
+        ],
+        'dashboard.Contact_Messages_Purge_Label' => ['ar' => 'اكتب «:phrase» للتأكيد', 'en' => 'Type “:phrase” to confirm'],
+        'dashboard.Contact_Messages_Purge_Button' => ['ar' => 'حذف نهائي', 'en' => 'Delete permanently'],
+        'dashboard.Contact_Messages_Purge_Not_Confirmed' => [
+            'ar' => 'لم يتم تأكيد الحذف النهائي. اكتب العبارة كما هي.',
+            'en' => 'The permanent deletion was not confirmed. Type the phrase exactly as shown.',
+        ],
+        'dashboard.Contact_Messages_Purged' => ['ar' => 'تم حذف الرسالة نهائيًا.', 'en' => 'The message was permanently deleted.'],
     ];
 
     public function run(): void
