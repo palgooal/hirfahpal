@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Store;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
+use App\Models\CustomerAddress;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\VendorOrder;
+use App\Support\Orders\DeliveryAddress;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -64,13 +66,31 @@ class CheckoutController extends Controller
         $order = DB::transaction(function () use ($cart, $customer, $data, $request) {
             $lockedCart = Cart::query()->whereKey($cart->id)->lockForUpdate()->firstOrFail();
             abort_unless($lockedCart->status === 'active', 422, 'This cart has already been submitted.');
+            // ORD-BE-001: the delivery address is copied from the address row as it is now, in this transaction.
+            // A saved address is read again locked FOR UPDATE with its owner (a concurrent edit or delete is
+            // ordered before or after the copy; a deleted or foreign address ends in 403). Lock order: cart,
+            // address, then products ascending (VEN-BE-019).
+            $deliveryAddress = null;
+
             if ($request->input('addressChoice') === 'new') {
-                $address = $customer->addresses()->create([
+                $deliveryAddress = $customer->addresses()->create([
                     'label' => 'عنوان الطلب', 'recipient_name' => $data['recipient_name'], 'phone' => $data['phone'],
                     'governorate_id' => $data['governorate_id'] ?? null, 'address_line' => $data['address_line'],
                 ]);
-                $data['customer_address_id'] = $address->id;
+                $data['customer_address_id'] = $deliveryAddress->id;
+            } elseif (! empty($data['customer_address_id'])) {
+                $deliveryAddress = CustomerAddress::query()
+                    ->whereKey($data['customer_address_id'])
+                    ->where('customer_id', $customer->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                abort_unless($deliveryAddress, 403, 'The selected address does not belong to this customer.');
             }
+
+            $deliveryColumns = $deliveryAddress
+                ? DeliveryAddress::snapshotColumns($deliveryAddress->load(['governorate', 'city']))
+                : DeliveryAddress::noAddressColumns();
             // Lock every product up front in ascending id order, so concurrent checkouts
             // (and vendor accepts) always take product locks in the same order (VEN-BE-019).
             $lockedProducts = Product::query()
@@ -96,6 +116,7 @@ class CheckoutController extends Controller
                 'delivery_total' => $deliveryTotal,
                 'grand_total' => $subtotal + $deliveryTotal,
                 'notes' => $data['notes'] ?? null,
+                ...$deliveryColumns,
             ]);
 
             foreach ($groupedItems as $vendorId => $items) {

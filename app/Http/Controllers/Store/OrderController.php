@@ -33,7 +33,8 @@ class OrderController extends Controller
         abort_unless($order->customer_id === $request->user('customer')->id, 403);
 
         $order->load([
-            'address',
+            'address.governorate',
+            'address.city',
             'items.product.primaryImage',
             'payment',
             'vendorOrders.vendor.profile',
@@ -42,6 +43,8 @@ class OrderController extends Controller
             'vendorOrders.items.product.primaryImage',
             'reviews',
         ]);
+        // ORD-BE-001: the order's delivery address is the checkout snapshot.
+        $order->exposeDeliveryAddress();
 
         return $request->expectsJson() ? response()->json($order) : view('pages.customer-dashboard', [
             'user' => $request->user('customer'), 'latestOrder' => $order, 'displayOrders' => collect([$order]),

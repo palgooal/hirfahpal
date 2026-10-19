@@ -18,7 +18,7 @@ This document is a review log intended for handoff to the **Palgoals Backend Tea
 
 **Terminology.** In review-decision rounds, "approved" / "decided" means **approved as a review recommendation** by this review workstream. It does not mean implemented by, or accepted by, the Palgoals Backend Team unless a finding states so explicitly. Where a finding cites an "approved" VEN-BE-020 rule or lifecycle, read it as the proposed Phase 1 contract below.
 
-**Historical exceptions.** Before this ownership boundary was clarified, some Backend changes were already made in the current working tree during earlier review work. They are marked **IMPLEMENTED & VERIFIED** on their findings (VEN-BE-001, VEN-BE-002, VEN-BE-019). VEN-BE-010 is a later, limited integration exception of the same kind: the vendor dashboard route split completed by the Vendor Auth/Frontend workstream (VUI-01C) to finish the vendor auth/approval flow. Other Backend-adjacent changes in the working tree only support the approved Vendor Auth UI screens (vendor view selection in `AccountGuard` and the account auth controllers, `VendorAuthTranslationSeeder`, the `vendor-auth.css` Vite entry); they are not fixes for any finding.
+**Historical exceptions.** Before this ownership boundary was clarified, some Backend changes were already made in the current working tree during earlier review work. They are marked **IMPLEMENTED & VERIFIED** on their findings (VEN-BE-001, VEN-BE-002, VEN-BE-019). VEN-BE-010 is a later, limited integration exception of the same kind: the vendor dashboard route split completed by the Vendor Auth/Frontend workstream (VUI-01C) to finish the vendor auth/approval flow. Two later Backend changes were made by the customer-account workstream with the project owner's explicit approval and are committed on branch `feature/customer-auth-order-address`: **ORD-BE-001** (immutable order delivery-address snapshot, commit `3b4e0d4`), implemented and verified on SQLite and on an isolated MySQL database and marked **IMPLEMENTED & VERIFIED**; and the **customer-specific part of ADM-BE-001** (customer reset emails now link to `customer.password.reset`, CUSTOMER-AUTH-B2-01, commit `6f7048e`), implemented and verified while ADM-BE-001 itself stays **OPEN** for the admin and delivery-driver reset links. Both remain subject to Palgoals Backend Team review. Other Backend-adjacent changes in the working tree only support the approved Vendor Auth UI screens (vendor view selection in `AccountGuard` and the account auth controllers, `VendorAuthTranslationSeeder`, the `vendor-auth.css` Vite entry); they are not fixes for any finding.
 
 ### Maturity labels
 
@@ -56,6 +56,7 @@ This applies in particular to Orders, Finance, Reports, media upload, Returns, D
 | `VEN-UI-###` | Vendor UI |
 | `ADM-BE-###` | Admin Backend |
 | `ADM-UI-###` | Admin UI |
+| `ORD-BE-###` | Order Backend |
 | `SEC-###` | Security |
 | `SRS-###` | SRS/Implementation discrepancy |
 
@@ -98,21 +99,22 @@ This applies in particular to Orders, Finance, Reports, media upload, Returns, D
 | [VEN-BE-029](#ven-be-029--stock-reservation-and-checkout-lifecycle-has-no-automated-tests) | Vendor Backend | Stock, reservation and checkout lifecycle has no automated tests | HIGH | OPEN |
 | [VEN-BE-030](#ven-be-030--checkout-uses-the-carts-stale-unit-price) | Vendor Backend | Checkout uses the cart's stale unit price | MEDIUM | OPEN |
 | [VEN-BE-031](#ven-be-031--review-eligibility-incorrectly-depends-on-parent-order-completion) | Vendor Backend | Review eligibility incorrectly depends on Parent Order completion | MEDIUM | OPEN |
-| [ADM-BE-001](#adm-be-001--non-vendor-password-reset-emails-use-the-general-fortify-reset-route) | Admin Backend | Non-vendor password-reset emails use the general Fortify reset route | HIGH | OPEN |
+| [ADM-BE-001](#adm-be-001--non-vendor-password-reset-emails-use-the-general-fortify-reset-route) | Admin Backend | Non-vendor password-reset emails use the general Fortify reset route | HIGH | OPEN (customer fixed; admin and delivery driver remain) |
 | [ADM-BE-002](#adm-be-002--admin-can-create-inconsistent-vendor-accountapproval-states) | Admin Backend | Admin can create inconsistent Vendor account/approval states | HIGH | OPEN |
 | [ADM-BE-003](#adm-be-003--vendor-approvalrejection-has-no-transition-contract-or-decision-history) | Admin Backend | Vendor approval/rejection has no transition contract or decision history | MEDIUM | OPEN |
 | [ADM-BE-004](#adm-be-004--admin-driver-assignment-does-not-enforce-full-driver-eligibility) | Admin Backend | Admin driver assignment does not enforce full driver eligibility | HIGH | OPEN |
 | [ADM-BE-005](#adm-be-005--admin-can-set-the-parent-order-lifecycle-and-payment-status-independently-of-its-vendor-orders) | Admin Backend | Admin can set the parent order lifecycle and payment status independently of its vendor orders | HIGH | OPEN |
 | [ADM-BE-006](#adm-be-006--admin-can-attach-a-header-only-vendor-order-to-an-existing-customer-order) | Admin Backend | Admin can attach a header-only vendor order to an existing customer order | MEDIUM | OPEN |
 | [ADM-BE-007](#adm-be-007--admin-generic-vendororder-creation-can-bypass-the-approved-lifecycle) | Admin Backend | Admin generic VendorOrder creation can bypass the approved lifecycle | HIGH | OPEN |
+| [ORD-BE-001](#ord-be-001--order-delivery-address-is-a-live-reference-to-the-customers-saved-address) | Order Backend | Order delivery address is a live reference to the customer's saved address | HIGH | PASS |
 | [SRS-001](#srs-001--vendor-reports-backend-is-missing) | SRS/Implementation discrepancy | Vendor reports backend is missing | HIGH | OPEN |
 
-**Totals: 39 findings**
+**Totals: 40 findings**
 
 | Priority | Count | | Status | Count |
 |---|---|---|---|---|
 | CRITICAL | 2 | | OPEN | 34 |
-| HIGH | 17 | | PASS | 4 |
+| HIGH | 18 | | PASS | 5 |
 | MEDIUM | 11 | | DEFERRED | 1 |
 | LOW | 5 | | | |
 | REVIEW | 4 | | | |
@@ -1951,10 +1953,12 @@ Review eligibility is tied to a genuinely completed vendor experience, not to al
 - **ID:** ADM-BE-001
 - **Area:** Admin Backend
 - **Priority:** HIGH
-- **Status:** OPEN
+- **Status:** OPEN — partially fixed: the customer link is fixed (CUSTOMER-AUTH-B2-01); admin and delivery-driver links are still open.
 - **Discovered During:** VEN-BE-002 fix.
 
 **Current Behavior**
+*Update (CUSTOMER-AUTH-B2-01): customer reset emails now link to `customer.password.reset`; see Resolution Notes. The rest of this section still applies to admins and delivery drivers.*
+
 Admin password-reset emails, and according to the current review also customer and delivery-driver emails, still use Laravel's default `ResetPassword` link: Fortify's general `/reset-password/{token}` (`password.reset`, web `users` broker), instead of each account type's own reset route (`admin.password.reset`, `customer.password.reset`, `delivery-driver.password.reset`). Their tokens are issued by their own brokers, so the emailed link cannot complete the reset. This is an extension of **ARCH-03**. It was intentionally not fixed in VEN-BE-002, which was scoped to vendors only; `AppServiceProvider::configurePasswordResetLinks()` deliberately keeps the framework default for every non-vendor account.
 
 **Expected Behavior**
@@ -1971,7 +1975,8 @@ ARCH-03 (existing technical debt). SRS reference to be linked.
 - `app/Http/Controllers/Auth/AccountNewPasswordController.php`
 - `app/Providers/AppServiceProvider.php` (`configurePasswordResetLinks`)
 - `app/Providers/FortifyServiceProvider.php`
-- `tests/Feature/PasswordResetTokenIsolationTest.php` (`test_emailed_reset_link_is_still_the_known_arch_03_route`)
+- `tests/Feature/PasswordResetTokenIsolationTest.php` (`test_customer_emailed_reset_link_is_the_customer_reset_route`, `test_admin_and_delivery_driver_emailed_links_are_still_the_known_arch_03_route`; formerly `test_emailed_reset_link_is_still_the_known_arch_03_route`)
+- `tests/Feature/CustomerPasswordResetFlowTest.php`
 
 **Backend Guidance**
 - Review the routes, brokers, token tables and reset controllers of each account type first; do not assume the final solution before that review.
@@ -1989,7 +1994,9 @@ ARCH-03 (existing technical debt). SRS reference to be linked.
 - Existing `PasswordResetTokenIsolationTest` and `VendorPasswordResetFlowTest` stay green.
 
 **Resolution Notes**
-—
+- **Customers — fixed (CUSTOMER-AUTH-B2-01, 2026-10-18; committed in `6f7048e`).** `AppServiceProvider::configurePasswordResetLinks()` now gives a `Customer` notifiable `customer.password.reset` (with `token` and `email`), beside the vendor route from VEN-BE-002; the URL is built the same way. Broker (`customers`), token table, routes, controllers, views and password rules are unchanged. `CustomerPasswordResetFlowTest` covers request → emailed link → reset form → reset → login, token reuse, invalid and other-email tokens, and token isolation from admin, vendor, delivery driver and the web `users` broker.
+- **Admins and delivery drivers — still open.** Their emails still link to Fortify's `password.reset`, so their reset journey cannot be completed from the email. The compatibility tests that keep this behaviour (`test_admin_and_delivery_driver_emailed_links_are_still_the_known_arch_03_route`, `VendorPasswordResetFlowTest::test_other_account_types_keep_their_current_reset_link`) document the remaining debt; they are not the intended behaviour and must be updated when these types are fixed.
+- This finding is **not closed**.
 
 ---
 
@@ -2233,6 +2240,65 @@ VEN-BE-020 proposed Phase 1 contract (for Palgoals Backend Team review) (Parts A
 
 **Resolution Notes**
 —
+
+---
+
+### ORD-BE-001 — Order delivery address is a live reference to the customer's saved address
+
+- **ID:** ORD-BE-001
+- **Area:** Order Backend
+- **Priority:** HIGH
+- **Status:** PASS
+- **Maturity:** IMPLEMENTED & VERIFIED — implemented by the customer-account workstream on the project owner's explicit approval (CUSTOMER-ACCOUNT-A1 design, IMPLEMENTATION-01, FIX-03, MYSQL-VERIFY-04); committed in `3b4e0d4` on branch `feature/customer-auth-order-address` (not pushed or merged). It is still subject to Palgoals Backend Team review.
+- **Discovered During:** CUSTOMER-ACCOUNT-01 (customer account review) and CUSTOMER-ACCOUNT-A1 (address integrity discovery), 2026-10-18.
+
+**Current Behavior**
+An order stores only `orders.customer_address_id` (nullable, `ON DELETE SET NULL`); there is no copy of the delivery address on the order. Every reader uses the live `Order::address()` relation: vendor order JSON, delivery-driver assignment and overview JSON, the customer order page/JSON and the admin order pages. When the customer edits a saved address, the delivery address of every order that used it changes, including completed orders and orders out for delivery; when the customer deletes it, those orders lose their delivery address. Deleting a city or governorate also nulls it on the saved address and therefore on the order. The admin order pages load the address but do not display it.
+
+**Expected Behavior**
+Each order keeps the delivery address as it was at checkout (recipient, phone, governorate/city IDs and names, address line, notes, coordinates). Vendor, delivery-driver, customer and admin readers use that immutable copy as the authoritative delivery address; later edits or deletion of saved addresses, cities or governorates do not change it.
+
+**SRS / Architecture Reference**
+SRS v0.5 FR-CUS-016/017 (order and delivery tracking), FR-DEL-006 (the driver sees the details needed to deliver), NFR-010 (no data loss between order stages), FR-ADM-019 (assignment by geographic area). Design: `docs/reviews/CUSTOMER-ACCOUNT-A1-DESIGN.md`.
+
+**Related Routes / Files**
+- Routes: `customer.checkout.store`, `customer.addresses.update`, `customer.addresses.destroy`, `vendor.dashboard.orders.*`, `delivery-driver.dashboard.assignments.*`, `delivery-driver.dashboard.overview`, `customer.orders.*`, `dashboard.orders.show`, `dashboard.vendor-orders.show`
+- `database/migrations/2026_09_24_130010_create_orders_table.php` (`customer_address_id`)
+- `app/Models/Order.php` (`address()`)
+- `app/Http/Controllers/Store/CheckoutController.php` (`store`)
+- `app/Http/Controllers/Customer/AddressController.php` (`update`, `destroy`)
+- `app/Http/Controllers/VendorDashboard/OrderController.php`
+- `app/Http/Controllers/DeliveryDriverDashboard/AssignmentController.php`, `OverviewController.php`
+- `app/Http/Controllers/Store/OrderController.php`
+- `app/Http/Controllers/Dashboard/OrderManagementController.php`, `VendorOrderManagementController.php`
+
+**Backend Guidance**
+- Approved design (implemented; see Resolution Notes): explicit `delivery_*` snapshot columns on `orders`, captured inside the checkout transaction from the address row read `FOR UPDATE` with ownership re-checked; `customer_address_id` kept only as an optional reference; a `delivery_address` payload (with `source` and `is_historical`) as the canonical JSON key, and the existing `address` key kept for compatibility with the same snapshot payload, never the live saved address.
+- No historical backfill: the project has no production orders. Development orders created before the change use an explicitly identified fallback (`legacy_saved_address`, `is_historical = false`).
+- JSON checkout without an address is unchanged in this phase (recorded as `source = none`).
+- Keep the checkout lock order (cart → address → products ascending, VEN-BE-019).
+
+**Acceptance Criteria**
+- New orders keep their delivery address after the saved address, its city or its governorate is edited or deleted.
+- Vendor and delivery-driver responses expose the snapshot as the delivery address; the live saved address is not exposed as the order's delivery address.
+- Orders without a snapshot are explicitly identified as such.
+
+**Required Tests**
+- Snapshot content at checkout (saved and new address); unchanged after address edit/delete and city/governorate rename/delete.
+- Ownership re-check inside the checkout transaction.
+- Vendor, driver and customer JSON expose the snapshot (`delivery_address` and compatible `address`).
+- Legacy fallback identification; snapshot immutability; migration up/down guards.
+
+**Resolution Notes**
+*PASS (ORD-BE-001-CLOSURE-05, 2026-10-18) — implemented and verified on SQLite and on isolated MySQL; committed in `3b4e0d4` (GIT-COMMIT-05, 2026-10-19).*
+- **Immutable snapshot on `orders`:** migration `2026_10_18_000000_add_delivery_address_snapshot_to_orders_table` adds eleven nullable `delivery_*` columns (recipient, phone, governorate/city ids and names, address line, notes, coordinates, `delivery_address_source`); both ids reference their tables `ON DELETE SET NULL`, so deleted or renamed cities and governorates keep their copied names. `up()` verifies nullability, exact column types, both indexes and both keys; `down()` is refused while any order has a non-null `delivery_address_source`. `Order` rejects Eloquent updates of `delivery_*` (raw queries are not stopped, documented in the model). `customer_address_id` stays an optional reference only.
+- **Captured in the checkout transaction:** `CheckoutController::store()` copies the address into `Order::create`; lock order cart → address → products ascending (VEN-BE-019) is kept.
+- **Ownership revalidated under lock:** a saved address is re-read `FOR UPDATE` with its owner inside the transaction; a foreign or concurrently deleted address ends in 403 and nothing is created. JSON checkout without an address is unchanged and recorded as `source = none`.
+- **Scoped serialization:** the raw `delivery_*` columns are hidden. Vendor orders index/show, delivery-driver assignments index/show and overview, and the customer order show opt in through `Order::exposeDeliveryAddress()`: `delivery_address` is the snapshot, and the deprecated `address` key is the same snapshot plus `id` (`customer_address_id`, null when the saved address is gone) and `customer_id` (`label`, `is_default` and the saved-address timestamps are no longer present).
+- **Unintended exposure prevented:** a first global `Order::toArray()` override, which added the delivery address to every serialized order, was removed (ORD-BE-001-REVIEW-02 / FIX-03). Vendor disputes, returns, reviews, commissions and overview, checkout and receipt-confirmation responses and the customer orders index carry no delivery address (tested).
+- **Legacy development orders without backfill:** orders created before the migration (`delivery_address_source` NULL) fall back to the saved address marked `source = legacy_saved_address`, `is_historical = false`, or `legacy_missing` when it is gone; no backfill command exists.
+- **Verification:** SQLite in memory, final run on the committed state (GIT-COMMIT-05, 2026-10-19; identical on an isolated copy of the staged tree) — full suite **1352 tests: 1318 passed, 34 skipped, 0 failed**; the 34 skipped are the MySQL-only tests, including the four `OrderDeliveryAddressSnapshotMySqlTest` tests, which run only against an isolated MySQL database (`OrderDeliveryAddressSnapshotTest` 15, `OrderDeliveryAddressSnapshotMigrationTest` 6). Isolated MySQL 8.4.3, database `hirfah_fk_test_ordbe001` (MYSQL-VERIFY-04, 2026-10-18; no implementation, migration or test change since) — `OrderDeliveryAddressSnapshotMySqlTest` **4 passed, 76 assertions** (exact column types, indexes, keys `ON DELETE SET NULL`, one `ALTER` up/down, idempotent `up()`, partial and mistyped states refused, rollback refused for `checkout` and `none`, real checkout snapshot surviving city and governorate deletion).
+- **No development database migration executed:** the development database (`multi_vendor_commerce`) was compared with a baseline taken before the MySQL run and was identical (schema, 44 migrations, row counts); the snapshot migration is not recorded there. The migration has **not been executed on the development database**; running it there remains a separate step requiring approval.
 
 ---
 

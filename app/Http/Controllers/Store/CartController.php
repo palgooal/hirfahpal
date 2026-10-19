@@ -7,12 +7,15 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
 use App\Support\Storefront\BrowserResponse;
+use App\Support\Storefront\GuestCartMerger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
+    public function __construct(private readonly GuestCartMerger $guestCarts) {}
+
     public function show(Request $request): JsonResponse
     {
         return response()->json(
@@ -79,15 +82,10 @@ class CartController extends Controller
                 'status' => 'active',
             ]);
 
-            $guestCart = Cart::query()
-                ->with('items')
-                ->where('session_id', $request->session()->getId())
-                ->whereNull('customer_id')
-                ->where('status', 'active')
-                ->first();
-
-            if ($guestCart) {
-                $this->mergeGuestCart($guestCart, $customerCart);
+            // A guest cart of this same session (the login and registration merge theirs before the session id
+            // changes, CUSTOMER-AUTH-A1).
+            if ($guestCartId = $this->guestCarts->guestCartId($request->session()->getId())) {
+                $this->guestCarts->merge($guestCartId, $customer);
             }
 
             return $customerCart;
@@ -110,22 +108,5 @@ class CartController extends Controller
         }
 
         abort_unless($cart->session_id === $request->session()->getId(), 403);
-    }
-
-    private function mergeGuestCart(Cart $guestCart, Cart $customerCart): void
-    {
-        foreach ($guestCart->items as $guestItem) {
-            $customerItem = CartItem::query()->firstOrNew([
-                'cart_id' => $customerCart->id,
-                'product_id' => $guestItem->product_id,
-            ]);
-
-            $customerItem->fill([
-                'quantity' => ($customerItem->exists ? $customerItem->quantity : 0) + $guestItem->quantity,
-                'unit_price' => $guestItem->unit_price,
-            ])->save();
-        }
-
-        $guestCart->update(['status' => 'abandoned']);
     }
 }

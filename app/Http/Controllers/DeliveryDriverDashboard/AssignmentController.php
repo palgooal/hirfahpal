@@ -20,26 +20,34 @@ class AssignmentController extends Controller
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        return response()->json(
-            DeliveryAssignment::query()
-                ->with(['vendorOrder.order.customer', 'vendorOrder.order.address', 'vendorOrder.vendor.profile', 'vendorOrder.items.product.primaryImage'])
-                ->where('delivery_driver_id', $driver->id)
-                ->when(isset($data['status']), fn ($query) => $query->where('status', $data['status']))
-                ->latest()
-                ->paginate($data['per_page'] ?? 12)
-        );
+        $assignments = DeliveryAssignment::query()
+            ->with(['vendorOrder.order.customer', 'vendorOrder.order.address.governorate', 'vendorOrder.order.address.city', 'vendorOrder.vendor.profile', 'vendorOrder.items.product.primaryImage'])
+            ->where('delivery_driver_id', $driver->id)
+            ->when(isset($data['status']), fn ($query) => $query->where('status', $data['status']))
+            ->latest()
+            ->paginate($data['per_page'] ?? 12);
+
+        // ORD-BE-001: the order's delivery address is the checkout snapshot.
+        $assignments->getCollection()->each(fn (DeliveryAssignment $assignment) => $assignment->vendorOrder?->order?->exposeDeliveryAddress());
+
+        return response()->json($assignments);
     }
 
     public function show(Request $request, DeliveryAssignment $assignment): JsonResponse
     {
         $this->authorizeAssignment($request, $assignment);
 
-        return response()->json($assignment->load([
+        $assignment->load([
             'vendorOrder.order.customer',
-            'vendorOrder.order.address',
+            'vendorOrder.order.address.governorate',
+            'vendorOrder.order.address.city',
             'vendorOrder.vendor.profile',
             'vendorOrder.items.product.primaryImage',
-        ]));
+        ]);
+        // ORD-BE-001: the order's delivery address is the checkout snapshot.
+        $assignment->vendorOrder?->order?->exposeDeliveryAddress();
+
+        return response()->json($assignment);
     }
 
     public function accept(Request $request, DeliveryAssignment $assignment): JsonResponse
