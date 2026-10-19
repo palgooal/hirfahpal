@@ -15,6 +15,9 @@
         'dashboard.reviews.*' => ['dashboard.Nav_Reviews', 'Reviews'],
         'dashboard.disputes.*' => ['dashboard.Nav_Disputes', 'Disputes'],
         'dashboard.return-requests.*' => ['dashboard.Nav_Return_Requests', 'Return requests'],
+        // The contact-message pages pass this label as $pageTitle (read without auto-creating the key), so it is not
+        // looked up here for them; the entry keeps the map in step with the sidebar.
+        'dashboard.contact-messages.*' => ['dashboard.Nav_Contact_Messages', 'Contact messages'],
         'dashboard.languages.*' => ['dashboard.Nav_Languages', 'Languages'],
         'dashboard.translation-values.*' => ['dashboard.Nav_Translations', 'Translations'],
         'dashboard.setting.*' => ['dashboard.Nav_Settings', 'Settings'],

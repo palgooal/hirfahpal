@@ -115,6 +115,11 @@ class AdminDashboardTranslationSeeder extends Seeder
             'ar' => 'الاسترجاع',
             'en' => 'Return requests',
         ],
+        // CONTACT-ADMIN-IMPLEMENTATION-01: also the title of the contact-message pages.
+        'dashboard.Nav_Contact_Messages' => [
+            'ar' => 'رسائل التواصل',
+            'en' => 'Contact messages',
+        ],
         'dashboard.Nav_Languages' => [
             'ar' => 'اللغات',
             'en' => 'Languages',

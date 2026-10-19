@@ -96,4 +96,10 @@ return [
         'view' => t('dashboard.View_Return_Requests', 'View Return Requests'),
         'edit' => t('dashboard.Review_Return_Requests', 'Review Return Requests'),
     ],
+    // CONTACT-ADMIN-IMPLEMENTATION-01 (DEC-CONTACT-ADMIN-02): reading the storefront contact messages; opening one
+    // marks it read (DEC-CONTACT-ADMIN-01), so no separate edit ability.
+    'contact-messages' => [
+        'name' => t('dashboard.Contact_Messages', 'Contact Messages'),
+        'view' => t('dashboard.View_Contact_Messages', 'View Contact Messages'),
+    ],
 ];

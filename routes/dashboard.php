@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Dashboard\AdminController;
 use App\Http\Controllers\Dashboard\CategoryManagementController;
+use App\Http\Controllers\Dashboard\ContactMessageManagementController;
 use App\Http\Controllers\Dashboard\CustomerManagementController;
 use App\Http\Controllers\Dashboard\DeliveryDriverManagementController;
 use App\Http\Controllers\Dashboard\DisputeManagementController;
@@ -58,6 +59,10 @@ Route::prefix('dashboard')
         Route::get('return-requests', [ReturnRequestManagementController::class, 'index'])->name('return-requests.index');
         Route::get('return-requests/{returnRequest}', [ReturnRequestManagementController::class, 'show'])->name('return-requests.show');
         Route::patch('return-requests/{returnRequest}/review', [ReturnRequestManagementController::class, 'review'])->name('return-requests.review');
+
+        // CONTACT-ADMIN-IMPLEMENTATION-01: read-only list and details of the storefront contact messages.
+        Route::get('contact-messages', [ContactMessageManagementController::class, 'index'])->name('contact-messages.index');
+        Route::get('contact-messages/{contactMessage}', [ContactMessageManagementController::class, 'show'])->whereNumber('contactMessage')->name('contact-messages.show');
 
         Route::get('vendors', [VendorManagementController::class, 'index'])->name('vendors.index');
         Route::get('vendors/create', [VendorManagementController::class, 'create'])->name('vendors.create');

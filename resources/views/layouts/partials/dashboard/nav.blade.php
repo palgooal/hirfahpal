@@ -25,6 +25,8 @@
             ['route' => 'dashboard.reviews.index', 'active' => 'dashboard.reviews.*', 'key' => 'dashboard.Nav_Reviews', 'default' => 'Reviews', 'icon' => 'ph-star', 'visible' => $ability('reviews.view')],
             ['route' => 'dashboard.disputes.index', 'active' => 'dashboard.disputes.*', 'key' => 'dashboard.Nav_Disputes', 'default' => 'Disputes', 'icon' => 'ph-scales', 'visible' => $ability('disputes.view')],
             ['route' => 'dashboard.return-requests.index', 'active' => 'dashboard.return-requests.*', 'key' => 'dashboard.Nav_Return_Requests', 'default' => 'Return requests', 'icon' => 'ph-arrow-u-up-left', 'visible' => $ability('return-requests.view')],
+            // CONTACT-ADMIN-IMPLEMENTATION-01 (DEC-CONTACT-ADMIN-03): read without auto-creating its key before seeding.
+            ['route' => 'dashboard.contact-messages.index', 'active' => 'dashboard.contact-messages.*', 'key' => 'dashboard.Nav_Contact_Messages', 'default' => 'Contact messages', 'icon' => 'ph-envelope-simple', 'visible' => $ability('contact-messages.view'), 'no_auto_create' => true],
         ]],
         ['key' => 'dashboard.Nav_Group_System', 'default' => 'System', 'items' => [
             ['route' => 'dashboard.languages.index', 'active' => 'dashboard.languages.*', 'key' => 'dashboard.Nav_Languages', 'default' => 'Languages', 'icon' => 'ph-globe', 'visible' => $policy(App\Models\Language::class)],
@@ -34,6 +36,22 @@
             ['route' => 'media-library.page', 'active' => 'media-library.*', 'key' => 'dashboard.Nav_Media_Library', 'default' => 'Media Library', 'icon' => 'ph-images', 'visible' => $ability('media.view')],
         ]],
     ];
+
+    // An item flagged no_auto_create reads its label without creating a translation row (newer keys, seeded separately).
+    $navLabel = function (array $item): string {
+        if (! ($item['no_auto_create'] ?? false)) {
+            return t($item['key'], $item['default']);
+        }
+
+        $autoCreate = config('palgoals-locale.auto_create');
+        config(['palgoals-locale.auto_create' => false]);
+
+        try {
+            return t($item['key'], $item['default']);
+        } finally {
+            config(['palgoals-locale.auto_create' => $autoCreate]);
+        }
+    };
 
     // Groups whose items are all hidden for this admin are not rendered.
     $groups = array_values(array_filter(array_map(function (array $group): array {
@@ -78,7 +96,7 @@
                                 <li class="pc-item {{ $isCurrent ? 'active' : '' }}">
                                     <a href="{{ route($item['route']) }}" class="pc-link" @if ($isCurrent) aria-current="page" @endif>
                                         <span class="pc-micon"><i class="ph-duotone {{ $item['icon'] }}" aria-hidden="true"></i></span>
-                                        <span class="pc-mtext">{{ t($item['key'], $item['default']) }}</span>
+                                        <span class="pc-mtext">{{ $navLabel($item) }}</span>
                                     </a>
                                 </li>
                             @endforeach

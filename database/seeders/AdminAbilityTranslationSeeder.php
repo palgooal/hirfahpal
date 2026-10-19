@@ -7,13 +7,14 @@ use Illuminate\Database\Seeder;
 
 /**
  * AD-UI-PROD-M6 (A3): Arabic and English labels of the abilities in data/abilities.php shown by the admin roles form,
- * exactly 49 keys. TRANSLATIONS: the 17 labels with no row yet (Arabic and English, 34 rows). CORRECTIONS: the 32
- * labels whose Arabic row was auto-created with the English default; each is replaced only while it still holds that
- * default exactly (a customised value is kept). Several of these keys are shared with other pages (Admins, Settings,
+ * exactly 51 keys. TRANSLATIONS: the 17 labels with no row yet (Arabic and English, 34 rows). CORRECTIONS: the 34
+ * labels whose Arabic row was, or may be, auto-created with the English default (32, plus the 2 contact-messages
+ * labels of CONTACT-ADMIN-IMPLEMENTATION-01); each is replaced only while it still holds that default exactly (a
+ * customised value is kept). Several of these keys are shared with other pages (Admins, Settings,
  * Vendors, Reviews, …); only their Arabic row is corrected, and only from the English default.
  *
  * TR-INIT-01: on a database where a CORRECTIONS key has no row yet (a new environment), its rows are inserted too,
- * Arabic from `to` and English from `from` (the default in data/abilities.php), so the 32 labels no longer depend on
+ * Arabic from `to` and English from `from` (the default in data/abilities.php), so the 34 labels no longer depend on
  * t() creating them first with English text. Existing rows are never overwritten by that insert.
  *
  * Only missing (key, locale) rows are inserted; no row is deleted; no other key is touched. Not called from
@@ -85,13 +86,18 @@ class AdminAbilityTranslationSeeder extends Seeder
         'dashboard.Reviews' => ['from' => 'Reviews', 'to' => 'التقييمات'],
         'dashboard.Disputes' => ['from' => 'Disputes', 'to' => 'النزاعات'],
         'dashboard.Return_Requests' => ['from' => 'Return Requests', 'to' => 'طلبات الاسترجاع'],
+        // CONTACT-ADMIN-IMPLEMENTATION-01: the contact-messages labels. Listed here rather than in TRANSLATIONS because
+        // the admin roles form reads data/abilities.php through t() with auto-create, which may store the English
+        // default in Arabic before this seeder runs; a new database gets both rows (TR-INIT-01).
+        'dashboard.Contact_Messages' => ['from' => 'Contact Messages', 'to' => 'رسائل التواصل'],
+        'dashboard.View_Contact_Messages' => ['from' => 'View Contact Messages', 'to' => 'عرض رسائل التواصل'],
     ];
 
     public function run(): void
     {
         $now = now();
 
-        // The 17 labels, then the 32 CORRECTIONS keys with their approved values (TR-INIT-01): inserted only where the
+        // The 17 labels, then the 34 CORRECTIONS keys with their approved values (TR-INIT-01): inserted only where the
         // (key, locale) row does not exist yet, so the guarded corrections below still handle the old English rows.
         $initial = self::TRANSLATIONS + array_map(
             fn (array $correction): array => ['ar' => $correction['to'], 'en' => $correction['from']],
