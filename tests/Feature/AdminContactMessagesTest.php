@@ -280,6 +280,166 @@ class AdminContactMessagesTest extends TestCase
             ->count());
     }
 
+    // ---------------------------------------------------------------- soft delete (CONTACT-ADMIN-DELETE-02)
+
+    public function test_a_super_admin_soft_deletes_a_confirmed_message_and_it_leaves_the_list(): void
+    {
+        $message = $this->message(['name' => 'Deleted Dana']);
+        $kept = $this->message(['name' => 'Kept Karim']);
+        $admin = $this->admin(superAdmin: true);
+
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])
+            ->delete(route('dashboard.contact-messages.destroy', $message->id), ['confirm' => '1'])
+            ->assertRedirect(route('dashboard.contact-messages.index'))
+            ->assertSessionHas('success', 'The message was deleted.');
+
+        $this->assertSoftDeleted('contact_messages', ['id' => $message->id]);
+        $this->assertNotNull(ContactMessage::withTrashed()->find($message->id), 'The row stays in the database.');
+        $this->assertNull(ContactMessage::query()->find($message->id));
+        $this->assertNull($message->fresh()->read_at, 'Deleting does not mark the message read.');
+
+        $list = $this->page($admin, 'dashboard.contact-messages.index', locale: 'en');
+        $list->assertDontSee('Deleted Dana')->assertSee('Kept Karim');
+        $this->assertSame(1, substr_count($list->getContent(), 'data-contact-message-id="'));
+
+        $this->actingAs($admin, 'admin')->get(route('dashboard.contact-messages.show', $message->id))->assertNotFound();
+        $this->assertNull($kept->fresh()->deleted_at);
+    }
+
+    public function test_the_success_message_is_shown_on_the_list_after_the_redirect(): void
+    {
+        $message = $this->message();
+
+        $this->actingAs($this->admin(superAdmin: true), 'admin')->withSession(['locale' => 'en'])->followingRedirects()
+            ->delete(route('dashboard.contact-messages.destroy', $message->id), ['confirm' => '1'])
+            ->assertOk()
+            ->assertSee('role="status"', false)
+            ->assertSee('The message was deleted.');
+    }
+
+    public function test_without_the_confirmation_nothing_is_deleted(): void
+    {
+        $message = $this->message();
+        $admin = $this->admin(superAdmin: true);
+
+        foreach ([[], ['confirm' => '0'], ['confirm' => '']] as $payload) {
+            $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])
+                ->delete(route('dashboard.contact-messages.destroy', $message->id), $payload)
+                ->assertRedirect(route('dashboard.contact-messages.show', $message->id))
+                ->assertSessionHas('danger', 'The deletion was not confirmed.');
+        }
+
+        $this->assertNull($message->fresh()->deleted_at);
+
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])->followingRedirects()
+            ->delete(route('dashboard.contact-messages.destroy', $message->id))
+            ->assertOk()
+            ->assertSee('role="alert"', false)
+            ->assertSee('The deletion was not confirmed.');
+    }
+
+    public function test_only_a_super_admin_may_delete_and_sees_the_delete_panel(): void
+    {
+        $message = $this->message();
+
+        foreach ([$this->admin(['contact-messages.view']), $this->admin(['contact-messages.view', 'customers.view', 'reviews.delete'])] as $admin) {
+            $this->actingAs($admin, 'admin')->delete(route('dashboard.contact-messages.destroy', $message->id), ['confirm' => '1'])->assertForbidden();
+            // The super admin check comes before the message is read: an unknown id is 403 too.
+            $this->actingAs($admin, 'admin')->delete(route('dashboard.contact-messages.destroy', 999999), ['confirm' => '1'])->assertForbidden();
+            $this->page($admin, 'dashboard.contact-messages.show', $message->id, 'en')
+                ->assertDontSee('data-contact-message-delete', false)
+                ->assertDontSee(route('dashboard.contact-messages.destroy', $message->id).'"', false);
+        }
+        $this->assertNull($message->fresh()->deleted_at);
+
+        $html = $this->page($this->admin(superAdmin: true), 'dashboard.contact-messages.show', $message->id, 'en')->getContent();
+        $this->assertMatchesRegularExpression('#<form method="POST" action="'.preg_quote(route('dashboard.contact-messages.destroy', $message->id), '#').'" class="admin-product-moderation is-suspend"[^>]*data-contact-message-delete>#', $html);
+        $this->assertStringContainsString('name="_method" value="DELETE"', $html);
+        $this->assertMatchesRegularExpression('#<input class="form-check-input" type="checkbox" name="confirm" value="1" id="contact-message-delete-confirm" required#', $html);
+        $this->assertStringContainsString('<label class="form-check-label" for="contact-message-delete-confirm">I confirm deleting this message</label>', $html);
+        $this->assertStringContainsString('stays in the database', $html);
+    }
+
+    public function test_guests_and_other_account_types_cannot_delete(): void
+    {
+        $message = $this->message();
+
+        $this->delete(route('dashboard.contact-messages.destroy', $message->id), ['confirm' => '1'])->assertRedirect(route('admin.login'));
+        foreach ([[Customer::factory()->create(), 'customer'], [Vendor::factory()->create(), 'vendor'], [DeliveryDriver::factory()->create(), 'delivery_driver']] as [$user, $guard]) {
+            $this->actingAs($user, $guard)->delete(route('dashboard.contact-messages.destroy', $message->id), ['confirm' => '1'])->assertRedirect(route('admin.login'));
+        }
+
+        $this->assertNull($message->fresh()->deleted_at);
+    }
+
+    public function test_an_unknown_or_already_deleted_message_is_404_for_a_super_admin(): void
+    {
+        $admin = $this->admin(superAdmin: true);
+        $message = $this->message();
+        $message->delete();
+        $deletedAt = ContactMessage::withTrashed()->find($message->id)->deleted_at->toDateTimeString();
+
+        $this->travel(1)->hours();
+        $this->actingAs($admin, 'admin')->delete(route('dashboard.contact-messages.destroy', 999999), ['confirm' => '1'])->assertNotFound();
+        $this->actingAs($admin, 'admin')->delete(route('dashboard.contact-messages.destroy', $message->id), ['confirm' => '1'])->assertNotFound();
+
+        $this->assertSame($deletedAt, ContactMessage::withTrashed()->find($message->id)->deleted_at->toDateTimeString(), 'The first deletion date is kept.');
+    }
+
+    public function test_deleting_keeps_the_read_date_of_a_read_message(): void
+    {
+        $admin = $this->admin(superAdmin: true);
+        $message = $this->message();
+
+        Carbon::setTestNow('2026-10-19 09:00:00');
+        $this->page($admin, 'dashboard.contact-messages.show', $message->id);
+        Carbon::setTestNow('2026-10-19 11:00:00');
+        $this->actingAs($admin, 'admin')->delete(route('dashboard.contact-messages.destroy', $message->id), ['confirm' => '1'])->assertRedirect();
+        Carbon::setTestNow();
+
+        $trashed = ContactMessage::withTrashed()->find($message->id);
+        $this->assertSame('2026-10-19 09:00:00', $trashed->read_at->toDateTimeString());
+        $this->assertSame('2026-10-19 11:00:00', $trashed->deleted_at->toDateTimeString());
+    }
+
+    public function test_pagination_counts_only_messages_that_are_not_deleted(): void
+    {
+        $messages = collect(range(1, 16))->map(fn ($number) => $this->message(['name' => sprintf('Sender %02d', $number)]));
+        $messages->first()->delete();
+
+        $page = $this->page($this->admin(['contact-messages.view']), 'dashboard.contact-messages.index', locale: 'en');
+
+        $this->assertSame(15, substr_count($page->getContent(), 'data-contact-message-id="'));
+        $page->assertDontSee('page=2', false)->assertDontSee('Sender 01');
+    }
+
+    public function test_the_seeded_arabic_delete_texts_are_shown(): void
+    {
+        $this->seed(AdminContactMessageTranslationSeeder::class);
+        $message = $this->message();
+        $admin = $this->admin(superAdmin: true);
+
+        $this->page($admin, 'dashboard.contact-messages.show', $message->id)
+            ->assertSee('حذف الرسالة')->assertSee('أؤكد حذف هذه الرسالة')->assertSee('تبقى محفوظة في قاعدة البيانات');
+
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->followingRedirects()
+            ->delete(route('dashboard.contact-messages.destroy', $message->id))->assertSee('لم يتم تأكيد الحذف.');
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->followingRedirects()
+            ->delete(route('dashboard.contact-messages.destroy', $message->id), ['confirm' => '1'])->assertSee('تم حذف الرسالة.');
+    }
+
+    public function test_deleting_creates_no_translation_rows(): void
+    {
+        $admin = $this->admin(superAdmin: true);
+        $first = $this->message();
+        $second = $this->message();
+
+        $this->actingAs($admin, 'admin')->followingRedirects()->delete(route('dashboard.contact-messages.destroy', $first->id))->assertOk();
+        $this->actingAs($admin, 'admin')->followingRedirects()->delete(route('dashboard.contact-messages.destroy', $second->id), ['confirm' => '1'])->assertOk();
+
+        $this->assertSame(0, TranslationValue::query()->where('key', 'like', 'dashboard.Contact_Messages%')->count());
+    }
+
     // ---------------------------------------------------------------- helpers
 
     private function admin(array $abilities = [], bool $superAdmin = false): Admin

@@ -30,6 +30,16 @@
             <p class="admin-media-intro">{{ $msgText('Contact_Messages_Intro', 'Messages sent from the store contact page.') }}</p>
         </div>
 
+        {{-- Result messages (success, danger), inline as on the other admin lists (CONTACT-ADMIN-DELETE-02). --}}
+        @foreach (['success' => 'success', 'danger' => 'error'] as $flash => $tone)
+            @if (session($flash))
+                <div class="admin-media-alert is-{{ $tone }}" role="{{ $tone === 'success' ? 'status' : 'alert' }}">
+                    <i class="ph-duotone {{ $tone === 'success' ? 'ph-check-circle' : 'ph-info' }}" aria-hidden="true"></i>
+                    <div class="admin-media-alert-content"><p>{{ session($flash) }}</p></div>
+                </div>
+            @endif
+        @endforeach
+
         <section class="card admin-media-panel" aria-labelledby="contact-messages-list-title">
             <h2 class="visually-hidden" id="contact-messages-list-title">{{ $msgText('Nav_Contact_Messages', 'Contact messages') }}</h2>
 

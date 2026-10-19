@@ -63,6 +63,8 @@ Route::prefix('dashboard')
         // CONTACT-ADMIN-IMPLEMENTATION-01: read-only list and details of the storefront contact messages.
         Route::get('contact-messages', [ContactMessageManagementController::class, 'index'])->name('contact-messages.index');
         Route::get('contact-messages/{contactMessage}', [ContactMessageManagementController::class, 'show'])->whereNumber('contactMessage')->name('contact-messages.show');
+        // CONTACT-ADMIN-DELETE-02: soft delete, super admins only.
+        Route::delete('contact-messages/{contactMessage}', [ContactMessageManagementController::class, 'destroy'])->whereNumber('contactMessage')->name('contact-messages.destroy');
 
         Route::get('vendors', [VendorManagementController::class, 'index'])->name('vendors.index');
         Route::get('vendors/create', [VendorManagementController::class, 'create'])->name('vendors.create');

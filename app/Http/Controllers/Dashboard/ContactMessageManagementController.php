@@ -4,14 +4,15 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\ContactMessage;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
- * CONTACT-ADMIN-IMPLEMENTATION-01: the storefront contact messages in the admin dashboard, read only.
+ * CONTACT-ADMIN-IMPLEMENTATION-01: the storefront contact messages in the admin dashboard.
  * Access needs contact-messages.view (super admins always pass, DEC-CONTACT-ADMIN-02). The details page marks the
  * message read the first time an authorized admin opens it and keeps that date afterwards (DEC-CONTACT-ADMIN-01).
- * The message text is never logged.
+ * CONTACT-ADMIN-DELETE-02: a super admin may soft-delete a message (destroy). The message text is never logged.
  */
 class ContactMessageManagementController extends Controller
 {
@@ -56,7 +57,43 @@ class ContactMessageManagementController extends Controller
         return view('dashboard.contact-messages.show', [
             'contactMessage' => $message,
             'canViewCustomer' => $canViewCustomer,
+            'canDelete' => (bool) $admin?->isSuperAdmin(),
         ]);
+    }
+
+    /**
+     * CONTACT-ADMIN-DELETE-02: soft delete (deleted_at only; the row is kept), for super admins only, checked before
+     * the message is read. An unknown or already deleted message is 404. Without the ticked confirmation nothing is
+     * deleted and the admin returns to the message. read_at is not touched.
+     */
+    public function destroy(Request $request, string $contactMessage): RedirectResponse
+    {
+        abort_unless((bool) $request->user('admin')?->isSuperAdmin(), 403);
+
+        $message = ContactMessage::query()->findOrFail((int) $contactMessage);
+
+        if (! $request->boolean('confirm')) {
+            return redirect()->route('dashboard.contact-messages.show', $message->getKey())
+                ->with('danger', $this->text('Contact_Messages_Delete_Not_Confirmed', 'The deletion was not confirmed.'));
+        }
+
+        $message->delete();
+
+        return redirect()->route('dashboard.contact-messages.index')
+            ->with('success', $this->text('Contact_Messages_Deleted', 'The message was deleted.'));
+    }
+
+    /** t() without auto-creating the key (AdminContactMessageTranslationSeeder), as in the views. */
+    private function text(string $key, string $default): string
+    {
+        $autoCreate = config('palgoals-locale.auto_create');
+        config(['palgoals-locale.auto_create' => false]);
+
+        try {
+            return t('dashboard.'.$key, $default);
+        } finally {
+            config(['palgoals-locale.auto_create' => $autoCreate]);
+        }
     }
 
     private function authorizeAbility(Request $request, string $ability): void

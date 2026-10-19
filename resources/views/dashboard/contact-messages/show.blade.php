@@ -4,6 +4,7 @@
     (ContactMessageManagementController::show). The message keeps its line breaks through the escaped-only
     admin-product-text style; nothing is rendered as HTML. The linked customer account is shown only when
     $canViewCustomer (customers.view). Texts through t() without auto-creating keys (AdminContactMessageTranslationSeeder).
+    CONTACT-ADMIN-DELETE-02: the delete panel, shown only when $canDelete (super admin), and the result messages.
 --}}
 @php
     $msgText = function (string $key, string $default): string {
@@ -40,6 +41,16 @@
             </div>
         </div>
 
+        {{-- Result messages (success, danger), inline as on the other admin pages. --}}
+        @foreach (['success' => 'success', 'danger' => 'error'] as $flash => $tone)
+            @if (session($flash))
+                <div class="admin-media-alert is-{{ $tone }}" role="{{ $tone === 'success' ? 'status' : 'alert' }}">
+                    <i class="ph-duotone {{ $tone === 'success' ? 'ph-check-circle' : 'ph-info' }}" aria-hidden="true"></i>
+                    <div class="admin-media-alert-content"><p>{{ session($flash) }}</p></div>
+                </div>
+            @endif
+        @endforeach
+
         {{-- 1. Sender --}}
         <section class="card admin-media-panel admin-product-panel" aria-labelledby="contact-message-heading-sender">
             <h2 class="admin-product-panel-title" id="contact-message-heading-sender">{{ $msgText('Contact_Messages_Show_Sender', 'Sender details') }}</h2>
@@ -71,5 +82,28 @@
                 <div><dt>{{ $msgText('Contact_Messages_Show_Message', 'Message') }}</dt><dd class="admin-product-text" dir="auto" data-contact-message-body>{{ $contactMessage->message }}</dd></div>
             </dl>
         </section>
+
+        {{-- 3. CONTACT-ADMIN-DELETE-02: soft delete, for super admins only (the server checks again). Ticking the box is
+             the confirmation (no dialog); without it the server deletes nothing. --}}
+        @if ($canDelete)
+            <section class="card admin-media-panel admin-product-panel" aria-labelledby="contact-message-delete-title">
+                <form method="POST" action="{{ route('dashboard.contact-messages.destroy', $contactMessage->id) }}" class="admin-product-moderation is-suspend" aria-labelledby="contact-message-delete-title" data-contact-message-delete>
+                    @csrf
+                    @method('DELETE')
+                    <h3 class="admin-product-moderation-title" id="contact-message-delete-title">{{ $msgText('Contact_Messages_Delete_Title', 'Delete this message') }}</h3>
+                    <p class="admin-product-moderation-hint" id="contact-message-delete-hint">{{ $msgText('Contact_Messages_Delete_Hint', 'The message disappears from the contact messages list but stays in the database. It cannot be restored from the dashboard.') }}</p>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="confirm" value="1" id="contact-message-delete-confirm" required aria-describedby="contact-message-delete-hint">
+                        <label class="form-check-label" for="contact-message-delete-confirm">{{ $msgText('Contact_Messages_Delete_Confirm', 'I confirm deleting this message') }}</label>
+                    </div>
+                    <div class="admin-product-moderation-actions">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="ph-duotone ph-trash" aria-hidden="true"></i>
+                            <span>{{ $msgText('Contact_Messages_Delete_Button', 'Delete message') }}</span>
+                        </button>
+                    </div>
+                </form>
+            </section>
+        @endif
     </div>
 </x-dashboard-layout>

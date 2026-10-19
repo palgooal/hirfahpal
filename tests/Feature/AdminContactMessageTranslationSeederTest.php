@@ -9,20 +9,26 @@ use Tests\TestCase;
 
 /**
  * CONTACT-ADMIN-IMPLEMENTATION-01: AdminContactMessageTranslationSeeder. Exactly the keys the contact-message pages
- * read, Arabic and English, English equal to the defaults in the views, edited values kept, nothing deleted,
- * idempotent, stale cache cleared, not called from DatabaseSeeder.
+ * and their controller read (CONTACT-ADMIN-DELETE-02 added 6), Arabic and English, English equal to the defaults in
+ * the code, edited values kept, nothing deleted, idempotent, stale cache cleared, not called from DatabaseSeeder.
  */
 class AdminContactMessageTranslationSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_it_covers_exactly_the_contact_message_keys_the_views_read_with_their_english_defaults(): void
+    public function test_it_covers_exactly_the_contact_message_keys_the_code_reads_with_their_english_defaults(): void
     {
-        $this->assertCount(20, AdminContactMessageTranslationSeeder::TRANSLATIONS);
+        $this->assertCount(26, AdminContactMessageTranslationSeeder::TRANSLATIONS);
 
+        // The views read their keys through $msgText(), the controller (CONTACT-ADMIN-DELETE-02 messages) through $this->text().
+        $sources = [
+            resource_path('views/dashboard/contact-messages/index.blade.php'),
+            resource_path('views/dashboard/contact-messages/show.blade.php'),
+            app_path('Http/Controllers/Dashboard/ContactMessageManagementController.php'),
+        ];
         $defaults = [];
-        foreach (['index', 'show'] as $view) {
-            preg_match_all("/\\\$msgText\\('(Contact_Messages_[A-Za-z_]+)', '([^']+)'\\)/", file_get_contents(resource_path("views/dashboard/contact-messages/{$view}.blade.php")), $matches, PREG_SET_ORDER);
+        foreach ($sources as $source) {
+            preg_match_all('/(?:\$msgText|\$this->text)\(\'(Contact_Messages_[A-Za-z_]+)\', \'([^\']+)\'\)/', file_get_contents($source), $matches, PREG_SET_ORDER);
             foreach ($matches as [, $key, $default]) {
                 $defaults['dashboard.'.$key] = $default;
             }
@@ -31,11 +37,11 @@ class AdminContactMessageTranslationSeederTest extends TestCase
         ksort($defaults);
         $seeded = AdminContactMessageTranslationSeeder::TRANSLATIONS;
         ksort($seeded);
-        $this->assertSame(array_keys($defaults), array_keys($seeded), 'The seeder covers exactly the keys the views read.');
+        $this->assertSame(array_keys($defaults), array_keys($seeded), 'The seeder covers exactly the keys the views and the controller read.');
 
         foreach ($seeded as $key => $values) {
             $this->assertSame(['ar', 'en'], array_keys(AdminContactMessageTranslationSeeder::TRANSLATIONS[$key]), $key);
-            $this->assertSame($defaults[$key], $values['en'], "{$key} en is the view default.");
+            $this->assertSame($defaults[$key], $values['en'], "{$key} en is the default in the code.");
             $this->assertMatchesRegularExpression('/\p{Arabic}/u', $values['ar'], "{$key} ar must be Arabic.");
         }
     }
@@ -48,7 +54,7 @@ class AdminContactMessageTranslationSeederTest extends TestCase
             $this->assertSame($values['ar'], $this->value($key, 'ar'));
             $this->assertSame($values['en'], $this->value($key, 'en'));
         }
-        $this->assertSame(40, TranslationValue::count());
+        $this->assertSame(52, TranslationValue::count());
     }
 
     public function test_edited_values_are_never_overwritten_and_nothing_is_deleted(): void
@@ -61,7 +67,7 @@ class AdminContactMessageTranslationSeederTest extends TestCase
         $this->assertSame('غير مقروءة', $this->value('dashboard.Contact_Messages_Status_Unread', 'ar'));
         $this->assertSame('New', $this->value('dashboard.Contact_Messages_Status_Unread', 'en'));
         $this->assertSame('قيمة أخرى', $this->value('dashboard.Something_else', 'ar'));
-        $this->assertSame(40 + 1, TranslationValue::count());
+        $this->assertSame(52 + 1, TranslationValue::count());
     }
 
     public function test_running_twice_changes_nothing(): void

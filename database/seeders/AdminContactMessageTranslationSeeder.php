@@ -51,6 +51,17 @@ class AdminContactMessageTranslationSeeder extends Seeder
         'dashboard.Contact_Messages_Show_Received' => ['ar' => 'تاريخ الاستلام', 'en' => 'Received'],
         'dashboard.Contact_Messages_Show_Read_At' => ['ar' => 'تاريخ القراءة', 'en' => 'Read on'],
         'dashboard.Contact_Messages_Show_Message' => ['ar' => 'الرسالة', 'en' => 'Message'],
+
+        // CONTACT-ADMIN-DELETE-02: soft delete (details page panel, and the two controller messages).
+        'dashboard.Contact_Messages_Delete_Title' => ['ar' => 'حذف الرسالة', 'en' => 'Delete this message'],
+        'dashboard.Contact_Messages_Delete_Hint' => [
+            'ar' => 'تختفي الرسالة من قائمة رسائل التواصل لكنها تبقى محفوظة في قاعدة البيانات، ولا يمكن استعادتها من لوحة التحكم.',
+            'en' => 'The message disappears from the contact messages list but stays in the database. It cannot be restored from the dashboard.',
+        ],
+        'dashboard.Contact_Messages_Delete_Confirm' => ['ar' => 'أؤكد حذف هذه الرسالة', 'en' => 'I confirm deleting this message'],
+        'dashboard.Contact_Messages_Delete_Button' => ['ar' => 'حذف الرسالة', 'en' => 'Delete message'],
+        'dashboard.Contact_Messages_Delete_Not_Confirmed' => ['ar' => 'لم يتم تأكيد الحذف.', 'en' => 'The deletion was not confirmed.'],
+        'dashboard.Contact_Messages_Deleted' => ['ar' => 'تم حذف الرسالة.', 'en' => 'The message was deleted.'],
     ];
 
     public function run(): void
