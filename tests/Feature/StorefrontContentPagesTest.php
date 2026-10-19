@@ -53,4 +53,53 @@ class StorefrontContentPagesTest extends TestCase
         ]);
         $this->assertSame(1, ContactMessage::query()->count());
     }
+
+    public function test_contact_success_is_shown_once_inside_the_form(): void
+    {
+        $html = $this->from(route('contact.create'))->followingRedirects()->post(route('contact.store'), [
+            'name' => 'Guest name',
+            'email' => 'guest@example.com',
+            'message' => 'A question about shipping.',
+        ])->assertOk()->getContent();
+
+        $success = 'تم إرسال رسالتك بنجاح. سنتواصل معك في أقرب وقت.';
+        $this->assertSame(1, substr_count($html, $success), 'The success message is shown once, not again by the layout.');
+        $this->assertMatchesRegularExpression('#<form[^>]*>.*role="status" data-contact-success.*'.preg_quote($success, '#').'.*</form>#s', $html);
+        $this->assertStringNotContainsString('data-contact-errors', $html);
+        $this->assertNull(ContactMessage::query()->sole()->customer_id);
+    }
+
+    public function test_contact_validation_errors_are_shown_in_the_form_with_arabic_field_names_and_old_input(): void
+    {
+        $html = $this->from(route('contact.create'))->followingRedirects()->post(route('contact.store'), [
+            'name' => 'Kept name',
+            'email' => 'not-an-email',
+            'subject' => str_repeat('s', 256),
+            'message' => '   ',
+        ])->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression('#<form[^>]*>.*role="alert" data-contact-errors.*</form>#s', $html);
+        foreach (['email', 'subject', 'message'] as $field) {
+            $this->assertStringContainsString('aria-describedby="contact-'.$field.'-error"', $html);
+            $this->assertStringContainsString('id="contact-'.$field.'-error"', $html);
+        }
+        $this->assertStringNotContainsString('id="contact-name-error"', $html);
+        $this->assertStringContainsString('حقل الرسالة مطلوب.', $html);
+        $this->assertStringContainsString('يجب ألا يزيد طول حقل الموضوع عن 255 حرفًا.', $html);
+        $this->assertStringNotContainsString('حقل message', $html);
+        $this->assertStringNotContainsString('حقل subject', $html);
+        $this->assertStringContainsString('value="Kept name"', $html);
+        $this->assertStringContainsString('value="not-an-email"', $html);
+        // The layout's page-level message line is not rendered on the contact page.
+        $this->assertStringNotContainsString('px-4 py-3 text-sm text-copper" role="status"', $html);
+        $this->assertSame(0, ContactMessage::query()->count());
+    }
+
+    public function test_other_storefront_pages_keep_the_layout_feedback_line(): void
+    {
+        $this->withSession(['success' => 'Saved elsewhere'])->get(route('categories'))
+            ->assertOk()
+            ->assertSee('px-4 py-3 text-sm text-copper" role="status"', false)
+            ->assertSee('Saved elsewhere');
+    }
 }
