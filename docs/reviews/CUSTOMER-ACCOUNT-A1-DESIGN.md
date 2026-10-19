@@ -3,16 +3,16 @@
 | Field | Value |
 |---|---|
 | Version | 1.0 |
-| Status | DESIGN — Pending Approval (not implemented) |
+| Status | DESIGN — Approved (D1–D10, R-1–R-5); implemented and verified, commit `3b4e0d4` |
 | Project | HIRFAH |
 | Scope | Checkout, orders, vendor and delivery-driver order responses |
 | Date | 2026-10-18 |
-| Finding | [ORD-BE-001](HIRFAH-REVIEW-FINDINGS.md#ord-be-001--order-delivery-address-is-a-live-reference-to-the-customers-saved-address) (OPEN) |
+| Finding | [ORD-BE-001](HIRFAH-REVIEW-FINDINGS.md#ord-be-001--order-delivery-address-is-a-live-reference-to-the-customers-saved-address) (PASS) |
 | References | CUSTOMER-ACCOUNT-01, CUSTOMER-ACCOUNT-A1 (discovery reports, session only) |
 
 > Documentation only. No application code, migration, or data was changed while writing this design.
 >
-> **Implementation note (CUSTOMER-ACCOUNT-A1-IMPLEMENTATION-01 and ORD-BE-001-FIX-03, 2026-10-18, not committed).** §6 is implemented as an explicit opt-in, `Order::exposeDeliveryAddress()`, called only at the address-bearing paths (vendor orders index/show, delivery-driver assignments index/show and overview, customer order show), which eager-load `address.governorate` / `address.city` for the legacy fallback. The raw `delivery_*` columns are hidden. The deprecated `address` payload is the snapshot plus `id` (`customer_address_id`) and `customer_id`. A first global `Order::toArray()` override was removed because it exposed the delivery address on unrelated endpoints (ORD-BE-001-REVIEW-02). The migration's `down()` refuses whenever `delivery_address_source IS NOT NULL`, and `up()` verifies column types and indexes. The admin controllers are unchanged (R-5). Status of ORD-BE-001: OPEN.
+> **Implementation note (CUSTOMER-ACCOUNT-A1-IMPLEMENTATION-01 and ORD-BE-001-FIX-03, 2026-10-18; committed in `3b4e0d4`, GIT-COMMIT-05, 2026-10-19).** §6 is implemented as an explicit opt-in, `Order::exposeDeliveryAddress()`, called only at the address-bearing paths (vendor orders index/show, delivery-driver assignments index/show and overview, customer order show), which eager-load `address.governorate` / `address.city` for the legacy fallback. The raw `delivery_*` columns are hidden. The deprecated `address` payload is the snapshot plus `id` (`customer_address_id`) and `customer_id`. A first global `Order::toArray()` override was removed because it exposed the delivery address on unrelated endpoints (ORD-BE-001-REVIEW-02). The migration's `down()` refuses whenever `delivery_address_source IS NOT NULL`, and `up()` verifies column types and indexes. The admin controllers are unchanged (R-5). Status of ORD-BE-001: **PASS**, maturity **IMPLEMENTED & VERIFIED** (ORD-BE-001-CLOSURE-05); D10 recorded the finding as OPEN at design time, before the SQLite and isolated MySQL verification. The snapshot migration has not been executed on the development database; that remains a separate step requiring approval.
 
 ## 1. Approved decisions
 
