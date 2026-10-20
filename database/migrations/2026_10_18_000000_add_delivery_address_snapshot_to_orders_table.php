@@ -211,7 +211,7 @@ return new class extends Migration
             $actual = strtolower($mysql ? (string) $definition['type'] : (string) $definition['type_name']);
             $expected = $mysql ? $mysqlType : $sqliteType;
 
-            if ($actual !== $expected) {
+            if (! ($mysql ? $this->mysqlTypeMatches($actual, $expected) : $actual === $expected)) {
                 throw new RuntimeException("orders.{$column} has type {$actual}, expected {$expected}. Nothing was changed.");
             }
         }
@@ -239,6 +239,20 @@ return new class extends Migration
                 throw new RuntimeException("orders.{$column} exists but is not the expected nullable reference to {$table}.id ON DELETE SET NULL. Nothing was changed.");
             }
         }
+    }
+
+    /**
+     * MariaDB (and MySQL before 8.0.19) still report the integer display width: BIGINT UNSIGNED is
+     * "bigint(20) unsigned" there and "bigint unsigned" on MySQL 8.0.19+. Only that default width is accepted
+     * for BIGINT UNSIGNED; every other type must match exactly.
+     */
+    private function mysqlTypeMatches(string $actual, string $expected): bool
+    {
+        if ($expected === 'bigint unsigned') {
+            return in_array($actual, ['bigint unsigned', 'bigint(20) unsigned'], true);
+        }
+
+        return $actual === $expected;
     }
 
     private function refuseInsideTransaction(): void
