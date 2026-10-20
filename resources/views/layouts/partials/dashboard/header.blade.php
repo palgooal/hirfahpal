@@ -7,6 +7,31 @@
     $roleLabel = $admin?->isSuperAdmin()
         ? t('dashboard.Header_Role_Super_Admin', 'Super admin')
         : t('dashboard.Header_Role_Admin', 'Admin');
+
+    // SITE-AVAILABILITY Phase 3C (DEC-SA-06, §7.4): the effective site state for every signed-in admin. One memoized
+    // read through SiteAvailability (no query with a forced state; it resolves to open, logged, without the migration
+    // or the database). Texts without auto-creating rows (AdminSiteAvailabilityTranslationSeeder).
+    $saText = function (string $key, string $default): string {
+        $autoCreate = config('palgoals-locale.auto_create');
+        config(['palgoals-locale.auto_create' => false]);
+
+        try {
+            return t('dashboard.'.$key, $default);
+        } finally {
+            config(['palgoals-locale.auto_create' => $autoCreate]);
+        }
+    };
+    $siteAvailability = app(App\Support\SiteAvailability\SiteAvailability::class);
+    $siteState = $siteAvailability->current()->value;
+    $siteStateForced = $siteAvailability->source() === 'environment';
+    $siteStateLabel = [
+        'open' => $saText('Site_Availability_State_Open', 'Open'),
+        'coming_soon' => $saText('Site_Availability_State_Coming_Soon', 'Coming soon'),
+        'maintenance' => $saText('Site_Availability_State_Maintenance', 'Maintenance'),
+    ][$siteState];
+    $siteStateTone = ['open' => 'is-active', 'coming_soon' => 'is-low', 'maintenance' => 'is-suspended'][$siteState];
+    $siteStateTitle = $saText('Site_Availability_Title', 'Site availability').': '.$siteStateLabel
+        .($siteStateForced ? ' ('.$saText('Site_Availability_Badge_Override', 'Server override').')' : '');
 @endphp
 <header class="pc-header admin-header" id="header">
     <div class="header-wrapper admin-header-wrapper">
@@ -37,6 +62,28 @@
         </div>
 
         <ul class="admin-header-group admin-header-end">
+            {{-- Site state badge: a link to the settings card for a Super Admin only; plain text for everyone else. --}}
+            <li class="pc-h-item d-flex align-items-center admin-products" data-site-availability-badge="{{ $siteState }}" @if ($siteStateForced) data-site-availability-forced @endif>
+                @if ($admin?->isSuperAdmin())
+                    <a href="{{ route('dashboard.setting.index') }}#site-availability" class="admin-products-badge {{ $siteStateTone }} text-decoration-none mt-0" title="{{ $siteStateTitle }}" aria-label="{{ $siteStateTitle }}">
+                @else
+                    <span class="admin-products-badge {{ $siteStateTone }} mt-0" title="{{ $siteStateTitle }}">
+                @endif
+                        @if ($siteStateForced)
+                            <i class="ph-duotone ph-lock-simple" aria-hidden="true"></i>
+                        @endif
+                        <span>{{ $siteStateLabel }}</span>
+                        @if ($siteStateForced)
+                            <span class="d-none d-md-inline">· {{ $saText('Site_Availability_Badge_Override', 'Server override') }}</span>
+                            <span class="visually-hidden d-md-none">({{ $saText('Site_Availability_Badge_Override', 'Server override') }})</span>
+                        @endif
+                @if ($admin?->isSuperAdmin())
+                    </a>
+                @else
+                    </span>
+                @endif
+            </li>
+
             <x-lang.language-switcher-dashboard />
 
             {{-- Account menu: name, role and sign out only (AD-UI-01D). Disclosure driven by resources/js/admin-dashboard.js. --}}

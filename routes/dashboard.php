@@ -11,6 +11,7 @@ use App\Http\Controllers\Dashboard\ProductManagementController;
 use App\Http\Controllers\Dashboard\ReturnRequestManagementController;
 use App\Http\Controllers\Dashboard\ReviewManagementController;
 use App\Http\Controllers\Dashboard\SettingController;
+use App\Http\Controllers\Dashboard\SiteAvailabilityController;
 use App\Http\Controllers\Dashboard\VendorManagementController;
 use App\Http\Controllers\Dashboard\VendorOrderManagementController;
 use Illuminate\Support\Facades\Route;
@@ -88,6 +89,8 @@ Route::prefix('dashboard')
         Route::put('settings', [SettingController::class, 'update'])->name('setting.update');
         Route::get('settings/home-content', [SettingController::class, 'homeContent'])->name('setting.home-content');
         Route::patch('settings/home-content', [SettingController::class, 'updateHomeContent'])->name('setting.home-content.update');
+        // SITE-AVAILABILITY Phase 3B: the stored site state, Super Admin only (checked in the controller).
+        Route::patch('settings/site-availability', [SiteAvailabilityController::class, 'update'])->name('setting.site-availability.update');
 
         require __DIR__.'/lang_dashboard.php';
 

@@ -1,0 +1,40 @@
+/*
+ * SITE-AVAILABILITY (docs/deployment/HIRFAH-SITE-AVAILABILITY-DESIGN.md §8.3): local replacement for the Tailwind CDN
+ * of the original Coming Soon page (resources/site-availability/source/index.html). Only the classes used by the two
+ * production templates are generated. The original inline config — fontFamily.tajawal: ['Tajawal', 'sans-serif'] —
+ * is reproduced below; Tajawal itself still comes from Google Fonts (an approved optional external dependency), and
+ * the page falls back to sans-serif when it is unavailable.
+ *
+ * Not a Vite input of the application: compiled into the tracked resources/site-availability/site-availability.min.css,
+ * which is inlined into the pages, with `npx vite build --config vite.site-availability.config.js`.
+ */
+@import "tailwindcss" source(none);
+
+@source "../site-availability/coming-soon.html";
+@source "../site-availability/maintenance.html";
+
+@theme {
+    --font-tajawal: "Tajawal", sans-serif;
+}
+
+/*
+ * Fidelity with the original (Tailwind v3 from the CDN): in v3 a responsive font-size utility also sets its own
+ * line-height and, coming later in the cascade, overrides an explicit leading-* on the same element; in v4 the
+ * explicit leading wins. The two elements of the design that combine both are given v3's result again. Unlayered, so
+ * it takes precedence over the utilities layer.
+ */
+@media (width >= 40rem) {
+    .leading-\[1\.15\].sm\:text-6xl {
+        line-height: 1;
+    }
+
+    .leading-8.sm\:text-lg {
+        line-height: 1.75rem;
+    }
+}
+
+@media (width >= 64rem) {
+    .leading-\[1\.15\].lg\:text-7xl {
+        line-height: 1;
+    }
+}

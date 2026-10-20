@@ -15,6 +15,8 @@
 </head>
 
 <body class="overflow-x-hidden bg-canvas font-cairo text-ink antialiased">
+    @include('storefront.partials.site-availability-indicator')
+
     <header class="relative z-50 bg-surface" data-node-id="223:3408">
         @include('storefront.partials.top-bar')
         @include('storefront.partials.header')

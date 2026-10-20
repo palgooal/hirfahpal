@@ -3,13 +3,19 @@
 use App\Http\Middleware\DisableTranslationAutoCreate;
 use App\Http\Middleware\EnsureAccountIsActive;
 use App\Http\Middleware\EnsureDeliveryDriverIsApproved;
+use App\Http\Middleware\EnsureSiteIsAvailable;
 use App\Http\Middleware\EnsureVendorIsApproved;
 use App\Http\Middleware\SetLocale;
 use App\Support\Auth\AccountGuard;
+use App\Support\SiteAvailability\UnmatchedRequestResponse;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -46,11 +52,18 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             EnsureAccountIsActive::class,
+            EnsureSiteIsAvailable::class,
         ]);
 
         // Unapproved vendors are stopped before any route-model lookup (VEN-BE-001).
         $middleware->prependToPriorityList(SubstituteBindings::class, EnsureVendorIsApproved::class);
+
+        // SITE-AVAILABILITY: the availability gate runs after the session and the CSRF check, and before route
+        // authentication, throttling, model binding and the controller, so a blocked request never reaches its route.
+        $middleware->prependToPriorityList(AuthenticatesRequests::class, EnsureSiteIsAvailable::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        // SITE-AVAILABILITY (§5.6): a request no route matched never reaches the gate; while the site is closed it gets
+        // the availability response instead of the 404/405 page. Null keeps Laravel's normal rendering.
+        $exceptions->render(fn (NotFoundHttpException|MethodNotAllowedHttpException $e, Request $request) => UnmatchedRequestResponse::make($request));
     })->create();

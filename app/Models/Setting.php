@@ -33,7 +33,9 @@ class Setting extends Model
 
     protected function casts(): array
     {
-        return ['home_content' => 'array'];
+        // site_availability_* (SITE-AVAILABILITY) are deliberately not fillable: only SiteAvailabilitySettings::store()
+        // writes them.
+        return ['home_content' => 'array', 'site_availability_changed_at' => 'datetime'];
     }
 
     public static function defaults(): array

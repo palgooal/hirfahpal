@@ -102,4 +102,10 @@ return [
         'name' => t('dashboard.Contact_Messages', 'Contact Messages'),
         'view' => t('dashboard.View_Contact_Messages', 'View Contact Messages'),
     ],
+    // SITE-AVAILABILITY Phase 3A (docs/deployment/HIRFAH-SITE-AVAILABILITY-DESIGN.md SA-05, §4): previewing the
+    // storefront while it is closed. Granted and revoked by a Super Admin only (AdminController).
+    'maintenance' => [
+        'name' => t('dashboard.Maintenance', 'Site Availability'),
+        'bypass' => t('dashboard.Maintenance_Bypass', 'Preview the storefront while closed'),
+    ],
 ];

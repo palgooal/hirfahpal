@@ -7,14 +7,15 @@ use Illuminate\Database\Seeder;
 
 /**
  * AD-UI-PROD-M6 (A3): Arabic and English labels of the abilities in data/abilities.php shown by the admin roles form,
- * exactly 51 keys. TRANSLATIONS: the 17 labels with no row yet (Arabic and English, 34 rows). CORRECTIONS: the 34
+ * exactly 53 keys. TRANSLATIONS: the 17 labels with no row yet (Arabic and English, 34 rows). CORRECTIONS: the 36
  * labels whose Arabic row was, or may be, auto-created with the English default (32, plus the 2 contact-messages
- * labels of CONTACT-ADMIN-IMPLEMENTATION-01); each is replaced only while it still holds that default exactly (a
- * customised value is kept). Several of these keys are shared with other pages (Admins, Settings,
- * Vendors, Reviews, …); only their Arabic row is corrected, and only from the English default.
+ * labels of CONTACT-ADMIN-IMPLEMENTATION-01 and the 2 maintenance labels of SITE-AVAILABILITY Phase 3A); each is
+ * replaced only while it still holds that default exactly (a customised value is kept). Several of these keys are
+ * shared with other pages (Admins, Settings, Vendors, Reviews, …); only their Arabic row is corrected, and only from
+ * the English default.
  *
  * TR-INIT-01: on a database where a CORRECTIONS key has no row yet (a new environment), its rows are inserted too,
- * Arabic from `to` and English from `from` (the default in data/abilities.php), so the 34 labels no longer depend on
+ * Arabic from `to` and English from `from` (the default in data/abilities.php), so the 36 labels no longer depend on
  * t() creating them first with English text. Existing rows are never overwritten by that insert.
  *
  * Only missing (key, locale) rows are inserted; no row is deleted; no other key is touched. Not called from
@@ -91,13 +92,16 @@ class AdminAbilityTranslationSeeder extends Seeder
         // default in Arabic before this seeder runs; a new database gets both rows (TR-INIT-01).
         'dashboard.Contact_Messages' => ['from' => 'Contact Messages', 'to' => 'رسائل التواصل'],
         'dashboard.View_Contact_Messages' => ['from' => 'View Contact Messages', 'to' => 'عرض رسائل التواصل'],
+        // SITE-AVAILABILITY Phase 3A: the maintenance group (maintenance.bypass), here for the same reason.
+        'dashboard.Maintenance' => ['from' => 'Site Availability', 'to' => 'حالة الموقع'],
+        'dashboard.Maintenance_Bypass' => ['from' => 'Preview the storefront while closed', 'to' => 'معاينة المتجر أثناء إغلاقه'],
     ];
 
     public function run(): void
     {
         $now = now();
 
-        // The 17 labels, then the 34 CORRECTIONS keys with their approved values (TR-INIT-01): inserted only where the
+        // The 17 labels, then the 36 CORRECTIONS keys with their approved values (TR-INIT-01): inserted only where the
         // (key, locale) row does not exist yet, so the guarded corrections below still handle the old English rows.
         $initial = self::TRANSLATIONS + array_map(
             fn (array $correction): array => ['ar' => $correction['to'], 'en' => $correction['from']],

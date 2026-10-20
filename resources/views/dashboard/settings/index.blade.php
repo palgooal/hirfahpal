@@ -4,6 +4,10 @@
         <li class="breadcrumb-item" aria-current="page">{{ t('dashboard.Settings', 'Settings') }}</li>
     </x-slot:breadcrumbs>
 
+    @if ($siteAvailability ?? null)
+        @include('dashboard.settings.partials.site-availability', ['card' => $siteAvailability])
+    @endif
+
     <div class="col-span-12">
         <div class="card">
             <div class="card-header">

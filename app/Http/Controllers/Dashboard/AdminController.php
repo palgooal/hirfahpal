@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use App\Models\RoleUser;
+use App\Support\SiteAvailability\SiteAvailability;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,13 @@ use Illuminate\Validation\ValidationException;
 class AdminController extends Controller
 {
     use AuthorizesRequests;
+
+    /**
+     * Abilities only a super admin may grant or revoke. Outside a non-super actor's
+     * scope, so resolveAbilities() rejects adding them (403) and keeps them on the
+     * target when the actor saves without them (SITE-AVAILABILITY Phase 3A).
+     */
+    private const SUPER_ADMIN_ONLY_ABILITIES = [SiteAvailability::ABILITY_BYPASS];
 
     public function index(Request $request)
     {
@@ -228,7 +236,8 @@ class AdminController extends Controller
 
     /**
      * Abilities the actor may grant or revoke: the whole catalogue for a
-     * super admin, otherwise only the abilities the actor holds itself.
+     * super admin, otherwise only the abilities the actor holds itself,
+     * never one of SUPER_ADMIN_ONLY_ABILITIES (even when held).
      *
      * @return array<int, string>
      */
@@ -238,7 +247,10 @@ class AdminController extends Controller
             return $this->availableAbilities();
         }
 
-        return array_values(array_intersect($actor->abilityNames(), $this->availableAbilities()));
+        return array_values(array_diff(
+            array_intersect($actor->abilityNames(), $this->availableAbilities()),
+            self::SUPER_ADMIN_ONLY_ABILITIES,
+        ));
     }
 
     /**

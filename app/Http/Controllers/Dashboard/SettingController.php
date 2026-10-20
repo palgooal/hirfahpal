@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Dashboard\UpdateHomeContentRequest;
 use App\Http\Requests\Dashboard\UpdateSettingRequest;
 use App\Models\Setting;
+use App\Support\SiteAvailability\SiteAvailabilitySettings;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class SettingController extends Controller
@@ -32,12 +34,16 @@ class SettingController extends Controller
         return response()->json(['message' => 'تم تحديث محتوى الصفحة الرئيسية.']);
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('view', Setting::class);
 
+        $setting = Setting::singleton();
+
         return view('dashboard.settings.index', [
-            'setting' => Setting::singleton(),
+            'setting' => $setting,
+            // SITE-AVAILABILITY Phase 3B: the card's data is read for a Super Admin only.
+            'siteAvailability' => $request->user('admin')?->isSuperAdmin() ? SiteAvailabilitySettings::card($setting) : null,
         ]);
     }
 
