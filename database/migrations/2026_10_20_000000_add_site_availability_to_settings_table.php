@@ -187,7 +187,9 @@ return new class extends Migration
             $definition = $columns->get($column);
             $actual = strtolower((string) ($mysql ? ($definition['type'] ?? '') : ($definition['type_name'] ?? '')));
 
-            if ($definition === null || $actual !== $type || $definition['nullable'] !== $nullable) {
+            $typeMatches = $mysql ? $this->mysqlTypeMatches($actual, $type) : $actual === $type;
+
+            if ($definition === null || ! $typeMatches || $definition['nullable'] !== $nullable) {
                 throw new RuntimeException("settings.{$column} is missing or not {$type}".($nullable ? ' NULL' : ' NOT NULL').'. Nothing was changed.');
             }
         }
@@ -205,5 +207,19 @@ return new class extends Migration
         if (! $this->checkExists()) {
             throw new RuntimeException('settings is missing the '.self::CHECK.' constraint. Nothing was changed.');
         }
+    }
+
+    /**
+     * MariaDB (and MySQL before 8.0.19) still report the integer display width: BIGINT UNSIGNED is
+     * "bigint(20) unsigned" there and "bigint unsigned" on MySQL 8.0.19+. Only that default width is accepted
+     * for BIGINT UNSIGNED; every other type must match exactly.
+     */
+    private function mysqlTypeMatches(string $actual, string $expected): bool
+    {
+        if ($expected === 'bigint unsigned') {
+            return in_array($actual, ['bigint unsigned', 'bigint(20) unsigned'], true);
+        }
+
+        return $actual === $expected;
     }
 };
