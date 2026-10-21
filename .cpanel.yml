@@ -1,14 +1,9 @@
 ---
-# HIRFAH cPanel Git deployment - stage 1: deployment test only.
-# The only effect: one line (date and deployed commit) appended to
-# /home/hirfahpal/hirfah-app/storage/deploy/deploy-test.log.
-# Nothing is copied to public_html; no Composer, npm or migrations; .env, uploaded files and PHP settings untouched;
-# nothing is deleted or reset.
-# The root .gitignore rule /storage/deploy/*.log keeps the log out of "git status", so the working tree stays clean
-# for the next Update / Deploy.
+# HIRFAH cPanel Git deployment - stage 2.1: preflight checks only.
+# Runs deploy/cpanel-deploy.sh, which only reads and appends to storage/deploy/preflight.log
+# (ignored by /storage/deploy/*.log). It copies nothing to public_html, runs no Composer, npm, migrations,
+# seeders or cache commands, changes no .env, database, file or permission, deletes nothing and uses no network.
+# A failed check exits non-zero, so the deployment fails with the reason in the log.
 deployment:
   tasks:
-    - export APP=/home/hirfahpal/hirfah-app
-    - export LOGDIR=/home/hirfahpal/hirfah-app/storage/deploy
-    - /bin/mkdir -p "$LOGDIR"
-    - printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S %z')" "$(git -C "$APP" rev-parse HEAD)" >> "$LOGDIR/deploy-test.log"
+    - /bin/bash /home/hirfahpal/hirfah-app/deploy/cpanel-deploy.sh
