@@ -15,6 +15,8 @@ export default defineConfig({
                 'resources/js/vendor-dashboard.js',
                 'resources/js/vendor-dashboard-home.js',
                 'resources/js/vendor-my-store.js',
+                'resources/js/vendor-resource-list.js',
+                'resources/js/vendor-product-editor.js',
                 'resources/css/admin-dashboard.css',
                 'resources/js/admin-dashboard.js',
                 'resources/js/admin-media-library.js',

@@ -4,14 +4,25 @@ namespace App\Http\Controllers\VendorDashboard;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\VendorDashboard\StoreProductImageRequest;
+use App\Http\Requests\VendorDashboard\UploadProductImageRequest;
 use App\Http\Requests\VendorDashboard\UpdateProductImageRequest;
 use App\Models\Product;
 use App\Models\ProductImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ProductImageController extends Controller
 {
+    private const UPLOAD_MIMES = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+    ];
+
     public function store(StoreProductImageRequest $request, Product $product): JsonResponse
     {
         $this->authorizeProduct($request, $product);
@@ -43,12 +54,42 @@ class ProductImageController extends Controller
         ]);
     }
 
+    /** Store a vendor-owned image under a server generated, content-derived name. */
+    public function upload(UploadProductImageRequest $request, Product $product): JsonResponse
+    {
+        $this->authorizeProduct($request, $product);
+
+        /** @var UploadedFile $file */
+        $file = $request->file('file');
+        $extension = $this->safeExtension($file);
+        $vendor = $request->user('vendor');
+        $directory = 'vendors/products/'.$vendor->id.'/'.$product->id;
+        $path = $file->storeAs($directory, (string) Str::uuid().'.'.$extension, 'public');
+        $hasImages = $product->images()->exists();
+
+        $image = $product->images()->create([
+            'path' => $path,
+            'alt_text' => $request->validated('alt_text') ?: $product->name,
+            'sort_order' => (int) $product->images()->max('sort_order') + 1,
+            'is_primary' => ! $hasImages,
+        ]);
+
+        return response()->json([
+            'message' => 'Product image uploaded successfully.',
+            'image' => $image,
+            'url' => Storage::disk('public')->url($path),
+            'product' => $product->fresh('images'),
+        ], 201);
+    }
+
     public function destroy(Request $request, Product $product, ProductImage $productImage): JsonResponse
     {
         $this->authorizeImage($request, $product, $productImage);
 
         $wasPrimary = $productImage->is_primary;
+        $path = $productImage->path;
         $productImage->delete();
+        $this->deleteOwnedUpload($request, $product, $path);
 
         if ($wasPrimary) {
             $first = $product->images()->orderBy('sort_order')->first();
@@ -59,6 +100,31 @@ class ProductImageController extends Controller
             'message' => 'Product image deleted successfully.',
             'product' => $product->fresh('images'),
         ]);
+    }
+
+    private function safeExtension(UploadedFile $file): string
+    {
+        $path = $file->getRealPath();
+        $mime = $path ? (new \finfo(FILEINFO_MIME_TYPE))->file($path) : false;
+        $size = $path ? @getimagesize($path) : false;
+
+        if (! is_string($mime) || ! isset(self::UPLOAD_MIMES[$mime]) || $size === false
+            || ($size['mime'] ?? null) !== $mime || $size[0] < 1 || $size[1] < 1 || $size[0] * $size[1] > 25_000_000) {
+            throw ValidationException::withMessages([
+                'file' => 'The file must be a valid JPEG, PNG or WebP image with safe dimensions.',
+            ]);
+        }
+
+        return self::UPLOAD_MIMES[$mime];
+    }
+
+    private function deleteOwnedUpload(Request $request, Product $product, ?string $path): void
+    {
+        $prefix = 'vendors/products/'.$request->user('vendor')->id.'/'.$product->id.'/';
+
+        if (is_string($path) && str_starts_with($path, $prefix)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 
     private function imageData(array $data, bool $creating = true): array

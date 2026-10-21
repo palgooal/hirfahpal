@@ -9,6 +9,8 @@ use App\Models\Product;
 use App\Models\Vendor;
 use App\Models\VendorOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class VendorDashboardBackendTest extends TestCase
@@ -76,6 +78,52 @@ class VendorDashboardBackendTest extends TestCase
             'name' => 'Private Product',
             'status' => 'draft',
         ]);
+    }
+
+    public function test_vendor_can_upload_a_safe_product_image(): void
+    {
+        Storage::fake('public');
+        $vendor = Vendor::factory()->approved()->create();
+        $product = Product::query()->create([
+            'vendor_id' => $vendor->id,
+            'name' => 'Image Product',
+            'slug' => 'image-product',
+            'price' => 10,
+            'stock_quantity' => 5,
+            'status' => 'draft',
+        ]);
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL0RAAAAABJRU5ErkJggg==');
+
+        $response = $this->actingAs($vendor, 'vendor')->post(route('vendor.dashboard.products.images.upload', $product), [
+            'file' => UploadedFile::fake()->createWithContent('photo.png', $png),
+        ]);
+
+        $response->assertCreated()->assertJsonPath('image.is_primary', true);
+        $path = $response->json('image.path');
+        $this->assertStringStartsWith('vendors/products/'.$vendor->id.'/'.$product->id.'/', $path);
+        $this->assertStringEndsWith('.png', $path);
+        Storage::disk('public')->assertExists($path);
+    }
+
+    public function test_vendor_product_upload_rejects_a_non_image_file(): void
+    {
+        Storage::fake('public');
+        $vendor = Vendor::factory()->approved()->create();
+        $product = Product::query()->create([
+            'vendor_id' => $vendor->id,
+            'name' => 'Safe Product',
+            'slug' => 'safe-product',
+            'price' => 10,
+            'stock_quantity' => 5,
+            'status' => 'draft',
+        ]);
+
+        $this->actingAs($vendor, 'vendor')->post(route('vendor.dashboard.products.images.upload', $product), [
+            'file' => UploadedFile::fake()->createWithContent('image.png', '<script>alert(1)</script>'),
+        ])->assertSessionHasErrors('file');
+
+        $this->assertDatabaseCount('product_images', 0);
+        Storage::disk('public')->assertDirectoryEmpty('vendors');
     }
 
     public function test_vendor_can_accept_their_pending_order(): void

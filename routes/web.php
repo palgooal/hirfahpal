@@ -206,6 +206,21 @@ foreach (AccountGuard::all() as $accountType => $account) {
                                 ->middleware(['setLocale', 'disableTranslationAutoCreate'])
                                 ->name('dashboard.my-store');
 
+                            // Browser pages consume the existing JSON endpoints below.  Keeping their
+                            // URLs separate means API clients retain a stable JSON contract.
+                            Route::view('products/manage', 'vendor-dashboard.resources', ['resource' => 'products'])
+                                ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.products.page');
+                            Route::view('orders/manage', 'vendor-dashboard.resources', ['resource' => 'orders'])
+                                ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.orders.page');
+                            Route::view('reviews/manage', 'vendor-dashboard.resources', ['resource' => 'reviews'])
+                                ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.reviews.page');
+                            Route::view('returns/manage', 'vendor-dashboard.resources', ['resource' => 'returns'])
+                                ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.returns.page');
+                            Route::view('disputes/manage', 'vendor-dashboard.resources', ['resource' => 'disputes'])
+                                ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.disputes.page');
+                            Route::view('finance/manage', 'vendor-dashboard.resources', ['resource' => 'commissions'])
+                                ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.commissions.page');
+
                             Route::get('profile', [VendorDashboardProfileController::class, 'show'])->name('dashboard.profile.show');
                             Route::put('profile', [VendorDashboardProfileController::class, 'update'])->name('dashboard.profile.update');
                             Route::post('profile/media/{type}', [VendorDashboardProfileMediaController::class, 'store'])
@@ -218,6 +233,7 @@ foreach (AccountGuard::all() as $accountType => $account) {
                             Route::apiResource('products', VendorDashboardProductController::class)
                                 ->names('dashboard.products');
                             Route::post('products/{product}/images', [VendorDashboardProductImageController::class, 'store'])->name('dashboard.products.images.store');
+                            Route::post('products/{product}/upload-image', [VendorDashboardProductImageController::class, 'upload'])->name('dashboard.products.images.upload');
                             Route::patch('products/{product}/images/{productImage}', [VendorDashboardProductImageController::class, 'update'])->name('dashboard.products.images.update');
                             Route::delete('products/{product}/images/{productImage}', [VendorDashboardProductImageController::class, 'destroy'])->name('dashboard.products.images.destroy');
 

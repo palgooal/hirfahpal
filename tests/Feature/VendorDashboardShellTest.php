@@ -283,7 +283,7 @@ class VendorDashboardShellTest extends TestCase
             route('vendor.dashboard.orders.index'), route('vendor.dashboard.reviews.index'), route('vendor.dashboard.returns.index'),
             route('vendor.dashboard.disputes.index'), route('vendor.dashboard.commissions.index'),
         ] as $endpoint) {
-            $response->assertDontSee('href="'.$endpoint, false)->assertDontSee('action="'.$endpoint, false);
+            $response->assertDontSee('href="'.$endpoint.'"', false)->assertDontSee('action="'.$endpoint.'"', false);
         }
 
         $response
@@ -312,31 +312,21 @@ class VendorDashboardShellTest extends TestCase
         $html = $this->as('approved')->page()->getContent();
 
         $this->assertMatchesRegularExpression('/href="'.preg_quote(route('vendor.dashboard'), '/').'" class="pc-link"\s+aria-current="page"/', $html);
-        // Dashboard and My Store (VUI-03B) are the navigable items; only Dashboard is current here.
-        $this->assertSame(2, preg_match_all('/data-nav-state="link"/', $html));
+        // The dashboard, store profile and six operational browser pages are navigable; only Dashboard is current here.
+        $this->assertSame(8, preg_match_all('/data-nav-state="link"/', $html));
         $this->assertSame(1, preg_match_all('/<li class="pc-item active"/', $html));
         $this->assertSame(2, preg_match_all('/aria-current="page"/', $html), 'Only the Dashboard nav link and its breadcrumb item are current.');
     }
 
-    public function test_disabled_items_have_no_link(): void
+    public function test_operational_sections_link_to_browser_pages_not_json_endpoints(): void
     {
         $html = $this->as('approved')->page()->getContent();
 
-        preg_match_all('/<li class="pc-item vendor-nav-disabled" data-nav-state="disabled">(.*?)<\/li>/s', $html, $matches);
-
-        // My Store became a link in VUI-03B; the other six sections stay inactive placeholders.
-        $this->assertCount(6, $matches[1]);
-        foreach ($matches[1] as $item) {
-            $this->assertStringNotContainsString('href', $item);
-            $this->assertStringContainsString('aria-disabled="true"', $item);
-            // No visible "Soon" badge; the status is announced to screen readers only.
-            $this->assertStringContainsString('<span class="sr-only">(قريبًا)</span>', $item);
+        foreach (['products.page', 'orders.page', 'reviews.page', 'returns.page', 'disputes.page', 'commissions.page'] as $route) {
+            $this->assertStringContainsString('href="'.route('vendor.dashboard.'.$route).'"', $html);
         }
-        $this->assertStringNotContainsString('vendor-soon-badge', $html);
+        $this->assertStringNotContainsString('vendor-nav-disabled', $html);
 
-        foreach (['المنتجات', 'الطلبات', 'التقييمات', 'المرتجعات', 'النزاعات', 'المالية'] as $label) {
-            $this->assertStringContainsString($label, implode('', $matches[1]));
-        }
     }
 
     public function test_reports_is_omitted(): void
