@@ -3,9 +3,13 @@
 namespace Tests\Feature\Dashboard;
 
 use App\Models\Admin;
+use App\Models\Customer;
+use App\Models\Order;
+use App\Models\Review;
 use App\Models\RoleUser;
 use App\Models\Vendor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class VendorManagementTest extends TestCase
@@ -304,6 +308,103 @@ class VendorManagementTest extends TestCase
         }
     }
 
+    public function test_reviews_card_shows_only_this_stores_own_reviews(): void
+    {
+        $vendor = Vendor::factory()->withProfile('approved')->create();
+        $other = Vendor::factory()->withProfile('approved')->create();
+        $own = $this->review($vendor, ['comment' => 'OWN-STORE-REVIEW', 'rating' => 4]);
+        $this->review($vendor, ['reviewable_type' => 'product', 'comment' => 'OWN-PRODUCT-REVIEW']);
+        $this->review($other, ['comment' => 'OTHER-STORE-REVIEW']);
+        $this->review(null, ['reviewable_type' => 'delivery_driver', 'comment' => 'DRIVER-REVIEW']);
+
+        $response = $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.show', $vendor))->assertOk();
+
+        $this->assertSame([$own->id], $response->viewData('recentReviews')->pluck('id')->all());
+        $response->assertSee('data-vendor-reviews', false)
+            ->assertSee('OWN-STORE-REVIEW')
+            ->assertSee('4/5')
+            ->assertSee($own->customer->name)
+            ->assertDontSee('OWN-PRODUCT-REVIEW')
+            ->assertDontSee('OTHER-STORE-REVIEW')
+            ->assertDontSee('DRIVER-REVIEW');
+    }
+
+    public function test_reviews_card_shows_every_status_with_its_label(): void
+    {
+        $vendor = Vendor::factory()->withProfile('approved')->create();
+        foreach (['pending', 'published', 'hidden'] as $status) {
+            $this->review($vendor, ['status' => $status, 'comment' => 'REVIEW-'.strtoupper($status)]);
+        }
+
+        $response = $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.show', $vendor))->assertOk();
+
+        $this->assertEqualsCanonicalizing(['pending', 'published', 'hidden'], $response->viewData('recentReviews')->pluck('status')->all());
+        $response->assertSee('REVIEW-PENDING')->assertSee('REVIEW-PUBLISHED')->assertSee('REVIEW-HIDDEN')
+            ->assertSee('bg-light-warning text-warning">Pending', false)
+            ->assertSee('bg-light-success text-success">Published', false)
+            ->assertSee('bg-light-secondary text-secondary">Hidden', false);
+    }
+
+    public function test_reviews_card_shows_the_ten_newest_newest_first(): void
+    {
+        $vendor = Vendor::factory()->withProfile('approved')->create();
+        $ids = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $this->travelTo(now()->addMinute());
+            $ids[$i] = $this->review($vendor, ['comment' => sprintf('REVIEW-NO-%02d', $i)])->id;
+        }
+
+        $response = $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.show', $vendor))->assertOk();
+
+        $this->assertSame(array_reverse(array_slice($ids, 2)), $response->viewData('recentReviews')->pluck('id')->all());
+        $response->assertSeeInOrder(['REVIEW-NO-12', 'REVIEW-NO-11', 'REVIEW-NO-03'])
+            ->assertDontSee('REVIEW-NO-01')
+            ->assertDontSee('REVIEW-NO-02');
+    }
+
+    public function test_reviews_card_needs_both_vendors_view_and_reviews_view(): void
+    {
+        $vendor = Vendor::factory()->withProfile('approved')->create();
+        $this->review($vendor, ['comment' => 'SECRET-STORE-REVIEW']);
+
+        $vendorsOnly = $this->adminWith(['vendors.view']);
+        $response = $this->actingAs($vendorsOnly, 'admin')->get(route('dashboard.vendors.show', $vendor))->assertOk();
+        $this->assertNull($response->viewData('recentReviews'));
+        $response->assertDontSee('data-vendor-reviews', false)->assertDontSee('SECRET-STORE-REVIEW');
+
+        $reviewsOnly = $this->adminWith(['reviews.view']);
+        $this->actingAs($reviewsOnly, 'admin')->get(route('dashboard.vendors.show', $vendor))->assertForbidden();
+
+        $both = $this->adminWith(['vendors.view', 'reviews.view']);
+        $this->actingAs($both, 'admin')->get(route('dashboard.vendors.show', $vendor))
+            ->assertOk()
+            ->assertSee('data-vendor-reviews', false)
+            ->assertSee('SECRET-STORE-REVIEW');
+    }
+
+    public function test_reviews_card_shows_an_empty_state_without_reviews(): void
+    {
+        $vendor = Vendor::factory()->withProfile('approved')->create();
+        $this->review(Vendor::factory()->withProfile('approved')->create(), ['comment' => 'OTHER-STORE-REVIEW']);
+
+        $response = $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.show', $vendor))->assertOk();
+
+        $this->assertCount(0, $response->viewData('recentReviews'));
+        $response->assertSee('data-vendor-reviews', false)->assertSee('No reviews found')->assertDontSee('OTHER-STORE-REVIEW');
+    }
+
+    public function test_reviews_card_is_read_only(): void
+    {
+        $vendor = Vendor::factory()->withProfile('approved')->create();
+        $review = $this->review($vendor, ['comment' => 'READ-ONLY-REVIEW']);
+
+        $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.show', $vendor))
+            ->assertOk()
+            ->assertSee('READ-ONLY-REVIEW')
+            ->assertDontSee(route('dashboard.reviews.update-status', $review))
+            ->assertDontSee(route('dashboard.reviews.destroy', $review));
+    }
+
     public function test_admin_without_vendor_create_ability_cannot_create_vendor(): void
     {
         $admin = Admin::factory()->create([
@@ -314,6 +415,39 @@ class VendorManagementTest extends TestCase
         $this->actingAs($admin, 'admin')
             ->get(route('dashboard.vendors.create'))
             ->assertForbidden();
+    }
+
+    private function superAdmin(): Admin
+    {
+        return Admin::factory()->create(['super_admin' => true, 'status' => 'active']);
+    }
+
+    /** @param list<string> $abilities */
+    private function adminWith(array $abilities): Admin
+    {
+        $admin = Admin::factory()->create(['super_admin' => false, 'status' => 'active']);
+        foreach ($abilities as $ability) {
+            RoleUser::create(['role_name' => $ability, 'user_id' => $admin->id, 'ability' => 'allow']);
+        }
+
+        return $admin;
+    }
+
+    /** A review with its own customer and order; a store review of $vendor unless the attributes say otherwise. */
+    private function review(?Vendor $vendor, array $attributes = []): Review
+    {
+        $customer = Customer::factory()->create();
+        $order = Order::query()->create(['number' => 'REV-'.Str::upper(Str::random(10)), 'customer_id' => $customer->id, 'payment_method' => 'cod']);
+
+        return Review::query()->create(array_merge([
+            'customer_id' => $customer->id,
+            'order_id' => $order->id,
+            'vendor_id' => $vendor?->id,
+            'reviewable_type' => 'vendor',
+            'rating' => 5,
+            'comment' => 'A review',
+            'status' => 'published',
+        ], $attributes));
     }
 
     /** @return array<string, string> a valid create payload with the given phone and commission rate */

@@ -129,7 +129,14 @@ class VendorManagementController extends Controller
             'vendorOrders' => fn ($query) => $query->with('order')->latest()->limit(10),
         ]);
 
-        return view('dashboard.vendors.show', compact('vendor'));
+        // FR-ADM-015: the store's own reviews (not product reviews), every status, newest 10. Read only, and only
+        // loaded for admins who may also see reviews (vendors.view + reviews.view, or super admin).
+        $admin = $request->user('admin');
+        $recentReviews = $admin->isSuperAdmin() || ($admin->hasAbility('vendors.view') && $admin->hasAbility('reviews.view'))
+            ? $vendor->reviews()->where('reviewable_type', 'vendor')->with('customer')->latest()->orderByDesc('id')->limit(10)->get()
+            : null;
+
+        return view('dashboard.vendors.show', compact('vendor', 'recentReviews'));
     }
 
     public function approve(Request $request, Vendor $vendor): RedirectResponse

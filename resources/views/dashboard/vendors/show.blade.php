@@ -175,4 +175,48 @@
             </div>
         </div>
     </div>
+
+    @if ($recentReviews !== null)
+        @php
+            $reviewStatuses = [
+                'pending' => [t('dashboard.Pending', 'Pending'), 'warning'],
+                'published' => [t('dashboard.Published', 'Published'), 'success'],
+                'hidden' => [t('dashboard.Hidden', 'Hidden'), 'secondary'],
+            ];
+        @endphp
+        <div class="col-span-12">
+            <div class="card" data-vendor-reviews>
+                <div class="card-header">
+                    <h5 class="mb-0">{{ t('dashboard.Recent_Reviews', 'Recent Reviews') }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>{{ t('dashboard.Customer', 'Customer') }}</th>
+                                    <th>{{ t('dashboard.Rating', 'Rating') }}</th>
+                                    <th>{{ t('dashboard.Comment', 'Comment') }}</th>
+                                    <th>{{ t('dashboard.Status', 'Status') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($recentReviews as $review)
+                                    @php([$statusLabel, $statusColor] = $reviewStatuses[$review->status] ?? [$review->status, 'secondary'])
+                                    <tr data-review-id="{{ $review->id }}">
+                                        <td>{{ $review->customer?->name ?? '-' }}</td>
+                                        <td>{{ $review->rating }}/5</td>
+                                        <td>{{ $review->comment ?: '-' }}</td>
+                                        <td><span class="badge bg-light-{{ $statusColor }} text-{{ $statusColor }}">{{ $statusLabel }}</span></td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="4" class="text-center text-muted py-4">{{ t('dashboard.No_reviews_found', 'No reviews found') }}</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 </x-dashboard-layout>
