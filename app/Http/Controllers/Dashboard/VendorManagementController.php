@@ -145,7 +145,8 @@ class VendorManagementController extends Controller
             'rejection_reason' => null,
         ]);
 
-        $vendor->update(['status' => 'active']);
+        // Approving the store application does not change the account status (FR-ADM-020 decision): account status
+        // takes precedence over approval, so a blocked or pending account stays as it is.
 
         return back()->with('success', t('dashboard.Vendor_approved_successfully', 'Vendor approved successfully.'));
     }
