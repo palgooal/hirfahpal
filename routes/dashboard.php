@@ -78,6 +78,8 @@ Route::prefix('dashboard')
         Route::get('vendors/{vendor}', [VendorManagementController::class, 'show'])->name('vendors.show');
         Route::patch('vendors/{vendor}/approve', [VendorManagementController::class, 'approve'])->name('vendors.approve');
         Route::patch('vendors/{vendor}/reject', [VendorManagementController::class, 'reject'])->name('vendors.reject');
+        // FR-ADM-009: the per-vendor commission rate (vendor_profiles.commission_rate); no calculation or settlement.
+        Route::patch('vendors/{vendor}/commission-rate', [VendorManagementController::class, 'updateCommissionRate'])->name('vendors.commission-rate');
 
         Route::get('vendor-orders', [VendorOrderManagementController::class, 'index'])->name('vendor-orders.index');
         Route::get('vendor-orders/create', [VendorOrderManagementController::class, 'create'])->name('vendor-orders.create');

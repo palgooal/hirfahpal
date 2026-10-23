@@ -80,6 +80,36 @@
                 @endif
             </div>
         </div>
+
+        @if ($profile)
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ t('dashboard.Commission_Rate', 'Commission Rate') }}</h5>
+                </div>
+                <div class="card-body d-grid gap-3">
+                    <div>
+                        <small class="text-muted">{{ t('dashboard.Current_commission_rate', 'Current rate') }}</small>
+                        <div class="fw-semibold" data-commission-rate>
+                            {{ $profile->commission_rate !== null ? number_format((float) $profile->commission_rate, 2).'%' : t('dashboard.Not_set', 'Not set') }}
+                        </div>
+                    </div>
+                    @if (auth('admin')->user()?->isSuperAdmin() || auth('admin')->user()?->hasAbility('vendors.edit'))
+                        <form action="{{ route('dashboard.vendors.commission-rate', $vendor) }}" method="POST">
+                            @csrf
+                            @method('PATCH')
+                            <label class="form-label" for="commission_rate">{{ t('dashboard.Commission_Rate', 'Commission Rate') }} (%)</label>
+                            <input type="number" id="commission_rate" name="commission_rate" value="{{ old('commission_rate', $profile->commission_rate) }}" min="0" max="100" step="0.01" class="form-control mb-2 @error('commission_rate') is-invalid @enderror">
+                            @error('commission_rate')
+                                <div class="invalid-feedback d-block mb-2">{{ $message }}</div>
+                            @enderror
+                            <button type="submit" class="btn btn-primary w-100">
+                                {{ t('dashboard.Update_commission_rate', 'Update Commission Rate') }}
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            </div>
+        @endif
     </div>
 
     <div class="col-span-12 xl:col-span-6">

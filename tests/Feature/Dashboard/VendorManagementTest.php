@@ -127,6 +127,183 @@ class VendorManagementTest extends TestCase
         }
     }
 
+    public function test_super_admin_updates_the_commission_rate_without_touching_status_or_approval(): void
+    {
+        $admin = Admin::factory()->create(['super_admin' => true, 'status' => 'active']);
+        $approver = Admin::factory()->create(['super_admin' => true, 'status' => 'active']);
+        $vendor = Vendor::factory()->withProfile('approved')->create(['status' => 'blocked']);
+        $vendor->profile->update(['approved_by' => $approver->id, 'commission_rate' => 10]);
+        $before = $vendor->profile->fresh()->only(['approval_status', 'approved_at', 'approved_by', 'rejection_reason', 'store_name', 'slug']);
+
+        $this->actingAs($admin, 'admin')
+            ->from(route('dashboard.vendors.show', $vendor))
+            ->patch(route('dashboard.vendors.commission-rate', $vendor), ['commission_rate' => '12.5'])
+            ->assertRedirect(route('dashboard.vendors.show', $vendor))
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('success');
+
+        $vendor->refresh();
+        $this->assertSame('12.50', $vendor->profile->commission_rate);
+        $this->assertSame('blocked', $vendor->status);
+        $this->assertEquals($before, $vendor->profile->only(array_keys($before)));
+    }
+
+    public function test_commission_rate_accepts_the_bounds_and_can_be_cleared(): void
+    {
+        $admin = Admin::factory()->create(['super_admin' => true, 'status' => 'active']);
+        $vendor = Vendor::factory()->withProfile('pending')->create();
+
+        foreach (['0' => '0.00', '100' => '100.00', '7.25' => '7.25'] as $input => $stored) {
+            $this->actingAs($admin, 'admin')
+                ->patch(route('dashboard.vendors.commission-rate', $vendor), ['commission_rate' => $input])
+                ->assertSessionHasNoErrors();
+            $this->assertSame($stored, $vendor->profile->fresh()->commission_rate);
+        }
+
+        // Same rule as at creation: the rate is optional, so an empty value clears it.
+        $this->actingAs($admin, 'admin')
+            ->patch(route('dashboard.vendors.commission-rate', $vendor), ['commission_rate' => ''])
+            ->assertSessionHasNoErrors();
+        $this->assertNull($vendor->profile->fresh()->commission_rate);
+        $this->assertSame('pending', $vendor->profile->fresh()->approval_status);
+    }
+
+    public function test_invalid_commission_rates_are_rejected_without_changes(): void
+    {
+        $admin = Admin::factory()->create(['super_admin' => true, 'status' => 'active']);
+        $vendor = Vendor::factory()->withProfile('approved')->create();
+        $vendor->profile->update(['commission_rate' => 10]);
+
+        foreach (['-0.01', '100.01', 'abc', '1e3'] as $input) {
+            $this->actingAs($admin, 'admin')
+                ->from(route('dashboard.vendors.show', $vendor))
+                ->patch(route('dashboard.vendors.commission-rate', $vendor), ['commission_rate' => $input])
+                ->assertRedirect(route('dashboard.vendors.show', $vendor))
+                ->assertSessionHasErrors('commission_rate');
+            $this->assertSame('10.00', $vendor->profile->fresh()->commission_rate, "rate changed for input {$input}");
+        }
+    }
+
+    public function test_commission_rate_update_requires_the_vendor_edit_ability(): void
+    {
+        $vendor = Vendor::factory()->withProfile('approved')->create();
+        $vendor->profile->update(['commission_rate' => 10]);
+
+        $plain = Admin::factory()->create(['super_admin' => false, 'status' => 'active']);
+        $viewer = Admin::factory()->create(['super_admin' => false, 'status' => 'active']);
+        RoleUser::create(['role_name' => 'vendors.view', 'user_id' => $viewer->id, 'ability' => 'allow']);
+        $editor = Admin::factory()->create(['super_admin' => false, 'status' => 'active']);
+        RoleUser::create(['role_name' => 'vendors.edit', 'user_id' => $editor->id, 'ability' => 'allow']);
+
+        foreach ([$plain, $viewer] as $admin) {
+            $this->actingAs($admin, 'admin')
+                ->patch(route('dashboard.vendors.commission-rate', $vendor), ['commission_rate' => '20'])
+                ->assertForbidden();
+        }
+        $this->assertSame('10.00', $vendor->profile->fresh()->commission_rate);
+
+        $this->actingAs($editor, 'admin')
+            ->patch(route('dashboard.vendors.commission-rate', $vendor), ['commission_rate' => '20'])
+            ->assertRedirect();
+        $this->assertSame('20.00', $vendor->profile->fresh()->commission_rate);
+    }
+
+    public function test_guest_cannot_update_the_commission_rate(): void
+    {
+        $vendor = Vendor::factory()->withProfile('approved')->create();
+
+        $this->patch(route('dashboard.vendors.commission-rate', $vendor), ['commission_rate' => '20'])->assertRedirect();
+        $this->assertNull($vendor->profile->fresh()->commission_rate);
+    }
+
+    public function test_commission_rate_of_a_vendor_without_profile_is_not_found(): void
+    {
+        $admin = Admin::factory()->create(['super_admin' => true, 'status' => 'active']);
+        $vendor = Vendor::factory()->create();
+
+        $this->actingAs($admin, 'admin')
+            ->patch(route('dashboard.vendors.commission-rate', $vendor), ['commission_rate' => '20'])
+            ->assertNotFound();
+        $this->assertNull($vendor->fresh()->profile);
+    }
+
+    public function test_show_page_displays_the_rate_and_the_form_only_to_editors(): void
+    {
+        $vendor = Vendor::factory()->withProfile('approved')->create();
+        $vendor->profile->update(['commission_rate' => 12.5]);
+        $formAction = route('dashboard.vendors.commission-rate', $vendor);
+
+        $viewer = Admin::factory()->create(['super_admin' => false, 'status' => 'active']);
+        RoleUser::create(['role_name' => 'vendors.view', 'user_id' => $viewer->id, 'ability' => 'allow']);
+        $this->actingAs($viewer, 'admin')
+            ->get(route('dashboard.vendors.show', $vendor))
+            ->assertOk()
+            ->assertSee('12.50%')
+            ->assertDontSee($formAction);
+
+        $editor = Admin::factory()->create(['super_admin' => false, 'status' => 'active']);
+        RoleUser::create(['role_name' => 'vendors.view', 'user_id' => $editor->id, 'ability' => 'allow']);
+        RoleUser::create(['role_name' => 'vendors.edit', 'user_id' => $editor->id, 'ability' => 'allow']);
+        $this->actingAs($editor, 'admin')
+            ->get(route('dashboard.vendors.show', $vendor))
+            ->assertOk()
+            ->assertSee($formAction)
+            ->assertSee('name="commission_rate"', false);
+
+        $vendor->profile->update(['commission_rate' => null]);
+        $this->actingAs($editor, 'admin')
+            ->get(route('dashboard.vendors.show', $vendor))
+            ->assertOk()
+            ->assertSee('Not set');
+    }
+
+    public function test_create_accepts_up_to_two_decimal_places_in_the_commission_rate(): void
+    {
+        $admin = Admin::factory()->create(['super_admin' => true, 'status' => 'active']);
+
+        $n = 0;
+        foreach (['0' => '0.00', '100' => '100.00', '12.50' => '12.50', '7.5' => '7.50'] as $input => $stored) {
+            $phone = '0590000'.str_pad((string) ++$n, 3, '0', STR_PAD_LEFT);
+            $this->actingAs($admin, 'admin')
+                ->post(route('dashboard.vendors.store'), $this->vendorInput($phone, (string) $input))
+                ->assertRedirect()
+                ->assertSessionHasNoErrors();
+
+            $this->assertSame($stored, Vendor::where('phone', $phone)->firstOrFail()->profile->commission_rate, "input {$input}");
+        }
+    }
+
+    public function test_create_rejects_more_than_two_decimal_places_without_creating_a_vendor(): void
+    {
+        $admin = Admin::factory()->create(['super_admin' => true, 'status' => 'active']);
+
+        foreach (['12.345', '0.001', '99.999'] as $input) {
+            $this->actingAs($admin, 'admin')
+                ->post(route('dashboard.vendors.store'), $this->vendorInput('0591111111', $input))
+                ->assertSessionHasErrors('commission_rate');
+        }
+
+        $this->assertSame(0, Vendor::count());
+    }
+
+    public function test_update_accepts_two_decimal_places_and_rejects_more_without_rounding(): void
+    {
+        $admin = Admin::factory()->create(['super_admin' => true, 'status' => 'active']);
+        $vendor = Vendor::factory()->withProfile('approved')->create();
+
+        $this->actingAs($admin, 'admin')
+            ->patch(route('dashboard.vendors.commission-rate', $vendor), ['commission_rate' => '12.50'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('12.50', $vendor->profile->fresh()->commission_rate);
+
+        foreach (['12.345', '12.505', '0.001'] as $input) {
+            $this->actingAs($admin, 'admin')
+                ->patch(route('dashboard.vendors.commission-rate', $vendor), ['commission_rate' => $input])
+                ->assertSessionHasErrors('commission_rate');
+            $this->assertSame('12.50', $vendor->profile->fresh()->commission_rate, "input {$input} must not be stored or rounded");
+        }
+    }
+
     public function test_admin_without_vendor_create_ability_cannot_create_vendor(): void
     {
         $admin = Admin::factory()->create([
@@ -137,5 +314,20 @@ class VendorManagementTest extends TestCase
         $this->actingAs($admin, 'admin')
             ->get(route('dashboard.vendors.create'))
             ->assertForbidden();
+    }
+
+    /** @return array<string, string> a valid create payload with the given phone and commission rate */
+    private function vendorInput(string $phone, string $commissionRate): array
+    {
+        return [
+            'name' => 'Rate Vendor',
+            'phone' => $phone,
+            'password' => 'password',
+            'password_confirmation' => 'password',
+            'status' => 'active',
+            'store_name' => 'Rate Store '.$phone,
+            'approval_status' => 'pending',
+            'commission_rate' => $commissionRate,
+        ];
     }
 }

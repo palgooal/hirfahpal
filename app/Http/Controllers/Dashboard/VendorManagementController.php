@@ -79,7 +79,7 @@ class VendorManagementController extends Controller
             'governorate_id' => ['nullable', 'exists:governorates,id'],
             'city_id' => ['nullable', 'exists:cities,id'],
             'address_line' => ['nullable', 'string', 'max:255'],
-            'commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'commission_rate' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:100'],
             'approval_status' => ['required', Rule::in(['pending', 'approved', 'rejected'])],
             'rejection_reason' => ['nullable', 'required_if:approval_status,rejected', 'string', 'max:1000'],
         ]);
@@ -171,6 +171,25 @@ class VendorManagementController extends Controller
         // Rejecting the store application does not block the account (Approved Vendor Approval Contract).
 
         return back()->with('success', t('dashboard.Vendor_rejected_successfully', 'Vendor rejected successfully.'));
+    }
+
+    /**
+     * FR-ADM-009 / BR-011: the platform sets each vendor's commission rate. Only the rate is stored, with the same
+     * rule as at creation; the account status and the approval decision are not touched.
+     */
+    public function updateCommissionRate(Request $request, Vendor $vendor): RedirectResponse
+    {
+        $this->authorizeAbility($request, 'vendors.edit');
+
+        abort_if(! $vendor->profile, 404);
+
+        $data = $request->validate([
+            'commission_rate' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:100'],
+        ]);
+
+        $vendor->profile->update(['commission_rate' => $data['commission_rate'] ?? null]);
+
+        return back()->with('success', t('dashboard.Commission_rate_updated_successfully', 'Commission rate updated successfully.'));
     }
 
     private function authorizeAbility(Request $request, string $ability): void
