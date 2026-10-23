@@ -29,10 +29,14 @@ declare(strict_types=1);
  *
  * Usage:
  *   php vite-package-validate.php --package-dir <dir> --mode install|prepare --app <app root> --web <web root>
- *       --work-root <dir> [--tar /bin/tar] [--git git]
+ *       --work-root <dir> [--tar /bin/tar] [--git git] [--stage-dir <new dir>]
  * Output: fixed key=value lines. Exit codes: 0 PASS, 1 FAIL (validation), 2 usage, environment or internal error.
  * install: PASS only if PACKAGE_VALID=true and SOURCE_VERIFIED=true (then INSTALL_APPROVED=true).
  * prepare: PASS if PACKAGE_VALID=true; SOURCE_VERIFIED may be false; INSTALL_APPROVED is always false.
+ * --stage-dir (install mode only): a directory that must not exist yet, outside the application and the web root,
+ * on the same file system as the work root. Only on PASS, the validator creates it (0700) and moves the very tree
+ * it verified into it (<stage-dir>/build and <stage-dir>/PACKAGE.json, by rename; nothing is extracted again) and
+ * reports it as STAGE_DIR. On failure it is removed again and STAGE_DIR is empty.
  * The work directory is always removed, after success and failure.
  */
 
@@ -47,7 +51,7 @@ const PACKAGE_ID_PATTERN = '/^hirfah-vite-([0-9a-f]{12})-[0-9]{8}T[0-9]{6}Z$/';
 const SAFE_SEGMENT = '[A-Za-z0-9._@-]+';
 const ALLOWED_EXTENSIONS = '/\.(js|mjs|css|json|map|woff2?|ttf|otf|eot|svg|png|jpe?g|gif|webp|avif|ico)$/i';
 const VITE_INPUT_PATTERN = '/[\'"](resources\/[^\'"]+\.(?:js|css))[\'"]/';
-const OUTPUT_KEYS = ['MODE', 'PACKAGE_ID', 'SOURCE_COMMIT', 'PACKAGE_VALID', 'SOURCE_VERIFIED', 'SOURCE_STATUS', 'INSTALL_APPROVED', 'RESULT', 'REASON'];
+const OUTPUT_KEYS = ['MODE', 'PACKAGE_ID', 'SOURCE_COMMIT', 'PACKAGE_VALID', 'SOURCE_VERIFIED', 'SOURCE_STATUS', 'INSTALL_APPROVED', 'RESULT', 'REASON', 'STAGE_DIR'];
 
 final class ValidationFailure extends RuntimeException {}
 final class UsageError extends RuntimeException {}
@@ -62,6 +66,12 @@ final class Validator
     private string $workRoot = '';
 
     private string $tarSha = '';
+
+    private ?string $stage = null;      // checked --stage-dir path (install mode only)
+
+    private bool $stageCreated = false;
+
+    private bool $stageDone = false;
 
     /** @param array<string, string> $opt */
     public function __construct(private array $opt)
@@ -101,6 +111,9 @@ final class Validator
         if ($this->opt['mode'] === 'install') {
             if ($this->out['SOURCE_VERIFIED'] !== 'true') {
                 throw new ValidationFailure('install mode requires a verified source ('.$this->out['SOURCE_STATUS'].')');
+            }
+            if ($this->stage !== null) {
+                $this->stageVerifiedTree();
             }
             $this->out['INSTALL_APPROVED'] = 'true';
             $this->out['REASON'] = sprintf('package valid and source verified at HEAD; %d files, %d bytes', count($hashes), array_sum(array_column($hashes, 'size')));
@@ -148,8 +161,58 @@ final class Validator
                 }
             }
         }
+        if (isset($this->opt['stage-dir'])) {
+            $this->stage = $this->checkStageDir($this->opt['stage-dir'], $app, $web, $workRoot);
+        }
 
         return [$app, $web, $workRoot, $packageDir];
+    }
+
+    private function checkStageDir(string $stageDir, string $app, string $web, string $workRoot): string
+    {
+        $stageDir = rtrim($stageDir, '/\\');
+        $name = basename(str_replace('\\', '/', $stageDir));
+        if (! preg_match('/\A'.SAFE_SEGMENT.'\z/', $name) || $name === '.' || $name === '..') {
+            throw new UsageError('--stage-dir has an unsafe name');
+        }
+        if (@lstat($stageDir) !== false) {
+            throw new UsageError('--stage-dir must not exist yet');
+        }
+        $parentInput = dirname($stageDir);
+        if (is_link(rtrim($parentInput, '/\\'))) {
+            throw new UsageError('--stage-dir parent must not be a symbolic link');
+        }
+        $parent = $this->realDir($parentInput, '--stage-dir parent');
+        if (! is_writable($parent)) {
+            throw new UsageError('--stage-dir parent is not writable');
+        }
+        foreach (['application' => $app, 'web root' => $web] as $label => $protected) {
+            if ($this->within($parent, $protected) || $this->within($protected, $parent)) {
+                throw new UsageError("--stage-dir must be outside the {$label} (and must not contain it)");
+            }
+        }
+        if (@stat($parent)['dev'] !== @stat($workRoot)['dev']) {
+            throw new UsageError('--stage-dir must be on the same file system as --work-root');
+        }
+
+        return $parent.'/'.$name;
+    }
+
+    /** Moves the verified tree (extract/build, extract/PACKAGE.json) into the new stage directory by rename. */
+    private function stageVerifiedTree(): void
+    {
+        if (! @mkdir($this->stage, 0700)) {
+            throw new ValidationFailure('cannot create the stage directory (it must not exist)');
+        }
+        $this->stageCreated = true;
+        @chmod($this->stage, 0700);
+        foreach (['build', 'PACKAGE.json'] as $entry) {
+            if (! @rename($this->work.'/extract/'.$entry, $this->stage.'/'.$entry)) {
+                throw new ValidationFailure('cannot move the verified '.$entry.' into the stage directory');
+            }
+        }
+        $this->stageDone = true;
+        $this->out['STAGE_DIR'] = $this->stage;
     }
 
     private function realDir(string $path, string $label): string
@@ -903,9 +966,16 @@ final class Validator
         return substr(trim((string) preg_replace('/\s+/', ' ', $text)), 0, 300);
     }
 
-    /** Removes this run's work directory only, without following links. */
+    /** Removes this run's work directory (and a stage directory it created but did not complete), without following links. */
     public function cleanup(): void
     {
+        if ($this->stageCreated && ! $this->stageDone && $this->stage !== null) {
+            $this->stageCreated = false;
+            $this->remove($this->stage);
+            if (file_exists($this->stage)) {
+                fwrite(STDERR, "WARN: incomplete stage directory could not be fully removed\n");
+            }
+        }
         if ($this->work === null) {
             return;
         }
@@ -958,7 +1028,7 @@ function parse_options(array $argv): array
     $args = array_slice($argv, 1);
     while ($args !== []) {
         $arg = array_shift($args);
-        if (! preg_match('/\A--(package-dir|mode|app|web|work-root|tar|git)(?:=(.*))?\z/s', $arg, $m)) {
+        if (! preg_match('/\A--(package-dir|mode|app|web|work-root|tar|git|stage-dir)(?:=(.*))?\z/s', $arg, $m)) {
             throw new UsageError('unknown argument: '.$arg);
         }
         $value = $m[2] ?? array_shift($args);
@@ -974,6 +1044,9 @@ function parse_options(array $argv): array
     }
     if (! in_array($opt['mode'], ['install', 'prepare'], true)) {
         throw new UsageError('--mode must be install or prepare');
+    }
+    if (isset($opt['stage-dir']) && $opt['mode'] !== 'install') {
+        throw new UsageError('--stage-dir is only allowed with --mode=install');
     }
 
     return $opt;
@@ -1029,6 +1102,7 @@ if ($validator === null) {
     if ($exit !== 0) {
         $validator->out['RESULT'] = 'FAIL';
         $validator->out['INSTALL_APPROVED'] = 'false';
+        $validator->out['STAGE_DIR'] = '';
         if ($exit === 2) {
             $validator->out['REASON'] = $reason ?? 'error';
         }

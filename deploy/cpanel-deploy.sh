@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-# HIRFAH cPanel deployment - stage 2.2.3: PREFLIGHT CHECKS + VITE PACKAGE VALIDATION (prepare mode, no install).
+# HIRFAH cPanel deployment - stage 2.2.4: PREFLIGHT CHECKS + VITE PACKAGE INSTALLATION.
 #
-# Read-only except for appending to storage/deploy/preflight.log (and creating that folder if missing) and for the
-# validator's private work directory under deploy-packages/work (created and always removed by the validator).
+# The only changes it makes: appending to storage/deploy/preflight.log (and creating that folder if missing), and -
+# through deploy/vite-package-install.php - replacing <app>/public/build and <web>/build with the validated Vite
+# package for HEAD (the replaced builds are moved to deploy-packages/previous/, never deleted before a verified
+# install; the last 2 are kept). All staging, state and lock files live under deploy-packages/.
 # No value read from .env, or from the config cache built from it, is ever printed or logged.
-# No copy to public_html or public/build, no Composer/npm/migrations/seeders, no cache commands, no .env or
-# database change, no deletion, no chmod, and no network access (origin/main is the locally known ref; no git fetch).
+# No Composer/npm/Node/migrations/seeders, no cache commands, no .env or database change, no change to the Coming
+# Soon setting, and no network access (origin/main is the locally known ref; no git fetch).
 #
-# The Vite package for HEAD must be uploaded beforehand as deploy-packages/incoming/<package_id>/ (the two files
-# made by deploy/make-vite-package.sh). Exactly one package for HEAD must exist, and it must pass
-# deploy/vite-package-validate.php --mode=prepare with a verified source equal to HEAD. Nothing is installed.
+# Order: an interrupted earlier installation is recovered first (step 2b), before the file checks of step 5 could
+# block it; a recovery always fails this run, so that it is noticed. The Vite package for HEAD must be uploaded
+# beforehand as deploy-packages/incoming/<package_id>/ (the two files made by deploy/make-vite-package.sh); exactly
+# one package for HEAD must exist. The installer validates it in install mode (source verified at HEAD), installs
+# it, verifies the result and rolls back on any failure.
 #
 # Any failed check prints "FAIL: <reason>", writes it to the log and exits non-zero, so the deployment fails.
 # Paths can be overridden for local tests: HIRFAH_APP, HIRFAH_WEB, HIRFAH_PHP, HIRFAH_BRANCH, HIRFAH_PACKAGES,
@@ -40,12 +44,20 @@ fi
 log() { printf '%s %s\n' "$STAMP" "$*" | tee -a "$LOG"; }
 pass() { log "PASS: $*"; }
 warn() { WARNINGS=$((WARNINGS + 1)); log "WARN: $*"; }
-fail() { DONE=1; log "FAIL: $*"; log "RESULT: PREFLIGHT FAILED (nothing was changed)"; exit 1; }
+fail() { DONE=1; log "FAIL: $*"; log "RESULT: DEPLOY FAILED (Vite builds unchanged unless the reason above says otherwise)"; exit 1; }
+INSTALLER="$APP/deploy/vite-package-install.php"
+# Runs the installer, logs its output (validator lines included) and keeps its key=value result in $installer_out.
+run_installer() {
+    installer_out="$("$PHP_BIN" "$INSTALLER" "$@" --packages-root "$PACKAGES" --app "$APP" --web "$WEB" 2>&1)" \
+        && installer_status=0 || installer_status=$?
+    printf '%s\n' "$installer_out" | while IFS= read -r line; do log "installer: $line"; done
+}
+ifield() { printf '%s\n' "$installer_out" | sed -n "s/^$1=//p" | head -n 1; }
 
 # Any unexpected error (set -e) is reported as a failure too.
 trap 'status=$?; if [ "$status" -ne 0 ] && [ "${DONE:-0}" != 1 ]; then log "FAIL: unexpected error (exit $status) at line $LINENO"; fi' EXIT
 
-log "----- preflight start (app=$APP, web=$WEB)"
+log "----- deploy start (app=$APP, web=$WEB)"
 
 # 0. Manual failure drill.
 [ -e "$LOG_DIR/FORCE_PREFLIGHT_FAIL.log" ] && fail "forced failure drill ($LOG_DIR/FORCE_PREFLIGHT_FAIL.log exists)"
@@ -66,6 +78,14 @@ command -v "$PHP_BIN" >/dev/null 2>&1 || fail "PHP CLI not found: $PHP_BIN"
 "$PHP_BIN" -r 'exit(version_compare(PHP_VERSION, "8.2.0", ">=") ? 0 : 1);' \
     || fail "PHP CLI is older than 8.2: $("$PHP_BIN" -r 'echo PHP_VERSION;')"
 pass "PHP CLI $("$PHP_BIN" -r 'echo PHP_VERSION;')"
+
+# 2b. Recover an interrupted Vite installation first (under the deployment lock), before step 5 checks the builds.
+[ -d "$PACKAGES" ] || fail "Vite packages root not found: $PACKAGES"
+[ -f "$INSTALLER" ] || fail "missing application file: $INSTALLER"
+run_installer --mode=recover
+[ "$installer_status" -eq 0 ] && [ "$(ifield RESULT)" = PASS ] && [ "$(ifield ACTION)" = none ] \
+    || fail "Vite installation state ($(ifield ACTION)): $(ifield REASON)"
+pass "no interrupted Vite installation"
 
 # 3. Git: repository, branch, clean tree, HEAD == locally known origin/BRANCH (no fetch).
 git -C "$APP" rev-parse --is-inside-work-tree >/dev/null 2>&1 || fail "not a git work tree: $APP"
@@ -155,8 +175,9 @@ for dir in storage storage/app/public storage/framework/cache storage/framework/
 done
 pass "writable directories OK"
 
-# 8. Vite package for HEAD: exactly one deploy-packages/incoming/hirfah-vite-<sha12>-* directory, validated in
-#    prepare mode (nothing is installed). Required: PASS, package valid, source verified, commit = HEAD.
+# 8. Vite package for HEAD: exactly one deploy-packages/incoming/hirfah-vite-<sha12>-* directory, installed by
+#    deploy/vite-package-install.php (lock, validator in install mode with staging, swap, full verification,
+#    rollback on failure). Required: PASS, ACTION installed or already-installed, package and commit = HEAD.
 INCOMING="$PACKAGES/incoming"
 WORK_ROOT="$PACKAGES/work"
 [ -d "$INCOMING" ] || fail "Vite package directory not found: $INCOMING"
@@ -173,17 +194,40 @@ case "${#candidates[@]}" in
     *) fail "${#candidates[@]} Vite packages for HEAD in $INCOMING, exactly one is required: $(for c in "${candidates[@]}"; do printf '%s ' "${c##*/}"; done)" ;;
 esac
 package_id="${package_dir##*/}"
-validator_out="$("$PHP_BIN" "$APP/deploy/vite-package-validate.php" --mode=prepare --package-dir "$package_dir" \
-    --app "$APP" --web "$WEB" --work-root "$WORK_ROOT" --tar "$TAR_BIN" --git "$GIT_BIN" 2>&1)" \
-    && validator_status=0 || validator_status=$?
-printf '%s\n' "$validator_out" | while IFS= read -r line; do log "validator: $line"; done
-field() { printf '%s\n' "$validator_out" | sed -n "s/^$1=//p" | head -n 1; }
-[ "$validator_status" -eq 0 ] && [ "$(field RESULT)" = PASS ] && [ "$(field MODE)" = prepare ] \
-    && [ "$(field PACKAGE_ID)" = "$package_id" ] && [ "$(field PACKAGE_VALID)" = true ] \
-    && [ "$(field SOURCE_VERIFIED)" = true ] && [ "$(field SOURCE_STATUS)" = verified ] \
-    && [ "$(field SOURCE_COMMIT)" = "$head_sha" ] && [ "$(field INSTALL_APPROVED)" = false ] \
-    || fail "Vite package $package_id not accepted (validator exit $validator_status): $(field REASON)"
-pass "Vite package $package_id valid for HEAD (prepare mode; not installed)"
+run_installer --mode=install --package-dir "$package_dir" --tar "$TAR_BIN" --git "$GIT_BIN"
+action="$(ifield ACTION)"
+[ "$installer_status" -eq 0 ] && [ "$(ifield RESULT)" = PASS ] && [ "$(ifield MODE)" = install ] \
+    && { [ "$action" = installed ] || [ "$action" = already-installed ]; } \
+    && [ "$(ifield PACKAGE_ID)" = "$package_id" ] && [ "$(ifield SOURCE_COMMIT)" = "$head_sha" ] \
+    || fail "Vite package $package_id not installed (installer exit $installer_status, action ${action:-none}): $(ifield REASON)"
+pass "Vite package $package_id $action${action:+ }($(ifield REASON))"
+
+# 9. Independent re-check of the installed builds (the installer verified them before committing): every input of
+#    HEAD's vite.config.js present, every referenced file present, identical manifests, no dev-server marker.
+post_check() { fail "installed Vite build failed the re-check: $* (previous builds: $(ifield PREVIOUS))"; }
+for pair in "$APP/public/build:app" "$WEB/build:web"; do
+    dir="${pair%:*}"; label="${pair##*:}"
+    result="$(cd "$APP" && "$PHP_BIN" -r '
+        $dir = $argv[1];
+        $manifest = json_decode((string) @file_get_contents($dir."/manifest.json"), true);
+        if (! is_array($manifest) || $manifest === []) { echo "manifest missing or invalid"; exit(1); }
+        preg_match_all("#[\x27\"](resources/[^\x27\"]+\.(?:js|css))[\x27\"]#", (string) file_get_contents("vite.config.js"), $m);
+        $missing = array_values(array_diff(array_unique($m[1]), array_keys($manifest)));
+        if ($missing) { echo "inputs missing: ".implode(", ", $missing); exit(1); }
+        foreach ($manifest as $entry) {
+            foreach (array_merge([$entry["file"] ?? ""], $entry["css"] ?? [], $entry["assets"] ?? []) as $file) {
+                if ($file === "" || ! is_file($dir."/".$file)) { echo "file missing: ".$file; exit(1); }
+            }
+        }
+        echo count($manifest)." entries";
+    ' "$dir" 2>&1)" || post_check "$label: $result"
+    pass "installed $label manifest OK: $result"
+done
+app_manifest_sum="$(sha256sum < "$APP/public/build/manifest.json" | cut -d' ' -f1)"
+web_manifest_sum="$(sha256sum < "$WEB/build/manifest.json" | cut -d' ' -f1)"
+[ "$app_manifest_sum" = "$web_manifest_sum" ] || post_check "app and web manifests differ"
+[ ! -e "$APP/public/hot" ] && [ ! -e "$WEB/hot" ] || post_check "Vite dev-server marker present"
+pass "installed app and web manifests identical (sha256 $app_manifest_sum)"
 
 DONE=1
-log "RESULT: PREFLIGHT PASSED (commit $head_sha, Vite package $package_id validated, not installed; warnings: $WARNINGS; nothing was changed)"
+log "RESULT: DEPLOY PASSED (commit $head_sha, Vite package $package_id $action; warnings: $WARNINGS)"
