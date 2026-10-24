@@ -9,7 +9,8 @@ use Tests\TestCase;
 
 /**
  * FR-ADM-009 / FR-ADM-015 / AD-UI-VENDORS-01: AdminVendorTranslationSeeder. The 4 commission rate keys, the 2 store
- * review card keys and the 55 keys of the vendor details page (Vendors_*, VendorOrders_Status_*), Arabic and English,
+ * review card keys, the 55 keys of the vendor details page (Vendors_*, VendorOrders_Status_*) and the 20 keys of the
+ * create vendor form (Vendors_Create_*, Vendors_Form_*), Arabic and English,
  * English equal to the defaults in the code, edited values never overwritten, the guarded corrections of Arabic rows auto-created
  * with English, nothing deleted, idempotent, stale cache cleared, not called from DatabaseSeeder.
  */
@@ -29,7 +30,7 @@ class AdminVendorTranslationSeederTest extends TestCase
     public function test_it_covers_the_approved_keys_in_arabic_and_english(): void
     {
         $keys = array_keys(AdminVendorTranslationSeeder::TRANSLATIONS);
-        $this->assertCount(61, $keys);
+        $this->assertCount(81, $keys);
         $this->assertSame(array_keys(self::ARABIC), array_slice($keys, 0, 6));
         foreach (array_slice($keys, 6) as $key) {
             $this->assertMatchesRegularExpression('/\Adashboard\.(Vendors_|VendorOrders_Status_)/', $key);
@@ -51,7 +52,8 @@ class AdminVendorTranslationSeederTest extends TestCase
     public function test_english_values_and_corrections_match_the_defaults_in_the_code(): void
     {
         $code = file_get_contents(app_path('Http/Controllers/Dashboard/VendorManagementController.php'))
-            .file_get_contents(resource_path('views/dashboard/vendors/show.blade.php'));
+            .file_get_contents(resource_path('views/dashboard/vendors/show.blade.php'))
+            .file_get_contents(resource_path('views/dashboard/vendors/create.blade.php'));
 
         foreach (AdminVendorTranslationSeeder::TRANSLATIONS as $key => $values) {
             // Either t('dashboard.Key', 'English') or the page text helper ('Key', 'English').
@@ -78,7 +80,7 @@ class AdminVendorTranslationSeederTest extends TestCase
             $this->assertSame($values['ar'], $this->value($key, 'ar'));
             $this->assertSame($values['en'], $this->value($key, 'en'));
         }
-        $this->assertSame(122, TranslationValue::count());
+        $this->assertSame(162, TranslationValue::count());
     }
 
     public function test_auto_created_english_arabic_rows_are_corrected_and_the_cache_cleared(): void
@@ -117,7 +119,7 @@ class AdminVendorTranslationSeederTest extends TestCase
             $this->assertSame(1, TranslationValue::where('key', $key)->where('locale', $locale)->count());
         }
         $this->assertSame('Commission Rate', $this->value('dashboard.Commission_Rate', 'ar'));
-        $this->assertSame(122 + 1, TranslationValue::count());
+        $this->assertSame(162 + 1, TranslationValue::count());
     }
 
     public function test_running_twice_changes_nothing(): void

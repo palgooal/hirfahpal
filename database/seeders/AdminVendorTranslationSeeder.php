@@ -11,6 +11,7 @@ use Illuminate\Database\Seeder;
  * FR-ADM-015: the title and the empty state of the store reviews card on the same page.
  * AD-UI-VENDORS-01: the texts of the migrated vendor details page; product status labels are reused from
  * AdminProductTranslationSeeder (Products_Status_*).
+ * AD-UI-VENDORS-02: the texts of the migrated create vendor form (Vendors_Create_*, Vendors_Form_*).
  * Shared keys already used on the page (Commission_Rate, …) are not touched.
  *
  * Only missing (key, locale) rows are inserted; edited values are kept; the English defaults that t() auto-creates
@@ -87,6 +88,27 @@ class AdminVendorTranslationSeeder extends Seeder
         'dashboard.VendorOrders_Status_Completed' => ['ar' => 'مكتمل', 'en' => 'Completed'],
         'dashboard.VendorOrders_Status_Rejected' => ['ar' => 'مرفوض', 'en' => 'Rejected'],
         'dashboard.VendorOrders_Status_Cancelled' => ['ar' => 'ملغى', 'en' => 'Cancelled'],
+        // AD-UI-VENDORS-02: the create vendor form (the field labels shared with the details page are reused).
+        'dashboard.Vendors_Create_Title' => ['ar' => 'إضافة بائع', 'en' => 'Add vendor'],
+        'dashboard.Vendors_Create_Intro' => ['ar' => 'أنشئ حساب بائع وملف متجره. تُحدَّد حالة الحساب وقرار الموافقة كلٌّ على حدة.', 'en' => 'Create a vendor account and its store profile. The account status and the approval decision are set separately.'],
+        'dashboard.Vendors_Form_Errors' => ['ar' => 'يرجى تصحيح ما يلي:', 'en' => 'Please correct the following:'],
+        'dashboard.Vendors_Form_Required' => ['ar' => 'مطلوب', 'en' => 'Required'],
+        'dashboard.Vendors_Form_Optional' => ['ar' => 'اختياري', 'en' => 'Optional'],
+        'dashboard.Vendors_Form_Section_Account' => ['ar' => 'الحساب', 'en' => 'Account'],
+        'dashboard.Vendors_Form_Owner_Name' => ['ar' => 'اسم المالك', 'en' => 'Owner name'],
+        'dashboard.Vendors_Form_Password' => ['ar' => 'كلمة المرور', 'en' => 'Password'],
+        'dashboard.Vendors_Form_Password_Hint' => ['ar' => 'ثمانية أحرف على الأقل.', 'en' => 'At least 8 characters.'],
+        'dashboard.Vendors_Form_Password_Confirmation' => ['ar' => 'تأكيد كلمة المرور', 'en' => 'Confirm password'],
+        'dashboard.Vendors_Form_Section_Store' => ['ar' => 'ملف المتجر', 'en' => 'Store profile'],
+        'dashboard.Vendors_Form_Slug' => ['ar' => 'المعرّف في الرابط', 'en' => 'Slug'],
+        'dashboard.Vendors_Form_Slug_Hint' => ['ar' => 'يُستخدم في رابط المتجر. اتركه فارغًا ليُنشأ من اسم المتجر.', 'en' => 'Used in the store link. Leave it empty to create it from the store name.'],
+        'dashboard.Vendors_Form_Commission_Hint' => ['ar' => 'بين 0 و100، بمنزلتين عشريتين كحد أقصى.', 'en' => 'Between 0 and 100, with up to two decimal places.'],
+        'dashboard.Vendors_Form_Select_Governorate' => ['ar' => 'اختر المحافظة', 'en' => 'Select governorate'],
+        'dashboard.Vendors_Form_Select_City' => ['ar' => 'اختر المدينة', 'en' => 'Select city'],
+        'dashboard.Vendors_Form_Section_Approval' => ['ar' => 'الموافقة', 'en' => 'Approval'],
+        'dashboard.Vendors_Form_Rejection_Hint' => ['ar' => 'مطلوب عندما تكون حالة الموافقة «مرفوض».', 'en' => 'Required when the approval status is Rejected.'],
+        'dashboard.Vendors_Form_Submit' => ['ar' => 'إنشاء البائع', 'en' => 'Create vendor'],
+        'dashboard.Vendors_Form_Cancel' => ['ar' => 'إلغاء', 'en' => 'Cancel'],
     ];
 
     /**

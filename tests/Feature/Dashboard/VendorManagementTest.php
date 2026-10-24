@@ -3,12 +3,17 @@
 namespace Tests\Feature\Dashboard;
 
 use App\Models\Admin;
+use App\Models\City;
 use App\Models\Customer;
+use App\Models\Governorate;
 use App\Models\Order;
 use App\Models\Review;
 use App\Models\RoleUser;
+use App\Models\TranslationValue;
 use App\Models\Vendor;
 use App\Models\VendorOrder;
+use Database\Seeders\AdminVendorTranslationSeeder;
+use Database\Seeders\LanguageSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -535,6 +540,101 @@ class VendorManagementTest extends TestCase
             ->assertSee('Ready for delivery')
             ->assertDontSee('ready_for_delivery', false)
             ->assertSee('This vendor has no products.');
+    }
+
+    public function test_create_form_uses_the_admin_shell_and_shows_every_field_with_its_label(): void
+    {
+        $response = $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.create'))->assertOk();
+
+        $response->assertSee('id="admin-vendor-form"', false)
+            ->assertSee('href="'.route('dashboard.vendors.index').'" class="admin-product-back"', false)
+            ->assertDontSee('breadcrumb-item', false)
+            ->assertSee('action="'.route('dashboard.vendors.store').'"', false);
+
+        $fields = [
+            'name' => 'vendor-name', 'email' => 'vendor-email', 'phone' => 'vendor-phone', 'password' => 'vendor-password',
+            'password_confirmation' => 'vendor-password-confirmation', 'status' => 'vendor-status', 'store_name' => 'vendor-store-name',
+            'slug' => 'vendor-slug', 'short_description' => 'vendor-short-description', 'description' => 'vendor-description',
+            'commission_rate' => 'vendor-commission-rate', 'governorate_id' => 'vendor-governorate-id', 'city_id' => 'vendor-city-id',
+            'address_line' => 'vendor-address-line', 'approval_status' => 'vendor-approval-status', 'rejection_reason' => 'vendor-rejection-reason',
+        ];
+        foreach ($fields as $name => $id) {
+            $response->assertSee('for="'.$id.'"', false)->assertSee('id="'.$id.'" name="'.$name.'"', false);
+        }
+        $this->assertSame(16, substr_count($response->getContent(), 'class="admin-cat-form-mark"'));
+        $this->assertSame(4, substr_count($response->getContent(), '<fieldset class="admin-cat-form-section">'));
+
+        // Defaults unchanged: account active, approval approved.
+        $response->assertSee('<option value="active" selected>', false)
+            ->assertSee('<option value="approved" selected>', false);
+    }
+
+    public function test_create_form_shows_errors_below_the_fields_and_in_the_summary(): void
+    {
+        $response = $this->actingAs($this->superAdmin(), 'admin')
+            ->from(route('dashboard.vendors.create'))->followingRedirects()
+            ->post(route('dashboard.vendors.store'), [
+                'name' => '', 'phone' => '', 'password' => 'short', 'password_confirmation' => 'other', 'status' => 'active',
+                'store_name' => '', 'approval_status' => 'rejected', 'rejection_reason' => '', 'commission_rate' => '12.345',
+            ])->assertOk();
+
+        foreach (['name', 'phone', 'password', 'store-name', 'rejection-reason', 'commission-rate'] as $field) {
+            $response->assertSee('<p class="admin-cat-form-error" id="vendor-'.$field.'-error">', false);
+        }
+        $response->assertSee('id="vendor-form-errors"', false)
+            ->assertSee('<a href="#vendor-store-name">Store name</a>', false);
+        $html = preg_replace('/\s+/', ' ', $response->getContent());
+        $this->assertStringContainsString('aria-invalid="true" aria-describedby="vendor-name-error"', $html);
+        $this->assertStringContainsString('aria-invalid="true" aria-describedby="vendor-commission-rate-hint vendor-commission-rate-error"', $html);
+        $this->assertStringContainsString('aria-invalid="true" aria-describedby="vendor-rejection-reason-hint vendor-rejection-reason-error"', $html);
+        $this->assertSame(0, Vendor::count());
+    }
+
+    public function test_create_form_keeps_the_entered_values_after_a_failed_validation(): void
+    {
+        $governorate = Governorate::query()->create(['name' => 'Gaza', 'slug' => 'gaza', 'status' => 'active']);
+        $city = City::query()->create(['governorate_id' => $governorate->id, 'name' => 'Rimal', 'slug' => 'rimal', 'status' => 'active']);
+
+        $response = $this->actingAs($this->superAdmin(), 'admin')
+            ->from(route('dashboard.vendors.create'))->followingRedirects()
+            ->post(route('dashboard.vendors.store'), [
+                'name' => 'Kept Owner', 'email' => 'kept@example.com', 'phone' => '0599000111', 'password' => 'secret-pass', 'password_confirmation' => 'different',
+                'status' => 'blocked', 'store_name' => 'Kept Store', 'slug' => 'kept-store', 'short_description' => 'Kept short',
+                'description' => 'Kept long description', 'governorate_id' => $governorate->id, 'city_id' => $city->id,
+                'address_line' => 'Kept address', 'commission_rate' => '7.25', 'approval_status' => 'pending', 'rejection_reason' => 'Kept reason',
+            ])->assertOk();
+
+        $response->assertSee('id="vendor-password-error"', false);
+        foreach (['Kept Owner', 'kept@example.com', '0599000111', 'Kept Store', 'kept-store', 'Kept short', 'Kept address', '7.25'] as $value) {
+            $response->assertSee('value="'.$value.'"', false);
+        }
+        $response->assertSee('>Kept long description</textarea>', false)
+            ->assertSee('>Kept reason</textarea>', false)
+            ->assertSee('<option value="blocked" selected>', false)
+            ->assertSee('<option value="pending" selected>', false)
+            ->assertSee('<option value="'.$governorate->id.'" selected>', false)
+            ->assertSee('<option value="'.$city->id.'" selected>', false)
+            ->assertDontSee('secret-pass');
+    }
+
+    public function test_create_form_texts_come_from_the_seeded_translations_without_creating_rows(): void
+    {
+        $admin = $this->superAdmin();
+
+        // Without seeded rows: the English defaults, and no Vendors_* row is auto-created by the page.
+        $this->actingAs($admin, 'admin')->get(route('dashboard.vendors.create'))->assertOk()->assertSee('Owner name')->assertSee('Create vendor');
+        $this->assertSame(0, TranslationValue::where('key', 'like', 'dashboard.Vendors\_%')->count());
+
+        $this->seed(LanguageSeeder::class);
+        $this->seed(AdminVendorTranslationSeeder::class);
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->get(route('dashboard.vendors.create'))
+            ->assertOk()
+            ->assertSee('اسم المالك')
+            ->assertSee('ملف المتجر')
+            ->assertSee('(مطلوب)')
+            ->assertSee('(اختياري)')
+            ->assertSee('إنشاء البائع')
+            ->assertSee('<option value="approved" selected>معتمد</option>', false);
     }
 
     public function test_admin_without_vendor_create_ability_cannot_create_vendor(): void

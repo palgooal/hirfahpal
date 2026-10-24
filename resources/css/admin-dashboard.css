@@ -1828,6 +1828,23 @@ html.admin-shell .pc-content:has(#admin-customer-show) {
   padding-top: 1.5rem;
 }
 
+/* ---- Vendor details and create form (AD-UI-VENDORS-01, -02): resources/views/dashboard/vendors/{show,create}.blade.php ----
+ * No breadcrumb (DEC-AD-UI-03) and no raw layout error list, on these two pages only (not the vendors list):
+ * - the create form shows its own translated summary of every error and each error below its field;
+ * - the only requests that return to the details page are approve (no field), reject (rejection_reason) and the
+ *   commission rate (commission_rate), and both fields show their error below themselves, so nothing is hidden. */
+html.admin-shell .pc-content:has(#admin-vendor-form) > .page-header,
+html.admin-shell .pc-content:has(#admin-vendor-form) > .row > .alert-danger,
+html.admin-shell .pc-content:has(#admin-vendor-show) > .page-header,
+html.admin-shell .pc-content:has(#admin-vendor-show) > .row > .alert-danger {
+  display: none;
+}
+
+html.admin-shell .pc-content:has(#admin-vendor-form),
+html.admin-shell .pc-content:has(#admin-vendor-show) {
+  padding-top: 1.5rem;
+}
+
 /* ---- Product details (AD-UI-PROD-M4): resources/views/dashboard/products/show.blade.php ----
  * Five groups; resources/js/admin-product-show.js makes them tabs (.is-tabbed). Without it every group is shown. */
 html.admin-shell .pc-content:has(#admin-product-show) > .page-header {
