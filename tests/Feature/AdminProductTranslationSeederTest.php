@@ -86,6 +86,30 @@ class AdminProductTranslationSeederTest extends TestCase
         $this->assertSame(1, TranslationValue::where('key', 'dashboard.Products_Intro')->where('locale', 'ar')->count());
     }
 
+    public function test_the_old_compare_price_and_weight_hints_are_corrected_and_customised_ones_kept(): void
+    {
+        $old = [
+            ['dashboard.Products_Form_Compare_Price_Hint', 'ar', 'سعر سابق يُعرض للمقارنة، ويجب أن يكون أعلى من السعر.'],
+            ['dashboard.Products_Form_Compare_Price_Hint', 'en', 'An earlier price shown for comparison. It must be higher than the price.'],
+            ['dashboard.Products_Form_Weight_Hint', 'ar', 'للشحن، وبمنزلتين عشريتين على الأكثر.'],
+        ];
+        foreach ($old as [$key, $locale, $value]) {
+            TranslationValue::create(['key' => $key, 'locale' => $locale, 'value' => $value]);
+            cache()->put("translation.{$locale}.{$key}", $value);
+        }
+        // A customised value (here the old one with a different case) is an edit and is kept.
+        TranslationValue::create(['key' => 'dashboard.Products_Form_Weight_Hint', 'locale' => 'en', 'value' => 'For shipping, WITH up to two decimal places.']);
+
+        $this->seed(AdminProductTranslationSeeder::class);
+
+        foreach ($old as [$key, $locale]) {
+            $this->assertSame(AdminProductTranslationSeeder::TRANSLATIONS[$key][$locale], $this->value($key, $locale), "{$key} {$locale}");
+            $this->assertFalse(cache()->has("translation.{$locale}.{$key}"), "{$key} {$locale} cache");
+            $this->assertSame(1, TranslationValue::where('key', $key)->where('locale', $locale)->count());
+        }
+        $this->assertSame('For shipping, WITH up to two decimal places.', $this->value('dashboard.Products_Form_Weight_Hint', 'en'));
+    }
+
     public function test_running_twice_creates_no_duplicates_and_changes_nothing(): void
     {
         $this->seed(AdminProductTranslationSeeder::class);

@@ -231,8 +231,8 @@ class AdminProductTranslationSeeder extends Seeder
             'en' => 'In the store currency, with up to two decimal places.',
         ],
         'dashboard.Products_Form_Compare_Price_Hint' => [
-            'ar' => 'سعر سابق يُعرض للمقارنة، ويجب أن يكون أعلى من السعر.',
-            'en' => 'An earlier price shown for comparison. It must be higher than the price.',
+            'ar' => 'السعر السابق الأعلى. عند تعبئته يمكن للمتجر عرضه مشطوبًا بجانب السعر الحالي لتوضيح الخصم. ويجب أن يكون أعلى من السعر.',
+            'en' => 'The previous higher price. When set, the store can show it crossed out next to the current price to explain the discount. It must be higher than the price.',
         ],
         'dashboard.Products_Form_Stock_Hint' => [
             'ar' => 'الوحدات الموجودة في المخزون، ومنها المحجوزة لطلبات مفتوحة. لا يمكن أن تقل عن الوحدات المحجوزة.',
@@ -243,7 +243,23 @@ class AdminProductTranslationSeeder extends Seeder
             'en' => 'The product is marked low in stock when its available units reach this number. 1 by default.',
         ],
         'dashboard.Products_Form_Short_Description_Hint' => ['ar' => 'حتى 1000 حرف.', 'en' => 'Up to 1000 characters.'],
-        'dashboard.Products_Form_Weight_Hint' => ['ar' => 'للشحن، وبمنزلتين عشريتين على الأكثر.', 'en' => 'For shipping, with up to two decimal places.'],
+        'dashboard.Products_Form_Weight_Hint' => ['ar' => 'للشحن، أدخل الوزن واختر كغ أو غ أو طن.', 'en' => 'For shipping, enter the weight and choose kg, g or ton.'],
+        // The weight unit and the product images of the form, and the image validation message of the controller.
+        'dashboard.Products_Form_Weight_Unit' => ['ar' => 'وحدة الوزن', 'en' => 'Weight unit'],
+        'dashboard.Products_Form_Weight_Unit_Select' => ['ar' => 'الوحدة', 'en' => 'Unit'],
+        'dashboard.Products_Form_Weight_Unit_KG' => ['ar' => 'كغ', 'en' => 'kg'],
+        'dashboard.Products_Form_Weight_Unit_G' => ['ar' => 'غ', 'en' => 'g'],
+        'dashboard.Products_Form_Weight_Unit_T' => ['ar' => 'طن', 'en' => 'ton'],
+        'dashboard.Products_Form_Images' => ['ar' => 'صور المنتج', 'en' => 'Product images'],
+        'dashboard.Products_Form_Images_Hint' => [
+            'ar' => 'اختر حتى 6 صور بصيغة JPG أو PNG أو GIF أو WebP (بحد أقصى 5 ميغابايت لكل صورة). تصبح أول صورة مرفوعة الصورة الرئيسية، ويمكنك مراجعة كل الصور من صفحة المنتج.',
+            'en' => 'Choose up to 6 JPG, PNG, GIF or WebP images (5 MB each). The first uploaded image becomes the main image. You can review all images from the product page.',
+        ],
+        'dashboard.Products_Form_Manage_Images' => ['ar' => 'عرض الصور الحالية', 'en' => 'View current images'],
+        'dashboard.Products_Form_Images_Invalid' => [
+            'ar' => 'يجب أن تكون كل صورة ملف JPG أو PNG أو GIF أو WebP صالحًا، وامتداده مطابق لمحتواه.',
+            'en' => 'Each image must be a valid JPG, PNG, GIF or WebP file, with an extension matching its content.',
+        ],
         'dashboard.Products_Form_Status_Hint' => [
             'ar' => 'لا يُعرض للبيع إلا المنتج النشط. المنتج المعلّق أو المؤرشف يبقى خارج البيع أيًّا كانت حالته.',
             'en' => 'Only an active product can be on sale. A suspended or archived product stays off sale whatever its status.',
@@ -294,6 +310,31 @@ class AdminProductTranslationSeeder extends Seeder
             'locale' => 'ar',
             'from' => 'Product saved successfully.',
             'to' => 'تم حفظ المنتج بنجاح.',
+        ],
+        // The compare-price and weight hints, rewritten with the weight unit and product images form (b06f67b).
+        [
+            'key' => 'dashboard.Products_Form_Compare_Price_Hint',
+            'locale' => 'ar',
+            'from' => 'سعر سابق يُعرض للمقارنة، ويجب أن يكون أعلى من السعر.',
+            'to' => 'السعر السابق الأعلى. عند تعبئته يمكن للمتجر عرضه مشطوبًا بجانب السعر الحالي لتوضيح الخصم. ويجب أن يكون أعلى من السعر.',
+        ],
+        [
+            'key' => 'dashboard.Products_Form_Compare_Price_Hint',
+            'locale' => 'en',
+            'from' => 'An earlier price shown for comparison. It must be higher than the price.',
+            'to' => 'The previous higher price. When set, the store can show it crossed out next to the current price to explain the discount. It must be higher than the price.',
+        ],
+        [
+            'key' => 'dashboard.Products_Form_Weight_Hint',
+            'locale' => 'ar',
+            'from' => 'للشحن، وبمنزلتين عشريتين على الأكثر.',
+            'to' => 'للشحن، أدخل الوزن واختر كغ أو غ أو طن.',
+        ],
+        [
+            'key' => 'dashboard.Products_Form_Weight_Hint',
+            'locale' => 'en',
+            'from' => 'For shipping, with up to two decimal places.',
+            'to' => 'For shipping, enter the weight and choose kg, g or ton.',
         ],
     ];
 

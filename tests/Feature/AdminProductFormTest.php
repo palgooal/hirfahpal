@@ -16,6 +16,7 @@ use Database\Seeders\AdminProductTranslationSeeder;
 use DOMDocument;
 use DOMXPath;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -318,6 +319,50 @@ class AdminProductFormTest extends TestCase
         foreach (['Add product', 'Basic details', 'Product name', 'Stock quantity', 'Save product', 'Back to products'] as $text) {
             $this->assertStringContainsString($text, $en, $text);
         }
+    }
+
+    public function test_the_weight_unit_selector_offers_and_saves_kg_g_and_ton_in_both_languages(): void
+    {
+        $admin = $this->admin(super: true);
+        $options = fn (string $html): array => array_map(
+            fn ($option) => [$option->getAttribute('value'), trim($option->textContent)],
+            iterator_to_array($this->xpath($html)->query('//select[@id="product-weight-unit"]/option'))
+        );
+
+        $this->assertSame([['', 'Unit'], ['kg', 'kg'], ['g', 'g'], ['t', 'ton']], $options($this->page($admin, route('dashboard.products.create'))));
+
+        $this->seed(AdminProductTranslationSeeder::class);
+        $ar = $this->page($admin, route('dashboard.products.create'), 'ar');
+        $this->assertSame([['', 'الوحدة'], ['kg', 'كغ'], ['g', 'غ'], ['t', 'طن']], $options($ar));
+        $this->assertStringContainsString('<label class="visually-hidden" for="product-weight-unit">وحدة الوزن</label>', $ar);
+
+        // Each unit is submitted and stored as before, and shown selected on the edit form.
+        foreach (['kg', 'g', 't'] as $unit) {
+            $values = $this->formValues($this->page($admin, route('dashboard.products.create')));
+            $this->actingAs($admin, 'admin')->post(route('dashboard.products.store'), [
+                'name' => 'Clay jug '.$unit, 'price' => '12.50', 'stock_quantity' => '4', 'weight' => '2', 'weight_unit' => $unit,
+            ] + $values)->assertRedirect(route('dashboard.products.index'));
+
+            $product = Product::query()->where('name', 'Clay jug '.$unit)->sole();
+            $this->assertSame($unit, $product->weight_unit);
+            $this->assertSame($unit, $this->formValues($this->page($admin, route('dashboard.products.edit', $product)))['weight_unit']);
+        }
+    }
+
+    public function test_an_invalid_image_shows_the_translated_error(): void
+    {
+        $this->seed(AdminProductTranslationSeeder::class);
+        $admin = $this->admin(super: true);
+        $values = $this->formValues($this->page($admin, route('dashboard.products.create')));
+        $fake = UploadedFile::fake()->createWithContent('jug.png', 'not an image');
+
+        foreach (['en' => 'Each image must be a valid JPG, PNG, GIF or WebP file, with an extension matching its content.',
+            'ar' => 'يجب أن تكون كل صورة ملف JPG أو PNG أو GIF أو WebP صالحًا، وامتداده مطابق لمحتواه.'] as $locale => $message) {
+            $this->actingAs($admin, 'admin')->withSession(['locale' => $locale])->post(route('dashboard.products.store'), [
+                'name' => 'Clay jug', 'price' => '12.50', 'stock_quantity' => '4', 'images' => [$fake],
+            ] + $values)->assertSessionHasErrors(['images' => $message]);
+        }
+        $this->assertSame(0, Product::count());
     }
 
     // ---------------------------------------------------------------- helpers

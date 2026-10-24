@@ -233,8 +233,8 @@
                         <label class="visually-hidden" for="product-weight-unit">{{ $prodText('Products_Form_Weight_Unit', 'Weight unit') }}</label>
                         <select @class(['form-select', 'is-invalid' => $errors->has('weight_unit')]) id="product-weight-unit" name="weight_unit" style="max-width: 8rem" dir="ltr">
                             <option value="" @selected(old('weight_unit', $product->weight_unit) === null)>{{ $prodText('Products_Form_Weight_Unit_Select', 'Unit') }}</option>
-                            @foreach (['kg' => 'kg', 'g' => 'g', 't' => 'ton'] as $value => $label)
-                                <option value="{{ $value }}" @selected(old('weight_unit', $product->weight_unit) === $value)>{{ $prodText('Products_Form_Weight_Unit_'.strtoupper($value), $label) }}</option>
+                            @foreach (['kg' => ['Products_Form_Weight_Unit_KG', 'kg'], 'g' => ['Products_Form_Weight_Unit_G', 'g'], 't' => ['Products_Form_Weight_Unit_T', 'ton']] as $value => [$unitKey, $label])
+                                <option value="{{ $value }}" @selected(old('weight_unit', $product->weight_unit) === $value)>{{ $prodText($unitKey, $label) }}</option>
                             @endforeach
                         </select>
                     </div>

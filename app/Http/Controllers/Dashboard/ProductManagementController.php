@@ -414,7 +414,7 @@ class ProductManagementController extends Controller
 
         if (! is_string($mime) || ! isset($extensions[$mime]) || ! in_array($extension, $extensions[$mime], true)
             || $size === false || ($size['mime'] ?? null) !== $mime || $size[0] < 1 || $size[1] < 1 || $size[0] * $size[1] > 25_000_000) {
-            throw ValidationException::withMessages(['images' => 'Each image must be a valid JPG, PNG, GIF or WebP file, with an extension matching its content.']);
+            throw ValidationException::withMessages(['images' => $this->untranslatedDefault('dashboard.Products_Form_Images_Invalid', 'Each image must be a valid JPG, PNG, GIF or WebP file, with an extension matching its content.')]);
         }
 
         return $extensions[$mime][0];
