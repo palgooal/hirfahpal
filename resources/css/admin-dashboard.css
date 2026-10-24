@@ -1582,8 +1582,12 @@ html.admin-shell .pc-content:has(#admin-products) {
   padding-top: 1.5rem;
 }
 
+/* AD-UI-TABLE-SCROLL-01: overflow-x: auto makes the computed overflow-y auto as well. Browser measurements showed
+ * 1px of vertical overflow in table mode (1024px and wider), enough for a vertical scrollbar; 1px of bottom padding
+ * removes it. The exact table-layout cause of that 1px is not confirmed. */
 html.admin-shell .admin-products .admin-products-table-wrap {
   overflow-x: auto;
+  padding-bottom: 1px;
 }
 
 html.admin-shell .admin-products .admin-products-table {
