@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Review;
 use App\Models\RoleUser;
 use App\Models\Vendor;
+use App\Models\VendorOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -322,7 +323,7 @@ class VendorManagementTest extends TestCase
         $this->assertSame([$own->id], $response->viewData('recentReviews')->pluck('id')->all());
         $response->assertSee('data-vendor-reviews', false)
             ->assertSee('OWN-STORE-REVIEW')
-            ->assertSee('4/5')
+            ->assertSee('Rating: 4 of 5')
             ->assertSee($own->customer->name)
             ->assertDontSee('OWN-PRODUCT-REVIEW')
             ->assertDontSee('OTHER-STORE-REVIEW')
@@ -340,9 +341,9 @@ class VendorManagementTest extends TestCase
 
         $this->assertEqualsCanonicalizing(['pending', 'published', 'hidden'], $response->viewData('recentReviews')->pluck('status')->all());
         $response->assertSee('REVIEW-PENDING')->assertSee('REVIEW-PUBLISHED')->assertSee('REVIEW-HIDDEN')
-            ->assertSee('bg-light-warning text-warning">Pending', false)
-            ->assertSee('bg-light-success text-success">Published', false)
-            ->assertSee('bg-light-secondary text-secondary">Hidden', false);
+            ->assertSee('admin-products-badge is-low" data-review-status="pending">Pending', false)
+            ->assertSee('admin-products-badge is-active" data-review-status="published">Published', false)
+            ->assertSee('admin-products-badge is-inactive" data-review-status="hidden">Hidden', false);
     }
 
     public function test_reviews_card_shows_the_ten_newest_newest_first(): void
@@ -403,6 +404,137 @@ class VendorManagementTest extends TestCase
             ->assertSee('READ-ONLY-REVIEW')
             ->assertDontSee(route('dashboard.reviews.update-status', $review))
             ->assertDontSee(route('dashboard.reviews.destroy', $review));
+    }
+
+    public function test_details_page_uses_the_admin_shell_head_without_breadcrumbs(): void
+    {
+        $vendor = Vendor::factory()->withProfile('approved')->create(['name' => 'Owner Name']);
+
+        $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.show', $vendor))
+            ->assertOk()
+            ->assertSee('id="admin-vendor-show"', false)
+            ->assertSee('<h2 class="admin-product-title"><bdi>'.e($vendor->profile->store_name).'</bdi></h2>', false)
+            ->assertSee('href="'.route('dashboard.vendors.index').'" class="admin-product-back"', false)
+            ->assertDontSee('breadcrumb-item', false)
+            ->assertDontSee('Admin Workspace');
+    }
+
+    public function test_details_page_shows_separate_approval_and_account_badges(): void
+    {
+        $cases = [
+            ['approved', 'active', 'is-active', 'Approved', 'is-active', 'Active'],
+            ['pending', 'pending', 'is-low', 'Pending review', 'is-low', 'Pending activation'],
+            ['rejected', 'blocked', 'is-suspended', 'Rejected', 'is-suspended', 'Blocked'],
+        ];
+
+        foreach ($cases as [$approval, $account, $approvalTone, $approvalLabel, $accountTone, $accountLabel]) {
+            $vendor = Vendor::factory()->withProfile($approval)->create(['status' => $account]);
+
+            $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.show', $vendor))
+                ->assertOk()
+                ->assertSee('admin-products-badge '.$approvalTone.'" data-approval-status="'.$approval.'"', false)
+                ->assertSee('admin-products-badge '.$accountTone.'" data-account-status="'.$account.'"', false)
+                ->assertSeeInOrder([$approvalLabel, $accountLabel]);
+        }
+    }
+
+    public function test_success_message_is_shown_inline_after_a_decision_and_a_commission_update(): void
+    {
+        $admin = $this->superAdmin();
+        $vendor = Vendor::factory()->withProfile('pending')->create();
+        $show = route('dashboard.vendors.show', $vendor);
+
+        $this->actingAs($admin, 'admin')->from($show)->followingRedirects()
+            ->patch(route('dashboard.vendors.approve', $vendor))
+            ->assertOk()
+            ->assertSee('admin-media-alert is-success', false)
+            ->assertSee('Vendor approved successfully.');
+
+        $this->actingAs($admin, 'admin')->from($show)->followingRedirects()
+            ->patch(route('dashboard.vendors.commission-rate', $vendor), ['commission_rate' => '9.50'])
+            ->assertOk()
+            ->assertSee('admin-media-alert is-success', false)
+            ->assertSee('Commission rate updated successfully.')
+            ->assertSee('9.50%');
+    }
+
+    public function test_validation_errors_are_shown_below_their_fields(): void
+    {
+        $admin = $this->superAdmin();
+        $vendor = Vendor::factory()->withProfile('pending')->create();
+        $show = route('dashboard.vendors.show', $vendor);
+
+        $this->actingAs($admin, 'admin')->from($show)->followingRedirects()
+            ->patch(route('dashboard.vendors.reject', $vendor), ['rejection_reason' => ''])
+            ->assertOk()
+            ->assertSee('aria-describedby="vendor-reject-hint vendor-rejection-reason-error"', false)
+            ->assertSee('<p class="admin-product-moderation-error" id="vendor-rejection-reason-error" role="alert">', false);
+
+        $this->actingAs($admin, 'admin')->from($show)->followingRedirects()
+            ->patch(route('dashboard.vendors.commission-rate', $vendor), ['commission_rate' => '12.345'])
+            ->assertOk()
+            ->assertSee('aria-describedby="vendor-commission-hint vendor-commission-rate-error"', false)
+            ->assertSee('<p class="admin-product-moderation-error" id="vendor-commission-rate-error" role="alert">', false)
+            ->assertSee('value="12.345"', false);
+        $this->assertSame('pending', $vendor->fresh()->profile->approval_status);
+    }
+
+    public function test_details_page_uses_the_approved_three_rows_then_full_width_reviews(): void
+    {
+        $vendor = Vendor::factory()->withProfile('approved')->create();
+        $half = 'card admin-media-panel admin-product-panel col-span-12 xl:col-span-6 min-w-0';
+
+        $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.show', $vendor))
+            ->assertOk()
+            ->assertSeeInOrder([
+                'data-vendor-row="store"', $half.'" aria-labelledby="vendor-heading-store"', $half.'" aria-labelledby="vendor-heading-location"',
+                'grid grid-cols-12 gap-4 align-items-start" data-vendor-row="decision"', 'aria-labelledby="vendor-heading-decision"', $half.'" aria-labelledby="vendor-heading-commission"',
+                'data-vendor-row="activity"', $half.'" aria-labelledby="vendor-heading-products"', $half.'" aria-labelledby="vendor-heading-orders"',
+                '<section class="card admin-media-panel admin-product-panel" aria-labelledby="vendor-heading-reviews" data-vendor-reviews>',
+            ], false)
+            ->assertSee('<section class="card admin-media-panel admin-product-panel col-span-12 xl:col-span-6 min-w-0" aria-labelledby="vendor-heading-decision">', false)
+            // Only the decision row keeps natural panel heights; the other rows still stretch to equal heights.
+            ->assertSee('<div class="grid grid-cols-12 gap-4" data-vendor-row="store">', false)
+            ->assertSee('<div class="grid grid-cols-12 gap-4" data-vendor-row="activity">', false);
+    }
+
+    public function test_decision_panel_takes_the_full_row_without_a_store_profile(): void
+    {
+        $vendor = Vendor::factory()->create();
+
+        $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.show', $vendor))
+            ->assertOk()
+            ->assertSee('<section class="card admin-media-panel admin-product-panel col-span-12 min-w-0" aria-labelledby="vendor-heading-decision">', false)
+            ->assertDontSee('vendor-heading-commission', false);
+    }
+
+    public function test_decision_forms_stay_available_in_every_state(): void
+    {
+        foreach (['pending', 'approved', 'rejected'] as $approval) {
+            $vendor = Vendor::factory()->withProfile($approval)->create();
+
+            $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.show', $vendor))
+                ->assertOk()
+                ->assertSee('action="'.route('dashboard.vendors.approve', $vendor).'"', false)
+                ->assertSee('action="'.route('dashboard.vendors.reject', $vendor).'"', false);
+        }
+    }
+
+    public function test_recent_tables_use_the_responsive_table_and_translated_statuses(): void
+    {
+        $vendor = Vendor::factory()->withProfile('approved')->create();
+        $customer = Customer::factory()->create();
+        $order = Order::query()->create(['number' => 'ORD-VENDOR-1', 'customer_id' => $customer->id, 'payment_method' => 'cod']);
+        VendorOrder::query()->create(['order_id' => $order->id, 'vendor_id' => $vendor->id, 'number' => 'VO-1001', 'status' => 'ready_for_delivery', 'total' => 25]);
+
+        $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.show', $vendor))
+            ->assertOk()
+            ->assertSee('<table class="admin-products-table">', false)
+            ->assertSee('<span class="admin-products-label">Status</span>', false)
+            ->assertSee('VO-1001')
+            ->assertSee('Ready for delivery')
+            ->assertDontSee('ready_for_delivery', false)
+            ->assertSee('This vendor has no products.');
     }
 
     public function test_admin_without_vendor_create_ability_cannot_create_vendor(): void

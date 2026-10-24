@@ -9,6 +9,8 @@ use Illuminate\Database\Seeder;
  * FR-ADM-009: Arabic and English texts of the vendor commission rate card on the admin vendor details page
  * (dashboard/vendors/show) and of the update message of VendorManagementController::updateCommissionRate.
  * FR-ADM-015: the title and the empty state of the store reviews card on the same page.
+ * AD-UI-VENDORS-01: the texts of the migrated vendor details page; product status labels are reused from
+ * AdminProductTranslationSeeder (Products_Status_*).
  * Shared keys already used on the page (Commission_Rate, …) are not touched.
  *
  * Only missing (key, locale) rows are inserted; edited values are kept; the English defaults that t() auto-creates
@@ -28,7 +30,63 @@ class AdminVendorTranslationSeeder extends Seeder
         'dashboard.Update_commission_rate' => ['ar' => 'تحديث نسبة العمولة', 'en' => 'Update Commission Rate'],
         // FR-ADM-015: the store reviews card (shared keys Customer, Rating, Comment, Status, Pending, … are reused).
         'dashboard.Recent_Reviews' => ['ar' => 'آخر التقييمات', 'en' => 'Recent Reviews'],
-        'dashboard.No_reviews_found' => ['ar' => 'لا توجد تقييمات لهذا المتجر', 'en' => 'No reviews found'],
+        'dashboard.No_reviews_found' => ['ar' => 'لا توجد تقييمات لهذا المتجر', 'en' => 'No reviews found'],        // AD-UI-VENDORS-01: the vendor details page (Vendors_*) and the vendor order status labels it shows
+        // (VendorOrders_Status_*, named for reuse by the vendor order pages). Read without auto-creating rows.
+        'dashboard.Vendors_Show_Back' => ['ar' => 'العودة إلى البائعين', 'en' => 'Back to vendors'],
+        'dashboard.Vendors_Approval_Status' => ['ar' => 'حالة الموافقة', 'en' => 'Approval status'],
+        'dashboard.Vendors_Approval_Approved' => ['ar' => 'معتمد', 'en' => 'Approved'],
+        'dashboard.Vendors_Approval_Pending' => ['ar' => 'بانتظار المراجعة', 'en' => 'Pending review'],
+        'dashboard.Vendors_Approval_Rejected' => ['ar' => 'مرفوض', 'en' => 'Rejected'],
+        'dashboard.Vendors_Account_Status' => ['ar' => 'حالة الحساب', 'en' => 'Account status'],
+        'dashboard.Vendors_Account_Active' => ['ar' => 'نشط', 'en' => 'Active'],
+        'dashboard.Vendors_Account_Pending' => ['ar' => 'بانتظار التفعيل', 'en' => 'Pending activation'],
+        'dashboard.Vendors_Account_Blocked' => ['ar' => 'محظور', 'en' => 'Blocked'],
+        'dashboard.Vendors_Show_Store' => ['ar' => 'المتجر والمالك', 'en' => 'Store and owner'],
+        'dashboard.Vendors_Show_Store_Name' => ['ar' => 'اسم المتجر', 'en' => 'Store name'],
+        'dashboard.Vendors_Show_Owner' => ['ar' => 'المالك', 'en' => 'Owner'],
+        'dashboard.Vendors_Show_Email' => ['ar' => 'البريد الإلكتروني', 'en' => 'Email'],
+        'dashboard.Vendors_Show_Phone' => ['ar' => 'رقم الهاتف', 'en' => 'Phone'],
+        'dashboard.Vendors_Show_Short_Description' => ['ar' => 'الوصف المختصر', 'en' => 'Short description'],
+        'dashboard.Vendors_Show_No_Description' => ['ar' => 'لا يوجد وصف.', 'en' => 'No description available.'],
+        'dashboard.Vendors_Show_Description' => ['ar' => 'الوصف', 'en' => 'Description'],
+        'dashboard.Vendors_Show_Location' => ['ar' => 'الموقع', 'en' => 'Location'],
+        'dashboard.Vendors_Show_Governorate' => ['ar' => 'المحافظة', 'en' => 'Governorate'],
+        'dashboard.Vendors_Show_City' => ['ar' => 'المدينة', 'en' => 'City'],
+        'dashboard.Vendors_Show_Address' => ['ar' => 'العنوان', 'en' => 'Address'],
+        'dashboard.Vendors_Decision_Title' => ['ar' => 'قرار الإدارة', 'en' => 'Admin decision'],
+        'dashboard.Vendors_Approve_Title' => ['ar' => 'اعتماد المتجر', 'en' => 'Approve the store'],
+        'dashboard.Vendors_Approve_Hint' => ['ar' => 'يستطيع المتجر المعتمد البيع ما دام حسابه نشطًا. لا تتغير حالة الحساب.', 'en' => 'An approved store can sell while its account is active. The account status is not changed.'],
+        'dashboard.Vendors_Approve_Submit' => ['ar' => 'اعتماد البائع', 'en' => 'Approve vendor'],
+        'dashboard.Vendors_Reject_Title' => ['ar' => 'رفض المتجر', 'en' => 'Reject the store'],
+        'dashboard.Vendors_Reject_Hint' => ['ar' => 'يظهر السبب للبائع. لا تتغير حالة الحساب.', 'en' => 'The vendor sees the reason. The account status is not changed.'],
+        'dashboard.Vendors_Rejection_Reason' => ['ar' => 'سبب الرفض', 'en' => 'Rejection reason'],
+        'dashboard.Vendors_Reject_Submit' => ['ar' => 'رفض البائع', 'en' => 'Reject vendor'],
+        'dashboard.Vendors_No_Decision_Permission' => ['ar' => 'لا تملك صلاحية اتخاذ هذا القرار.', 'en' => 'You do not have permission to make this decision.'],
+        'dashboard.Vendors_Commission_Title' => ['ar' => 'نسبة العمولة', 'en' => 'Commission rate'],
+        'dashboard.Vendors_Commission_Hint' => ['ar' => 'بين 0 و100، بمنزلتين عشريتين كحد أقصى. اتركها فارغة لإلغاء النسبة.', 'en' => 'Between 0 and 100, with up to two decimal places. Leave it empty to clear the rate.'],
+        'dashboard.Vendors_Recent_Products' => ['ar' => 'آخر المنتجات', 'en' => 'Recent products'],
+        'dashboard.Vendors_No_Products' => ['ar' => 'لا توجد منتجات لهذا البائع.', 'en' => 'This vendor has no products.'],
+        'dashboard.Vendors_Column_Product' => ['ar' => 'المنتج', 'en' => 'Product'],
+        'dashboard.Vendors_Column_Status' => ['ar' => 'الحالة', 'en' => 'Status'],
+        'dashboard.Vendors_Column_Price' => ['ar' => 'السعر', 'en' => 'Price'],
+        'dashboard.Vendors_Recent_Orders' => ['ar' => 'آخر الطلبات الفرعية', 'en' => 'Recent vendor orders'],
+        'dashboard.Vendors_No_Orders' => ['ar' => 'لا توجد طلبات لهذا البائع.', 'en' => 'This vendor has no orders.'],
+        'dashboard.Vendors_Column_Number' => ['ar' => 'رقم الطلب', 'en' => 'Order number'],
+        'dashboard.Vendors_Column_Total' => ['ar' => 'الإجمالي', 'en' => 'Total'],
+        'dashboard.Vendors_Review_Rating' => ['ar' => 'التقييم: :rating من 5', 'en' => 'Rating: :rating of 5'],
+        'dashboard.Vendors_Review_Status_Pending' => ['ar' => 'بانتظار المراجعة', 'en' => 'Pending'],
+        'dashboard.Vendors_Review_Status_Published' => ['ar' => 'منشور', 'en' => 'Published'],
+        'dashboard.Vendors_Review_Status_Hidden' => ['ar' => 'مخفي', 'en' => 'Hidden'],
+        'dashboard.VendorOrders_Status_Pending' => ['ar' => 'بانتظار القبول', 'en' => 'Pending'],
+        'dashboard.VendorOrders_Status_Accepted' => ['ar' => 'مقبول', 'en' => 'Accepted'],
+        'dashboard.VendorOrders_Status_Preparing' => ['ar' => 'قيد التجهيز', 'en' => 'Preparing'],
+        'dashboard.VendorOrders_Status_Ready_For_Delivery' => ['ar' => 'جاهز للتوصيل', 'en' => 'Ready for delivery'],
+        'dashboard.VendorOrders_Status_Assigned' => ['ar' => 'تم الإسناد', 'en' => 'Assigned'],
+        'dashboard.VendorOrders_Status_Out_For_Delivery' => ['ar' => 'خرج للتوصيل', 'en' => 'Out for delivery'],
+        'dashboard.VendorOrders_Status_Delivered' => ['ar' => 'تم التسليم', 'en' => 'Delivered'],
+        'dashboard.VendorOrders_Status_Completed' => ['ar' => 'مكتمل', 'en' => 'Completed'],
+        'dashboard.VendorOrders_Status_Rejected' => ['ar' => 'مرفوض', 'en' => 'Rejected'],
+        'dashboard.VendorOrders_Status_Cancelled' => ['ar' => 'ملغى', 'en' => 'Cancelled'],
     ];
 
     /**

@@ -8,8 +8,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * FR-ADM-009 / FR-ADM-015: AdminVendorTranslationSeeder. Exactly the 4 commission rate keys and the 2 store review card keys, Arabic and English, English equal
- * to the defaults in the code, edited values never overwritten, the guarded corrections of Arabic rows auto-created
+ * FR-ADM-009 / FR-ADM-015 / AD-UI-VENDORS-01: AdminVendorTranslationSeeder. The 4 commission rate keys, the 2 store
+ * review card keys and the 55 keys of the vendor details page (Vendors_*, VendorOrders_Status_*), Arabic and English,
+ * English equal to the defaults in the code, edited values never overwritten, the guarded corrections of Arabic rows auto-created
  * with English, nothing deleted, idempotent, stale cache cleared, not called from DatabaseSeeder.
  */
 class AdminVendorTranslationSeederTest extends TestCase
@@ -25,16 +26,24 @@ class AdminVendorTranslationSeederTest extends TestCase
         'dashboard.No_reviews_found' => 'لا توجد تقييمات لهذا المتجر',
     ];
 
-    public function test_it_covers_exactly_the_six_keys_with_the_approved_arabic(): void
+    public function test_it_covers_the_approved_keys_in_arabic_and_english(): void
     {
-        $this->assertSame(array_keys(self::ARABIC), array_keys(AdminVendorTranslationSeeder::TRANSLATIONS));
+        $keys = array_keys(AdminVendorTranslationSeeder::TRANSLATIONS);
+        $this->assertCount(61, $keys);
+        $this->assertSame(array_keys(self::ARABIC), array_slice($keys, 0, 6));
+        foreach (array_slice($keys, 6) as $key) {
+            $this->assertMatchesRegularExpression('/\Adashboard\.(Vendors_|VendorOrders_Status_)/', $key);
+        }
 
         foreach (AdminVendorTranslationSeeder::TRANSLATIONS as $key => $values) {
             $this->assertSame(['ar', 'en'], array_keys($values), $key);
-            $this->assertSame(self::ARABIC[$key], $values['ar'], $key);
+            if (isset(self::ARABIC[$key])) {
+                $this->assertSame(self::ARABIC[$key], $values['ar'], $key);
+            }
+            $this->assertMatchesRegularExpression('/\p{Arabic}/u', $values['ar'], "{$key} ar must be Arabic.");
             $this->assertDoesNotMatchRegularExpression('/\p{Arabic}/u', $values['en'], "{$key} en must not be Arabic.");
         }
-        foreach (['Commission_Rate', 'Customer', 'Rating', 'Comment', 'Status', 'Pending', 'Published', 'Hidden'] as $shared) {
+        foreach (['Commission_Rate', 'Customer', 'Rating', 'Comment', 'Status', 'Pending', 'Published', 'Hidden', 'Products_Status_Active'] as $shared) {
             $this->assertArrayNotHasKey('dashboard.'.$shared, AdminVendorTranslationSeeder::TRANSLATIONS, $shared);
         }
     }
@@ -45,7 +54,12 @@ class AdminVendorTranslationSeederTest extends TestCase
             .file_get_contents(resource_path('views/dashboard/vendors/show.blade.php'));
 
         foreach (AdminVendorTranslationSeeder::TRANSLATIONS as $key => $values) {
-            $this->assertStringContainsString("t('{$key}', '{$values['en']}')", $code, $key);
+            // Either t('dashboard.Key', 'English') or the page text helper ('Key', 'English').
+            $short = substr($key, strlen('dashboard.'));
+            $this->assertTrue(
+                str_contains($code, "t('{$key}', '{$values['en']}')") || str_contains($code, "'{$short}', '{$values['en']}'"),
+                "{$key}: the English value is not the default used in the code."
+            );
         }
 
         $this->assertCount(6, AdminVendorTranslationSeeder::CORRECTIONS);
@@ -64,7 +78,7 @@ class AdminVendorTranslationSeederTest extends TestCase
             $this->assertSame($values['ar'], $this->value($key, 'ar'));
             $this->assertSame($values['en'], $this->value($key, 'en'));
         }
-        $this->assertSame(12, TranslationValue::count());
+        $this->assertSame(122, TranslationValue::count());
     }
 
     public function test_auto_created_english_arabic_rows_are_corrected_and_the_cache_cleared(): void
@@ -103,7 +117,7 @@ class AdminVendorTranslationSeederTest extends TestCase
             $this->assertSame(1, TranslationValue::where('key', $key)->where('locale', $locale)->count());
         }
         $this->assertSame('Commission Rate', $this->value('dashboard.Commission_Rate', 'ar'));
-        $this->assertSame(12 + 1, TranslationValue::count());
+        $this->assertSame(122 + 1, TranslationValue::count());
     }
 
     public function test_running_twice_changes_nothing(): void
