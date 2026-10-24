@@ -15,6 +15,7 @@ use App\Models\VendorOrder;
 use Database\Seeders\AdminVendorTranslationSeeder;
 use Database\Seeders\LanguageSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -646,6 +647,52 @@ class VendorManagementTest extends TestCase
             ->assertOk()
             ->assertSee('<label class="form-label" for="vendor-avatar">Profile image <span class="admin-cat-form-mark">(Optional)</span></label>', false)
             ->assertSee('<p class="admin-media-hint" id="vendor-avatar-hint">JPG, PNG, GIF or WebP, up to 5 MB.</p>', false);
+    }
+
+    public function test_create_city_and_avatar_errors_are_translated_and_create_nothing(): void
+    {
+        Storage::fake('public');
+        $admin = $this->superAdmin();
+        $north = Governorate::query()->create(['name' => 'North', 'slug' => 'north', 'status' => 'active']);
+        $south = Governorate::query()->create(['name' => 'South', 'slug' => 'south', 'status' => 'active']);
+        $southCity = City::query()->create(['governorate_id' => $south->id, 'name' => 'Southtown', 'slug' => 'southtown', 'status' => 'active']);
+        $mismatch = ['governorate_id' => $north->id, 'city_id' => $southCity->id] + $this->vendorInput('0597111222', '');
+        $badAvatar = ['avatar' => UploadedFile::fake()->createWithContent('face.png', 'not an image')] + $this->vendorInput('0597111333', '');
+        $create = route('dashboard.vendors.create');
+        $messages = [
+            'en' => ['The selected city does not belong to the selected governorate.', 'The profile image must be a valid JPG, PNG, GIF or WebP file, with an extension matching its content.'],
+            'ar' => ['المدينة المختارة لا تتبع المحافظة المختارة.', 'يجب أن تكون الصورة الشخصية ملف JPG أو PNG أو GIF أو WebP صالحًا، وامتداده مطابق لمحتواه.'],
+        ];
+
+        foreach (['en', 'ar'] as $locale) {
+            if ($locale === 'ar') {
+                $this->seed(LanguageSeeder::class);
+                $this->seed(AdminVendorTranslationSeeder::class);
+            }
+            [$cityError, $avatarError] = $messages[$locale];
+
+            // Back to the form with the typed values kept and the error under its field, as before.
+            $this->actingAs($admin, 'admin')->withSession(['locale' => $locale])->from($create)->post(route('dashboard.vendors.store'), $mismatch)
+                ->assertRedirect($create)->assertSessionHasErrors(['city_id' => $cityError])->assertSessionHasInput('store_name', $mismatch['store_name']);
+            $this->actingAs($admin, 'admin')->withSession(['locale' => $locale])->get($create)
+                ->assertSee('<p class="admin-cat-form-error" id="vendor-city-id-error">'.$cityError.'</p>', false);
+
+            $this->actingAs($admin, 'admin')->withSession(['locale' => $locale])->from($create)->post(route('dashboard.vendors.store'), $badAvatar)
+                ->assertRedirect($create)->assertSessionHasErrors(['avatar' => $avatarError])->assertSessionHasInput('store_name', $badAvatar['store_name']);
+            $this->actingAs($admin, 'admin')->withSession(['locale' => $locale])->get($create)
+                ->assertSee('<p class="admin-cat-form-error" id="vendor-avatar-error">'.$avatarError.'</p>', false);
+
+            $this->assertSame(0, Vendor::count(), $locale);
+            $this->assertSame([], Storage::disk('public')->allFiles(), $locale);
+            if ($locale === 'en') {
+                // Unseeded: the English defaults are shown and no translation row is auto-created.
+                $this->assertSame(0, TranslationValue::where('key', 'like', 'dashboard.Vendors\_Error\_%')->count());
+            }
+        }
+
+        // A city of the selected governorate is still accepted.
+        $this->actingAs($admin, 'admin')->post(route('dashboard.vendors.store'), ['governorate_id' => $south->id] + $mismatch)->assertSessionHasNoErrors();
+        $this->assertSame($southCity->id, Vendor::sole()->profile->city_id);
     }
 
     public function test_index_uses_the_admin_shell_and_shows_the_add_button_by_ability(): void

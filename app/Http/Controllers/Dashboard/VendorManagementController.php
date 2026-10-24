@@ -90,7 +90,7 @@ class VendorManagementController extends Controller
         $avatarExtension = $request->hasFile('avatar') ? $this->safeImageExtension($request->file('avatar')) : null;
         if (filled($data['city_id'] ?? null) && filled($data['governorate_id'] ?? null)
             && ! City::query()->whereKey($data['city_id'])->where('governorate_id', $data['governorate_id'])->exists()) {
-            return back()->withInput()->withErrors(['city_id' => 'The selected city does not belong to the selected governorate.']);
+            return back()->withInput()->withErrors(['city_id' => $this->untranslatedDefault('dashboard.Vendors_Error_City_Governorate', 'The selected city does not belong to the selected governorate.')]);
         }
 
         $vendor = DB::transaction(function () use ($request, $data, $avatarExtension) {
@@ -215,6 +215,22 @@ class VendorManagementController extends Controller
         return back()->with('success', t('dashboard.Commission_rate_updated_successfully', 'Commission rate updated successfully.'));
     }
 
+    /**
+     * t() without auto-creating the key (as in ProductManagementController): until the vendor translations are
+     * seeded, the English default is shown but no row is written, so an Arabic row is never created with English text.
+     */
+    private function untranslatedDefault(string $key, string $default): string
+    {
+        $autoCreate = config('palgoals-locale.auto_create');
+        config(['palgoals-locale.auto_create' => false]);
+
+        try {
+            return t($key, $default);
+        } finally {
+            config(['palgoals-locale.auto_create' => $autoCreate]);
+        }
+    }
+
     private function authorizeAbility(Request $request, string $ability): void
     {
         $admin = $request->user('admin');
@@ -251,7 +267,7 @@ class VendorManagementController extends Controller
 
         if (! is_string($mime) || ! isset($extensions[$mime]) || ! in_array($extension, $extensions[$mime], true)
             || $size === false || ($size['mime'] ?? null) !== $mime || $size[0] < 1 || $size[1] < 1 || $size[0] * $size[1] > 25_000_000) {
-            throw ValidationException::withMessages(['avatar' => 'The profile image must be a valid JPG, PNG, GIF or WebP file, with an extension matching its content.']);
+            throw ValidationException::withMessages(['avatar' => $this->untranslatedDefault('dashboard.Vendors_Error_Avatar_Invalid', 'The profile image must be a valid JPG, PNG, GIF or WebP file, with an extension matching its content.')]);
         }
 
         return $extensions[$mime][0];

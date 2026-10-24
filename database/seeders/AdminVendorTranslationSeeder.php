@@ -12,7 +12,7 @@ use Illuminate\Database\Seeder;
  * AD-UI-VENDORS-01: the texts of the migrated vendor details page; product status labels are reused from
  * AdminProductTranslationSeeder (Products_Status_*).
  * AD-UI-VENDORS-02: the texts of the migrated create vendor form (Vendors_Create_*, Vendors_Form_*), with the owner's
- * profile image field added later (Vendors_Form_Avatar*).
+ * profile image field added later (Vendors_Form_Avatar*) and the form's own validation errors (Vendors_Error_*).
  * AD-UI-VENDORS-03: the texts of the migrated vendors list; Nav_Vendors, Actions and Pagination_* are reused.
  * Shared keys already used on the page (Commission_Rate, …) are not touched.
  *
@@ -104,6 +104,12 @@ class AdminVendorTranslationSeeder extends Seeder
         // The owner's profile image field (b06f67b).
         'dashboard.Vendors_Form_Avatar' => ['ar' => 'الصورة الشخصية', 'en' => 'Profile image'],
         'dashboard.Vendors_Form_Avatar_Hint' => ['ar' => 'JPG أو PNG أو GIF أو WebP، بحجم أقصاه 5 ميغابايت.', 'en' => 'JPG, PNG, GIF or WebP, up to 5 MB.'],
+        // The create form's own validation errors (VendorManagementController::store, read without auto-creating rows).
+        'dashboard.Vendors_Error_City_Governorate' => ['ar' => 'المدينة المختارة لا تتبع المحافظة المختارة.', 'en' => 'The selected city does not belong to the selected governorate.'],
+        'dashboard.Vendors_Error_Avatar_Invalid' => [
+            'ar' => 'يجب أن تكون الصورة الشخصية ملف JPG أو PNG أو GIF أو WebP صالحًا، وامتداده مطابق لمحتواه.',
+            'en' => 'The profile image must be a valid JPG, PNG, GIF or WebP file, with an extension matching its content.',
+        ],
         'dashboard.Vendors_Form_Section_Store' => ['ar' => 'ملف المتجر', 'en' => 'Store profile'],
         'dashboard.Vendors_Form_Slug' => ['ar' => 'المعرّف في الرابط', 'en' => 'Slug'],
         'dashboard.Vendors_Form_Slug_Hint' => ['ar' => 'يُستخدم في رابط المتجر. اتركه فارغًا ليُنشأ من اسم المتجر.', 'en' => 'Used in the store link. Leave it empty to create it from the store name.'],
