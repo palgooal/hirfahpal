@@ -25,8 +25,8 @@
     $fieldIds = [
         'name' => 'product-name', 'slug' => 'product-slug', 'vendor_id' => 'product-vendor', 'category_id' => 'product-category',
         'sku' => 'product-sku', 'price' => 'product-price', 'compare_at_price' => 'product-compare-price', 'stock_quantity' => 'product-stock',
-        'low_stock_threshold' => 'product-low-stock', 'weight' => 'product-weight', 'short_description' => 'product-short-description',
-        'description' => 'product-description', 'status' => 'product-status', 'is_featured' => 'product-featured',
+        'low_stock_threshold' => 'product-low-stock', 'weight' => 'product-weight', 'weight_unit' => 'product-weight-unit', 'short_description' => 'product-short-description',
+        'description' => 'product-description', 'images' => 'product-images', 'status' => 'product-status', 'is_featured' => 'product-featured',
     ];
     // aria-describedby: the hint, then the error when there is one.
     $describedBy = fn (string $field, ?string $hint = null) => trim(($hint ? $hint.' ' : '').($errors->has($field) ? $fieldIds[$field].'-error' : '')) ?: null;
@@ -98,7 +98,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ $editing ? route('dashboard.products.update', $product) : route('dashboard.products.store') }}" class="card admin-media-panel admin-cat-form-card" novalidate aria-label="{{ $formTitle }}">
+        <form method="POST" action="{{ $editing ? route('dashboard.products.update', $product) : route('dashboard.products.store') }}" enctype="multipart/form-data" class="card admin-media-panel admin-cat-form-card" novalidate aria-label="{{ $formTitle }}">
             @csrf
             @if ($editing)
                 @method('PUT')
@@ -182,7 +182,7 @@
                         <label class="form-label" for="product-compare-price">{{ $fieldLabels['compare_at_price'] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
                         <input type="number" @class(['form-control', 'is-invalid' => $errors->has('compare_at_price')]) id="product-compare-price" name="compare_at_price" value="{{ old('compare_at_price', $product->compare_at_price) }}" step="0.01" min="0" inputmode="decimal" dir="ltr"
                             @error('compare_at_price') aria-invalid="true" @enderror aria-describedby="{{ $describedBy('compare_at_price', 'product-compare-price-hint') }}">
-                        <p class="admin-media-hint" id="product-compare-price-hint">{{ $prodText('Products_Form_Compare_Price_Hint', 'An earlier price shown for comparison. It must be higher than the price.') }}</p>
+                        <p class="admin-media-hint" id="product-compare-price-hint">{{ $prodText('Products_Form_Compare_Price_Hint', 'The previous higher price. When set, the store can show it crossed out next to the current price to explain the discount. It must be higher than the price.') }}</p>
                         @error('compare_at_price') <p class="admin-cat-form-error" id="product-compare-price-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
@@ -227,10 +227,32 @@
 
                 <div class="admin-cat-form-field admin-cat-form-field-narrow admin-product-form-narrow">
                     <label class="form-label" for="product-weight">{{ $fieldLabels['weight'] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
-                    <input type="number" @class(['form-control', 'is-invalid' => $errors->has('weight')]) id="product-weight" name="weight" value="{{ old('weight', $product->weight) }}" step="0.01" min="0" inputmode="decimal" dir="ltr"
-                        @error('weight') aria-invalid="true" @enderror aria-describedby="{{ $describedBy('weight', 'product-weight-hint') }}">
-                    <p class="admin-media-hint" id="product-weight-hint">{{ $prodText('Products_Form_Weight_Hint', 'For shipping, with up to two decimal places.') }}</p>
+                    <div class="input-group">
+                        <input type="number" @class(['form-control', 'is-invalid' => $errors->has('weight')]) id="product-weight" name="weight" value="{{ old('weight', $product->weight) }}" step="0.01" min="0" inputmode="decimal" dir="ltr"
+                            @error('weight') aria-invalid="true" @enderror aria-describedby="{{ $describedBy('weight', 'product-weight-hint') }}">
+                        <label class="visually-hidden" for="product-weight-unit">{{ $prodText('Products_Form_Weight_Unit', 'Weight unit') }}</label>
+                        <select @class(['form-select', 'is-invalid' => $errors->has('weight_unit')]) id="product-weight-unit" name="weight_unit" style="max-width: 8rem" dir="ltr">
+                            <option value="" @selected(old('weight_unit', $product->weight_unit) === null)>{{ $prodText('Products_Form_Weight_Unit_Select', 'Unit') }}</option>
+                            @foreach (['kg' => 'kg', 'g' => 'g', 't' => 'ton'] as $value => $label)
+                                <option value="{{ $value }}" @selected(old('weight_unit', $product->weight_unit) === $value)>{{ $prodText('Products_Form_Weight_Unit_'.strtoupper($value), $label) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <p class="admin-media-hint" id="product-weight-hint">{{ $prodText('Products_Form_Weight_Hint', 'For shipping, enter the weight and choose kg, g or ton.') }}</p>
                     @error('weight') <p class="admin-cat-form-error" id="product-weight-error">{{ $message }}</p> @enderror
+                    @error('weight_unit') <p class="admin-cat-form-error" id="product-weight-unit-error">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="admin-cat-form-field">
+                    <label class="form-label" for="product-images">{{ $prodText('Products_Form_Images', 'Product images') }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
+                    <input type="file" @class(['form-control', 'is-invalid' => $errors->has('images') || $errors->has('images.*')]) id="product-images" name="images[]" accept="image/jpeg,image/png,image/gif,image/webp" multiple
+                        @error('images') aria-invalid="true" @enderror aria-describedby="{{ $describedBy('images', 'product-images-hint') }}">
+                    <p class="admin-media-hint" id="product-images-hint">{{ $prodText('Products_Form_Images_Hint', 'Choose up to 6 JPG, PNG, GIF or WebP images (5 MB each). The first uploaded image becomes the main image. You can review all images from the product page.') }}</p>
+                    @error('images') <p class="admin-cat-form-error" id="product-images-error">{{ $message }}</p> @enderror
+                    @error('images.*') <p class="admin-cat-form-error" id="product-images-error">{{ $message }}</p> @enderror
+                    @if ($editing && $product->images()->exists() && $canViewProducts)
+                        <p class="admin-media-hint"><a href="{{ route('dashboard.products.show', $product) }}#product-panel-images">{{ $prodText('Products_Form_Manage_Images', 'View current images') }}</a></p>
+                    @endif
                 </div>
             </fieldset>
 

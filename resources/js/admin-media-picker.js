@@ -115,6 +115,12 @@ export function initMediaPicker(root) {
         }
     };
 
+    // A stale media row or a missing public-storage link must not leave a broken-image icon in the category form.
+    image.addEventListener('error', () => {
+        image.hidden = true;
+        placeholder.hidden = false;
+    });
+
     let current = { src: initial.src, alt: initial.alt, name: state.id && !state.removed ? initial.name : '' };
 
     removeButton?.addEventListener('click', () => {
@@ -230,6 +236,10 @@ export function initMediaPicker(root) {
         img.src = item.url || '';
         img.alt = '';
         img.loading = 'lazy';
+        img.addEventListener('error', () => {
+            img.remove();
+            button.classList.add('admin-media-thumb-missing');
+        });
         button.append(img);
         button.addEventListener('click', () => choose(item));
         button.addEventListener('dblclick', () => {

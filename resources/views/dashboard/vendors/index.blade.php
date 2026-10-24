@@ -77,7 +77,12 @@
                                         <small class="text-muted">{{ $profile?->slug ?? '' }}</small>
                                     </td>
                                     <td>
-                                        <div>{{ $vendor->name }}</div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            @if (is_string($vendor->avatar) && str_starts_with($vendor->avatar, 'vendors/avatars/') && \Illuminate\Support\Facades\Storage::disk('public')->exists($vendor->avatar))
+                                                <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($vendor->avatar) }}" alt="" width="36" height="36" class="rounded-circle object-fit-cover">
+                                            @endif
+                                            <div>{{ $vendor->name }}</div>
+                                        </div>
                                         <small class="text-muted">{{ $vendor->phone }}</small>
                                     </td>
                                     <td>{{ $profile?->city?->name ?? $profile?->governorate?->name ?? '-' }}</td>

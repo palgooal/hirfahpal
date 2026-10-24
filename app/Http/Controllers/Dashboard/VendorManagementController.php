@@ -13,10 +13,12 @@ use App\Models\Vendor;
 use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class VendorManagementController extends Controller
@@ -82,9 +84,16 @@ class VendorManagementController extends Controller
             'commission_rate' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:100'],
             'approval_status' => ['required', Rule::in(['pending', 'approved', 'rejected'])],
             'rejection_reason' => ['nullable', 'required_if:approval_status,rejected', 'string', 'max:1000'],
+            'avatar' => ['nullable', 'file', 'max:5120'],
         ]);
 
-        $vendor = DB::transaction(function () use ($request, $data) {
+        $avatarExtension = $request->hasFile('avatar') ? $this->safeImageExtension($request->file('avatar')) : null;
+        if (filled($data['city_id'] ?? null) && filled($data['governorate_id'] ?? null)
+            && ! City::query()->whereKey($data['city_id'])->where('governorate_id', $data['governorate_id'])->exists()) {
+            return back()->withInput()->withErrors(['city_id' => 'The selected city does not belong to the selected governorate.']);
+        }
+
+        $vendor = DB::transaction(function () use ($request, $data, $avatarExtension) {
             $vendor = Vendor::create([
                 'name' => $data['name'],
                 'email' => $data['email'] ?? null,
@@ -92,6 +101,13 @@ class VendorManagementController extends Controller
                 'password' => Hash::make($data['password']),
                 'status' => $data['status'],
             ]);
+
+            if ($avatarExtension !== null) {
+                /** @var UploadedFile $avatar */
+                $avatar = $request->file('avatar');
+                $vendor->avatar = $avatar->storeAs('vendors/avatars/'.$vendor->id, Str::uuid().'.'.$avatarExtension, 'public');
+                $vendor->save();
+            }
 
             $approved = $data['approval_status'] === 'approved';
 
@@ -223,6 +239,22 @@ class VendorManagementController extends Controller
                 $fail(__('validation.unique', ['attribute' => $attribute]));
             }
         };
+    }
+
+    private function safeImageExtension(UploadedFile $file): string
+    {
+        $path = $file->getRealPath();
+        $mime = $path ? (new \finfo(FILEINFO_MIME_TYPE))->file($path) : false;
+        $extensions = ['image/jpeg' => ['jpg', 'jpeg'], 'image/png' => ['png'], 'image/gif' => ['gif'], 'image/webp' => ['webp']];
+        $size = $path ? @getimagesize($path) : false;
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        if (! is_string($mime) || ! isset($extensions[$mime]) || ! in_array($extension, $extensions[$mime], true)
+            || $size === false || ($size['mime'] ?? null) !== $mime || $size[0] < 1 || $size[1] < 1 || $size[0] * $size[1] > 25_000_000) {
+            throw ValidationException::withMessages(['avatar' => 'The profile image must be a valid JPG, PNG, GIF or WebP file, with an extension matching its content.']);
+        }
+
+        return $extensions[$mime][0];
     }
 
     private function uniqueSlug(string $value): string

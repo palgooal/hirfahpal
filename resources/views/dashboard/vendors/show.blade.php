@@ -81,6 +81,9 @@
                     <span>{{ $vendText('Vendors_Show_Back', 'Back to vendors') }}</span>
                 </a>
                 <h2 class="admin-product-title"><bdi>{{ $storeName }}</bdi></h2>
+                @if (is_string($vendor->avatar) && str_starts_with($vendor->avatar, 'vendors/avatars/') && \Illuminate\Support\Facades\Storage::disk('public')->exists($vendor->avatar))
+                    <img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($vendor->avatar) }}" alt="" width="64" height="64" class="rounded-circle object-fit-cover">
+                @endif
                 <p class="admin-products-badges">
                     <span class="admin-products-badge {{ $approvalKeys[$approval][2] ?? '' }}" data-approval-status="{{ $approval }}">
                         <span class="visually-hidden">{{ $vendText('Vendors_Approval_Status', 'Approval status') }}:</span>

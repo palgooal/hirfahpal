@@ -347,9 +347,30 @@ export function initHeaderDropdowns(doc = document, win = window) {
     return { menus, open, close };
 }
 
+function initAdminCreateForm() {
+    document.querySelectorAll('[data-admin-create-form]').forEach((form) => {
+        form.addEventListener('submit', () => {
+            const button = form.querySelector('[data-admin-save-button]');
+            const label = form.querySelector('[data-admin-save-label]');
+
+            if (!button || button.disabled) {
+                return;
+            }
+
+            button.disabled = true;
+            button.setAttribute('aria-busy', 'true');
+
+            if (label) {
+                label.textContent = 'Saving…';
+            }
+        });
+    });
+}
+
 function boot() {
     // Header menus do not depend on the sidebar opt-in.
     initHeaderDropdowns();
+    initAdminCreateForm();
 
     if (!shouldManageSidebar()) {
         return;

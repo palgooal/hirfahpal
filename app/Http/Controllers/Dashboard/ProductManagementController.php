@@ -14,6 +14,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -113,9 +114,11 @@ class ProductManagementController extends Controller
 
         $this->returningErrorsTo(route('dashboard.products.create'), function () use ($request) {
             $data = $this->validatedData($request);
+            $this->validateImageUploads($request);
 
             try {
-                Product::create($data);
+                $product = Product::create($data);
+                $this->storeImageUploads($request, $product);
             } catch (QueryException $exception) {
                 $this->failUnlessCategoryVanished($exception, $data);
             }
@@ -193,6 +196,7 @@ class ProductManagementController extends Controller
 
         $this->returningErrorsTo(route('dashboard.products.edit', $product), function () use ($request, $product) {
             $data = $this->validatedData($request, $product);
+            $this->validateImageUploads($request);
             $basis = $this->stockBasis($request);
 
             // M0-FIX (lost update): the form sends back the stock it displayed. When the submitted stock equals it,
@@ -231,6 +235,7 @@ class ProductManagementController extends Controller
                     }
 
                     $locked->update($data);
+                    $this->storeImageUploads($request, $locked);
                 });
             } catch (QueryException $exception) {
                 $this->failUnlessCategoryVanished($exception, $data);
@@ -349,6 +354,7 @@ class ProductManagementController extends Controller
             'stock_quantity' => ['required', 'integer', 'min:0', 'max:'.self::MAX_UNSIGNED_INT],
             'low_stock_threshold' => ['nullable', 'integer', 'min:0', 'max:'.self::MAX_UNSIGNED_INT],
             'weight' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:'.self::MAX_WEIGHT],
+            'weight_unit' => ['nullable', Rule::in(['kg', 'g', 't'])],
             // The same four statuses as before, without reading their (shared) labels.
             'status' => ['required', Rule::in(array_keys($this->statusKeys()))],
             'is_featured' => ['nullable', 'boolean'],
@@ -357,9 +363,61 @@ class ProductManagementController extends Controller
         $data['slug'] = ($data['slug'] ?? null) ?: $this->uniqueSlug($data['name'], $product);
         $data['low_stock_threshold'] = $data['low_stock_threshold'] ?? 1;
         $data['is_featured'] = $request->boolean('is_featured');
+        $data['weight_unit'] = ($data['weight'] ?? null) === null ? null : ($data['weight_unit'] ?? null);
         $data['published_at'] = $data['status'] === 'active' ? ($product?->published_at ?? now()) : null;
 
         return $data;
+    }
+
+    /** Store product photos only after their bytes, dimensions and filename extension agree. */
+    private function storeImageUploads(Request $request, Product $product): void
+    {
+        foreach ($request->file('images', []) as $image) {
+            if (! $image instanceof UploadedFile) {
+                continue;
+            }
+
+            $extension = $this->safeImageExtension($image);
+            $path = $image->storeAs('products/'.$product->id, Str::uuid().'.'.$extension, 'public');
+            $hasImages = $product->images()->exists();
+
+            $product->images()->create([
+                'path' => $path,
+                'alt_text' => $product->name,
+                'sort_order' => (int) $product->images()->max('sort_order') + 1,
+                'is_primary' => ! $hasImages,
+            ]);
+        }
+    }
+
+    private function validateImageUploads(Request $request): void
+    {
+        $request->validate([
+            'images' => ['nullable', 'array', 'max:6'],
+            'images.*' => ['file', 'max:5120'],
+        ]);
+
+        foreach ($request->file('images', []) as $image) {
+            if ($image instanceof UploadedFile) {
+                $this->safeImageExtension($image);
+            }
+        }
+    }
+
+    private function safeImageExtension(UploadedFile $file): string
+    {
+        $path = $file->getRealPath();
+        $mime = $path ? (new \finfo(FILEINFO_MIME_TYPE))->file($path) : false;
+        $extensions = ['image/jpeg' => ['jpg', 'jpeg'], 'image/png' => ['png'], 'image/gif' => ['gif'], 'image/webp' => ['webp']];
+        $size = $path ? @getimagesize($path) : false;
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        if (! is_string($mime) || ! isset($extensions[$mime]) || ! in_array($extension, $extensions[$mime], true)
+            || $size === false || ($size['mime'] ?? null) !== $mime || $size[0] < 1 || $size[1] < 1 || $size[0] * $size[1] > 25_000_000) {
+            throw ValidationException::withMessages(['images' => 'Each image must be a valid JPG, PNG, GIF or WebP file, with an extension matching its content.']);
+        }
+
+        return $extensions[$mime][0];
     }
 
     /**

@@ -20,6 +20,7 @@ class Product extends Model
         'stock_quantity',
         'low_stock_threshold',
         'weight',
+        'weight_unit',
         'dimensions',
         'status',
         'is_featured',

@@ -2684,6 +2684,87 @@ html.admin-shell .admin-media-picker-dialog .admin-media-card.is-selected .admin
   }
 }
 
+/* Admin creation: a compact, readable form that works equally in RTL and LTR. */
+html.admin-shell .admin-admin-create-card {
+  overflow: hidden;
+}
+
+html.admin-shell .admin-admin-create-header {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--color-hf-line);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--bs-primary) 9%, white), white 68%);
+}
+
+html.admin-shell .admin-admin-create-icon {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.8rem;
+  color: var(--bs-primary);
+  background: color-mix(in srgb, var(--bs-primary) 13%, white);
+  font-size: 1.35rem;
+}
+
+html.admin-shell .admin-admin-create-header h5 {
+  font-weight: 700;
+}
+
+html.admin-shell .admin-admin-form .form-label {
+  margin-bottom: 0.45rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-admin-form .form-control,
+html.admin-shell .admin-admin-form .form-select {
+  min-height: 2.75rem;
+  border-color: var(--color-hf-line);
+}
+
+html.admin-shell .admin-admin-form .form-control:focus,
+html.admin-shell .admin-admin-form .form-select:focus {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--bs-primary) 18%, transparent);
+}
+
+html.admin-shell .admin-ability-card {
+  border-color: var(--color-hf-line) !important;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+html.admin-shell .admin-ability-card:hover {
+  border-color: color-mix(in srgb, var(--bs-primary) 45%, var(--color-hf-line)) !important;
+  box-shadow: 0 0.4rem 1rem rgba(21, 41, 73, 0.06);
+}
+
+html.admin-shell .admin-admin-form-actions {
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-hf-line);
+}
+
+html.admin-shell .admin-admin-form-actions .btn {
+  min-width: 8.5rem;
+}
+
+html.admin-shell .admin-admin-form-actions [aria-busy="true"] {
+  cursor: wait;
+}
+
+@media (max-width: 575.98px) {
+  html.admin-shell .admin-admin-create-header {
+    align-items: flex-start;
+    padding: 1rem;
+  }
+
+  html.admin-shell .admin-admin-form-actions .btn {
+    width: 100%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html.admin-shell .pc-sidebar[data-admin-sidebar="managed"],
   html.admin-shell .pc-sidebar[data-admin-sidebar="managed"] ~ .pc-header,

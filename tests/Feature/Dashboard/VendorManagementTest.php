@@ -552,7 +552,7 @@ class VendorManagementTest extends TestCase
             ->assertSee('action="'.route('dashboard.vendors.store').'"', false);
 
         $fields = [
-            'name' => 'vendor-name', 'email' => 'vendor-email', 'phone' => 'vendor-phone', 'password' => 'vendor-password',
+            'name' => 'vendor-name', 'email' => 'vendor-email', 'phone' => 'vendor-phone', 'avatar' => 'vendor-avatar', 'password' => 'vendor-password',
             'password_confirmation' => 'vendor-password-confirmation', 'status' => 'vendor-status', 'store_name' => 'vendor-store-name',
             'slug' => 'vendor-slug', 'short_description' => 'vendor-short-description', 'description' => 'vendor-description',
             'commission_rate' => 'vendor-commission-rate', 'governorate_id' => 'vendor-governorate-id', 'city_id' => 'vendor-city-id',
@@ -561,7 +561,7 @@ class VendorManagementTest extends TestCase
         foreach ($fields as $name => $id) {
             $response->assertSee('for="'.$id.'"', false)->assertSee('id="'.$id.'" name="'.$name.'"', false);
         }
-        $this->assertSame(16, substr_count($response->getContent(), 'class="admin-cat-form-mark"'));
+        $this->assertSame(17, substr_count($response->getContent(), 'class="admin-cat-form-mark"'));
         $this->assertSame(4, substr_count($response->getContent(), '<fieldset class="admin-cat-form-section">'));
 
         // Defaults unchanged: account active, approval approved.

@@ -2,7 +2,7 @@
     $selectedAbilities = old('abilities', $admin->exists ? $admin->roles()->pluck('role_name')->toArray() : []);
 @endphp
 
-<div class="row g-4">
+<div class="row g-4 admin-admin-form-fields">
     <div class="col-12 col-md-6">
         <x-form.input
             name="name"
@@ -119,7 +119,7 @@
             @continue(! collect($abilityGroup)->keys()->contains(fn ($abilityName) => in_array($groupName . '.' . $abilityName, $grantableAbilities, true)))
 
             <div class="col-12 col-lg-4">
-                <div class="card h-100 border">
+                <div class="card h-100 border admin-ability-card">
                     <div class="card-body">
                         <h6 class="mb-3">{{ $abilityGroup['name'] }}</h6>
 
@@ -151,11 +151,12 @@
     </div>
 @endunless
 
-<div class="d-flex justify-content-end gap-2 mt-4">
+<div class="d-flex flex-column-reverse flex-sm-row justify-content-end gap-2 mt-4 admin-admin-form-actions">
     <a href="{{ route('dashboard.admins.index') }}" class="btn btn-light-secondary">
         {{ t('dashboard.Cancel', 'Cancel') }}
     </a>
-    <button type="submit" class="btn btn-primary">
-        {{ $buttonLabel }}
+    <button type="submit" class="btn btn-primary" data-admin-save-button>
+        <i class="ph-duotone ph-floppy-disk me-1" aria-hidden="true"></i>
+        <span data-admin-save-label>{{ $buttonLabel }}</span>
     </button>
 </div>

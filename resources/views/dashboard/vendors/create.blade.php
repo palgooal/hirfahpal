@@ -25,6 +25,7 @@
         'name' => $vendText('Vendors_Form_Owner_Name', 'Owner name'),
         'email' => $vendText('Vendors_Show_Email', 'Email'),
         'phone' => $vendText('Vendors_Show_Phone', 'Phone'),
+        'avatar' => $vendText('Vendors_Form_Avatar', 'Profile image'),
         'password' => $vendText('Vendors_Form_Password', 'Password'),
         'password_confirmation' => $vendText('Vendors_Form_Password_Confirmation', 'Confirm password'),
         'status' => $vendText('Vendors_Account_Status', 'Account status'),
@@ -94,7 +95,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('dashboard.vendors.store') }}" class="card admin-media-panel admin-cat-form-card" novalidate aria-label="{{ $formTitle }}">
+        <form method="POST" action="{{ route('dashboard.vendors.store') }}" enctype="multipart/form-data" class="card admin-media-panel admin-cat-form-card" novalidate aria-label="{{ $formTitle }}">
             @csrf
 
             {{-- Account --}}
@@ -122,6 +123,14 @@
                             @error('phone') aria-invalid="true" @enderror @if ($d = $describedBy('phone')) aria-describedby="{{ $d }}" @endif>
                         @error('phone') <p class="admin-cat-form-error" id="vendor-phone-error">{{ $message }}</p> @enderror
                     </div>
+                </div>
+
+                <div class="admin-cat-form-field">
+                    <label class="form-label" for="vendor-avatar">{{ $fieldLabels['avatar'] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
+                    <input type="file" @class(['form-control', 'is-invalid' => $errors->has('avatar')]) id="vendor-avatar" name="avatar" accept="image/jpeg,image/png,image/gif,image/webp"
+                        @error('avatar') aria-invalid="true" @enderror aria-describedby="{{ $describedBy('avatar', 'vendor-avatar-hint') }}">
+                    <p class="admin-media-hint" id="vendor-avatar-hint">{{ $vendText('Vendors_Form_Avatar_Hint', 'JPG, PNG, GIF or WebP, up to 5 MB.') }}</p>
+                    @error('avatar') <p class="admin-cat-form-error" id="vendor-avatar-error">{{ $message }}</p> @enderror
                 </div>
 
                 <div class="admin-cat-form-row">
@@ -218,7 +227,7 @@
                             @error('city_id') aria-invalid="true" @enderror @if ($d = $describedBy('city_id')) aria-describedby="{{ $d }}" @endif>
                             <option value="">{{ $vendText('Vendors_Form_Select_City', 'Select city') }}</option>
                             @foreach ($cities as $city)
-                                <option value="{{ $city->id }}" @selected(old('city_id') == $city->id)>{{ $city->name }}</option>
+                                <option value="{{ $city->id }}" data-governorate="{{ $city->governorate_id }}" @selected(old('city_id') == $city->id)>{{ $city->name }}</option>
                             @endforeach
                         </select>
                         @error('city_id') <p class="admin-cat-form-error" id="vendor-city-id-error">{{ $message }}</p> @enderror
@@ -266,4 +275,22 @@
             </div>
         </form>
     </div>
+    <script>
+        (() => {
+            const governorate = document.getElementById('vendor-governorate-id');
+            const city = document.getElementById('vendor-city-id');
+            if (!governorate || !city) return;
+            const filterCities = () => {
+                const selected = governorate.value;
+                Array.from(city.options).forEach((option, index) => {
+                    if (index === 0) return;
+                    option.hidden = selected !== '' && option.dataset.governorate !== selected;
+                    option.disabled = option.hidden;
+                });
+                if (city.selectedOptions[0]?.hidden) city.value = '';
+            };
+            governorate.addEventListener('change', filterCities);
+            filterCities();
+        })();
+    </script>
 </x-dashboard-layout>

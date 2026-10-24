@@ -122,7 +122,7 @@
                             @endif
                         </dd>
                     </div>
-                    <div><dt>{{ $prodText('Products_Show_Weight', 'Weight') }}</dt><dd><span dir="ltr">{{ $product->weight !== null ? $amount($product->weight) : '—' }}</span></dd></div>
+                    <div><dt>{{ $prodText('Products_Show_Weight', 'Weight') }}</dt><dd><span dir="ltr">{{ $product->weight !== null ? $amount($product->weight).' '.(['kg' => 'kg', 'g' => 'g', 't' => 'ton'][$product->weight_unit ?? 'kg']) : '—' }}</span></dd></div>
                     <div>
                         <dt>{{ $prodText('Products_Show_Dimensions', 'Dimensions') }}</dt>
                         <dd><span dir="ltr">{{ $dimensions ? implode(' × ', array_map(fn ($value) => is_scalar($value) ? (string) $value : '', $dimensions)) : '—' }}</span></dd>

@@ -58,13 +58,14 @@ class AdminProductFormTest extends TestCase
         $this->assertSame('', $values['category_id']);
 
         $this->actingAs($admin, 'admin')->post(route('dashboard.products.store'), [
-            'name' => 'Clay jug', 'price' => '12.50', 'stock_quantity' => '4', 'category_id' => $this->active->id,
+            'name' => 'Clay jug', 'price' => '12.50', 'stock_quantity' => '4', 'category_id' => $this->active->id, 'weight' => '1500', 'weight_unit' => 'g',
         ] + $values)->assertRedirect(route('dashboard.products.index'))->assertSessionHas('success');
 
         $product = Product::sole();
         $this->assertSame(['Clay jug', 'clay-jug', '12.50', 4, $this->active->id, 'draft', 1, false], [
             $product->name, $product->slug, $product->price, $product->stock_quantity, $product->category_id, $product->status, $product->low_stock_threshold, $product->is_featured,
         ]);
+        $this->assertSame('g', $product->weight_unit);
     }
 
     public function test_the_edit_form_submits_the_product_unchanged_with_its_stock_basis(): void
@@ -78,12 +79,12 @@ class AdminProductFormTest extends TestCase
         $this->assertStringContainsString('name="_method" value="PUT"', $html);
 
         $values = $this->formValues($html);
-        $this->assertSame(['Clay jug', 'clay-jug', (string) $this->vendor->id, (string) $this->active->id, 'JUG-1', '10.00', '15.00', '10', '3', '1.25', 'Short', "Line 1\nLine 2", 'active', '1'], [
+        $this->assertSame(['Clay jug', 'clay-jug', (string) $this->vendor->id, (string) $this->active->id, 'JUG-1', '10.00', '15.00', '10', '3', '1.25', '', 'Short', "Line 1\nLine 2", 'active', '1'], [
             $values['name'], $values['slug'], $values['vendor_id'], $values['category_id'], $values['sku'], $values['price'], $values['compare_at_price'],
-            $values['stock_quantity'], $values['low_stock_threshold'], $values['weight'], $values['short_description'], $values['description'], $values['status'], $values['is_featured'],
+            $values['stock_quantity'], $values['low_stock_threshold'], $values['weight'], $values['weight_unit'], $values['short_description'], $values['description'], $values['status'], $values['is_featured'],
         ]);
 
-        $before = $product->fresh()->only(['name', 'slug', 'vendor_id', 'category_id', 'sku', 'price', 'compare_at_price', 'stock_quantity', 'low_stock_threshold', 'weight', 'short_description', 'description', 'status', 'is_featured', 'published_at']);
+        $before = $product->fresh()->only(['name', 'slug', 'vendor_id', 'category_id', 'sku', 'price', 'compare_at_price', 'stock_quantity', 'low_stock_threshold', 'weight', 'weight_unit', 'short_description', 'description', 'status', 'is_featured', 'published_at']);
         $this->actingAs($admin, 'admin')->put(route('dashboard.products.update', $product), $values)->assertSessionHasNoErrors()->assertRedirect(route('dashboard.products.index'));
         $this->assertEquals($before, $product->fresh()->only(array_keys($before)));
     }
@@ -152,7 +153,7 @@ class AdminProductFormTest extends TestCase
         $xpath = $this->xpath($html);
 
         $fields = $xpath->query('//form[@novalidate]//*[self::input[not(@type="hidden")] or self::select or self::textarea]');
-        $this->assertSame(14, $fields->length);
+        $this->assertSame(16, $fields->length);
         foreach ($fields as $field) {
             $id = $field->getAttribute('id');
             $this->assertNotSame('', $id, $field->getAttribute('name'));
