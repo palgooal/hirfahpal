@@ -1849,6 +1849,16 @@ html.admin-shell .pc-content:has(#admin-vendor-show) {
   padding-top: 1.5rem;
 }
 
+/* Vendors list (AD-UI-VENDORS-03): resources/views/dashboard/vendors/index.blade.php. The empty band only, as on the
+ * customers list; the layout's error list stays visible (the page has no form of its own that posts). */
+html.admin-shell .pc-content:has(#admin-vendors) > .page-header {
+  display: none;
+}
+
+html.admin-shell .pc-content:has(#admin-vendors) {
+  padding-top: 1.5rem;
+}
+
 /* ---- Product details (AD-UI-PROD-M4): resources/views/dashboard/products/show.blade.php ----
  * Five groups; resources/js/admin-product-show.js makes them tabs (.is-tabbed). Without it every group is shown. */
 html.admin-shell .pc-content:has(#admin-product-show) > .page-header {

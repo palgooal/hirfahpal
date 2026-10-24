@@ -12,6 +12,7 @@ use Illuminate\Database\Seeder;
  * AD-UI-VENDORS-01: the texts of the migrated vendor details page; product status labels are reused from
  * AdminProductTranslationSeeder (Products_Status_*).
  * AD-UI-VENDORS-02: the texts of the migrated create vendor form (Vendors_Create_*, Vendors_Form_*).
+ * AD-UI-VENDORS-03: the texts of the migrated vendors list; Nav_Vendors, Actions and Pagination_* are reused.
  * Shared keys already used on the page (Commission_Rate, …) are not touched.
  *
  * Only missing (key, locale) rows are inserted; edited values are kept; the English defaults that t() auto-creates
@@ -109,6 +110,18 @@ class AdminVendorTranslationSeeder extends Seeder
         'dashboard.Vendors_Form_Rejection_Hint' => ['ar' => 'مطلوب عندما تكون حالة الموافقة «مرفوض».', 'en' => 'Required when the approval status is Rejected.'],
         'dashboard.Vendors_Form_Submit' => ['ar' => 'إنشاء البائع', 'en' => 'Create vendor'],
         'dashboard.Vendors_Form_Cancel' => ['ar' => 'إلغاء', 'en' => 'Cancel'],
+        // AD-UI-VENDORS-03: the vendors list (column, status and action labels shared with the other vendor pages).
+        'dashboard.Vendors_Intro' => ['ar' => 'راجع حسابات البائعين ومتاجرهم: ابحث عنها وتابع حالة الموافقة وحالة الحساب.', 'en' => 'Review vendor accounts and their stores: find them and check their approval and account status.'],
+        'dashboard.Vendors_Search_Label' => ['ar' => 'البحث في البائعين', 'en' => 'Search vendors'],
+        'dashboard.Vendors_Search_Placeholder' => ['ar' => 'المالك أو البريد أو الهاتف أو اسم المتجر', 'en' => 'Owner, email, phone or store name'],
+        'dashboard.Vendors_Filter_All' => ['ar' => 'كل الحالات', 'en' => 'All statuses'],
+        'dashboard.Vendors_Apply' => ['ar' => 'تطبيق', 'en' => 'Apply'],
+        'dashboard.Vendors_Clear' => ['ar' => 'مسح الفلاتر', 'en' => 'Clear filters'],
+        'dashboard.Vendors_View' => ['ar' => 'عرض', 'en' => 'View'],
+        'dashboard.Vendors_Empty_Title' => ['ar' => 'لا يوجد بائعون بعد', 'en' => 'No vendors yet'],
+        'dashboard.Vendors_Empty_Text' => ['ar' => 'يظهر البائعون هنا عند تسجيلهم أو إضافتهم من لوحة الإدارة.', 'en' => 'Vendors appear here once they register or are added from the dashboard.'],
+        'dashboard.Vendors_No_Results_Title' => ['ar' => 'لا يوجد بائعون مطابقون', 'en' => 'No matching vendors'],
+        'dashboard.Vendors_No_Results_Text' => ['ar' => 'جرّب كلمة بحث أخرى أو امسح الفلاتر.', 'en' => 'Try another search or clear the filters.'],
     ];
 
     /**

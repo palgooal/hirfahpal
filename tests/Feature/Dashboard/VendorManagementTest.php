@@ -15,6 +15,7 @@ use App\Models\VendorOrder;
 use Database\Seeders\AdminVendorTranslationSeeder;
 use Database\Seeders\LanguageSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -635,6 +636,154 @@ class VendorManagementTest extends TestCase
             ->assertSee('(اختياري)')
             ->assertSee('إنشاء البائع')
             ->assertSee('<option value="approved" selected>معتمد</option>', false);
+    }
+
+    public function test_index_uses_the_admin_shell_and_shows_the_add_button_by_ability(): void
+    {
+        $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.index'))
+            ->assertOk()
+            ->assertSee('id="admin-vendors"', false)
+            ->assertDontSee('breadcrumb-item', false)
+            ->assertDontSee('Admin Workspace')
+            ->assertSee('href="'.route('dashboard.vendors.create').'" class="btn btn-primary"', false);
+
+        $this->actingAs($this->adminWith(['vendors.view']), 'admin')->get(route('dashboard.vendors.index'))
+            ->assertOk()
+            ->assertDontSee('href="'.route('dashboard.vendors.create').'"', false);
+
+        $this->actingAs($this->adminWith(['reviews.view']), 'admin')->get(route('dashboard.vendors.index'))->assertForbidden();
+    }
+
+    public function test_index_rows_show_store_owner_location_two_badges_and_the_view_link(): void
+    {
+        $vendor = Vendor::factory()->withProfile('rejected')->create(['name' => 'Row Owner', 'phone' => '0597000111', 'status' => 'blocked']);
+
+        $html = preg_replace('/\s+/', ' ', $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.index'))->assertOk()->getContent());
+
+        $this->assertStringContainsString('<table class="admin-products-table"> <caption class="visually-hidden">Vendors</caption>', $html);
+        $this->assertStringContainsString('<th scope="col">Store name</th>', $html);
+        $this->assertStringContainsString('<a href="'.route('dashboard.vendors.show', $vendor).'" class="admin-products-name-link"><bdi>'.e($vendor->profile->store_name).'</bdi></a>', $html);
+        $this->assertStringContainsString('<span class="admin-products-label">Owner</span> <bdi>Row Owner</bdi> <p class="admin-products-code" dir="ltr">0597000111</p>', $html);
+        $this->assertStringContainsString('<span class="admin-products-label">Location</span> <span class="admin-products-muted">—</span>', $html);
+        $this->assertStringContainsString('admin-products-badge is-suspended" data-approval-status="rejected">Rejected</span>', $html);
+        $this->assertStringContainsString('admin-products-badge is-suspended" data-account-status="blocked">Blocked</span>', $html);
+        $this->assertStringContainsString('<a href="'.route('dashboard.vendors.show', $vendor).'" class="btn btn-sm btn-light-secondary">', $html);
+        foreach (['Owner', 'Location', 'Approval status', 'Account status'] as $label) {
+            $this->assertStringContainsString('<span class="admin-products-label">'.$label.'</span>', $html);
+        }
+    }
+
+    public function test_index_shows_the_owner_avatar_only_for_a_stored_file_under_the_vendor_avatars_path(): void
+    {
+        Storage::fake('public');
+        $valid = Vendor::factory()->withProfile('approved')->create(['name' => 'Valid Avatar']);
+        $valid->update(['avatar' => 'vendors/avatars/'.$valid->id.'/face.png']);
+        Storage::disk('public')->put($valid->avatar, 'png');
+        $none = Vendor::factory()->withProfile('approved')->create(['name' => 'No Avatar', 'avatar' => null]);
+        $outside = Vendor::factory()->withProfile('approved')->create(['name' => 'Outside Path', 'avatar' => 'avatars/face.png']);
+        Storage::disk('public')->put('avatars/face.png', 'png');
+        $missing = Vendor::factory()->withProfile('approved')->create(['name' => 'Missing File', 'avatar' => 'vendors/avatars/999/gone.png']);
+
+        $html = preg_replace('/\s+/', ' ', $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.index'))->assertOk()->getContent());
+        $row = fn (Vendor $vendor): string => explode('</tr>', explode('data-vendor-id="'.$vendor->id.'"', $html)[1])[0];
+
+        $this->assertStringContainsString('<span class="admin-products-label">Owner</span> <img src="'.e(Storage::disk('public')->url($valid->avatar)).'" alt="" width="36" height="36" class="rounded-circle object-fit-cover align-middle"> <bdi>Valid Avatar</bdi>', $row($valid));
+        foreach ([$none, $outside, $missing] as $vendor) {
+            $this->assertStringNotContainsString('<img', $row($vendor), $vendor->name);
+            $this->assertStringContainsString('<span class="admin-products-label">Owner</span> <bdi>'.$vendor->name.'</bdi>', $row($vendor), $vendor->name);
+        }
+    }
+
+    public function test_index_badge_tones_follow_the_vendor_details_page(): void
+    {
+        $cases = [['approved', 'active', 'is-active', 'is-active'], ['pending', 'pending', 'is-low', 'is-low']];
+        foreach ($cases as [$approval, $account]) {
+            Vendor::factory()->withProfile($approval)->create(['status' => $account]);
+        }
+        $noProfile = Vendor::factory()->create(['status' => 'active']);
+
+        $response = $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.index'))->assertOk();
+
+        foreach ($cases as [$approval, $account, $approvalTone, $accountTone]) {
+            $response->assertSee('admin-products-badge '.$approvalTone.'" data-approval-status="'.$approval.'"', false)
+                ->assertSee('admin-products-badge '.$accountTone.'" data-account-status="'.$account.'"', false);
+        }
+        // A vendor without a store profile is shown as pending, as before.
+        $this->assertStringContainsString('data-approval-status="pending">Pending review',
+            preg_replace('/\s+/', ' ', explode('data-vendor-id="'.$noProfile->id.'"', $response->getContent())[1]));
+    }
+
+    public function test_index_search_and_approval_filter_keep_their_parameters_and_results(): void
+    {
+        $admin = $this->superAdmin();
+        $byName = Vendor::factory()->withProfile('approved')->create(['name' => 'Zainab Weaver', 'email' => 'zainab@example.com', 'phone' => '0591234000']);
+        $byStore = Vendor::factory()->withProfile('pending')->create(['name' => 'Other Owner']);
+        $byStore->profile->update(['store_name' => 'Olive Wood Atelier']);
+        $other = Vendor::factory()->withProfile('rejected')->create(['name' => 'Nobody Here']);
+
+        foreach (['Zainab' => $byName, 'zainab@example' => $byName, '0591234000' => $byName, 'Olive Wood' => $byStore] as $term => $expected) {
+            $ids = $this->actingAs($admin, 'admin')->get(route('dashboard.vendors.index', ['search' => $term]))
+                ->assertOk()
+                ->assertSee('value="'.$term.'"', false)
+                ->assertSee('Clear filters')
+                ->viewData('vendors')->pluck('id')->all();
+            $this->assertSame([$expected->id], $ids, "search {$term}");
+        }
+
+        $response = $this->actingAs($admin, 'admin')->get(route('dashboard.vendors.index', ['approval_status' => 'pending']))->assertOk();
+        $this->assertSame([$byStore->id], $response->viewData('vendors')->pluck('id')->all());
+        $response->assertSee('<option value="pending" selected>Pending review</option>', false);
+        $this->assertNotContains($other->id, $response->viewData('vendors')->pluck('id')->all());
+
+        $this->actingAs($admin, 'admin')->get(route('dashboard.vendors.index'))->assertOk()->assertDontSee('Clear filters');
+    }
+
+    public function test_index_empty_states_tell_no_vendors_from_no_matching_vendors(): void
+    {
+        $admin = $this->superAdmin();
+
+        $this->actingAs($admin, 'admin')->get(route('dashboard.vendors.index'))
+            ->assertOk()->assertSee('data-vendors-state="empty"', false)->assertSee('No vendors yet')->assertDontSee('No matching vendors');
+
+        Vendor::factory()->withProfile('approved')->create();
+        $this->actingAs($admin, 'admin')->get(route('dashboard.vendors.index', ['search' => 'no-such-vendor']))
+            ->assertOk()->assertSee('data-vendors-state="no-results"', false)->assertSee('No matching vendors')->assertSee('Clear filters');
+
+        $this->actingAs($admin, 'admin')->get(route('dashboard.vendors.index', ['page' => 9]))
+            ->assertOk()->assertSee('data-vendors-state="past-last-page"', false)->assertSee('Page 1');
+    }
+
+    public function test_index_uses_the_shared_pagination_and_keeps_the_query(): void
+    {
+        $admin = $this->superAdmin();
+        for ($i = 0; $i < 13; $i++) {
+            Vendor::factory()->withProfile('approved')->create(['name' => 'Paged Vendor '.$i]);
+        }
+
+        $response = $this->actingAs($admin, 'admin')->get(route('dashboard.vendors.index', ['search' => 'Paged']))->assertOk();
+        $this->assertCount(12, $response->viewData('vendors'));
+        $response->assertSee('class="admin-pagination"', false)
+            ->assertSee('Showing 1 to 12 of 13')
+            ->assertSee('search=Paged&amp;page=2', false);
+
+        $this->assertCount(1, $this->actingAs($admin, 'admin')->get(route('dashboard.vendors.index', ['search' => 'Paged', 'page' => 2]))->viewData('vendors'));
+    }
+
+    public function test_index_texts_come_from_the_seeded_translations_without_creating_rows(): void
+    {
+        $admin = $this->superAdmin();
+        Vendor::factory()->withProfile('approved')->create();
+
+        $this->actingAs($admin, 'admin')->get(route('dashboard.vendors.index'))->assertOk()->assertSee('Search vendors');
+        $this->assertSame(0, TranslationValue::where('key', 'like', 'dashboard.Vendors\_%')->count());
+
+        $this->seed(LanguageSeeder::class);
+        $this->seed(AdminVendorTranslationSeeder::class);
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->get(route('dashboard.vendors.index'))
+            ->assertOk()
+            ->assertSee('البحث في البائعين')
+            ->assertSee('حالة الموافقة')
+            ->assertSee('data-approval-status="approved">معتمد', false);
     }
 
     public function test_admin_without_vendor_create_ability_cannot_create_vendor(): void
