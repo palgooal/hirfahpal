@@ -687,7 +687,7 @@ class VendorManagementTest extends TestCase
         $html = preg_replace('/\s+/', ' ', $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.index'))->assertOk()->getContent());
         $row = fn (Vendor $vendor): string => explode('</tr>', explode('data-vendor-id="'.$vendor->id.'"', $html)[1])[0];
 
-        $this->assertStringContainsString('<span class="admin-products-label">Owner</span> <img src="'.e(Storage::disk('public')->url($valid->avatar)).'" alt="" width="36" height="36" class="rounded-circle object-fit-cover align-middle"> <bdi>Valid Avatar</bdi>', $row($valid));
+        $this->assertStringContainsString('<span class="admin-products-label">Owner</span> <img src="'.e(Storage::disk('public')->url($valid->avatar)).'" alt="" width="36" height="36" class="rounded-circle object-fit-cover align-middle d-inline-block"> <bdi>Valid Avatar</bdi>', $row($valid));
         foreach ([$none, $outside, $missing] as $vendor) {
             $this->assertStringNotContainsString('<img', $row($vendor), $vendor->name);
             $this->assertStringContainsString('<span class="admin-products-label">Owner</span> <bdi>'.$vendor->name.'</bdi>', $row($vendor), $vendor->name);

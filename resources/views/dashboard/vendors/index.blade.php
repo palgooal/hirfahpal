@@ -153,7 +153,7 @@
                                         <td>
                                             <span class="admin-products-label">{{ $vendText('Vendors_Show_Owner', 'Owner') }}</span>
                                             @if ($avatarUrl)
-                                                <img src="{{ $avatarUrl }}" alt="" width="36" height="36" class="rounded-circle object-fit-cover align-middle">
+                                                <img src="{{ $avatarUrl }}" alt="" width="36" height="36" class="rounded-circle object-fit-cover align-middle d-inline-block">
                                             @endif
                                             <bdi>{{ $vendor->name }}</bdi>
                                             @if (filled($vendor->phone))
