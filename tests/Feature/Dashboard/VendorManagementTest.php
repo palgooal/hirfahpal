@@ -635,7 +635,17 @@ class VendorManagementTest extends TestCase
             ->assertSee('(مطلوب)')
             ->assertSee('(اختياري)')
             ->assertSee('إنشاء البائع')
-            ->assertSee('<option value="approved" selected>معتمد</option>', false);
+            ->assertSee('<option value="approved" selected>معتمد</option>', false)
+            // The profile image field (label and hint) in Arabic, with no English left.
+            ->assertSee('<label class="form-label" for="vendor-avatar">الصورة الشخصية <span class="admin-cat-form-mark">(اختياري)</span></label>', false)
+            ->assertSee('<p class="admin-media-hint" id="vendor-avatar-hint">JPG أو PNG أو GIF أو WebP، بحجم أقصاه 5 ميغابايت.</p>', false)
+            ->assertDontSee('Profile image')
+            ->assertDontSee('up to 5 MB.');
+
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])->get(route('dashboard.vendors.create'))
+            ->assertOk()
+            ->assertSee('<label class="form-label" for="vendor-avatar">Profile image <span class="admin-cat-form-mark">(Optional)</span></label>', false)
+            ->assertSee('<p class="admin-media-hint" id="vendor-avatar-hint">JPG, PNG, GIF or WebP, up to 5 MB.</p>', false);
     }
 
     public function test_index_uses_the_admin_shell_and_shows_the_add_button_by_ability(): void
