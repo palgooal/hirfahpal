@@ -285,6 +285,10 @@ foreach (AccountGuard::all() as $accountType => $account) {
         });
 }
 
+// Vendor entry point: the dashboard's own gates decide where the visitor lands
+// (guest → login, unapproved → approval status, inactive → signed out).
+Route::redirect('/vendor', '/vendor/dashboard')->name('vendor.entry');
+
 /*
 |--------------------------------------------------------------------------
 | Customer Store Routes

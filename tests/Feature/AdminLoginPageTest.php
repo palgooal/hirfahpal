@@ -191,6 +191,14 @@ class AdminLoginPageTest extends TestCase
             ->assertSee('data-label-hide="إخفاء كلمة المرور"', false);
     }
 
+    public function test_admin_form_does_not_opt_into_the_vendor_submit_lock(): void
+    {
+        $this->page()
+            ->assertDontSee('data-submit-lock', false)
+            ->assertDontSee('data-loading-label', false)
+            ->assertDontSee('data-submit-status', false);
+    }
+
     private function page(): TestResponse
     {
         return $this->get(route('admin.login'));

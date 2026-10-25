@@ -26,7 +26,7 @@ class SiteAvailabilityVendorAllowlistTest extends TestCase
     private const ALLOWED_NAMES = [
         'vendor.login', 'vendor.login.store', 'vendor.logout',
         'vendor.password.request', 'vendor.password.email', 'vendor.password.reset', 'vendor.password.update',
-        'vendor.approval-status', 'vendor.dashboard',
+        'vendor.approval-status', 'vendor.dashboard', 'vendor.entry',
     ];
 
     /** Vendor routes deliberately closed in every closed state. */
