@@ -25,7 +25,7 @@ class UpdateProductRequest extends FormRequest
             'short_description' => ['nullable', 'string', 'max:1000'],
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
-            'compare_at_price' => ['nullable', 'numeric', 'min:0'],
+            'compare_at_price' => ['nullable', 'numeric', 'min:0', 'lt:price'],
             'sku' => ['nullable', 'string', 'max:255', Rule::unique('products', 'sku')->ignore($product)],
             'stock_quantity' => ['required', 'integer', 'min:0', $this->notBelowReservedStock($product)],
             'low_stock_threshold' => ['nullable', 'integer', 'min:0'],

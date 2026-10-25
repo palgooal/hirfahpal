@@ -118,6 +118,25 @@ class Product extends Model
     }
 
     /**
+     * The catalogue stores the regular price in price and, when a promotion is
+     * running, the lower selling price in compare_at_price.  Keeping this in
+     * one place prevents carts and checkout from charging the regular price.
+     */
+    public function sellingPrice(): float
+    {
+        $salePrice = $this->compare_at_price;
+
+        return $salePrice !== null && (float) $salePrice < (float) $this->price
+            ? (float) $salePrice
+            : (float) $this->price;
+    }
+
+    public function hasDiscount(): bool
+    {
+        return $this->compare_at_price !== null && (float) $this->compare_at_price < (float) $this->price;
+    }
+
+    /**
      * Storefront sellability requires both an active product and a vendor that
      * is currently allowed to sell. Checkout reuses this contract at write time.
      * AD-UI-PROD-M2: and a product that is neither suspended nor archived by the

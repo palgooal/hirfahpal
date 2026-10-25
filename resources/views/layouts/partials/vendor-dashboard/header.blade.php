@@ -46,14 +46,14 @@
                     aria-controls="vendor-user-dropdown"
                     aria-label="{{ t('vendor.Account_Menu', 'Account menu') }}: {{ $displayName }}"
                 >
-                    <span class="vendor-monogram vendor-monogram-sm" aria-hidden="true">{{ $initial }}</span>
+                    @if ($logo)<img src="{{ $logo }}" alt="" class="vendor-monogram vendor-monogram-sm object-fit-cover">@else<span class="vendor-monogram vendor-monogram-sm" aria-hidden="true">{{ $initial }}</span>@endif
                     <span class="vendor-user-trigger-name" dir="auto">{{ $displayName }}</span>
                     <i class="ti ti-chevron-down vendor-user-trigger-caret" aria-hidden="true"></i>
                 </button>
 
                 <div class="vendor-dropdown" id="vendor-user-dropdown" hidden>
                     <div class="vendor-dropdown-identity">
-                        <span class="vendor-monogram" aria-hidden="true">{{ $initial }}</span>
+                        @if ($logo)<img src="{{ $logo }}" alt="" class="vendor-monogram object-fit-cover">@else<span class="vendor-monogram" aria-hidden="true">{{ $initial }}</span>@endif
                         <span class="vendor-dropdown-identity-text">
                             <span class="vendor-dropdown-name"><bdi>{{ $displayName }}</bdi></span>
                             <span class="vendor-dropdown-role">{{ t('vendor.Portal', 'Vendor portal') }}</span>

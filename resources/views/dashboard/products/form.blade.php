@@ -174,7 +174,7 @@
                         <label class="form-label" for="product-price">{{ $fieldLabels['price'] }} <span class="admin-cat-form-mark">({{ $requiredMark }})</span></label>
                         <input type="number" @class(['form-control', 'is-invalid' => $errors->has('price')]) id="product-price" name="price" value="{{ old('price', $product->price) }}" step="0.01" min="0" inputmode="decimal" dir="ltr" required aria-required="true"
                             @error('price') aria-invalid="true" @enderror aria-describedby="{{ $describedBy('price', 'product-price-hint') }}">
-                        <p class="admin-media-hint" id="product-price-hint">{{ $prodText('Products_Form_Price_Hint', 'In the store currency, with up to two decimal places.') }}</p>
+                        <p class="admin-media-hint" id="product-price-hint">{{ $prodText('Products_Form_Price_Hint', 'Regular price, in the store currency, with up to two decimal places.') }}</p>
                         @error('price') <p class="admin-cat-form-error" id="product-price-error">{{ $message }}</p> @enderror
                     </div>
 
@@ -182,7 +182,7 @@
                         <label class="form-label" for="product-compare-price">{{ $fieldLabels['compare_at_price'] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
                         <input type="number" @class(['form-control', 'is-invalid' => $errors->has('compare_at_price')]) id="product-compare-price" name="compare_at_price" value="{{ old('compare_at_price', $product->compare_at_price) }}" step="0.01" min="0" inputmode="decimal" dir="ltr"
                             @error('compare_at_price') aria-invalid="true" @enderror aria-describedby="{{ $describedBy('compare_at_price', 'product-compare-price-hint') }}">
-                        <p class="admin-media-hint" id="product-compare-price-hint">{{ $prodText('Products_Form_Compare_Price_Hint', 'The previous higher price. When set, the store can show it crossed out next to the current price to explain the discount. It must be higher than the price.') }}</p>
+                        <p class="admin-media-hint" id="product-compare-price-hint">{{ $prodText('Products_Form_Compare_Price_Hint', 'Optional sale price. It must be lower than the regular price; the regular price is shown crossed out in the store.') }}</p>
                         @error('compare_at_price') <p class="admin-cat-form-error" id="product-compare-price-error">{{ $message }}</p> @enderror
                     </div>
                 </div>

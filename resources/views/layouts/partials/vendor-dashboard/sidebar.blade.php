@@ -28,7 +28,7 @@
 
         <div class="navbar-content vendor-navbar-content">
             <div class="vendor-store-card">
-                <span class="vendor-monogram" aria-hidden="true">{{ $initial }}</span>
+                @if ($logo)<img src="{{ $logo }}" alt="" class="vendor-monogram object-fit-cover">@else<span class="vendor-monogram" aria-hidden="true">{{ $initial }}</span>@endif
                 <span class="vendor-store-card-name"><bdi>{{ $displayName }}</bdi></span>
             </div>
 

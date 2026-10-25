@@ -161,6 +161,10 @@ class VendorManagementController extends Controller
 
         abort_if(! $vendor->profile, 404);
 
+        if ($vendor->profile->approval_status === 'approved') {
+            return back()->with('success', t('dashboard.Vendor_already_approved', 'This vendor is already approved.'));
+        }
+
         $vendor->profile()->update([
             'approval_status' => 'approved',
             'approved_at' => now(),

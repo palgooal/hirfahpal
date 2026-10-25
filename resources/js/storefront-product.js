@@ -130,9 +130,9 @@ if ($) {
             });
         }
 
-        // Quantity is UI-only: it never feeds price, cart or related cards.
+        const maxQuantity = Number($('#productQuantity').closest('[data-max-quantity]').data('maxQuantity')) || Number.MAX_SAFE_INTEGER;
         $('#quantityIncrease').on('click', function () {
-            const quantity = Math.min(3, Number($('#productQuantity').text()) + 1);
+            const quantity = Math.min(maxQuantity, Number($('#productQuantity').text()) + 1);
             $('#productQuantity').text(quantity);
         });
         $('#quantityDecrease').on('click', function () {

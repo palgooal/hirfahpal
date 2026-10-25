@@ -10,13 +10,14 @@
     // The approval gate guarantees a profile here; fall back to the account name if the store name is blank.
     $displayName = filled($vendor?->profile?->store_name) ? $vendor->profile->store_name : ($vendor?->name ?? '');
     $initial = mb_strtoupper(mb_substr(trim($displayName), 0, 1));
+    $logo = filled($vendor?->profile?->logo) ? \Illuminate\Support\Facades\Storage::disk('public')->url($vendor->profile->logo) : null;
 @endphp
 
 @include('layouts.partials.vendor-dashboard.head', ['title' => $title])
 
-    @include('layouts.partials.vendor-dashboard.sidebar', ['displayName' => $displayName, 'initial' => $initial])
+    @include('layouts.partials.vendor-dashboard.sidebar', ['displayName' => $displayName, 'initial' => $initial, 'logo' => $logo])
 
-    @include('layouts.partials.vendor-dashboard.header', ['displayName' => $displayName, 'initial' => $initial])
+    @include('layouts.partials.vendor-dashboard.header', ['displayName' => $displayName, 'initial' => $initial, 'logo' => $logo])
 
     <div class="pc-container">
         <main class="pc-content" id="vendor-main">

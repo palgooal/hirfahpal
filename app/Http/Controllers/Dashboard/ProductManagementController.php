@@ -338,7 +338,8 @@ class ProductManagementController extends Controller
     {
         // PRD-06: bounds of the columns (products: price and compare_at_price DECIMAL(10,2), weight DECIMAL(8,2),
         // stock_quantity and low_stock_threshold UNSIGNED INT), so an out-of-range value is a field error and not
-        // a database error. A compare-at price is the higher "was" price, so it must exceed the price.
+        // a database error. Price is the regular price and compare_at_price is
+        // the optional discounted selling price, so it must be lower.
         $data = $request->validate([
             'vendor_id' => ['required', 'exists:vendors,id'],
             'category_id' => ['nullable', 'exists:categories,id'],
@@ -349,7 +350,7 @@ class ProductManagementController extends Controller
             'short_description' => ['nullable', 'string', 'max:1000'],
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:'.self::MAX_PRICE],
-            'compare_at_price' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:'.self::MAX_PRICE, 'gt:price'],
+            'compare_at_price' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:'.self::MAX_PRICE, 'lt:price'],
             'sku' => ['nullable', 'string', 'max:255', Rule::unique('products', 'sku')->ignore($product)],
             'stock_quantity' => ['required', 'integer', 'min:0', 'max:'.self::MAX_UNSIGNED_INT],
             'low_stock_threshold' => ['nullable', 'integer', 'min:0', 'max:'.self::MAX_UNSIGNED_INT],

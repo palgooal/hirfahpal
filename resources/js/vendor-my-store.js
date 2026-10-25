@@ -98,6 +98,10 @@ function initMyStore() {
     const counter = root.querySelector('[data-counter-for="short_description"] bdi');
     const token = form.querySelector('input[name="_token"]').value;
     const defaultSaveLabel = saveLabel.textContent;
+    const logo = root.querySelector('[data-store-logo]');
+    const logoInput = root.querySelector('[data-store-logo-input]');
+    const logoDelete = root.querySelector('[data-store-logo-delete]');
+    const logoStatus = root.querySelector('[data-store-logo-status]');
 
     const field = (name) => form.elements.namedItem(name);
     const errorFor = (name) => root.querySelector(`[data-error-for="${name}"]`);
@@ -164,6 +168,10 @@ function initMyStore() {
         target.replaceChildren(text);
     };
 
+    const showLogo = (url) => {
+        if (isString(url) && url !== '') { logo.src = url; logo.hidden = false; logoDelete.hidden = false; } else { logo.removeAttribute('src'); logo.hidden = true; logoDelete.hidden = true; }
+    };
+
     const showLoading = () => {
         root.dataset.state = 'loading';
         loadError.hidden = true;
@@ -195,7 +203,8 @@ function initMyStore() {
                 throw new Error('profile-unavailable');
             }
 
-            const profile = pickProfile(await response.json());
+            const responsePayload = await response.json();
+            const profile = pickProfile(responsePayload);
 
             if (profile === null) {
                 throw new Error('profile-incomplete');
@@ -205,6 +214,7 @@ function initMyStore() {
                 field(name).value = value;
             });
             Object.entries(profile.display).forEach(([key, value]) => setReadonly(key, value));
+            showLogo(responsePayload?.media?.logo_url ?? null);
             updateCounter();
 
             preserved = profile.preserved;
@@ -360,6 +370,28 @@ function initMyStore() {
     });
 
     root.querySelector('[data-store-retry]').addEventListener('click', load);
+
+    logoInput.addEventListener('change', async () => {
+        const file = logoInput.files?.[0];
+        if (!file) return;
+        logoStatus.textContent = 'Uploading…';
+        const body = new FormData(); body.append('file', file);
+        try {
+            const response = await fetch(root.dataset.logoUploadUrl, { method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': token }, body });
+            if (!response.ok) throw new Error('upload-failed');
+            const payload = await response.json(); showLogo(payload.url); logoStatus.textContent = 'Logo saved.';
+        } catch { logoStatus.textContent = 'The logo could not be uploaded. Please use a JPEG, PNG or WebP image.'; }
+        logoInput.value = '';
+    });
+
+    logoDelete.addEventListener('click', async () => {
+        if (!window.confirm('Delete the store logo?')) return;
+        try {
+            const response = await fetch(root.dataset.logoDeleteUrl, { method: 'DELETE', credentials: 'same-origin', headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': token } });
+            if (!response.ok) throw new Error('delete-failed');
+            showLogo(null); logoStatus.textContent = 'Logo deleted.';
+        } catch { logoStatus.textContent = 'The logo could not be deleted.'; }
+    });
 
     load();
 }

@@ -48,6 +48,8 @@
         data-state="loading"
         data-profile-url="{{ route('vendor.dashboard.profile.show') }}"
         data-update-url="{{ route('vendor.dashboard.profile.update') }}"
+        data-logo-upload-url="{{ route('vendor.dashboard.profile.media.store', 'logo') }}"
+        data-logo-delete-url="{{ route('vendor.dashboard.profile.media.destroy', 'logo') }}"
     >
         <div class="card vendor-home-error" data-store-load-error hidden>
             <div class="card-body">
@@ -88,6 +90,19 @@
                         <textarea class="vendor-input vendor-textarea" id="vendor-field-description" name="description" rows="5" dir="auto" disabled aria-describedby="vendor-error-description"></textarea>
                         <p class="vendor-field-error" id="vendor-error-description" data-error-for="description" hidden></p>
                     </div>
+                </div>
+            </section>
+
+            <section class="card vendor-form-card" aria-labelledby="vendor-store-logo-title">
+                <div class="card-body">
+                    <h2 id="vendor-store-logo-title" class="vendor-section-title">{{ t('vendor.My_Store_Logo', 'Store logo') }}</h2>
+                    <p class="vendor-empty mb-3">{{ t('vendor.My_Store_Logo_Hint', 'Upload an image to appear next to your store name in the vendor dashboard.') }}</p>
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <img data-store-logo hidden alt="" width="72" height="72" class="rounded-circle object-fit-cover border">
+                        <input class="form-control" data-store-logo-input type="file" accept="image/jpeg,image/png,image/webp" aria-label="{{ t('vendor.My_Store_Logo', 'Store logo') }}" style="max-width: 320px">
+                        <button class="btn btn-light-danger" type="button" data-store-logo-delete hidden>{{ t('vendor.Delete', 'Delete') }}</button>
+                    </div>
+                    <p class="vendor-form-status" data-store-logo-status role="status" aria-live="polite"></p>
                 </div>
             </section>
 

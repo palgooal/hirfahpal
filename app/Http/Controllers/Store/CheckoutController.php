@@ -102,7 +102,7 @@ class CheckoutController extends Controller
                 ->keyBy('id');
 
             $groupedItems = $cart->items->groupBy(fn ($item) => $item->product->vendor_id);
-            $subtotal = $cart->items->sum(fn ($item) => $item->quantity * (float) $lockedProducts->get($item->product_id)?->price);
+            $subtotal = $cart->items->sum(fn ($item) => $item->quantity * $lockedProducts->get($item->product_id)?->sellingPrice());
             $deliveryTotal = collect($data['delivery_fees'] ?? [])->sum();
 
             $order = Order::query()->create([
@@ -120,7 +120,7 @@ class CheckoutController extends Controller
             ]);
 
             foreach ($groupedItems as $vendorId => $items) {
-                $vendorSubtotal = $items->sum(fn ($item) => $item->quantity * (float) $lockedProducts->get($item->product_id)?->price);
+                $vendorSubtotal = $items->sum(fn ($item) => $item->quantity * $lockedProducts->get($item->product_id)?->sellingPrice());
                 $deliveryFee = (float) ($data['delivery_fees'][$vendorId] ?? 0);
 
                 $vendorOrder = VendorOrder::query()->create([
@@ -139,7 +139,7 @@ class CheckoutController extends Controller
                     abort_if($product === null, 422, 'A product in the cart is no longer available.');
                     abort_unless($product->isSellable(), 422, "Product [{$product->name}] is no longer available for sale.");
                     abort_if($product->availableStockQuantity() < $item->quantity, 422, "Product [{$product->name}] is out of stock.");
-                    $unitPrice = (float) $product->price;
+                    $unitPrice = $product->sellingPrice();
 
                     $orderItem = $order->items()->create([
                         'vendor_order_id' => $vendorOrder->id,

@@ -37,7 +37,7 @@ class StorefrontPageController extends Controller
         $cities = $this->filterValues($request, 'city');
 
         $products = $this->products()
-            ->when($request->boolean('sale'), fn (Builder $query) => $query->whereColumn('compare_at_price', '>', 'price'))
+            ->when($request->boolean('sale'), fn (Builder $query) => $query->whereColumn('compare_at_price', '<', 'price'))
             ->when($categories !== [], fn (Builder $query) => $query->whereHas('category', fn (Builder $category) => $category->whereIn('slug', $categories)))
             ->when($vendors !== [], fn (Builder $query) => $query->whereHas('vendor.profile', fn (Builder $profile) => $profile->whereIn('slug', $vendors)))
             ->when($cities !== [], fn (Builder $query) => $query->whereHas('vendor.profile.city', fn (Builder $city) => $city->whereIn('slug', $cities)))
@@ -68,7 +68,7 @@ class StorefrontPageController extends Controller
 
     public function product(Request $request)
     {
-        $request->validate(['slug' => ['nullable', 'string', 'max:255'], 'quantity' => ['nullable', 'integer', 'min:1', 'max:3']]);
+        $request->validate(['slug' => ['nullable', 'string', 'max:255'], 'quantity' => ['nullable', 'integer', 'min:1']]);
         $product = $this->products()->when($request->filled('slug'), fn ($query) => $query->where('slug', $request->input('slug')))->latest('id')->first();
         if (! $product && ! $request->filled('slug')) {
             return redirect()->route('browse');
@@ -79,7 +79,7 @@ class StorefrontPageController extends Controller
 
         return view('pages.product', [
             'product' => $product,
-            'selectedQuantity' => min($request->integer('quantity', 1), max(1, min(3, $product->availableStockQuantity()))),
+            'selectedQuantity' => min($request->integer('quantity', 1), max(1, $product->availableStockQuantity())),
             'productImages' => $product->images->isNotEmpty() ? $product->images->sortByDesc('is_primary')->values() : collect([new ProductImage(['alt_text' => $product->name])]),
             'productReviews' => $reviews,
             'reviewDistribution' => collect(range(1, 5))->mapWithKeys(fn ($rating) => [$rating => $reviews->isEmpty() ? 0 : (int) round($reviews->where('rating', $rating)->count() * 100 / $reviews->count())])->all(),
@@ -122,7 +122,7 @@ class StorefrontPageController extends Controller
             'cart' => $cart,
             'cartItems' => $items,
             'cartGroups' => $items->groupBy(fn ($item) => $item->product->vendor_id),
-            'subtotal' => $items->sum(fn ($item) => $item->quantity * (float) $item->product->price),
+            'subtotal' => $items->sum(fn ($item) => $item->quantity * $item->product->sellingPrice()),
             'deliveryTotal' => $items->pluck('product.vendor_id')->unique()->count() * max(0, (float) config('marketplace.delivery_fee', 0)),
         ];
     }

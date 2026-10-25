@@ -127,7 +127,7 @@
                   <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:max-w-[420px]">
                     <div>
                       <span class="block text-[11px] font-semibold leading-4 text-muted">سعر القطعة</span>
-                      <strong class="block text-sm font-bold leading-6 text-ink"><bdi>{{ number_format($item->product->price, 2) }} {{ $currency }}</bdi></strong>
+                      @if ($item->product->hasDiscount())<span class="block text-xs text-muted line-through"><bdi>{{ number_format($item->product->price, 2) }} {{ $currency }}</bdi></span>@endif<strong class="block text-sm font-bold leading-6 text-ink"><bdi>{{ number_format($item->product->sellingPrice(), 2) }} {{ $currency }}</bdi></strong>
                     </div>
                     <div>
                       <span class="block text-[11px] font-semibold leading-4 text-muted">الكمية</span>
@@ -138,7 +138,7 @@
                 <div class="flex items-center justify-between gap-3 border-t border-line/60 pt-4 sm:col-start-2 lg:col-start-auto lg:flex-col lg:items-end lg:border-t-0 lg:pt-0">
                   <div class="text-start lg:text-end">
                     <span class="block text-[11px] font-semibold leading-4 text-muted">إجمالي السطر</span>
-                    <strong class="block text-lg font-bold leading-7 text-olive"><bdi>{{ number_format($item->quantity * $item->product->price, 2) }} {{ $currency }}</bdi></strong>
+                    <strong class="block text-lg font-bold leading-7 text-olive"><bdi>{{ number_format($item->quantity * $item->product->sellingPrice(), 2) }} {{ $currency }}</bdi></strong>
                   </div>
                 </div>
               </article>
@@ -149,7 +149,7 @@
             <footer class="grid gap-3 border-t border-line bg-canvas px-4 py-4 text-start sm:px-5">
               <div class="flex items-center justify-between gap-4">
                 <span class="text-sm font-semibold leading-6 text-muted">المجموع الفرعي</span>
-                <strong class="text-xl font-bold leading-8 text-ink"><bdi>{{ number_format($items->sum(fn ($item) => $item->quantity * $item->product->price), 2) }} {{ $currency }}</bdi></strong>
+                <strong class="text-xl font-bold leading-8 text-ink"><bdi>{{ number_format($items->sum(fn ($item) => $item->quantity * $item->product->sellingPrice()), 2) }} {{ $currency }}</bdi></strong>
               </div>
               <div class="flex items-center justify-between gap-4">
                 <span class="text-sm font-semibold leading-6 text-muted">توصيل هذا التاجر</span>
@@ -157,7 +157,7 @@
               </div>
               <div class="flex items-center justify-between gap-4 border-t border-line/70 pt-3">
                 <span class="text-sm font-bold leading-6 text-ink">المجموع مع التوصيل</span>
-                <strong class="text-xl font-bold leading-8 text-olive"><bdi>{{ number_format($items->sum(fn ($item) => $item->quantity * $item->product->price) + config('marketplace.delivery_fee'), 2) }} {{ $currency }}</bdi></strong>
+                <strong class="text-xl font-bold leading-8 text-olive"><bdi>{{ number_format($items->sum(fn ($item) => $item->quantity * $item->product->sellingPrice()) + config('marketplace.delivery_fee'), 2) }} {{ $currency }}</bdi></strong>
               </div>
             </footer>
           </article>

@@ -7,13 +7,39 @@ if (editor) {
     const endpoint = editor.dataset.endpoint;
     const token = form.querySelector('input[name="_token"]').value;
     let editingId = null;
+    let images = [];
 
     const field = (name) => form.elements.namedItem(name);
     const optional = (name) => field(name).value.trim() || null;
     const numberOrNull = (name) => field(name).value === '' ? null : Number(field(name).value);
 
     const show = () => { editor.hidden = false; editor.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
-    const close = () => { editor.hidden = true; error.hidden = true; error.textContent = ''; form.reset(); field('low_stock_threshold').value = '1'; editingId = null; title.textContent = 'Add product'; };
+    const imageManager = () => editor.querySelector('[data-product-images-current]');
+    const renderImages = () => {
+        const manager = imageManager();
+        if (!manager) return;
+        manager.replaceChildren();
+        images.forEach((image) => {
+            const card = document.createElement('div'); card.className = 'border rounded p-2 d-inline-flex flex-column gap-2';
+            const preview = document.createElement('img'); preview.src = image.url || `/storage/${image.path}`; preview.alt = image.alt_text || 'Product image'; preview.width = 96; preview.height = 96; preview.className = 'object-fit-cover rounded';
+            const actions = document.createElement('div'); actions.className = 'd-flex gap-1';
+            const primary = document.createElement('button'); primary.type = 'button'; primary.className = 'btn btn-sm btn-light-primary'; primary.textContent = image.is_primary ? 'Main image' : 'Set as main'; primary.disabled = Boolean(image.is_primary);
+            primary.addEventListener('click', async () => {
+                const response = await request(`${endpoint}/${editingId}/images/${image.id}`, 'PATCH', { is_primary: true, alt_text: image.alt_text, sort_order: image.sort_order });
+                if (!response.ok) return reportError('The main image could not be changed.');
+                images = (await response.json()).product.images || []; renderImages();
+            });
+            const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'btn btn-sm btn-light-danger'; remove.textContent = 'Delete';
+            remove.addEventListener('click', async () => {
+                if (!window.confirm('Delete this image?')) return;
+                const response = await request(`${endpoint}/${editingId}/images/${image.id}`, 'DELETE');
+                if (!response.ok) return reportError('The image could not be deleted.');
+                images = (await response.json()).product.images || []; renderImages();
+            });
+            actions.append(primary, remove); card.append(preview, actions); manager.append(card);
+        });
+    };
+    const close = () => { editor.hidden = true; error.hidden = true; error.textContent = ''; form.reset(); field('low_stock_threshold').value = '1'; editingId = null; images = []; renderImages(); title.textContent = 'Add product'; };
     const reportError = (message) => { error.textContent = message; error.hidden = false; };
     const payload = () => ({
         name: field('name').value.trim(), category_id: numberOrNull('category_id'), price: numberOrNull('price'), stock_quantity: numberOrNull('stock_quantity'),
@@ -55,7 +81,7 @@ if (editor) {
         const product = (await response.json()).product;
         form.reset();
         ['name', 'category_id', 'price', 'stock_quantity', 'status', 'sku', 'compare_at_price', 'low_stock_threshold', 'weight', 'short_description', 'description'].forEach((name) => { field(name).value = product[name] ?? ''; });
-        editingId = id; title.textContent = 'Edit product'; show();
+        editingId = id; images = product.images || []; renderImages(); title.textContent = 'Edit product'; show();
     });
 
     form.addEventListener('submit', async (event) => {
@@ -67,7 +93,9 @@ if (editor) {
             return;
         }
         try {
-            await uploadImages((await response.json()).product);
+            const product = (await response.json()).product;
+            await uploadImages(product);
+            if (editingId) { const refreshed = await request(`${endpoint}/${editingId}`); images = refreshed.ok ? (await refreshed.json()).product.images || [] : images; renderImages(); }
             close(); window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products' } }));
         } catch {
             reportError('The product was saved, but one or more images could not be uploaded.');

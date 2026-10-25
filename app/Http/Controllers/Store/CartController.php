@@ -44,7 +44,7 @@ class CartController extends Controller
 
         $item->fill([
             'quantity' => $nextQuantity,
-            'unit_price' => $product->price,
+            'unit_price' => $product->sellingPrice(),
         ])->save();
 
         return BrowserResponse::saved($request, $cart->fresh(['items.product.vendor.profile', 'items.product.primaryImage']), 201,

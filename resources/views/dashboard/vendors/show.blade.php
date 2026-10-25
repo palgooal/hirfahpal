@@ -158,9 +158,9 @@
                         <h3 class="admin-product-moderation-title" id="vendor-approve-title">{{ $vendText('Vendors_Approve_Title', 'Approve the store') }}</h3>
                         <p class="admin-product-moderation-hint">{{ $vendText('Vendors_Approve_Hint', 'An approved store can sell while its account is active. The account status is not changed.') }}</p>
                         <div class="admin-product-moderation-actions">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary" @disabled($approval === 'approved') aria-describedby="vendor-approve-title">
                                 <i class="ph-duotone ph-check-circle" aria-hidden="true"></i>
-                                <span>{{ $vendText('Vendors_Approve_Submit', 'Approve vendor') }}</span>
+                                <span>{{ $approval === 'approved' ? $vendText('Vendors_Approval_Approved', 'Approved') : $vendText('Vendors_Approve_Submit', 'Approve vendor') }}</span>
                             </button>
                         </div>
                     </form>

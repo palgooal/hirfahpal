@@ -64,8 +64,8 @@
               src="{{ asset('assets/storefront/imgs/product-page/hero-star.svg') }}" alt="" class="h-[14px] w-[15px]"></span><strong>{{ number_format($product->reviews_avg_rating ?? 0, 1) }}</strong><span
             class="text-muted">({{ $product->reviews_count }} تقييماً موثقاً من مشترين فعليين)</span><span class="flex items-center gap-1 text-olive"><img
               src="{{ asset('assets/storefront/imgs/product-page/hero-authentic.svg') }}" alt="" class="h-[15px] w-[15px]">100% صناعة يدوية أصيلة</span></div>
-        <div class="mt-6 rounded-[24px] border border-line bg-surface p-5 shadow-sm"><strong
-            class="block text-4xl leading-10 text-olive"><bdi>{{ number_format($product->price, 2) }} {{ $currency }}</bdi></strong><span
+        <div class="mt-6 rounded-[24px] border border-line bg-surface p-5 shadow-sm">@if ($product->hasDiscount())<span class="mb-1 block text-sm text-muted line-through"><bdi>{{ number_format($product->price, 2) }} {{ $currency }}</bdi></span>@endif<strong
+            class="block text-4xl leading-10 text-olive"><bdi>{{ number_format($product->sellingPrice(), 2) }} {{ $currency }}</bdi></strong><span
             class="text-xs text-muted">شامل الضريبة والشحن من المشغل</span>
           <div class="mt-3 flex flex-wrap gap-2"><span class="rounded-full bg-olive px-3 py-1 text-xs text-white"><i
                 class="ms-1 inline-block h-2 w-2 rounded-full bg-sage"></i>{{ $product->availableStockQuantity() > 0 ? 'متوفر وجاهز للطلب' : 'غير متوفر حالياً' }}</span><span
@@ -73,13 +73,13 @@
         </div>
         <p class="mt-6 text-sm leading-7 text-ink sm:text-[15px]">{{ $product->short_description ?: $product->description }}</p>
         <div class="mt-6 grid grid-cols-[auto_1fr] items-center gap-3 text-xs sm:flex sm:flex-wrap sm:gap-4"><strong>الكمية المطلوبة:</strong>
-          <div class="flex h-[42px] items-center overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
-            <button form="quantity-plus" type="submit" id="quantityIncrease" @disabled($selectedQuantity >= min(3, $product->availableStockQuantity())) class="flex h-10 w-10 cursor-pointer items-center justify-center transition-colors hover:bg-canvas active:bg-sage/40"
-              aria-label="زيادة الكمية"><i data-lucide="plus" class="h-4 w-4"></i></button><form hidden id="quantity-plus" method="GET" action="{{ route('product') }}"><input type="hidden" name="slug" value="{{ $product->slug }}"><input type="hidden" name="quantity" value="{{ min(3, max(1, $product->availableStockQuantity()), $selectedQuantity + 1) }}"></form><span id="productQuantity"
+          <div class="flex h-[42px] items-center overflow-hidden rounded-xl border border-line bg-surface shadow-sm" data-max-quantity="{{ $product->availableStockQuantity() }}">
+            <button form="quantity-plus" type="submit" id="quantityIncrease" @disabled($selectedQuantity >= $product->availableStockQuantity()) class="flex h-10 w-10 cursor-pointer items-center justify-center transition-colors hover:bg-canvas active:bg-sage/40"
+              aria-label="زيادة الكمية"><i data-lucide="plus" class="h-4 w-4"></i></button><form hidden id="quantity-plus" method="GET" action="{{ route('product') }}"><input type="hidden" name="slug" value="{{ $product->slug }}"><input type="hidden" name="quantity" value="{{ min(max(1, $product->availableStockQuantity()), $selectedQuantity + 1) }}"></form><span id="productQuantity"
               class="flex h-10 w-9 items-center justify-center font-bold">{{ $selectedQuantity }}</span><button form="quantity-minus" type="submit" id="quantityDecrease" @disabled($selectedQuantity <= 1)
               class="flex h-10 w-10 cursor-pointer items-center justify-center transition-colors hover:bg-canvas active:bg-sage/40" aria-label="تقليل الكمية"><i data-lucide="minus"
                 class="h-4 w-4"></i></button><form hidden id="quantity-minus" method="GET" action="{{ route('product') }}"><input type="hidden" name="slug" value="{{ $product->slug }}"><input type="hidden" name="quantity" value="{{ max(1, $selectedQuantity - 1) }}"></form>
-          </div><span class="col-span-2 text-muted sm:col-auto">الحد الأقصى للطلب: {{ min(3, $product->availableStockQuantity()) }} قطع</span>
+          </div><span class="col-span-2 text-muted sm:col-auto">الحد الأقصى للطلب: {{ $product->availableStockQuantity() }} قطع</span>
         </div>
         <div class="mt-4 flex gap-3"><button form="main-cart-{{ $product->id }}" type="submit"
             class="add-cart flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-sage font-bold shadow-md transition-[background-color,transform,box-shadow] hover:bg-[#a7af82] hover:shadow-lg active:scale-[0.99]"

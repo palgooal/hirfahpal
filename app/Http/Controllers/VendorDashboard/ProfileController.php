@@ -8,14 +8,21 @@ use App\Models\VendorProfile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ProfileController extends Controller
 {
     public function show(Request $request): JsonResponse
     {
+        $vendor = $request->user('vendor')->load(['profile.governorate', 'profile.city']);
+
         return response()->json([
-            'vendor' => $request->user('vendor')->load(['profile.governorate', 'profile.city']),
+            'vendor' => $vendor,
+            'media' => [
+                'logo_url' => $vendor->profile?->logo ? Storage::disk('public')->url($vendor->profile->logo) : null,
+                'cover_url' => $vendor->profile?->cover_image ? Storage::disk('public')->url($vendor->profile->cover_image) : null,
+            ],
         ]);
     }
 
