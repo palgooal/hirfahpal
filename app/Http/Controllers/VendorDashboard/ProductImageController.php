@@ -4,8 +4,8 @@ namespace App\Http\Controllers\VendorDashboard;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\VendorDashboard\StoreProductImageRequest;
-use App\Http\Requests\VendorDashboard\UploadProductImageRequest;
 use App\Http\Requests\VendorDashboard\UpdateProductImageRequest;
+use App\Http\Requests\VendorDashboard\UploadProductImageRequest;
 use App\Models\Product;
 use App\Models\ProductImage;
 use Illuminate\Http\JsonResponse;
@@ -35,6 +35,25 @@ class ProductImageController extends Controller
             'image' => $image->fresh(),
             'product' => $product->fresh('images'),
         ], 201);
+    }
+
+    /** Images previously uploaded by this vendor, available for reuse on another product. */
+    public function library(Request $request): JsonResponse
+    {
+        $vendor = $request->user('vendor');
+        $images = ProductImage::query()
+            ->whereHas('product', fn ($query) => $query->where('vendor_id', $vendor->id))
+            ->latest('id')
+            ->get()
+            ->unique('path')
+            ->values()
+            ->map(fn (ProductImage $image) => [
+                'path' => $image->path,
+                'alt_text' => $image->alt_text,
+                'url' => Storage::disk('public')->url($image->path),
+            ]);
+
+        return response()->json(['images' => $images]);
     }
 
     public function update(UpdateProductImageRequest $request, Product $product, ProductImage $productImage): JsonResponse

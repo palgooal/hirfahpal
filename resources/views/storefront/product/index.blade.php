@@ -17,9 +17,11 @@
           class="group relative aspect-[4/5] overflow-hidden rounded-[24px] border border-line bg-surface shadow-sm">
           <img id="productMainImage" src="{{ \App\Support\Storefront\HomepageMedia::url($product->primaryImage?->path ?? $product->images->first()?->path) }}" alt="{{ $product->name }}" draggable="false"
             class="h-full w-full object-cover transition-[opacity,transform] duration-300 ease-out will-change-[opacity,transform]">
-          <div class="absolute right-4 top-4 flex flex-col items-start gap-2"><span
-              class="rounded-full bg-copper px-3 py-1 text-xs font-bold text-white shadow-sm">إصدار حرفي
-              محدود</span><span class="rounded-full bg-olive px-3 py-1 text-xs font-bold text-surface shadow-sm">{{ $product->vendor->profile->location_name }}</span></div>
+          <div class="absolute right-4 top-4 flex flex-col items-start gap-2">
+            @if ($product->is_limited_edition)<span class="rounded-full bg-copper px-3 py-1 text-xs font-bold text-white shadow-sm">إصدار حرفي محدود</span>@endif
+            @foreach ($product->highlight_tags ?? [] as $tag)<span class="rounded-full bg-[#2563eb] px-3 py-1 text-xs font-bold text-white shadow-sm">{{ $tag }}</span>@endforeach
+            <span class="rounded-full bg-olive px-3 py-1 text-xs font-bold text-surface shadow-sm">{{ $product->vendor->profile->location_name }}</span>
+          </div>
           <button form="main-favorite-{{ $product->id }}" type="submit"
             class="favorite absolute left-4 top-4 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-line bg-surface/95 shadow-sm backdrop-blur-sm"
             aria-label="أضف إلى المفضلة"><img src="{{ asset('assets/storefront/imgs/product-page/hero-heart.svg') }}" alt=""
@@ -72,6 +74,7 @@
               class="rounded-full bg-copper/10 px-3 py-1 text-xs font-semibold text-copper">{{ $product->availableStockQuantity() }} قطعة متاحة</span></div>
         </div>
         <p class="mt-6 text-sm leading-7 text-ink sm:text-[15px]">{{ $product->short_description ?: $product->description }}</p>
+        @if (filled($product->craft_tags))<div class="mt-4 flex flex-wrap gap-2">@foreach ($product->craft_tags as $tag)<span class="rounded-full border border-copper/30 bg-copper/10 px-3 py-1 text-xs font-semibold text-copper">{{ $tag }}</span>@endforeach</div>@endif
         <div class="mt-6 grid grid-cols-[auto_1fr] items-center gap-3 text-xs sm:flex sm:flex-wrap sm:gap-4"><strong>الكمية المطلوبة:</strong>
           <div class="flex h-[42px] items-center overflow-hidden rounded-xl border border-line bg-surface shadow-sm" data-max-quantity="{{ $product->availableStockQuantity() }}">
             <button form="quantity-plus" type="submit" id="quantityIncrease" @disabled($selectedQuantity >= $product->availableStockQuantity()) class="flex h-10 w-10 cursor-pointer items-center justify-center transition-colors hover:bg-canvas active:bg-sage/40"
@@ -161,7 +164,7 @@
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4"><span
               class="text-[11px] text-[#fde68a]/80">مكان الصنع</span><strong class="mt-1 block text-sm">{{ $product->vendor->profile->location_name }}</strong></div>
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4"><span
-              class="text-[11px] text-[#fde68a]/80">زمن الإنجاز</span><strong class="mt-1 block text-sm">غير محدد</strong></div>
+              class="text-[11px] text-[#fde68a]/80">زمن الإنجاز</span><strong class="mt-1 block text-sm">{{ $product->vendor->profile->preparation_days !== null ? $product->vendor->profile->preparation_days.' يوم' : 'غير محدد' }}</strong></div>
           <div class="col-span-2 rounded-2xl border border-white/15 bg-white/10 p-4"><span
               class="text-[11px] text-[#fde68a]/80">طريقة العناية الموصى بها</span><strong
               class="mt-1 block text-sm">يرجى الرجوع لتعليمات المتجر</strong></div>

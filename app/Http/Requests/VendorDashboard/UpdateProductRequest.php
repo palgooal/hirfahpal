@@ -34,8 +34,14 @@ class UpdateProductRequest extends FormRequest
             'dimensions.length' => ['nullable', 'numeric', 'min:0'],
             'dimensions.width' => ['nullable', 'numeric', 'min:0'],
             'dimensions.height' => ['nullable', 'numeric', 'min:0'],
-            'status' => ['required', Rule::in(['draft', 'active', 'inactive', 'out_of_stock'])],
+            // Product status is managed by the dashboard administrator, not by the vendor form.
+            'status' => ['nullable', Rule::in(['draft', 'active', 'inactive', 'out_of_stock'])],
             'is_featured' => ['nullable', 'boolean'],
+            'is_limited_edition' => ['nullable', 'boolean'],
+            'highlight_tags' => ['nullable', 'array', 'max:5'],
+            'highlight_tags.*' => ['string', 'max:40'],
+            'craft_tags' => ['nullable', 'array', 'max:5'],
+            'craft_tags.*' => ['string', 'max:40'],
         ];
     }
 

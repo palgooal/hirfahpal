@@ -38,31 +38,43 @@
     </div>
 
     @if ($resource === 'products')
-        <div class="col-span-12" data-product-editor data-endpoint="{{ $page['endpoint'] }}" hidden>
-            <section class="card">
+        <div class="col-span-12 admin-media admin-cat-form admin-product-form vendor-product-form" data-product-editor data-endpoint="{{ $page['endpoint'] }}" data-media-library-url="{{ route('vendor.dashboard.products.media.library') }}" data-media-store-url="{{ route('vendor.dashboard.products.media.store') }}" hidden>
+            <section class="card admin-media-panel admin-cat-form-card">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
-                        <h2 class="vendor-section-title mb-0" data-product-editor-title>{{ t('vendor.Product_New', 'Add product') }}</h2>
+                    <div class="admin-media-head admin-product-form-head">
+                        <h2 class="admin-product-title" data-product-editor-title>{{ t('vendor.Product_New', 'Add product') }}</h2>
                         <button type="button" class="btn btn-light-secondary" data-product-editor-close>{{ t('vendor.Cancel', 'Cancel') }}</button>
                     </div>
                     <form data-product-form novalidate>
                         @csrf
-                        <div class="row g-3">
+                        <fieldset class="admin-cat-form-section">
+                            <legend class="admin-cat-form-legend">Product details</legend>
+                            <div class="row g-3">
                             <div class="col-md-6"><label class="form-label" for="vendor-product-name">{{ t('vendor.Product_Name', 'Name') }} *</label><input id="vendor-product-name" class="form-control" name="name" required maxlength="255"></div>
                             <div class="col-md-6"><label class="form-label" for="vendor-product-category">{{ t('vendor.Product_Category', 'Category') }}</label><select id="vendor-product-category" class="form-select" name="category_id"><option value="">{{ t('vendor.Product_No_Category', 'No category') }}</option></select></div>
-                            <div class="col-md-4"><label class="form-label" for="vendor-product-price">{{ t('vendor.Product_Price', 'Regular price') }} *</label><input id="vendor-product-price" class="form-control" name="price" type="number" min="0.01" step="0.01" required></div>
-                            <div class="col-md-4"><label class="form-label" for="vendor-product-stock">{{ t('vendor.Product_Stock', 'Stock') }} *</label><input id="vendor-product-stock" class="form-control" name="stock_quantity" type="number" min="0" step="1" required></div>
-                            <div class="col-md-4"><label class="form-label" for="vendor-product-status">{{ t('vendor.Product_Status', 'Status') }} *</label><select id="vendor-product-status" class="form-select" name="status"><option value="draft">Draft</option><option value="active">Active</option><option value="inactive">Inactive</option><option value="out_of_stock">Out of stock</option></select></div>
                             <div class="col-md-6"><label class="form-label" for="vendor-product-sku">SKU</label><input id="vendor-product-sku" class="form-control" name="sku" maxlength="255"></div>
+                            <div class="col-md-6"><label class="form-label" for="vendor-product-stock">{{ t('vendor.Product_Stock', 'Stock') }} *</label><input id="vendor-product-stock" class="form-control" name="stock_quantity" type="number" min="0" step="1" required></div>
+                            <div class="col-12"><label class="form-label" for="vendor-product-short-description">{{ t('vendor.Product_Short_Description', 'Short description') }}</label><textarea id="vendor-product-short-description" class="form-control" name="short_description" rows="2" maxlength="1000"></textarea></div>
+                            <div class="col-12"><label class="form-label" for="vendor-product-description">{{ t('vendor.Product_Description', 'Description') }}</label><textarea id="vendor-product-description" class="form-control" name="description" rows="5"></textarea></div>
+                            </div>
+                        </fieldset>
+                        <fieldset class="admin-cat-form-section">
+                            <legend class="admin-cat-form-legend">Price, stock and shipping</legend>
+                            <div class="row g-3">
+                            <div class="col-md-6"><label class="form-label" for="vendor-product-price">{{ t('vendor.Product_Price', 'Regular price') }} *</label><input id="vendor-product-price" class="form-control" name="price" type="number" min="0.01" step="0.01" required></div>
                             <div class="col-md-6"><label class="form-label" for="vendor-product-compare-price">{{ t('vendor.Product_Compare_Price', 'Sale price (optional)') }}</label><input id="vendor-product-compare-price" class="form-control" name="compare_at_price" type="number" min="0" step="0.01"><p class="form-text mb-0">Must be lower than the regular price.</p></div>
                             <div class="col-md-6"><label class="form-label" for="vendor-product-low-stock">{{ t('vendor.Product_Low_Stock', 'Low stock threshold') }}</label><input id="vendor-product-low-stock" class="form-control" name="low_stock_threshold" type="number" min="0" step="1" value="1"></div>
                             <div class="col-md-6"><label class="form-label" for="vendor-product-weight">{{ t('vendor.Product_Weight', 'Weight') }}</label><input id="vendor-product-weight" class="form-control" name="weight" type="number" min="0" step="0.01"></div>
-                            <div class="col-12"><label class="form-label" for="vendor-product-short-description">{{ t('vendor.Product_Short_Description', 'Short description') }}</label><textarea id="vendor-product-short-description" class="form-control" name="short_description" rows="2" maxlength="1000"></textarea></div>
-                            <div class="col-12"><label class="form-label" for="vendor-product-description">{{ t('vendor.Product_Description', 'Description') }}</label><textarea id="vendor-product-description" class="form-control" name="description" rows="5"></textarea></div>
-                            <div class="col-12"><label class="form-label" for="vendor-product-images">{{ t('vendor.Product_Images', 'Product images') }}</label><input id="vendor-product-images" class="form-control" name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple><p class="form-text mb-2">JPEG, PNG or WebP; up to 5 MB each. The first image becomes the main image.</p><div class="d-flex flex-wrap gap-2" data-product-images-current aria-live="polite"></div></div>
-                        </div>
+                            </div>
+                        </fieldset>
+                        <fieldset class="admin-cat-form-section">
+                            <legend class="admin-cat-form-legend">Product images</legend>
+                            <div class="mb-4"><div class="d-flex justify-content-between align-items-center gap-2"><div><label class="form-label mb-0">Main product image</label><p class="form-text mb-0">Shown first on the store.</p></div><button class="btn btn-light-primary" type="button" data-product-primary-open>Choose from media</button></div><div class="d-flex flex-wrap gap-2 mt-2" data-product-primary-image aria-live="polite"></div></div>
+                            <div><div class="d-flex justify-content-between align-items-center gap-2"><div><label class="form-label mb-0">Product gallery</label><p class="form-text mb-0">Choose additional images from your media library.</p></div><button class="btn btn-light-primary" type="button" data-product-gallery-open>Add gallery image</button></div><div class="d-flex flex-wrap gap-2 mt-2" data-product-gallery-images aria-live="polite"></div></div>
+                            <div class="border rounded p-3 mt-3" data-product-media-library hidden><div class="d-flex justify-content-between align-items-center mb-2"><strong data-product-media-title>Choose an image from media</strong><div class="d-flex gap-2"><button class="btn btn-sm btn-primary" type="button" data-product-media-upload>Upload new image</button><button class="btn btn-sm btn-light-secondary" type="button" data-product-media-close>Close</button></div></div><input class="visually-hidden" type="file" accept="image/jpeg,image/png,image/gif,image/webp" data-product-media-file multiple><div class="d-flex flex-wrap gap-2" data-product-media-items></div></div>
+                        </fieldset>
                         <p class="text-danger mt-3 mb-0" role="alert" data-product-error hidden></p>
-                        <div class="mt-3 d-flex gap-2"><button class="btn btn-primary" type="submit" data-product-save>{{ t('vendor.Save', 'Save') }}</button><button class="btn btn-light-secondary" type="button" data-product-editor-close>{{ t('vendor.Cancel', 'Cancel') }}</button></div>
+                        <div class="admin-cat-form-actions"><button class="btn btn-primary" type="submit" data-product-save>{{ t('vendor.Save', 'Save') }}</button><button class="btn btn-light-secondary" type="button" data-product-editor-close>{{ t('vendor.Cancel', 'Cancel') }}</button></div>
                     </form>
                 </div>
             </section>

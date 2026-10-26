@@ -3,7 +3,6 @@
 namespace App\Http\Requests\VendorDashboard;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreProductRequest extends FormRequest
 {
@@ -30,8 +29,14 @@ class StoreProductRequest extends FormRequest
             'dimensions.length' => ['nullable', 'numeric', 'min:0'],
             'dimensions.width' => ['nullable', 'numeric', 'min:0'],
             'dimensions.height' => ['nullable', 'numeric', 'min:0'],
-            'status' => ['required', Rule::in(['draft', 'active', 'inactive', 'out_of_stock'])],
+            // Vendors do not choose publication status. New products always start as drafts for review.
+            'status' => ['nullable', 'in:draft,active,inactive,out_of_stock'],
             'is_featured' => ['nullable', 'boolean'],
+            'is_limited_edition' => ['nullable', 'boolean'],
+            'highlight_tags' => ['nullable', 'array', 'max:5'],
+            'highlight_tags.*' => ['string', 'max:40'],
+            'craft_tags' => ['nullable', 'array', 'max:5'],
+            'craft_tags.*' => ['string', 'max:40'],
             'images' => ['nullable', 'array'],
             'images.*.path' => ['required_with:images', 'string', 'max:2048'],
             'images.*.alt_text' => ['nullable', 'string', 'max:255'],

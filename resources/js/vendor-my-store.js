@@ -21,6 +21,7 @@ const EDITABLE = {
     short_description: { required: false, max: 255 },
     description: { required: false, max: null },
     address_line: { required: false, max: 255 },
+    preparation_days: { required: false, max: 3 },
 };
 
 const isString = (value) => typeof value === 'string';
@@ -71,6 +72,7 @@ function pickProfile(payload) {
             short_description: profile.short_description ?? '',
             description: profile.description ?? '',
             address_line: profile.address_line ?? '',
+            preparation_days: profile.preparation_days ?? '',
         },
         preserved: {
             email: vendor.email ?? null,
@@ -250,6 +252,7 @@ function initMyStore() {
             short_description: optional('short_description'),
             description: optional('description'),
             address_line: optional('address_line'),
+            preparation_days: optional('preparation_days') === null ? null : Number(value('preparation_days')),
             email: preserved.email,
             phone: preserved.phone,
             slug: preserved.slug,

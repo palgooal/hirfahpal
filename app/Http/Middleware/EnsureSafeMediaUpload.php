@@ -97,6 +97,15 @@ class EnsureSafeMediaUpload
 
     private function decodes(string $path): bool
     {
+        // Some production PHP installations do not load GD. The MIME and
+        // getimagesize checks performed before this method still validate the
+        // uploaded image; do not reject every valid upload solely because the
+        // optional decoder is unavailable. Where GD exists, keep the stronger
+        // full-decode check for truncated/polyglot images.
+        if (! function_exists('imagecreatefromstring')) {
+            return true;
+        }
+
         try {
             $image = @imagecreatefromstring((string) file_get_contents($path));
         } catch (Throwable) {

@@ -39,6 +39,7 @@ class UpdateProfileRequest extends FormRequest
             'short_description' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'address_line' => ['nullable', 'string', 'max:255'],
+            'preparation_days' => ['nullable', 'integer', 'min:0', 'max:365'],
             'logo' => ['nullable', 'string', 'max:2048'],
             'cover_image' => ['nullable', 'string', 'max:2048'],
         ];

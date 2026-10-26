@@ -244,12 +244,21 @@
                 </div>
 
                 <div class="admin-cat-form-field">
-                    <label class="form-label" for="product-images">{{ $prodText('Products_Form_Images', 'Product images') }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
-                    <input type="file" @class(['form-control', 'is-invalid' => $errors->has('images') || $errors->has('images.*')]) id="product-images" name="images[]" accept="image/jpeg,image/png,image/gif,image/webp" multiple
-                        @error('images') aria-invalid="true" @enderror aria-describedby="{{ $describedBy('images', 'product-images-hint') }}">
-                    <p class="admin-media-hint" id="product-images-hint">{{ $prodText('Products_Form_Images_Hint', 'Choose up to 6 JPG, PNG, GIF or WebP images (5 MB each). The first uploaded image becomes the main image. You can review all images from the product page.') }}</p>
-                    @error('images') <p class="admin-cat-form-error" id="product-images-error">{{ $message }}</p> @enderror
-                    @error('images.*') <p class="admin-cat-form-error" id="product-images-error">{{ $message }}</p> @enderror
+                    <span class="form-label">{{ $prodText('Products_Form_Images', 'Product images') }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></span>
+                    <p class="admin-media-hint" id="product-images-hint">{{ $prodText('Products_Form_Images_Hint', 'Choose up to 6 images from the media library. You can upload a new JPG, JPEG, PNG, GIF or WebP image from the same window. The first selected image becomes the main image.') }}</p>
+                    <div class="admin-cat-form-row">
+                        @foreach (range(0, 5) as $imageIndex)
+                            <x-admin.media-picker
+                                name="media_image_ids[{{ $imageIndex }}]"
+                                :value="old('media_image_ids.'.$imageIndex)"
+                                :label-key="$imageIndex === 0 ? 'Products_Form_Primary_Image' : 'Products_Form_Additional_Image'"
+                                :label-default="$imageIndex === 0 ? 'Main product image' : 'Additional product image'"
+                                :can-remove="false"
+                            />
+                        @endforeach
+                    </div>
+                    @error('media_image_ids') <p class="admin-cat-form-error" id="product-images-error">{{ $message }}</p> @enderror
+                    @error('media_image_ids.*') <p class="admin-cat-form-error" id="product-images-error">{{ $message }}</p> @enderror
                     @if ($editing && $product->images()->exists() && $canViewProducts)
                         <p class="admin-media-hint"><a href="{{ route('dashboard.products.show', $product) }}#product-panel-images">{{ $prodText('Products_Form_Manage_Images', 'View current images') }}</a></p>
                     @endif
@@ -281,6 +290,15 @@
                         <p class="admin-media-hint" id="product-featured-hint">{{ $prodText('Products_Form_Featured_Hint', 'Featured products can be highlighted in the store.') }}</p>
                         @error('is_featured') <p class="admin-cat-form-error" id="product-featured-error">{{ $message }}</p> @enderror
                     </div>
+                </div>
+                <div class="admin-product-form-check">
+                    <input type="hidden" name="is_limited_edition" value="0">
+                    <input type="checkbox" class="form-check-input" id="product-limited-edition" name="is_limited_edition" value="1" @checked(old('is_limited_edition', $product->is_limited_edition))>
+                    <div><label class="form-label" for="product-limited-edition">{{ $fieldLabels['is_limited_edition'] }}</label><p class="admin-media-hint">Show the limited-edition label only when it applies.</p></div>
+                </div>
+                <div class="admin-cat-form-row">
+                    <div class="admin-cat-form-field"><label class="form-label">Top tags</label>@foreach (range(0, 4) as $tagIndex)<input class="form-control mb-2" name="highlight_tags[]" value="{{ old('highlight_tags.'.$tagIndex, $product->highlight_tags[$tagIndex] ?? '') }}" maxlength="40" placeholder="{{ $tagIndex === 0 ? 'New' : 'Optional tag' }}">@endforeach</div>
+                    <div class="admin-cat-form-field"><label class="form-label">Craft tags</label>@foreach (range(0, 4) as $tagIndex)<input class="form-control mb-2" name="craft_tags[]" value="{{ old('craft_tags.'.$tagIndex, $product->craft_tags[$tagIndex] ?? '') }}" maxlength="40" placeholder="{{ $tagIndex === 0 ? 'Hand painted' : 'Optional tag' }}">@endforeach</div>
                 </div>
             </fieldset>
 

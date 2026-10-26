@@ -15,6 +15,7 @@ class VendorProfile extends Model
         'short_description',
         'description',
         'address_line',
+        'preparation_days',
         'logo',
         'cover_image',
         'commission_rate',
@@ -29,6 +30,7 @@ class VendorProfile extends Model
         return [
             'commission_rate' => 'decimal:2',
             'approved_at' => 'datetime',
+            'preparation_days' => 'integer',
         ];
     }
 

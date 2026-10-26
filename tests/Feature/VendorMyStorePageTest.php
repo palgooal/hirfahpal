@@ -25,7 +25,7 @@ class VendorMyStorePageTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const EDITABLE = ['address_line', 'description', 'name', 'short_description', 'store_name'];
+    private const EDITABLE = ['address_line', 'description', 'name', 'preparation_days', 'short_description', 'store_name'];
 
     private const PRESERVED = ['city_id', 'email', 'governorate_id', 'phone', 'slug'];
 
@@ -126,7 +126,7 @@ class VendorMyStorePageTest extends TestCase
 
         $this->assertSame(self::EDITABLE, $names);
         $this->assertStringNotContainsString('<select', $html);
-        $this->assertStringNotContainsString('type="file"', $html);
+        $this->assertStringContainsString('data-store-logo-input', $html);
         $this->assertStringNotContainsString('type="password"', $html);
     }
 
@@ -374,7 +374,7 @@ class VendorMyStorePageTest extends TestCase
         $sent = $keys[1];
         sort($sent);
 
-        $this->assertSame(['address_line', 'city_id', 'description', 'email', 'governorate_id', 'name', 'phone', 'short_description', 'slug', 'store_name'], $sent);
+        $this->assertSame(['address_line', 'city_id', 'description', 'email', 'governorate_id', 'name', 'phone', 'preparation_days', 'short_description', 'slug', 'store_name'], $sent);
 
         // Preserved values come from the in-memory state set by the read, never from the form.
         foreach (self::PRESERVED as $name) {
@@ -396,7 +396,7 @@ class VendorMyStorePageTest extends TestCase
         $this->assertStringContainsString('if (other || fields.length === 0) {', $script);
         $this->assertStringContainsString("method: 'PUT'", $script);
 
-        foreach (['avatar', 'logo', 'cover_image', 'commission', 'approval', 'rejection', 'last_login', 'innerHTML', 'outerHTML', 'insertAdjacentHTML', 'localStorage', 'sessionStorage', 'console.', 'setAttribute(\'data-'] as $forbidden) {
+        foreach (['avatar', 'cover_image', 'commission', 'approval', 'rejection', 'last_login', 'innerHTML', 'outerHTML', 'insertAdjacentHTML', 'localStorage', 'sessionStorage', 'console.', 'setAttribute(\'data-'] as $forbidden) {
             $this->assertStringNotContainsString($forbidden, preg_replace('/^\s*\*.*$/m', '', $script), $forbidden);
         }
     }
