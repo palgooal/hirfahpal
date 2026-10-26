@@ -29,6 +29,7 @@ use App\Http\Controllers\Store\VendorDirectoryController;
 use App\Http\Controllers\VendorDashboard\ApprovalStatusController as VendorApprovalStatusController;
 use App\Http\Controllers\VendorDashboard\CommissionController as VendorCommissionController;
 use App\Http\Controllers\VendorDashboard\DisputeController as VendorDisputeController;
+use App\Http\Controllers\VendorDashboard\MediaLibraryController as VendorDashboardMediaLibraryController;
 use App\Http\Controllers\VendorDashboard\OrderController as VendorDashboardOrderController;
 use App\Http\Controllers\VendorDashboard\OverviewController as VendorDashboardOverviewController;
 use App\Http\Controllers\VendorDashboard\ProductController as VendorDashboardProductController;
@@ -230,6 +231,9 @@ foreach (AccountGuard::all() as $accountType => $account) {
                                 ->whereIn('type', ['logo', 'cover'])
                                 ->name('dashboard.profile.media.destroy');
 
+                            Route::get('products/media/library', [VendorDashboardMediaLibraryController::class, 'index'])->name('dashboard.products.media.library');
+                            Route::post('products/media/library', [VendorDashboardMediaLibraryController::class, 'store'])->name('dashboard.products.media.store');
+                            Route::delete('products/media/library/{media}', [VendorDashboardMediaLibraryController::class, 'destroy'])->name('dashboard.products.media.destroy');
                             Route::apiResource('products', VendorDashboardProductController::class)
                                 ->names('dashboard.products');
                             Route::post('products/{product}/images', [VendorDashboardProductImageController::class, 'store'])->name('dashboard.products.images.store');

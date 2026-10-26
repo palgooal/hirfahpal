@@ -127,6 +127,11 @@
                         <input class="vendor-input" id="vendor-field-address-line" name="address_line" type="text" maxlength="255" dir="auto" autocomplete="street-address" disabled aria-describedby="vendor-error-address_line">
                         <p class="vendor-field-error" id="vendor-error-address_line" data-error-for="address_line" hidden></p>
                     </div>
+                    <div class="vendor-field">
+                        <label class="vendor-label" for="vendor-field-preparation-days">{{ t('vendor.My_Store_Preparation_Days', 'Preparation days') }}</label>
+                        <input class="vendor-input" id="vendor-field-preparation-days" name="preparation_days" type="number" min="0" max="365" inputmode="numeric" disabled aria-describedby="vendor-error-preparation_days">
+                        <p class="vendor-field-error" id="vendor-error-preparation_days" data-error-for="preparation_days" hidden></p>
+                    </div>
                 </div>
             </section>
 

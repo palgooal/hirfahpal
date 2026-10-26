@@ -315,6 +315,7 @@ class ProductManagementController extends Controller
             'description' => ['dashboard.Products_Form_Field_Description', 'Description'],
             'status' => ['dashboard.Products_Form_Field_Status', 'Status'],
             'is_featured' => ['dashboard.Products_Form_Field_Featured', 'Featured product'],
+            'is_limited_edition' => ['dashboard.Products_Form_Field_Limited', 'Limited edition'],
         ];
 
         return array_map(fn (array $label) => $this->untranslatedDefault(...$label), $labels);
@@ -359,15 +360,29 @@ class ProductManagementController extends Controller
             // The same four statuses as before, without reading their (shared) labels.
             'status' => ['required', Rule::in(array_keys($this->statusKeys()))],
             'is_featured' => ['nullable', 'boolean'],
+            'is_limited_edition' => ['nullable', 'boolean'],
+            'highlight_tags' => ['nullable', 'array', 'max:5'],
+            'highlight_tags.*' => ['string', 'max:40'],
+            'craft_tags' => ['nullable', 'array', 'max:5'],
+            'craft_tags.*' => ['string', 'max:40'],
         ], [], $this->messageAttributes());
 
         $data['slug'] = ($data['slug'] ?? null) ?: $this->uniqueSlug($data['name'], $product);
         $data['low_stock_threshold'] = $data['low_stock_threshold'] ?? 1;
         $data['is_featured'] = $request->boolean('is_featured');
+        $data['is_limited_edition'] = $request->boolean('is_limited_edition');
+        $data['highlight_tags'] = $this->tags($data['highlight_tags'] ?? []);
+        $data['craft_tags'] = $this->tags($data['craft_tags'] ?? []);
         $data['weight_unit'] = ($data['weight'] ?? null) === null ? null : ($data['weight_unit'] ?? null);
         $data['published_at'] = $data['status'] === 'active' ? ($product?->published_at ?? now()) : null;
 
         return $data;
+    }
+
+    /** @param array<int, string> $tags */
+    private function tags(array $tags): array
+    {
+        return collect($tags)->map(fn (string $tag) => trim($tag))->filter()->unique()->values()->all();
     }
 
     /** Store product photos only after their bytes, dimensions and filename extension agree. */

@@ -147,6 +147,9 @@ class ProductController extends Controller
         $data['slug'] = ($data['slug'] ?? null) ?: $this->uniqueSlug($data['name'], $product);
         $data['low_stock_threshold'] = $data['low_stock_threshold'] ?? 1;
         $data['is_featured'] = (bool) ($data['is_featured'] ?? false);
+        $data['is_limited_edition'] = (bool) ($data['is_limited_edition'] ?? false);
+        $data['highlight_tags'] = $this->tags($data['highlight_tags'] ?? []);
+        $data['craft_tags'] = $this->tags($data['craft_tags'] ?? []);
         $data['published_at'] = $data['status'] === 'active' ? ($product?->published_at ?? now()) : null;
 
         return $data;
@@ -199,6 +202,12 @@ class ProductController extends Controller
             'inactive' => 'Inactive',
             'out_of_stock' => 'Out of stock',
         ];
+    }
+
+    /** @param array<int, string> $tags */
+    private function tags(array $tags): array
+    {
+        return collect($tags)->map(fn (string $tag) => trim($tag))->filter()->unique()->values()->all();
     }
 
     private function uniqueSlug(string $value, ?Product $product = null): string

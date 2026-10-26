@@ -282,6 +282,15 @@
                         @error('is_featured') <p class="admin-cat-form-error" id="product-featured-error">{{ $message }}</p> @enderror
                     </div>
                 </div>
+                <div class="admin-product-form-check">
+                    <input type="hidden" name="is_limited_edition" value="0">
+                    <input type="checkbox" class="form-check-input" id="product-limited-edition" name="is_limited_edition" value="1" @checked(old('is_limited_edition', $product->is_limited_edition))>
+                    <div><label class="form-label" for="product-limited-edition">{{ $fieldLabels['is_limited_edition'] }}</label><p class="admin-media-hint">Show the limited-edition label only when it applies.</p></div>
+                </div>
+                <div class="admin-cat-form-row">
+                    <div class="admin-cat-form-field"><label class="form-label">Top tags</label>@foreach (range(0, 4) as $tagIndex)<input class="form-control mb-2" name="highlight_tags[]" value="{{ old('highlight_tags.'.$tagIndex, $product->highlight_tags[$tagIndex] ?? '') }}" maxlength="40" placeholder="{{ $tagIndex === 0 ? 'New' : 'Optional tag' }}">@endforeach</div>
+                    <div class="admin-cat-form-field"><label class="form-label">Craft tags</label>@foreach (range(0, 4) as $tagIndex)<input class="form-control mb-2" name="craft_tags[]" value="{{ old('craft_tags.'.$tagIndex, $product->craft_tags[$tagIndex] ?? '') }}" maxlength="40" placeholder="{{ $tagIndex === 0 ? 'Hand painted' : 'Optional tag' }}">@endforeach</div>
+                </div>
             </fieldset>
 
             <div class="admin-cat-form-actions">

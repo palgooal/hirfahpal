@@ -24,6 +24,9 @@ class Product extends Model
         'dimensions',
         'status',
         'is_featured',
+        'is_limited_edition',
+        'highlight_tags',
+        'craft_tags',
         'published_at',
     ];
 
@@ -46,6 +49,9 @@ class Product extends Model
             'weight' => 'decimal:2',
             'dimensions' => 'array',
             'is_featured' => 'boolean',
+            'is_limited_edition' => 'boolean',
+            'highlight_tags' => 'array',
+            'craft_tags' => 'array',
             'published_at' => 'datetime',
             'suspended_at' => 'datetime',
             'archived_at' => 'datetime',

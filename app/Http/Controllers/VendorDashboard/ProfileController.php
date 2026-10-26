@@ -48,6 +48,7 @@ class ProfileController extends Controller
                 'short_description' => array_key_exists('short_description', $data) ? $data['short_description'] : $profile?->short_description,
                 'description' => array_key_exists('description', $data) ? $data['description'] : $profile?->description,
                 'address_line' => array_key_exists('address_line', $data) ? $data['address_line'] : $profile?->address_line,
+                'preparation_days' => array_key_exists('preparation_days', $data) ? $data['preparation_days'] : $profile?->preparation_days,
                 'logo' => array_key_exists('logo', $data) ? $data['logo'] : $profile?->logo,
                 'cover_image' => array_key_exists('cover_image', $data) ? $data['cover_image'] : $profile?->cover_image,
             ];
