@@ -71,6 +71,7 @@ return [
             'vendor.password.update',
             'vendor.approval-status',
             'vendor.dashboard',
+            'vendor.entry',
         ],
         'prefixes' => [
             'vendor.dashboard.',

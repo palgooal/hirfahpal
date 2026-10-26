@@ -11,7 +11,7 @@
   <title>{{ t('vendor.Login_Title', 'Sign in | Hirfah Vendor') }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,700;1,400&family=Cairo:wght@300;400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet" />
   @vite(['resources/css/vendor-auth.css', 'resources/js/admin-auth.js'])
 </head>
 <body class="min-h-screen overflow-x-hidden bg-canvas font-cairo text-ink antialiased">
@@ -58,7 +58,7 @@
             </p>
           @endif
 
-          <form method="POST" action="{{ route('vendor.login.store') }}" class="mt-6 flex flex-col gap-5">
+          <form method="POST" action="{{ route('vendor.login.store') }}" class="mt-6 flex flex-col gap-5" data-submit-lock>
             @csrf
 
             <div>
@@ -74,7 +74,7 @@
                 autocomplete="username"
                 placeholder="name@example.com / 05xxxxxxxx"
                 @if ($errors->has('login')) aria-invalid="true" aria-describedby="vendor-login-error" @endif
-                class="h-12 w-full rounded-[14px] border border-line bg-canvas px-4 text-start text-sm text-ink transition-colors placeholder:text-muted/70 focus:border-olive focus:outline-none focus-visible:ring-4 focus-visible:ring-olive/20 aria-[invalid=true]:border-error"
+                class="h-12 w-full rounded-[14px] border border-line bg-canvas px-4 text-start text-sm text-ink transition-colors placeholder:text-muted focus:border-olive focus:outline-none focus-visible:ring-4 focus-visible:ring-olive/20 aria-[invalid=true]:border-error"
               />
             </div>
 
@@ -89,7 +89,7 @@
                   autocomplete="current-password"
                   placeholder="••••••••"
                   @if ($errors->has('password')) aria-invalid="true" aria-describedby="vendor-login-error" @endif
-                  class="h-12 w-full rounded-[14px] border border-line bg-canvas ps-4 pe-14 text-sm text-ink transition-colors placeholder:text-muted/70 focus:border-olive focus:outline-none focus-visible:ring-4 focus-visible:ring-olive/20 aria-[invalid=true]:border-error"
+                  class="h-12 w-full rounded-[14px] border border-line bg-canvas ps-4 pe-14 text-sm text-ink transition-colors placeholder:text-muted focus:border-olive focus:outline-none focus-visible:ring-4 focus-visible:ring-olive/20 aria-[invalid=true]:border-error"
                 />
                 <button
                   type="button"
@@ -115,11 +115,13 @@
               <a href="{{ route('vendor.password.request') }}" class="inline-flex min-h-11 items-center rounded-md text-sm font-bold text-olive underline underline-offset-2 hover:text-olive-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-olive">{{ t('dashboard.Forgot_Password', 'Forgot your password?') }}</a>
             </div>
 
-            <button type="submit" class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-olive text-sm font-bold text-surface shadow-sm transition-colors hover:bg-olive-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive focus-visible:ring-offset-2 focus-visible:ring-offset-surface">
+            <button type="submit" data-loading-label="{{ t('vendor.Signing_In', 'Signing in...') }}" class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-olive text-sm font-bold text-surface shadow-sm transition-colors hover:bg-olive-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive focus-visible:ring-offset-2 focus-visible:ring-offset-surface aria-disabled:cursor-wait aria-disabled:opacity-80">
               <span>{{ t('dashboard.Sign_In', 'Sign in') }}</span>
               {{-- The arrow points toward the reading direction, so it is mirrored in RTL. --}}
               <svg class="h-4 w-4 rtl:-scale-x-100" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" /><polyline points="10 17 15 12 10 7" /><line x1="15" x2="3" y1="12" y2="12" /></svg>
             </button>
+            {{-- Filled by admin-auth.js while submitting; screen readers only, the button shows the same text. --}}
+            <p data-submit-status role="status" aria-live="polite" class="sr-only"></p>
           </form>
 
           <p class="mt-6 flex flex-wrap items-center justify-center gap-x-1.5 border-t border-line pt-5 text-center text-sm leading-6 text-muted">

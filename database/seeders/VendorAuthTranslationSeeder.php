@@ -38,6 +38,10 @@ class VendorAuthTranslationSeeder extends Seeder
             'ar' => 'أدر متجرك وابدأ رحلتك مع حرفة',
             'en' => 'Manage your store and start your journey with Hirfah',
         ],
+        'vendor.Signing_In' => [
+            'ar' => 'جارٍ تسجيل الدخول...',
+            'en' => 'Signing in...',
+        ],
         'vendor.No_Account' => [
             'ar' => 'ليس لديك حساب؟',
             'en' => "Don't have an account?",

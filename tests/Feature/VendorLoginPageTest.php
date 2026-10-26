@@ -9,6 +9,7 @@ use App\Models\Vendor;
 use Database\Seeders\AdminAuthTranslationSeeder;
 use Database\Seeders\VendorAuthTranslationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\MessageBag;
 use Illuminate\Support\ViewErrorBag;
@@ -107,6 +108,21 @@ class VendorLoginPageTest extends TestCase
             ->assertDontSee('/dashboard', false);
 
         $this->assertSame(1, substr_count($response->getContent(), '<form'));
+    }
+
+    public function test_form_opts_into_the_submit_lock_with_an_arabic_loading_label(): void
+    {
+        $this->page()
+            ->assertSee('class="mt-6 flex flex-col gap-5" data-submit-lock>', false)
+            ->assertSee('<button type="submit" data-loading-label="جارٍ تسجيل الدخول..."', false)
+            ->assertSee('<p data-submit-status role="status" aria-live="polite" class="sr-only"></p>', false);
+    }
+
+    public function test_loading_label_follows_the_english_locale(): void
+    {
+        $this->get(route('vendor.login').'?change-locale=en');
+
+        $this->page()->assertSee('data-loading-label="Signing in..."', false);
     }
 
     public function test_field_contract_matches_the_backend(): void
@@ -263,7 +279,60 @@ class VendorLoginPageTest extends TestCase
     {
         $this->actingAs($this->approvedVendor(), 'vendor')
             ->get(route('vendor.login'))
-            ->assertRedirect();
+            ->assertRedirect(route('vendor.dashboard'));
+    }
+
+    public function test_signed_in_unapproved_vendor_is_sent_to_the_approval_status_page(): void
+    {
+        $vendors = [
+            'pending' => Vendor::factory()->withProfile('pending')->create(),
+            'rejected' => Vendor::factory()->withProfile('rejected', 'Incomplete profile.')->create(),
+            'no profile' => Vendor::factory()->create(),
+        ];
+
+        foreach ($vendors as $case => $vendor) {
+            $this->actingAs($vendor, 'vendor')
+                ->get(route('vendor.login'))
+                ->assertRedirect(route('vendor.approval-status'), $case);
+            Auth::forgetGuards();
+        }
+    }
+
+    public function test_signed_in_vendor_posting_the_login_form_is_sent_to_their_own_area(): void
+    {
+        $this->actingAs($this->approvedVendor(), 'vendor')
+            ->post(route('vendor.login.store'), ['login' => 'vendor@example.com', 'password' => 'password'])
+            ->assertRedirect(route('vendor.dashboard'));
+        Auth::forgetGuards();
+
+        $this->actingAs(Vendor::factory()->withProfile('pending')->create(), 'vendor')
+            ->post(route('vendor.login.store'), ['login' => 'x', 'password' => 'y'])
+            ->assertRedirect(route('vendor.approval-status'));
+    }
+
+    public function test_blocked_or_pending_account_is_still_signed_out_by_the_status_check(): void
+    {
+        foreach (['blocked', 'pending'] as $status) {
+            $vendor = Vendor::factory()->approved()->create(['status' => $status]);
+
+            $this->actingAs($vendor, 'vendor')
+                ->get(route('vendor.login'))
+                ->assertRedirect(route('vendor.login'))
+                ->assertSessionHasErrors(['login' => __('auth.inactive')]);
+            $this->assertGuest('vendor');
+            Auth::forgetGuards();
+
+            $this->page()->assertOk();
+        }
+    }
+
+    public function test_other_vendor_guest_pages_keep_the_default_destination(): void
+    {
+        $this->actingAs($this->approvedVendor(), 'vendor');
+
+        $this->get(route('vendor.register'))->assertRedirect(route('home'));
+        $this->get(route('vendor.password.request'))->assertRedirect(route('home'));
+        $this->get(route('vendor.password.reset', ['token' => 'token']))->assertRedirect(route('home'));
     }
 
     private function page(): TestResponse

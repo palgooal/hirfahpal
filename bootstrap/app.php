@@ -14,6 +14,8 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -41,6 +43,24 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return route('login');
+        });
+
+        // A signed-in vendor on the vendor login goes to their own area; the approval gate still guards
+        // the dashboard. Every other guest page keeps Laravel's default ("dashboard", else "home").
+        $middleware->redirectUsersTo(function (Request $request) {
+            $vendor = Auth::guard('vendor')->user();
+
+            if ($vendor !== null && $request->routeIs('vendor.login', 'vendor.login.store')) {
+                return route($vendor->isApproved() ? 'vendor.dashboard' : 'vendor.approval-status');
+            }
+
+            foreach (['dashboard', 'home'] as $name) {
+                if (Route::has($name)) {
+                    return route($name);
+                }
+            }
+
+            return '/';
         });
 
         $middleware->alias([

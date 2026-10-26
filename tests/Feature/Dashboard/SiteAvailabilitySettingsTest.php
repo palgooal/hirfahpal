@@ -6,6 +6,7 @@ use App\Http\Controllers\Dashboard\SiteAvailabilityController;
 use App\Models\Admin;
 use App\Models\RoleUser;
 use App\Models\Setting;
+use App\Support\SiteAvailability\SiteAvailability;
 use App\Support\SiteAvailability\SiteAvailabilitySettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -82,7 +83,7 @@ class SiteAvailabilitySettingsTest extends TestCase
             ->assertSee('data-site-availability-effective="coming_soon"', false)
             ->assertSee('data-site-availability-source="database"', false)
             ->assertSee('data-site-availability-stored="coming_soon"', false)
-            ->assertSee('2026-10-20 14:05')
+            ->assertSee('2026-10-20 17:05') // 14:05 UTC in Palestine time (UTC+3 before the autumn change).
             ->assertSee($other->name)
             ->assertSee('id="site-availability-coming_soon" value="coming_soon" checked', false)
             ->assertSee('data-site-availability-warning="maintenance"', false)
@@ -105,8 +106,59 @@ class SiteAvailabilitySettingsTest extends TestCase
         $gone->delete();
 
         $this->settingsPage($super)
-            ->assertSee('2026-10-19 09:00')
+            ->assertSee('2026-10-19 12:00') // 09:00 UTC in Palestine time.
             ->assertSee('Deleted admin');
+    }
+
+    // ---------------------------------------------------------------- last change time (SA-FIX-1)
+
+    public function test_the_last_change_is_shown_in_palestine_time_in_summer_and_winter(): void
+    {
+        $super = $this->createAdmin(superAdmin: true);
+
+        // Summer: UTC+3.
+        $this->storeDirectly('coming_soon', $super, '2026-07-15 10:00:00');
+        $this->settingsPage($super)
+            ->assertSee('<bdi dir="ltr" data-site-availability-changed-at>2026-07-15 13:00</bdi>', false)
+            ->assertSee('(Palestine time)')
+            ->assertDontSee('2026-07-15 10:00');
+
+        // Winter: UTC+2.
+        $this->storeDirectly('maintenance', $super, '2026-01-15 10:00:00');
+        $this->settingsPage($super)
+            ->assertSee('<bdi dir="ltr" data-site-availability-changed-at>2026-01-15 12:00</bdi>', false)
+            ->assertSee('(Palestine time)')
+            ->assertDontSee('2026-01-15 10:00');
+
+        // Across midnight: 22:30 UTC in summer is the next day in Palestine.
+        $this->storeDirectly('open', $super, '2026-07-15 22:30:00');
+        $this->settingsPage($super)
+            ->assertSee('<bdi dir="ltr" data-site-availability-changed-at>2026-07-16 01:30</bdi>', false);
+    }
+
+    public function test_a_saved_change_keeps_its_utc_time_in_the_database(): void
+    {
+        $super = $this->createAdmin(superAdmin: true);
+        $this->travelTo('2026-07-15 10:00:00');
+
+        $this->actingAs($super, 'admin')
+            ->patch(route('dashboard.setting.site-availability.update'), ['state' => 'coming_soon', 'confirm' => '1']);
+
+        $this->settingsPage($super)
+            ->assertSee('<bdi dir="ltr" data-site-availability-changed-at>2026-07-15 13:00</bdi>', false);
+        $this->assertStringStartsWith('2026-07-15 10:00:00', (string) $this->settingsRow()['site_availability_changed_at']);
+    }
+
+    public function test_a_never_changed_state_shows_a_dash_without_a_time(): void
+    {
+        $super = $this->createAdmin(superAdmin: true);
+
+        $html = $this->settingsPage($super)
+            ->assertDontSee('data-site-availability-changed-at', false)
+            ->assertDontSee('(Palestine time)')
+            ->getContent();
+
+        $this->assertMatchesRegularExpression('/<dd class="mb-0" data-site-availability-last-change>\s*—\s*<\/dd>/u', $html);
     }
 
     // ---------------------------------------------------------------- authorization
@@ -197,6 +249,134 @@ class SiteAvailabilitySettingsTest extends TestCase
         }
 
         $this->assertSame($before, $this->settingsRow());
+    }
+
+    // ---------------------------------------------------------------- the choice after a rejected save (SA-FIX-2)
+
+    public function test_an_unconfirmed_save_keeps_the_chosen_state_selected_without_saving_it(): void
+    {
+        $super = $this->createAdmin(superAdmin: true);
+        $this->storeDirectly('open', $super, '2026-10-20 10:00:00');
+        $before = $this->settingsRow();
+
+        $response = $this->actingAs($super, 'admin')
+            ->patch(route('dashboard.setting.site-availability.update'), ['state' => 'coming_soon']);
+        $this->assertFlash($response, 'danger', 'The change was not confirmed. Tick the confirmation box to save.');
+        // Only the validated state is kept for the next request: never the confirmation, never anything else.
+        $response->assertSessionHasInput('state', 'coming_soon');
+        $this->assertSame(['state' => 'coming_soon'], session()->getOldInput());
+
+        // The next request (the redirect target) shows the choice, while the saved and effective state stay open.
+        $html = $this->settingsPage($super)
+            ->assertSee('id="site-availability-coming_soon" value="coming_soon" checked', false)
+            ->assertDontSee('id="site-availability-open" value="open" checked', false)
+            ->assertSee('data-site-availability-stored="open"', false)
+            ->assertSee('data-site-availability-effective="open"', false)
+            ->getContent();
+        $this->assertMatchesRegularExpression('/<input [^>]*name="confirm" id="site-availability-confirm" value="1" required>/', $html, 'The confirmation is not ticked again.');
+        $this->assertSame($before, $this->settingsRow());
+        $this->assertSame('open', app(SiteAvailability::class)->current()->value);
+
+        // The kept choice lasts for that one request only.
+        $this->settingsPage($super)->assertSee('id="site-availability-open" value="open" checked', false);
+    }
+
+    public function test_an_invalid_state_never_selects_an_unknown_option(): void
+    {
+        $super = $this->createAdmin(superAdmin: true);
+        $this->storeDirectly('coming_soon', $super, '2026-10-20 10:00:00');
+
+        foreach (['closed', 'OPEN', '"><script>alert(1)</script>', ''] as $state) {
+            $this->actingAs($super, 'admin')
+                ->patch(route('dashboard.setting.site-availability.update'), ['state' => $state])
+                ->assertSessionMissing('_old_input');
+
+            $this->settingsPage($super)->assertSee('id="site-availability-coming_soon" value="coming_soon" checked', false);
+        }
+
+        // An old input that did not come from this controller (a tampered or foreign value) is ignored as well.
+        $html = $this->actingAs($super, 'admin')
+            ->withSession(['locale' => 'en', '_old_input' => ['state' => '"><script>alert(1)</script>']])
+            ->get(route('dashboard.setting.index'))
+            ->assertOk()
+            ->assertSee('id="site-availability-coming_soon" value="coming_soon" checked', false)
+            ->assertDontSee('<script>alert(1)</script>', false)
+            ->getContent();
+        $this->assertSame(1, substr_count($html, 'name="state" id="site-availability-coming_soon" value="coming_soon" checked'));
+        $this->assertSame(1, preg_match_all('/name="state"[^>]*\bchecked\b/', $html));
+    }
+
+    public function test_a_successful_save_shows_the_new_state_and_drops_the_earlier_choice(): void
+    {
+        $super = $this->createAdmin(superAdmin: true);
+        $this->storeDirectly('open', $super, '2026-10-20 10:00:00');
+
+        $this->actingAs($super, 'admin')
+            ->patch(route('dashboard.setting.site-availability.update'), ['state' => 'coming_soon']);
+        $this->assertFlash($this->save($super, 'maintenance'), 'success', 'The site state was saved.');
+        $this->assertSessionMissingOldInput();
+
+        $this->settingsPage($super)
+            ->assertSee('id="site-availability-maintenance" value="maintenance" checked', false)
+            ->assertDontSee('id="site-availability-coming_soon" value="coming_soon" checked', false)
+            ->assertSee('data-site-availability-stored="maintenance"', false);
+    }
+
+    public function test_a_first_visit_keeps_the_saved_state_selected(): void
+    {
+        $super = $this->createAdmin(superAdmin: true);
+        $this->storeDirectly('maintenance', $super, '2026-10-20 10:00:00');
+
+        $this->settingsPage($super)->assertSee('id="site-availability-maintenance" value="maintenance" checked', false);
+    }
+
+    public function test_a_forbidden_save_keeps_no_choice(): void
+    {
+        $this->actingAs($this->adminWithAbilities(['settings.view', 'settings.edit']), 'admin')
+            ->patch(route('dashboard.setting.site-availability.update'), ['state' => 'coming_soon'])
+            ->assertForbidden()
+            ->assertSessionMissing('_old_input');
+    }
+
+    // ---------------------------------------------------------------- outcome message roles (SA-FIX-3)
+
+    public function test_errors_and_warnings_are_alerts_and_confirmations_are_status_messages(): void
+    {
+        $super = $this->createAdmin(superAdmin: true);
+        $this->storeDirectly('open', $super, '2026-10-20 10:00:00');
+
+        // danger: an unconfirmed save.
+        $this->actingAs($super, 'admin')->patch(route('dashboard.setting.site-availability.update'), ['state' => 'coming_soon']);
+        $this->assertFlashElement($this->settingsPage($super)->getContent(), 'danger', 'alert', 'The change was not confirmed. Tick the confirmation box to save.');
+
+        // success: a saved change.
+        $this->save($super, 'coming_soon');
+        $this->assertFlashElement($this->settingsPage($super)->getContent(), 'success', 'status', 'The site state was saved.');
+
+        // info: the same state again.
+        $this->save($super, 'coming_soon');
+        $this->assertFlashElement($this->settingsPage($super)->getContent(), 'info', 'status', 'This is already the saved state. Nothing was changed.');
+
+        // warning: saved while the server override decides.
+        config(['site-availability.override' => 'maintenance']);
+        $this->save($super, 'open');
+        $this->assertFlashElement($this->settingsPage($super)->getContent(), 'warning', 'alert', 'The state was saved, but the server override still decides the site state until it is set back to auto.');
+    }
+
+    public function test_an_unknown_flash_level_is_a_plain_status_message(): void
+    {
+        $super = $this->createAdmin(superAdmin: true);
+
+        foreach (['"><script>alert(1)</script>', 'primary', '', null] as $level) {
+            $html = $this->actingAs($super, 'admin')
+                ->withSession(['locale' => 'en', SiteAvailabilityController::FLASH => ['level' => $level, 'message' => 'A message.']])
+                ->get(route('dashboard.setting.index'))
+                ->assertOk()
+                ->assertDontSee('<script>alert(1)</script>', false)
+                ->getContent();
+
+            $this->assertFlashElement($html, 'info', 'status', 'A message.');
+        }
     }
 
     // ---------------------------------------------------------------- saving
@@ -443,6 +623,113 @@ class SiteAvailabilitySettingsTest extends TestCase
         $this->assertStringNotContainsString('text-warning', $card);
     }
 
+    // ---------------------------------------------------------------- wording and warnings (SA-FIX-4B)
+
+    public function test_the_option_hints_use_the_approved_wording(): void
+    {
+        $super = $this->createAdmin(superAdmin: true);
+        $card = $this->card($this->settingsPage($super));
+
+        $this->assertStringContainsString('<p class="small text-muted mb-0">Visitors, customers and delivery drivers see the Coming Soon page, while approved vendors can access their dashboards and the admin dashboard remains available.</p>', $card);
+        $this->assertStringContainsString('<p class="small text-muted mb-0">Visitors, customers, vendors and delivery drivers see the maintenance page (HTTP 503), while the admin dashboard remains accessible to authorized administrators.</p>', $card);
+        // The approved maintenance warning is unchanged.
+        $this->assertStringContainsString('<p class="small text-danger mb-0 mt-1" data-site-availability-warning="maintenance">Visitors, customers, vendors and delivery drivers will see that the site is under maintenance (503) and cannot sign in or complete anything until you reopen the site.</p>', $card);
+    }
+
+    public function test_the_coming_soon_warning_shows_unless_coming_soon_is_already_saved(): void
+    {
+        $super = $this->createAdmin(superAdmin: true);
+        $warning = '<p class="small mb-0 mt-1" style="color: #8a4520" data-site-availability-warning="coming-soon">Saving Coming Soon mode will block customers from accessing the store, signing in or placing orders until it is reopened. Delivery drivers will also be unable to access their dashboards.</p>';
+
+        foreach (['open' => true, 'maintenance' => true, 'coming_soon' => false] as $stored => $shown) {
+            $this->storeDirectly($stored, $super, '2026-10-20 08:00:00');
+            $card = $this->card($this->settingsPage($super));
+
+            $this->assertSame($shown ? 1 : 0, substr_count($card, $warning), "saved {$stored}");
+            if ($shown) {
+                // Beneath the Coming Soon option, after its hint.
+                $this->assertMatchesRegularExpression('#data-site-availability-option="coming_soon">.*?Coming Soon page.*?data-site-availability-warning="coming-soon".*?</div>\s*</div>#s', $card);
+            }
+        }
+    }
+
+    public function test_the_launch_warning_shows_when_reopening_from_coming_soon_or_maintenance(): void
+    {
+        $super = $this->createAdmin(superAdmin: true);
+
+        foreach (['coming_soon' => 1, 'maintenance' => 1, 'open' => 0] as $stored => $count) {
+            $this->storeDirectly($stored, $super, '2026-10-20 08:00:00');
+            $card = $this->card($this->settingsPage($super));
+
+            $this->assertSame($count, substr_count($card, 'data-site-availability-warning="launch"'), "saved {$stored}");
+            if ($count) {
+                $this->assertMatchesRegularExpression('#data-site-availability-option="open">.*?data-site-availability-warning="launch".*?data-site-availability-option="coming_soon"#s', $card);
+            }
+        }
+    }
+
+    public function test_with_an_override_the_warnings_follow_the_saved_state_and_save_changes_nothing_effective(): void
+    {
+        $super = $this->createAdmin(superAdmin: true);
+        $this->storeDirectly('maintenance', $super, '2026-10-20 08:00:00');
+        config(['site-availability.override' => 'open']);
+
+        $card = $this->card($this->settingsPage($super));
+        // The effective state is open (forced), but saving acts on the saved maintenance state, so both warnings apply.
+        $this->assertStringContainsString('data-site-availability-effective="open"', $card);
+        $this->assertStringContainsString('data-site-availability-warning="launch"', $card);
+        $this->assertStringContainsString('data-site-availability-warning="coming-soon"', $card);
+
+        $this->assertFlash($this->save($super, 'coming_soon'), 'warning', 'The state was saved, but the server override still decides the site state until it is set back to auto.');
+        $this->assertSame('coming_soon', $this->settingsRow()['site_availability_mode']);
+        $this->assertSame('open', app(SiteAvailability::class)->current()->value);
+    }
+
+    // ---------------------------------------------------------------- source label (SA-FIX-4B, D4)
+
+    public function test_a_never_saved_default_state_shows_the_default_source_label(): void
+    {
+        $super = $this->createAdmin(superAdmin: true);
+        Setting::singleton();
+        $before = $this->settingsRow();
+        $this->assertSame('open', $before['site_availability_mode']);
+        $this->assertNull($before['site_availability_changed_at']);
+
+        $this->settingsPage($super)
+            ->assertSee('<span class="d-block small text-muted mt-1" data-site-availability-source="database">Default (no state saved yet)</span>', false)
+            ->assertDontSee('Set in the dashboard')
+            ->assertSee('data-site-availability-effective="open"', false)
+            ->assertSee('data-site-availability-stored="open"', false);
+
+        $this->assertSame($before, $this->settingsRow(), 'Rendering the card writes nothing.');
+        $this->assertSame('database', app(SiteAvailability::class)->source(), 'The resolution source is unchanged.');
+    }
+
+    public function test_an_explicitly_saved_state_shows_the_dashboard_source_label(): void
+    {
+        $super = $this->createAdmin(superAdmin: true);
+        Setting::singleton();
+
+        $this->save($super, 'coming_soon');
+        $this->save($super, 'open');
+
+        $this->settingsPage($super)
+            ->assertSee('<span class="d-block small text-muted mt-1" data-site-availability-source="database">Set in the dashboard</span>', false)
+            ->assertDontSee('Default (no state saved yet)');
+    }
+
+    public function test_a_closed_state_without_a_change_date_keeps_the_saved_label(): void
+    {
+        // A manual database edit (not through the card): never shown as the default.
+        $super = $this->createAdmin(superAdmin: true);
+        Setting::singleton();
+        DB::table('settings')->where('singleton_key', 1)->update(['site_availability_mode' => 'maintenance']);
+
+        $this->settingsPage($super)
+            ->assertSee('<span class="d-block small text-muted mt-1" data-site-availability-source="database">Set in the dashboard</span>', false)
+            ->assertSee('data-site-availability-effective="maintenance"', false);
+    }
+
     public function test_the_general_settings_form_keeps_its_markup(): void
     {
         $editor = $this->adminWithAbilities(['settings.view', 'settings.edit']);
@@ -504,6 +791,23 @@ class SiteAvailabilitySettingsTest extends TestCase
     {
         $response->assertRedirect(route('dashboard.setting.index').'#site-availability');
         $this->assertSame(['level' => $level, 'message' => $message], session(SiteAvailabilityController::FLASH));
+    }
+
+    /**
+     * The rendered outcome message: exactly one, with the level's existing classes, exactly one role (the expected one)
+     * and the message text unchanged.
+     */
+    private function assertFlashElement(string $html, string $level, string $role, string $message): void
+    {
+        $this->assertSame(1, preg_match_all('/<div [^>]*data-site-availability-flash[^>]*>(.*?)<\/div>/s', $html, $matches), 'One outcome message.');
+        $this->assertSame('<div class="alert alert-'.$level.'" role="'.$role.'" data-site-availability-flash>', strstr($matches[0][0], '>', true).'>');
+        $this->assertSame(1, substr_count($matches[0][0], 'role='), 'One role only.');
+        $this->assertSame($message, trim($matches[1][0]));
+    }
+
+    private function assertSessionMissingOldInput(): void
+    {
+        $this->assertSame([], session()->getOldInput());
     }
 
     private function storeDirectly(string $state, Admin $by, string $at): void
