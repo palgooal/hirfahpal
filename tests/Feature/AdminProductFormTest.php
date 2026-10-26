@@ -71,7 +71,7 @@ class AdminProductFormTest extends TestCase
 
     public function test_the_edit_form_submits_the_product_unchanged_with_its_stock_basis(): void
     {
-        $product = $this->product(['category_id' => $this->active->id, 'sku' => 'JUG-1', 'compare_at_price' => 15, 'weight' => 1.25, 'is_featured' => true, 'short_description' => 'Short', 'description' => "Line 1\nLine 2"]);
+        $product = $this->product(['category_id' => $this->active->id, 'sku' => 'JUG-1', 'compare_at_price' => 7.5, 'weight' => 1.25, 'is_featured' => true, 'short_description' => 'Short', 'description' => "Line 1\nLine 2"]);
         $admin = $this->admin(super: true);
         $html = $this->page($admin, route('dashboard.products.edit', $product));
 
@@ -80,7 +80,7 @@ class AdminProductFormTest extends TestCase
         $this->assertStringContainsString('name="_method" value="PUT"', $html);
 
         $values = $this->formValues($html);
-        $this->assertSame(['Clay jug', 'clay-jug', (string) $this->vendor->id, (string) $this->active->id, 'JUG-1', '10.00', '15.00', '10', '3', '1.25', '', 'Short', "Line 1\nLine 2", 'active', '1'], [
+        $this->assertSame(['Clay jug', 'clay-jug', (string) $this->vendor->id, (string) $this->active->id, 'JUG-1', '10.00', '7.50', '10', '3', '1.25', '', 'Short', "Line 1\nLine 2", 'active', '1'], [
             $values['name'], $values['slug'], $values['vendor_id'], $values['category_id'], $values['sku'], $values['price'], $values['compare_at_price'],
             $values['stock_quantity'], $values['low_stock_threshold'], $values['weight'], $values['weight_unit'], $values['short_description'], $values['description'], $values['status'], $values['is_featured'],
         ]);
@@ -301,7 +301,7 @@ class AdminProductFormTest extends TestCase
 
         $ar = $this->page($admin, route('dashboard.products.edit', $product), 'ar');
         $this->assertMatchesRegularExpression('#<html lang="ar" [^>]*dir="rtl"#', $ar);
-        foreach (['تعديل المنتج', 'البيانات الأساسية', 'الأسعار والمخزون', 'الوصف والتفاصيل', 'الحالة والإعدادات', 'اسم المنتج', 'كمية المخزون', 'سعر المقارنة', '(إلزامي)', '(اختياري)', 'Old crafts (غير نشط)', 'هذا المنتج مؤرشف ولا يمكن بيعه', 'حفظ المنتج', 'إلغاء', 'العودة إلى المنتج', 'مسودة', 'نشط'] as $text) {
+        foreach (['تعديل المنتج', 'البيانات الأساسية', 'الأسعار والمخزون', 'الوصف والتفاصيل', 'الحالة والإعدادات', 'اسم المنتج', 'كمية المخزون', 'سعر الخصم', 'السعر الأساسي', '(إلزامي)', '(اختياري)', 'Old crafts (غير نشط)', 'هذا المنتج مؤرشف ولا يمكن بيعه', 'حفظ المنتج', 'إلغاء', 'العودة إلى المنتج', 'مسودة', 'نشط'] as $text) {
             $this->assertStringContainsString($text, $ar, $text);
         }
         foreach (['>Name<', 'Low Stock Threshold', 'Compare Price', '>Save<', 'Product name'] as $english) {

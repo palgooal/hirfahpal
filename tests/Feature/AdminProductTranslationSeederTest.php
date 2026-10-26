@@ -110,6 +110,96 @@ class AdminProductTranslationSeederTest extends TestCase
         $this->assertSame('For shipping, WITH up to two decimal places.', $this->value('dashboard.Products_Form_Weight_Hint', 'en'));
     }
 
+    // ---------------------------------------------------------------- HIRFAH-PRICE-01
+
+    public function test_the_pricing_labels_and_hints_use_the_approved_price_01_wording(): void
+    {
+        $t = AdminProductTranslationSeeder::TRANSLATIONS;
+
+        $this->assertSame(['ar' => 'السعر الأساسي', 'en' => 'Regular price'], $t['dashboard.Products_Form_Field_Price']);
+        $this->assertSame(['ar' => 'سعر الخصم', 'en' => 'Sale price'], $t['dashboard.Products_Form_Field_Compare_Price']);
+        $this->assertSame(['ar' => 'سعر الخصم', 'en' => 'Sale price'], $t['dashboard.Products_Show_Compare_Price']);
+        $this->assertSame([
+            'ar' => 'السعر الأساسي للمنتج بعملة المتجر، ويمكن إدخاله بمنزلتين عشريتين على الأكثر.',
+            'en' => 'The regular price of the product in the store currency, with up to two decimal places.',
+        ], $t['dashboard.Products_Form_Price_Hint']);
+        $this->assertSame([
+            'ar' => 'اختياري. أدخل سعرًا أقل من السعر الأساسي. عند تحديده، يُعرض السعر الأساسي مشطوبًا ويُعتمد سعر الخصم للبيع.',
+            'en' => 'Optional. Enter a price lower than the regular price. When provided, the regular price is displayed crossed out and the sale price is used for purchases.',
+        ], $t['dashboard.Products_Form_Compare_Price_Hint']);
+
+        // No seeded pricing text still describes the compare-at price as the higher or previous price.
+        foreach (['dashboard.Products_Form_Field_Compare_Price', 'dashboard.Products_Show_Compare_Price', 'dashboard.Products_Form_Compare_Price_Hint'] as $key) {
+            $this->assertStringNotContainsString('higher', $t[$key]['en'], $key);
+            $this->assertStringNotContainsString('أعلى', $t[$key]['ar'], $key);
+            $this->assertStringNotContainsString('المقارنة', $t[$key]['ar'], $key);
+        }
+    }
+
+    public function test_every_correction_leads_to_the_seeded_value_and_never_to_an_obsolete_one(): void
+    {
+        $sources = [];
+        foreach (AdminProductTranslationSeeder::CORRECTIONS as $correction) {
+            $sources[$correction['key'].'|'.$correction['locale'].'|'.$correction['from']] = true;
+        }
+
+        foreach (AdminProductTranslationSeeder::CORRECTIONS as $correction) {
+            $this->assertSame(AdminProductTranslationSeeder::TRANSLATIONS[$correction['key']][$correction['locale']], $correction['to'], $correction['key'].' '.$correction['locale']);
+            $this->assertArrayNotHasKey($correction['key'].'|'.$correction['locale'].'|'.$correction['to'], $sources, 'A target is never itself corrected again.');
+        }
+    }
+
+    public function test_the_obsolete_pricing_defaults_are_corrected_in_both_languages(): void
+    {
+        $old = [
+            // Both generations of the compare-price hint (before and after b06f67b).
+            ['dashboard.Products_Form_Compare_Price_Hint', 'ar', 'سعر سابق يُعرض للمقارنة، ويجب أن يكون أعلى من السعر.'],
+            ['dashboard.Products_Form_Compare_Price_Hint', 'en', 'The previous higher price. When set, the store can show it crossed out next to the current price to explain the discount. It must be higher than the price.'],
+            ['dashboard.Products_Form_Price_Hint', 'ar', 'بعملة المتجر، وبمنزلتين عشريتين على الأكثر.'],
+            ['dashboard.Products_Form_Price_Hint', 'en', 'In the store currency, with up to two decimal places.'],
+            ['dashboard.Products_Form_Field_Price', 'ar', 'السعر'],
+            ['dashboard.Products_Form_Field_Price', 'en', 'Price'],
+            ['dashboard.Products_Form_Field_Compare_Price', 'ar', 'سعر المقارنة'],
+            ['dashboard.Products_Form_Field_Compare_Price', 'en', 'Compare-at price'],
+            ['dashboard.Products_Show_Compare_Price', 'ar', 'سعر المقارنة'],
+            ['dashboard.Products_Show_Compare_Price', 'en', 'Compare-at price'],
+        ];
+        foreach ($old as [$key, $locale, $value]) {
+            TranslationValue::create(['key' => $key, 'locale' => $locale, 'value' => $value]);
+            cache()->put("translation.{$locale}.{$key}", $value);
+        }
+
+        $this->seed(AdminProductTranslationSeeder::class);
+
+        foreach ($old as [$key, $locale]) {
+            $this->assertSame(AdminProductTranslationSeeder::TRANSLATIONS[$key][$locale], $this->value($key, $locale), "{$key} {$locale}");
+            $this->assertFalse(cache()->has("translation.{$locale}.{$key}"), "{$key} {$locale} cache");
+            $this->assertSame(1, TranslationValue::where('key', $key)->where('locale', $locale)->count());
+        }
+    }
+
+    public function test_customised_pricing_texts_are_kept(): void
+    {
+        $custom = [
+            ['dashboard.Products_Form_Field_Price', 'ar', 'سعر البيع الأصلي'],
+            ['dashboard.Products_Form_Field_Compare_Price', 'en', 'Discounted price'],
+            ['dashboard.Products_Show_Compare_Price', 'ar', 'السعر بعد الخصم'],
+            ['dashboard.Products_Form_Price_Hint', 'en', 'Our own price hint.'],
+            // An old default that differs only in case is an edit too.
+            ['dashboard.Products_Form_Compare_Price_Hint', 'en', 'an earlier price shown for comparison. it must be higher than the price.'],
+        ];
+        foreach ($custom as [$key, $locale, $value]) {
+            TranslationValue::create(['key' => $key, 'locale' => $locale, 'value' => $value]);
+        }
+
+        $this->seed(AdminProductTranslationSeeder::class);
+        $this->seed(AdminProductTranslationSeeder::class);
+
+        foreach ($custom as [$key, $locale, $value]) {
+            $this->assertSame($value, $this->value($key, $locale), "{$key} {$locale}");
+        }
+    }
+
     public function test_running_twice_creates_no_duplicates_and_changes_nothing(): void
     {
         $this->seed(AdminProductTranslationSeeder::class);

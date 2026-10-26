@@ -35,7 +35,7 @@ class SearchTest extends TestCase
 
     public function test_offers_only_include_products_with_a_real_price_reduction(): void
     {
-        $offer = $this->storefrontProduct('real-offer', attributes: ['price' => 20, 'compare_at_price' => 30]);
+        $offer = $this->storefrontProduct('real-offer', attributes: ['price' => 30, 'compare_at_price' => 20]);
         $this->storefrontProduct('regular-product');
         $this->get(route('browse', ['sale' => 1]))->assertOk()
             ->assertViewHas('products', fn ($products) => $products->pluck('id')->all() === [$offer->id]);

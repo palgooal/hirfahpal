@@ -184,7 +184,7 @@
                 <h2 class="admin-product-panel-title" id="product-heading-stock">{{ $tabs['stock'] }}</h2>
                 <dl class="admin-product-facts">
                     <div><dt>{{ $prodText('Products_Column_Price', 'Price') }}</dt><dd><span dir="ltr">{{ $amount($product->price) }}</span></dd></div>
-                    <div><dt>{{ $prodText('Products_Show_Compare_Price', 'Compare-at price') }}</dt><dd><span dir="ltr">{{ $amount($product->compare_at_price) }}</span></dd></div>
+                    <div><dt>{{ $prodText('Products_Show_Compare_Price', 'Sale price') }}</dt><dd><span dir="ltr">{{ $amount($product->compare_at_price) }}</span></dd></div>
                     <div><dt>{{ $prodText('Products_Stock_On_Hand', 'On hand') }}</dt><dd>{{ (int) $product->stock_quantity }}</dd></div>
                     <div><dt>{{ $prodText('Products_Stock_Reserved', 'Reserved') }}</dt><dd>{{ $reserved }}</dd></div>
                     <div><dt>{{ $prodText('Products_Stock_Available', 'Available') }}</dt><dd>{{ $available }}</dd></div>

@@ -99,7 +99,7 @@ class AdminProductTranslationSeeder extends Seeder
         'dashboard.Products_Show_Image_Alt' => ['ar' => 'صورة المنتج :number', 'en' => 'Product image :number'],
         'dashboard.Products_Show_Primary_Image' => ['ar' => 'الصورة الرئيسية', 'en' => 'Main image'],
         'dashboard.Products_Show_Image_Not_Shown' => ['ar' => 'لا تُعرض: ليست ملف صورة مخزّنًا', 'en' => 'Not shown: not a stored image file'],
-        'dashboard.Products_Show_Compare_Price' => ['ar' => 'سعر المقارنة', 'en' => 'Compare-at price'],
+        'dashboard.Products_Show_Compare_Price' => ['ar' => 'سعر الخصم', 'en' => 'Sale price'],
         'dashboard.Products_Show_Low_Threshold' => ['ar' => 'حد التنبيه للمخزون', 'en' => 'Low stock threshold'],
         'dashboard.Products_Show_Not_Archived' => ['ar' => 'غير مؤرشف', 'en' => 'Not archived'],
         'dashboard.Products_Show_Suspension_Reason' => ['ar' => 'سبب التعليق', 'en' => 'Reason for the suspension'],
@@ -203,8 +203,8 @@ class AdminProductTranslationSeeder extends Seeder
         'dashboard.Products_Form_Field_Vendor' => ['ar' => 'البائع', 'en' => 'Vendor'],
         'dashboard.Products_Form_Field_Category' => ['ar' => 'التصنيف', 'en' => 'Category'],
         'dashboard.Products_Form_Field_Sku' => ['ar' => 'رمز المنتج (SKU)', 'en' => 'SKU'],
-        'dashboard.Products_Form_Field_Price' => ['ar' => 'السعر', 'en' => 'Price'],
-        'dashboard.Products_Form_Field_Compare_Price' => ['ar' => 'سعر المقارنة', 'en' => 'Compare-at price'],
+        'dashboard.Products_Form_Field_Price' => ['ar' => 'السعر الأساسي', 'en' => 'Regular price'],
+        'dashboard.Products_Form_Field_Compare_Price' => ['ar' => 'سعر الخصم', 'en' => 'Sale price'],
         'dashboard.Products_Form_Field_Stock' => ['ar' => 'كمية المخزون', 'en' => 'Stock quantity'],
         'dashboard.Products_Form_Field_Low_Stock' => ['ar' => 'حد المخزون المنخفض', 'en' => 'Low stock threshold'],
         'dashboard.Products_Form_Field_Weight' => ['ar' => 'الوزن', 'en' => 'Weight'],
@@ -226,13 +226,14 @@ class AdminProductTranslationSeeder extends Seeder
             'ar' => 'رمز المنتج، ويجب ألا يستخدمه منتج آخر.',
             'en' => 'The product code. It must not be used by another product.',
         ],
+        // HIRFAH-PRICE-01: price is the regular price, compare_at_price the lower sale price.
         'dashboard.Products_Form_Price_Hint' => [
-            'ar' => 'بعملة المتجر، وبمنزلتين عشريتين على الأكثر.',
-            'en' => 'In the store currency, with up to two decimal places.',
+            'ar' => 'السعر الأساسي للمنتج بعملة المتجر، ويمكن إدخاله بمنزلتين عشريتين على الأكثر.',
+            'en' => 'The regular price of the product in the store currency, with up to two decimal places.',
         ],
         'dashboard.Products_Form_Compare_Price_Hint' => [
-            'ar' => 'السعر السابق الأعلى. عند تعبئته يمكن للمتجر عرضه مشطوبًا بجانب السعر الحالي لتوضيح الخصم. ويجب أن يكون أعلى من السعر.',
-            'en' => 'The previous higher price. When set, the store can show it crossed out next to the current price to explain the discount. It must be higher than the price.',
+            'ar' => 'اختياري. أدخل سعرًا أقل من السعر الأساسي. عند تحديده، يُعرض السعر الأساسي مشطوبًا ويُعتمد سعر الخصم للبيع.',
+            'en' => 'Optional. Enter a price lower than the regular price. When provided, the regular price is displayed crossed out and the sale price is used for purchases.',
         ],
         'dashboard.Products_Form_Stock_Hint' => [
             'ar' => 'الوحدات الموجودة في المخزون، ومنها المحجوزة لطلبات مفتوحة. لا يمكن أن تقل عن الوحدات المحجوزة.',
@@ -312,17 +313,80 @@ class AdminProductTranslationSeeder extends Seeder
             'to' => 'تم حفظ المنتج بنجاح.',
         ],
         // The compare-price and weight hints, rewritten with the weight unit and product images form (b06f67b).
+        // HIRFAH-PRICE-01: the b06f67b compare-price targets ("the previous higher price") are superseded, so both
+        // generations of the old hint now lead straight to the PRICE-01 text, never to an intermediate one.
         [
             'key' => 'dashboard.Products_Form_Compare_Price_Hint',
             'locale' => 'ar',
             'from' => 'سعر سابق يُعرض للمقارنة، ويجب أن يكون أعلى من السعر.',
-            'to' => 'السعر السابق الأعلى. عند تعبئته يمكن للمتجر عرضه مشطوبًا بجانب السعر الحالي لتوضيح الخصم. ويجب أن يكون أعلى من السعر.',
+            'to' => 'اختياري. أدخل سعرًا أقل من السعر الأساسي. عند تحديده، يُعرض السعر الأساسي مشطوبًا ويُعتمد سعر الخصم للبيع.',
         ],
         [
             'key' => 'dashboard.Products_Form_Compare_Price_Hint',
             'locale' => 'en',
             'from' => 'An earlier price shown for comparison. It must be higher than the price.',
-            'to' => 'The previous higher price. When set, the store can show it crossed out next to the current price to explain the discount. It must be higher than the price.',
+            'to' => 'Optional. Enter a price lower than the regular price. When provided, the regular price is displayed crossed out and the sale price is used for purchases.',
+        ],
+        [
+            'key' => 'dashboard.Products_Form_Compare_Price_Hint',
+            'locale' => 'ar',
+            'from' => 'السعر السابق الأعلى. عند تعبئته يمكن للمتجر عرضه مشطوبًا بجانب السعر الحالي لتوضيح الخصم. ويجب أن يكون أعلى من السعر.',
+            'to' => 'اختياري. أدخل سعرًا أقل من السعر الأساسي. عند تحديده، يُعرض السعر الأساسي مشطوبًا ويُعتمد سعر الخصم للبيع.',
+        ],
+        [
+            'key' => 'dashboard.Products_Form_Compare_Price_Hint',
+            'locale' => 'en',
+            'from' => 'The previous higher price. When set, the store can show it crossed out next to the current price to explain the discount. It must be higher than the price.',
+            'to' => 'Optional. Enter a price lower than the regular price. When provided, the regular price is displayed crossed out and the sale price is used for purchases.',
+        ],
+        // HIRFAH-PRICE-01: the price hint and the two pricing labels as first shipped.
+        [
+            'key' => 'dashboard.Products_Form_Price_Hint',
+            'locale' => 'ar',
+            'from' => 'بعملة المتجر، وبمنزلتين عشريتين على الأكثر.',
+            'to' => 'السعر الأساسي للمنتج بعملة المتجر، ويمكن إدخاله بمنزلتين عشريتين على الأكثر.',
+        ],
+        [
+            'key' => 'dashboard.Products_Form_Price_Hint',
+            'locale' => 'en',
+            'from' => 'In the store currency, with up to two decimal places.',
+            'to' => 'The regular price of the product in the store currency, with up to two decimal places.',
+        ],
+        [
+            'key' => 'dashboard.Products_Form_Field_Price',
+            'locale' => 'ar',
+            'from' => 'السعر',
+            'to' => 'السعر الأساسي',
+        ],
+        [
+            'key' => 'dashboard.Products_Form_Field_Price',
+            'locale' => 'en',
+            'from' => 'Price',
+            'to' => 'Regular price',
+        ],
+        [
+            'key' => 'dashboard.Products_Form_Field_Compare_Price',
+            'locale' => 'ar',
+            'from' => 'سعر المقارنة',
+            'to' => 'سعر الخصم',
+        ],
+        [
+            'key' => 'dashboard.Products_Form_Field_Compare_Price',
+            'locale' => 'en',
+            'from' => 'Compare-at price',
+            'to' => 'Sale price',
+        ],
+        [
+            'key' => 'dashboard.Products_Show_Compare_Price',
+            'locale' => 'ar',
+            'from' => 'سعر المقارنة',
+            'to' => 'سعر الخصم',
+        ],
+        [
+            'key' => 'dashboard.Products_Show_Compare_Price',
+            'locale' => 'en',
+            'from' => 'Compare-at price',
+            'to' => 'Sale price',
         ],
         [
             'key' => 'dashboard.Products_Form_Weight_Hint',

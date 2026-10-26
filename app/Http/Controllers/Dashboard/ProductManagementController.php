@@ -307,8 +307,8 @@ class ProductManagementController extends Controller
             'vendor_id' => ['dashboard.Products_Form_Field_Vendor', 'Vendor'],
             'category_id' => ['dashboard.Products_Form_Field_Category', 'Category'],
             'sku' => ['dashboard.Products_Form_Field_Sku', 'SKU'],
-            'price' => ['dashboard.Products_Form_Field_Price', 'Price'],
-            'compare_at_price' => ['dashboard.Products_Form_Field_Compare_Price', 'Compare-at price'],
+            'price' => ['dashboard.Products_Form_Field_Price', 'Regular price'],
+            'compare_at_price' => ['dashboard.Products_Form_Field_Compare_Price', 'Sale price'],
             'stock_quantity' => ['dashboard.Products_Form_Field_Stock', 'Stock quantity'],
             'low_stock_threshold' => ['dashboard.Products_Form_Field_Low_Stock', 'Low stock threshold'],
             'weight' => ['dashboard.Products_Form_Field_Weight', 'Weight'],
@@ -340,8 +340,8 @@ class ProductManagementController extends Controller
     {
         // PRD-06: bounds of the columns (products: price and compare_at_price DECIMAL(10,2), weight DECIMAL(8,2),
         // stock_quantity and low_stock_threshold UNSIGNED INT), so an out-of-range value is a field error and not
-        // a database error. Price is the regular price and compare_at_price is
-        // the optional discounted selling price, so it must be lower.
+        // a database error. HIRFAH-PRICE-01 (supersedes PRD-06's "compare-at above the price"): price is the
+        // regular price and compare_at_price the optional sale price, so it must be lower.
         $data = $request->validate([
             'vendor_id' => ['required', 'exists:vendors,id'],
             'category_id' => ['nullable', 'exists:categories,id'],

@@ -22,7 +22,8 @@ use Tests\TestCase;
  *    nothing related changes; the delete button is gone.
  *  - PRD-02: the stock cannot go below the quantity reserved for open orders (checked under the product lock).
  *  - PRD-03: no redirect follows an external Referer.
- *  - PRD-06: numeric bounds of the columns and compare-at price above the price.
+ *  - PRD-06: numeric bounds of the columns. The compare-at price follows HIRFAH-PRICE-01 (it is the sale price, so
+ *    below the price), which supersedes PRD-06's earlier "compare-at above the price".
  */
 class AdminProductSafetyTest extends TestCase
 {
@@ -417,7 +418,7 @@ class AdminProductSafetyTest extends TestCase
         $this->assertDatabaseHas('products', ['slug' => 'new-jug']);
     }
 
-    // ---------------------------------------------------------------- PRD-06: numeric bounds and relations
+    // ---------------------------------------------------------------- PRD-06 bounds; HIRFAH-PRICE-01 relation
 
     /** @return array<string, array{array<string, mixed>, string}> */
     public static function invalidValues(): array
@@ -428,7 +429,7 @@ class AdminProductSafetyTest extends TestCase
             'price in exponent form' => [['price' => '1e3'], 'price'],
             'negative price' => [['price' => '-0.01'], 'price'],
             'compare-at equal to the price' => [['price' => '50', 'compare_at_price' => '50'], 'compare_at_price'],
-            'compare-at below the price' => [['price' => '50', 'compare_at_price' => '20'], 'compare_at_price'],
+            'compare-at above the price' => [['price' => '50', 'compare_at_price' => '60'], 'compare_at_price'],
             'compare-at above DECIMAL(10,2)' => [['price' => '50', 'compare_at_price' => '100000000'], 'compare_at_price'],
             'stock above UNSIGNED INT' => [['stock_quantity' => '4294967296'], 'stock_quantity'],
             'negative stock' => [['stock_quantity' => '-1'], 'stock_quantity'],
@@ -476,8 +477,8 @@ class AdminProductSafetyTest extends TestCase
         $this->actingAs($this->superAdmin(), 'admin')
             ->post(route('dashboard.products.store'), $this->payload([
                 'slug' => 'bounds',
-                'price' => '99999999.98',
-                'compare_at_price' => '99999999.99',
+                'price' => '99999999.99',
+                'compare_at_price' => '99999999.98',
                 'stock_quantity' => '4294967295',
                 'low_stock_threshold' => '4294967295',
                 'weight' => '999999.99',
@@ -486,19 +487,20 @@ class AdminProductSafetyTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $product = Product::where('slug', 'bounds')->sole();
-        $this->assertSame('99999999.98', $product->price);
-        $this->assertSame('99999999.99', $product->compare_at_price);
+        $this->assertSame('99999999.99', $product->price);
+        $this->assertSame('99999999.98', $product->compare_at_price);
         $this->assertSame(4294967295, $product->stock_quantity);
     }
 
-    public function test_a_compare_at_price_above_the_price_and_existing_slug_rules_still_work(): void
+    public function test_a_compare_at_price_below_the_price_and_existing_slug_rules_still_work(): void
     {
         $admin = $this->superAdmin();
 
+        // HIRFAH-PRICE-01: a sale price below the regular price is valid.
         $this->actingAs($admin, 'admin')
-            ->post(route('dashboard.products.store'), $this->payload(['slug' => 'jug-ok', 'price' => '40', 'compare_at_price' => '55.5']))
+            ->post(route('dashboard.products.store'), $this->payload(['slug' => 'jug-ok', 'price' => '40', 'compare_at_price' => '35.5']))
             ->assertSessionHasNoErrors();
-        $this->assertSame('55.50', Product::where('slug', 'jug-ok')->sole()->compare_at_price);
+        $this->assertSame('35.50', Product::where('slug', 'jug-ok')->sole()->compare_at_price);
 
         // An empty slug is still generated from the name, as before.
         $this->actingAs($admin, 'admin')
