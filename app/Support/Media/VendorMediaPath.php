@@ -19,27 +19,6 @@ final class VendorMediaPath
 
     public static function isVendorOwned(?string $path): bool
     {
-        return is_string($path) && preg_match(self::OWNED, self::normalize($path)) === 1;
-    }
-
-    private static function normalize(string $path): string
-    {
-        $segments = [];
-
-        foreach (explode('/', str_replace('\\', '/', $path)) as $segment) {
-            if ($segment === '' || $segment === '.') {
-                continue;
-            }
-
-            if ($segment === '..') {
-                array_pop($segments);
-
-                continue;
-            }
-
-            $segments[] = $segment;
-        }
-
-        return implode('/', $segments);
+        return is_string($path) && preg_match(self::OWNED, StoragePath::normalize($path)) === 1;
     }
 }
