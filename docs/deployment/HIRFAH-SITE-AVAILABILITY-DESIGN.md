@@ -700,6 +700,37 @@ CSS hardening (SITE-AVAILABILITY-PHASE-02A-CSS-HARDENING, inline CSS, T-4):
 | Pint (`--test`), `git diff --check` | Clean |
 | Not done | Seeders not run; no migration; no `.env` change; real-device check not done |
 
+### 11.10 E2E closure (SA-E2E-01 to 03, local, 2026-10-26)
+
+Manual browser checks on the local development site (`http://127.0.0.1:8002`, `APP_ENV=local`, no `HIRFAH_SITE_AVAILABILITY` override, configuration not cached), after the SA-FIX-1 to 4B card changes (`8c75647`). Each state was set and reverted through the Super Admin card only. **Final state: stored `open`, effective `open`, source `database`** (last change `2026-10-26 16:23:04` UTC).
+
+| Run | Verdict | Manually verified |
+|---|---|---|
+| **SA-E2E-01 — Open** | **PASS** | In the browser: the normal storefront home page, browse page, vendors page, customer login page and vendor login page. |
+| **SA-E2E-02 — Coming Soon** | **PASS** for the executed manual scope | The Super Admin activated `coming_soon` from the card; the card showed `coming_soon` as both stored and effective state. As a guest: home and browse showed the Coming Soon page; customer login and registration showed it; vendor login stayed available; delivery-driver login and the delivery-driver dashboard showed it. An approved vendor reached the vendor dashboard. The Super Admin dashboard stayed available. The state was restored to `open` and the normal home page returned. |
+| **SA-E2E-03 — Maintenance** | **PASS** for the executed manual scope | The Super Admin activated `maintenance` from the card; the card showed `maintenance` as both stored and effective state; the Super Admin dashboard and settings stayed available. As a guest: the home page showed the branded Maintenance page; customer login and registration, vendor login, registration and dashboard, and delivery-driver login and dashboard showed it. Real HTTP response for **GET `/` only** (Chrome DevTools): `503 Service Unavailable`, `Retry-After: 3600`, `X-Robots-Tag: noindex, nofollow`, `Pragma: no-cache`, `Cache-Control` with `no-store`, `no-cache`, `must-revalidate`, `max-age=0` and `private`. The state was restored to `open` and the normal home page returned. |
+
+Automated evidence (PHPUnit, in-memory SQLite with `array` cache and session, isolated from the development database), reported per run and not added together because the suites overlap:
+
+| Run | Result |
+|---|---|
+| Open preflight (SA-E2E-01A: gate, indicators, unknown URLs, storefront home, vendor directory, content pages, customer, vendor, delivery-driver and admin entry, vendor dashboard shell) | **182 passed, 0 failed, 0 skipped** |
+| Maintenance preflight (SA-E2E-03A: gate, pages, unknown URLs, vendor allowlist, indicators, service, settings card, `maintenance.bypass`, vendor entry, account status) | **169 passed (2378 assertions), 0 failed, 0 skipped** |
+
+Coverage not verified manually (status per scenario; "automated only" names the tests that cover it):
+
+| Scenario | Status |
+|---|---|
+| A signed-in delivery driver during Coming Soon | **Automated only** — `SiteAvailabilityGateTest::test_signed_in_customers_and_drivers_see_the_page_and_keep_their_sessions` (both closed states) |
+| Vendor and driver sessions that were already signed in when Maintenance started | **Automated only** — `SiteAvailabilityVendorAllowlistTest::test_during_maintenance_the_whole_vendor_area_is_closed`; the driver test above |
+| Mutation requests (POST/PATCH/DELETE) during a closed state, over real HTTP | **Automated only** — `test_blocked_mutations_never_reach_their_controllers`, `test_coming_soon_answers_safe_requests_with_200_and_mutations_with_503` |
+| JSON responses over real HTTP | **Automated only** — `test_json_requests_get_a_structured_body` |
+| `maintenance.bypass` with a real admin session | **Automated only** — `test_super_admins_and_admins_with_maintenance_bypass_preview_the_storefront` (no local admin holds the ability) |
+| HTTP status and headers of routes other than GET `/` | **Automated only** — gate and allowlist tests |
+| Mobile layout of the Coming Soon and Maintenance pages in these runs | **Not tested** in SA-E2E (see §11.4 and §11.9 for the earlier headless checks) |
+| Screen reader (including the card's `alert`/`status` roles) | **Not tested** |
+| Production (cPanel) | **Not tested** — Phase 4 (§10) |
+
 ---
 
 ## 12. Implementation file inventory
