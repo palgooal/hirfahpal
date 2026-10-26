@@ -37,7 +37,9 @@ class SiteAvailabilityController extends Controller
         }
 
         if (! $request->boolean('confirm')) {
-            return $this->back('danger', 'Site_Availability_Not_Confirmed', 'The change was not confirmed. Tick the confirmation box to save.');
+            // SA-FIX-2: the (already valid) choice is kept for the redirect; the confirmation never is.
+            return $this->back('danger', 'Site_Availability_Not_Confirmed', 'The change was not confirmed. Tick the confirmation box to save.')
+                ->withInput(['state' => $state->value]);
         }
 
         if (! SiteAvailabilitySettings::store($state, $admin)) {

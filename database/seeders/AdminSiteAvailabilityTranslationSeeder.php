@@ -13,8 +13,8 @@ use Illuminate\Database\Seeder;
  * and launch warnings, confirmation, deleted admin) are used as written there. The ability labels belong to
  * AdminAbilityTranslationSeeder.
  *
- * Only missing (key, locale) rows are inserted; edited values are kept; nothing is deleted. Not called from
- * DatabaseSeeder.
+ * Only missing (key, locale) rows are inserted; edited values are kept; the old defaults listed in CORRECTIONS are
+ * replaced only while a row still holds them exactly; nothing is deleted. Not called from DatabaseSeeder.
  */
 class AdminSiteAvailabilityTranslationSeeder extends Seeder
 {
@@ -33,6 +33,7 @@ class AdminSiteAvailabilityTranslationSeeder extends Seeder
         'dashboard.Site_Availability_Effective' => ['ar' => 'الحالة الفعلية الآن', 'en' => 'Current state'],
         'dashboard.Site_Availability_Stored' => ['ar' => 'الحالة المحفوظة', 'en' => 'Saved state'],
         'dashboard.Site_Availability_Last_Change' => ['ar' => 'آخر تغيير', 'en' => 'Last change'],
+        'dashboard.Site_Availability_Palestine_Time' => ['ar' => 'بتوقيت فلسطين', 'en' => 'Palestine time'],
         'dashboard.Site_Availability_Deleted_Admin' => ['ar' => 'مشرف محذوف', 'en' => 'Deleted admin'],
         'dashboard.Site_Availability_Source_Environment' => ['ar' => 'مفروضة من إعدادات الخادم', 'en' => 'Forced by the server environment'],
         'dashboard.Site_Availability_Source_Database' => ['ar' => 'محفوظة من لوحة التحكم', 'en' => 'Set in the dashboard'],
@@ -42,12 +43,16 @@ class AdminSiteAvailabilityTranslationSeeder extends Seeder
         'dashboard.Site_Availability_State_Maintenance' => ['ar' => 'صيانة', 'en' => 'Maintenance'],
         'dashboard.Site_Availability_Hint_Open' => ['ar' => 'المتجر متاح للجميع كالمعتاد.', 'en' => 'The store is available to everyone as usual.'],
         'dashboard.Site_Availability_Hint_Coming_Soon' => [
-            'ar' => 'يرى الزوار صفحة «قريبًا»، ويستطيع البائعون المعتمدون استخدام لوحاتهم.',
-            'en' => 'Visitors see the Coming Soon page; approved vendors can still use their dashboards.',
+            'ar' => 'تظهر صفحة «قريبًا» للزوار والعملاء ومندوبي التوصيل، بينما يستطيع البائعون المعتمدون الوصول إلى لوحاتهم، وتبقى لوحة الإدارة متاحة.',
+            'en' => 'Visitors, customers and delivery drivers see the Coming Soon page, while approved vendors can access their dashboards and the admin dashboard remains available.',
         ],
         'dashboard.Site_Availability_Hint_Maintenance' => [
-            'ar' => 'يرى الجميع صفحة الصيانة (رمز 503)، بمن فيهم البائعون.',
-            'en' => 'Everyone sees the maintenance page (503), vendors included.',
+            'ar' => 'تظهر صفحة الصيانة للزوار والعملاء والبائعين ومندوبي التوصيل (رمز 503)، بينما تبقى لوحة الإدارة متاحة للمسؤولين المصرّح لهم.',
+            'en' => 'Visitors, customers, vendors and delivery drivers see the maintenance page (HTTP 503), while the admin dashboard remains accessible to authorized administrators.',
+        ],
+        'dashboard.Site_Availability_Warning_Coming_Soon' => [
+            'ar' => 'عند حفظ وضع «قريبًا»، سيتوقف وصول العملاء إلى المتجر، ولن يتمكنوا من تسجيل الدخول أو إتمام الطلبات حتى إعادة فتحه. كما سيتعذر على مندوبي التوصيل الوصول إلى لوحاتهم.',
+            'en' => 'Saving Coming Soon mode will block customers from accessing the store, signing in or placing orders until it is reopened. Delivery drivers will also be unable to access their dashboards.',
         ],
         'dashboard.Site_Availability_Override_Warning' => [
             'ar' => 'حالة الموقع مفروضة من إعدادات الخادم (HIRFAH_SITE_AVAILABILITY=:value) وتتقدّم على الإعداد المحفوظ هنا. التغييرات تُحفظ لكنها لا تُطبَّق حتى تُعاد القيمة إلى auto.',
@@ -90,6 +95,39 @@ class AdminSiteAvailabilityTranslationSeeder extends Seeder
         ],
     ];
 
+    /**
+     * SA-FIX-4B: the two option hints as first shipped, replaced by the approved wording only while a row still holds
+     * them exactly (an edited value is kept).
+     *
+     * @var list<array{key: string, locale: string, from: string, to: string}>
+     */
+    public const CORRECTIONS = [
+        [
+            'key' => 'dashboard.Site_Availability_Hint_Coming_Soon',
+            'locale' => 'ar',
+            'from' => 'يرى الزوار صفحة «قريبًا»، ويستطيع البائعون المعتمدون استخدام لوحاتهم.',
+            'to' => 'تظهر صفحة «قريبًا» للزوار والعملاء ومندوبي التوصيل، بينما يستطيع البائعون المعتمدون الوصول إلى لوحاتهم، وتبقى لوحة الإدارة متاحة.',
+        ],
+        [
+            'key' => 'dashboard.Site_Availability_Hint_Coming_Soon',
+            'locale' => 'en',
+            'from' => 'Visitors see the Coming Soon page; approved vendors can still use their dashboards.',
+            'to' => 'Visitors, customers and delivery drivers see the Coming Soon page, while approved vendors can access their dashboards and the admin dashboard remains available.',
+        ],
+        [
+            'key' => 'dashboard.Site_Availability_Hint_Maintenance',
+            'locale' => 'ar',
+            'from' => 'يرى الجميع صفحة الصيانة (رمز 503)، بمن فيهم البائعون.',
+            'to' => 'تظهر صفحة الصيانة للزوار والعملاء والبائعين ومندوبي التوصيل (رمز 503)، بينما تبقى لوحة الإدارة متاحة للمسؤولين المصرّح لهم.',
+        ],
+        [
+            'key' => 'dashboard.Site_Availability_Hint_Maintenance',
+            'locale' => 'en',
+            'from' => 'Everyone sees the maintenance page (503), vendors included.',
+            'to' => 'Visitors, customers, vendors and delivery drivers see the maintenance page (HTTP 503), while the admin dashboard remains accessible to authorized administrators.',
+        ],
+    ];
+
     public function run(): void
     {
         $now = now();
@@ -108,6 +146,26 @@ class AdminSiteAvailabilityTranslationSeeder extends Seeder
                 if ($inserted > 0) {
                     cache()->forget("translation.{$locale}.{$key}");
                 }
+            }
+        }
+
+        foreach (self::CORRECTIONS as $correction) {
+            // Guarded update: only this (key, locale) row, and only while it still holds the old default exactly.
+            // Compared in PHP: MySQL's collation is case-insensitive, so a SQL "=" would also replace an edit that
+            // differs only in case.
+            $row = TranslationValue::query()
+                ->where('key', $correction['key'])
+                ->where('locale', $correction['locale'])
+                ->first();
+
+            if (! $row || $row->value !== $correction['from']) {
+                continue;
+            }
+
+            $changed = TranslationValue::query()->whereKey($row->getKey())->update(['value' => $correction['to'], 'updated_at' => $now]);
+
+            if ($changed > 0) {
+                cache()->forget("translation.{$correction['locale']}.{$correction['key']}");
             }
         }
     }

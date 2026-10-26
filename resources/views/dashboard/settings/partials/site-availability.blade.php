@@ -22,8 +22,8 @@
     ];
     $stateHints = [
         'open' => $saText('Site_Availability_Hint_Open', 'The store is available to everyone as usual.'),
-        'coming_soon' => $saText('Site_Availability_Hint_Coming_Soon', 'Visitors see the Coming Soon page; approved vendors can still use their dashboards.'),
-        'maintenance' => $saText('Site_Availability_Hint_Maintenance', 'Everyone sees the maintenance page (503), vendors included.'),
+        'coming_soon' => $saText('Site_Availability_Hint_Coming_Soon', 'Visitors, customers and delivery drivers see the Coming Soon page, while approved vendors can access their dashboards and the admin dashboard remains available.'),
+        'maintenance' => $saText('Site_Availability_Hint_Maintenance', 'Visitors, customers, vendors and delivery drivers see the maintenance page (HTTP 503), while the admin dashboard remains accessible to authorized administrators.'),
     ];
     // admin-products-badge modifiers: olive outline, copper outline, solid red.
     $tones = ['open' => 'active', 'coming_soon' => 'low', 'maintenance' => 'suspended'];
@@ -35,9 +35,21 @@
 
     $effective = $card['effective']->value;
     $stored = $card['stored']?->value;
-    $selected = $stored ?? $effective;
+    // SA-FIX-2: after a rejected save the admin's choice stays selected, but only a valid state value is accepted.
+    $previous = old('state');
+    $selected = (is_string($previous) ? App\Support\SiteAvailability\SiteAvailabilityState::tryFrom($previous)?->value : null) ?? $stored ?? $effective;
     $ready = $card['schema_ready'];
     $flash = session(App\Http\Controllers\Dashboard\SiteAvailabilityController::FLASH);
+    // SA-FIX-3: only known levels style the message (anything else is info); errors and warnings are announced
+    // assertively (alert), confirmations politely (status).
+    $flashLevel = in_array($flash['level'] ?? null, ['success', 'info', 'warning', 'danger'], true) ? $flash['level'] : 'info';
+    $flashRole = in_array($flashLevel, ['danger', 'warning'], true) ? 'alert' : 'status';
+    // SA-FIX-1: the change time is stored in the app timezone (UTC) and shown in Palestine time, for display only.
+    $changedAtLocal = $card['changed_at']?->copy()->setTimezone('Asia/Hebron');
+    // SA-FIX-4B (D4), display only: the migration gives every row `open` with no change date, and only
+    // SiteAvailabilitySettings::store() writes the state, always with its date. So `open` without a date was never
+    // saved by anyone; any other state without a date (a manual database edit) keeps the "saved" label.
+    $sourceKey = $card['source'] === 'database' && $card['changed_at'] === null && $stored === 'open' ? 'default' : $card['source'];
 @endphp
 
 <div class="col-span-12" id="site-availability">
@@ -49,7 +61,7 @@
 
         <div class="card-body">
             @if (is_array($flash) && isset($flash['message']))
-                <div class="alert alert-{{ in_array($flash['level'] ?? '', ['success', 'info', 'warning', 'danger'], true) ? $flash['level'] : 'info' }}" role="status" data-site-availability-flash>
+                <div class="alert alert-{{ $flashLevel }}" role="{{ $flashRole }}" data-site-availability-flash>
                     {{ $flash['message'] }}
                 </div>
             @endif
@@ -72,7 +84,7 @@
                     <dd class="mb-0">
                         {{-- U1: the dashboard's existing badge, styled only inside its .admin-products scope (no rule on the wrapper itself). --}}
                         <span class="admin-products"><span class="admin-products-badge is-{{ $tones[$effective] }}" data-site-availability-effective="{{ $effective }}">{{ $stateLabels[$effective] }}</span></span>
-                        <span class="d-block small text-muted mt-1" data-site-availability-source="{{ $card['source'] }}">{{ $sources[$card['source']] ?? '' }}</span>
+                        <span class="d-block small text-muted mt-1" data-site-availability-source="{{ $card['source'] }}">{{ $sources[$sourceKey] ?? '' }}</span>
                     </dd>
                 </div>
 
@@ -84,8 +96,9 @@
                 <div class="col-12 col-md-4">
                     <dt class="text-muted fw-normal mb-1">{{ $saText('Site_Availability_Last_Change', 'Last change') }}</dt>
                     <dd class="mb-0" data-site-availability-last-change>
-                        @if ($card['changed_at'])
-                            <bdi dir="ltr">{{ $card['changed_at']->format('Y-m-d H:i') }}</bdi>
+                        @if ($changedAtLocal)
+                            <bdi dir="ltr" data-site-availability-changed-at>{{ $changedAtLocal->format('Y-m-d H:i') }}</bdi>
+                            <span class="small text-muted">({{ $saText('Site_Availability_Palestine_Time', 'Palestine time') }})</span>
                             —
                             <bdi>{{ $card['changed_by'] ?? ($card['changed_by_deleted'] ? $saText('Site_Availability_Deleted_Admin', 'Deleted admin') : '—') }}</bdi>
                         @else
@@ -114,7 +127,10 @@
 
                                 @if ($value === 'maintenance')
                                     <p class="small text-danger mb-0 mt-1" data-site-availability-warning="maintenance">{{ $saText('Site_Availability_Warning_Maintenance', 'Visitors, customers, vendors and delivery drivers will see that the site is under maintenance (503) and cannot sign in or complete anything until you reopen the site.') }}</p>
-                                @elseif ($value === 'open' && $stored === 'coming_soon')
+                                @elseif ($value === 'coming_soon' && $stored !== 'coming_soon')
+                                    {{-- SA-FIX-4B (D2): closing to customers, in the launch warning's dark amber. --}}
+                                    <p class="small mb-0 mt-1" style="color: #8a4520" data-site-availability-warning="coming-soon">{{ $saText('Site_Availability_Warning_Coming_Soon', 'Saving Coming Soon mode will block customers from accessing the store, signing in or placing orders until it is reopened. Delivery drivers will also be unable to access their dashboards.') }}</p>
+                                @elseif ($value === 'open' && in_array($stored, ['coming_soon', 'maintenance'], true))
                                     {{-- U4: the dashboard's dark amber instead of Bootstrap's low-contrast warning yellow. --}}
                                     <p class="small mb-0 mt-1" style="color: #8a4520" data-site-availability-warning="launch">{{ $saText('Site_Availability_Warning_Launch', 'The store will be open to everyone as soon as you save.') }}</p>
                                 @endif
