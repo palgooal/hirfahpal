@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Models\Admin;
 use App\Support\Media\MediaUsageGuard;
+use App\Support\Media\VendorMediaPath;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -25,6 +27,10 @@ use Throwable;
  * deleted, for a single item and for a whole bulk request alike. Files are removed only after the commit, so
  * a rolled back or retried transaction (3 attempts on deadlock) never touches the disk. The foreign keys
  * (ON DELETE RESTRICT) refuse what a race could slip past the check; that refusal is also answered with 409.
+ *
+ * MEDIA-SECURITY-01: vendor-owned media (VendorMediaPath) is never deleted here, whatever the admin's abilities.
+ * The check sits in the delete itself, not in MediaPolicy, because Gate::before lets a super admin skip the
+ * policy; it answers the same 403 as a refused authorization, and a bulk request is refused whole.
  */
 class MediaLibraryController extends MediaController
 {
@@ -114,6 +120,12 @@ class MediaLibraryController extends MediaController
         try {
             $outcome = DB::transaction(function () use ($ids): array {
                 $locked = Media::query()->whereKey($ids)->orderBy('id')->lockForUpdate()->get();
+
+                // MEDIA-SECURITY-01: before anything is deleted; the exception rolls the transaction back.
+                if ($locked->contains(fn (Media $media) => VendorMediaPath::isVendorOwned($media->file_path))) {
+                    throw new AuthorizationException;
+                }
+
                 $inUse = $this->usage->inUse($locked->modelKeys());
 
                 if ($inUse !== []) {
