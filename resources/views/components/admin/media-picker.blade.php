@@ -145,7 +145,8 @@
                         <i class="ph-duotone ph-upload-simple" aria-hidden="true"></i>
                         <span>{{ $pickerText('Media_Upload', 'Upload images') }}</span>
                     </button>
-                    <input type="file" class="visually-hidden" tabindex="-1" aria-hidden="true" accept="image/jpeg,image/png,image/gif,image/webp" data-picker-file>
+                    <label class="visually-hidden" for="{{ $pickerId }}-file">{{ $pickerText('Media_Upload', 'Upload images') }}</label>
+                    <input type="file" class="visually-hidden" id="{{ $pickerId }}-file" tabindex="-1" aria-hidden="true" accept="image/jpeg,image/png,image/gif,image/webp" data-picker-file>
                 @endif
             </div>
 

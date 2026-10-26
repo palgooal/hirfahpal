@@ -146,10 +146,12 @@ class ProductController extends Controller
     {
         $data['slug'] = ($data['slug'] ?? null) ?: $this->uniqueSlug($data['name'], $product);
         $data['low_stock_threshold'] = $data['low_stock_threshold'] ?? 1;
-        $data['is_featured'] = (bool) ($data['is_featured'] ?? false);
-        $data['is_limited_edition'] = (bool) ($data['is_limited_edition'] ?? false);
-        $data['highlight_tags'] = $this->tags($data['highlight_tags'] ?? []);
-        $data['craft_tags'] = $this->tags($data['craft_tags'] ?? []);
+        // Status and storefront settings are intentionally not controlled by vendors.
+        $data['status'] = $product?->status ?? 'draft';
+        $data['is_featured'] = $product?->is_featured ?? false;
+        $data['is_limited_edition'] = $product?->is_limited_edition ?? false;
+        $data['highlight_tags'] = $product?->highlight_tags ?? [];
+        $data['craft_tags'] = $product?->craft_tags ?? [];
         $data['published_at'] = $data['status'] === 'active' ? ($product?->published_at ?? now()) : null;
 
         return $data;

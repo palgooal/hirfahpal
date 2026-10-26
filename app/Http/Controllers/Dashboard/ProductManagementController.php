@@ -22,6 +22,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Palgoal\MediaLibrary\Models\Media;
 use Throwable;
 
 class ProductManagementController extends Controller
@@ -196,7 +197,7 @@ class ProductManagementController extends Controller
 
         $this->returningErrorsTo(route('dashboard.products.edit', $product), function () use ($request, $product) {
             $data = $this->validatedData($request, $product);
-            $this->validateImageUploads($request);
+            $this->validateImageUploads($request, $product);
             $basis = $this->stockBasis($request);
 
             // M0-FIX (lost update): the form sends back the stock it displayed. When the submitted stock equals it,
@@ -388,6 +389,27 @@ class ProductManagementController extends Controller
     /** Store product photos only after their bytes, dimensions and filename extension agree. */
     private function storeImageUploads(Request $request, Product $product): void
     {
+        // Images chosen from the admin media library are referenced, rather than copied. This lets the
+        // product form offer the same library as the Media dashboard and keeps uploads in one place.
+        $media = Media::query()
+            ->images()
+            ->whereIn('id', $request->input('media_image_ids', []))
+            ->get();
+
+        foreach ($media as $item) {
+            if ($product->images()->where('path', $item->file_path)->exists()) {
+                continue;
+            }
+
+            $hasImages = $product->images()->exists();
+            $product->images()->create([
+                'path' => $item->file_path,
+                'alt_text' => $item->alt ?: ($item->file_original_name ?: $product->name),
+                'sort_order' => (int) $product->images()->max('sort_order') + 1,
+                'is_primary' => ! $hasImages,
+            ]);
+        }
+
         foreach ($request->file('images', []) as $image) {
             if (! $image instanceof UploadedFile) {
                 continue;
@@ -406,12 +428,28 @@ class ProductManagementController extends Controller
         }
     }
 
-    private function validateImageUploads(Request $request): void
+    private function validateImageUploads(Request $request, ?Product $product = null): void
     {
-        $request->validate([
+        $data = $request->validate([
             'images' => ['nullable', 'array', 'max:6'],
             'images.*' => ['file', 'max:5120'],
+            'media_image_ids' => ['nullable', 'array', 'max:6'],
+            'media_image_ids.*' => ['nullable', 'integer', 'distinct', 'exists:media,id'],
         ]);
+
+        $mediaIds = collect($data['media_image_ids'] ?? [])->filter()->map(fn ($id) => (int) $id);
+        if ($mediaIds->isNotEmpty() && Media::query()->images()->whereIn('id', $mediaIds)->count() !== $mediaIds->count()) {
+            throw ValidationException::withMessages([
+                'media_image_ids' => $this->untranslatedDefault('dashboard.Products_Form_Images_Invalid', 'Each selected item must be an image from the media library.'),
+            ]);
+        }
+
+        $newImages = count($request->file('images', [])) + $mediaIds->count();
+        if (($product?->images()->count() ?? 0) + $newImages > 6) {
+            throw ValidationException::withMessages([
+                'media_image_ids' => $this->untranslatedDefault('dashboard.Products_Form_Images_Max', 'A product can have up to 6 images.'),
+            ]);
+        }
 
         foreach ($request->file('images', []) as $image) {
             if ($image instanceof UploadedFile) {

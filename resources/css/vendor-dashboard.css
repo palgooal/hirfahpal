@@ -48,6 +48,26 @@ html.vendor-shell {
   --colors-primary: 61 71 43;
 }
 
+/* Vendor product editor deliberately shares the admin product-form visual language. The data flow remains
+ * vendor-specific, but the panel, section rhythm, labels and responsive layout match the admin add-product page. */
+html.vendor-shell .vendor-product-form { max-width: 56rem; }
+html.vendor-shell .vendor-product-form .admin-media-panel { margin-bottom: 0; border: 1px solid var(--color-hf-line); box-shadow: 0 2px 12px rgb(43 43 38 / 6%); }
+html.vendor-shell .vendor-product-form .card-body { padding: 0; }
+html.vendor-shell .vendor-product-form .admin-media-head { display: flex; flex-wrap: wrap; gap: .75rem 1rem; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--color-hf-line); }
+html.vendor-shell .vendor-product-form .admin-product-form-head { flex-direction: column; align-items: flex-start; }
+html.vendor-shell .vendor-product-form .admin-product-title { margin: 0; color: var(--color-hf-ink); font-size: 1.35rem; font-weight: 700; }
+html.vendor-shell .vendor-product-form .admin-cat-form-section { display: flex; flex-direction: column; gap: 1rem; min-width: 0; margin: 0; padding: 1.25rem 1.5rem 1.5rem; border: 0; border-bottom: 1px solid var(--color-hf-line); }
+html.vendor-shell .vendor-product-form .admin-cat-form-legend { float: none; width: auto; margin: 0; padding: 0; color: var(--color-hf-ink); font-size: 1rem; font-weight: 700; }
+html.vendor-shell .vendor-product-form .form-label { margin-bottom: .375rem; color: var(--color-hf-ink); font-weight: 600; }
+html.vendor-shell .vendor-product-form .form-control, html.vendor-shell .vendor-product-form .form-select { min-height: 44px; }
+html.vendor-shell .vendor-product-form .row { display: flex; flex-wrap: wrap; gap: 1rem; margin: 0; }
+html.vendor-shell .vendor-product-form .row > [class*="col-"] { flex: 1 1 18rem; min-width: 0; padding: 0; }
+html.vendor-shell .vendor-product-form .row > .col-12 { flex-basis: 100%; }
+html.vendor-shell .vendor-product-form .admin-cat-form-actions { display: flex; flex-wrap: wrap; gap: .75rem; padding: 1.25rem 1.5rem; }
+html.vendor-shell .vendor-product-form .admin-cat-form-actions .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; }
+html.vendor-shell .vendor-product-form [data-product-primary-image], html.vendor-shell .vendor-product-form [data-product-gallery-images] { min-height: 3.5rem; padding: .75rem; border: 1px dashed var(--color-hf-line); border-radius: .5rem; background: var(--color-hf-surface); }
+@media (max-width: 575.98px) { html.vendor-shell .vendor-product-form .admin-cat-form-section { padding: .75rem 1rem 1rem; } html.vendor-shell .vendor-product-form .admin-cat-form-actions { padding: 1rem; } html.vendor-shell .vendor-product-form .admin-cat-form-actions .btn { flex: 1 1 100%; } }
+
 html.vendor-shell body,
 html.vendor-shell button,
 html.vendor-shell h1,
