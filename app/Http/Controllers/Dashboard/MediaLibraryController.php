@@ -63,6 +63,23 @@ class MediaLibraryController extends MediaController
         return $response->setData($payload);
     }
 
+    /**
+     * ADMIN-MEDIA-ORGANIZATION-01 P1: vendor-owned media (VendorMediaPath) is read-only in the admin library, so
+     * its metadata is never updated here, whatever the admin's abilities. Checked in the action, not in
+     * MediaPolicy, because Gate::before lets a super admin skip the policy; the same 403 as a refused
+     * authorization. Everything else is the package's update, unchanged.
+     */
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $media = Media::findOrFail($id);
+
+        if (VendorMediaPath::isVendorOwned($media->file_path)) {
+            throw new AuthorizationException;
+        }
+
+        return parent::update($request, $id);
+    }
+
     public function destroy(string $id): JsonResponse
     {
         $media = Media::findOrFail($id);
