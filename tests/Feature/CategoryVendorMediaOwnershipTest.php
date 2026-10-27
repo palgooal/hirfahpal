@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\Language;
 use App\Models\RoleUser;
 use App\Models\Vendor;
+use Database\Seeders\AdminCategoryTranslationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Palgoal\MediaLibrary\Models\Media;
@@ -117,6 +118,27 @@ class CategoryVendorMediaOwnershipTest extends TestCase
                 ->assertSessionHasErrors(['image_media_id' => self::VENDOR_OWNED]);
             $this->assertNull($category->fresh()->image_media_id, $path);
         }
+    }
+
+    public function test_the_refusal_is_shown_in_arabic_and_in_english(): void
+    {
+        $this->seed(AdminCategoryTranslationSeeder::class);
+        Language::create(['name' => 'Arabic', 'native' => 'العربية', 'code' => 'ar', 'is_rtl' => true, 'is_active' => true]);
+        $vendorMedia = $this->media('vendors/media/7/'.uniqid().'.png');
+        $category = $this->category('Pottery', null);
+        $admin = $this->admin(['categories.edit', 'media.view']);
+
+        foreach ([
+            'ar' => 'هذه الصورة تابعة لأحد البائعين. يرجى اختيار صورة من مكتبة وسائط الإدارة.',
+            'en' => self::VENDOR_OWNED,
+        ] as $locale => $message) {
+            $this->actingAs($admin, 'admin')->withSession(['locale' => $locale])
+                ->putJson(route('dashboard.categories.update', $category), ['name' => 'Pottery', 'slug' => 'pottery', 'parent_id' => null, 'image_media_id' => $vendorMedia->id])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors(['image_media_id' => $message]);
+        }
+
+        $this->assertNull($category->fresh()->image_media_id);
     }
 
     // ---------------------------------------------------------------- existing behaviour unchanged

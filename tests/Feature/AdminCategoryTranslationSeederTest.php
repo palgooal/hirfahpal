@@ -35,6 +35,7 @@ class AdminCategoryTranslationSeederTest extends TestCase
         'dashboard.Category_image_missing',
         'dashboard.Category_image_invalid',
         'dashboard.Category_image_conflict',
+        'dashboard.Category_image_vendor_owned',
         // Categories list (AD-UI-CAT-01E-3A).
         'dashboard.Categories_Intro', 'dashboard.Category_Add', 'dashboard.Categories_Dismiss', 'dashboard.Categories_List',
         'dashboard.Categories_Filters', 'dashboard.Categories_Search_Label', 'dashboard.Categories_Search_Placeholder',

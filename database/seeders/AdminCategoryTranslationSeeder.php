@@ -76,6 +76,11 @@ class AdminCategoryTranslationSeeder extends Seeder
             'ar' => 'اختر صورة جديدة أو أزل الصورة الحالية، لا الاثنين معًا.',
             'en' => 'Choose a new image or remove the current one, not both.',
         ],
+        // ADMIN-MEDIA-ORGANIZATION-01: category images come from the admin media library only.
+        'dashboard.Category_image_vendor_owned' => [
+            'ar' => 'هذه الصورة تابعة لأحد البائعين. يرجى اختيار صورة من مكتبة وسائط الإدارة.',
+            'en' => 'This image belongs to a vendor. Choose an image from the admin media library.',
+        ],
 
         // Categories list (AD-UI-CAT-01E-3A): resources/views/dashboard/categories/index.blade.php.
         'dashboard.Categories_Intro' => [
