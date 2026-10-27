@@ -22,6 +22,7 @@
 @source "../views/components/admin";
 @source "../js/admin-media-picker.js";
 @source "../js/admin-media";
+@source "../js/admin-vendor-media.js";
 @source "../js/admin-categories.js";
 
 /* Approved identity tokens (DEC-AD-UI-04.a), prefixed so they cannot clash with Able Pro or Bootstrap class names. */
@@ -2784,6 +2785,301 @@ html.admin-shell .admin-admin-form-actions [aria-busy="true"] {
   html.admin-shell .pc-sidebar[data-admin-sidebar="managed"] ~ .pc-header,
   html.admin-shell .pc-sidebar[data-admin-sidebar="managed"] ~ .pc-container,
   html.admin-shell .pc-sidebar[data-admin-sidebar="managed"] ~ .pc-footer {
+    transition: none;
+  }
+}
+
+/* ---- Vendor media (ADMIN-MEDIA-ORGANIZATION-01 P4) ----
+ * resources/views/dashboard/vendor-media/index.blade.php with resources/js/admin-vendor-media.js, and the Admin /
+ * Vendor media switcher (resources/views/dashboard/media/partials/sections.blade.php). Reuses the media library
+ * classes (states, image grid, dialog) unchanged; everything new is under .admin-vendor-media-*. Logical properties
+ * only, so RTL and LTR need no separate rules (except mirroring the Back arrow).
+ */
+html.admin-shell .pc-content:has(#admin-vendor-media) > .page-header {
+  display: none;
+}
+
+html.admin-shell .pc-content:has(#admin-vendor-media) {
+  padding-top: 1.5rem;
+}
+
+html.admin-shell .admin-vendor-media-sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+html.admin-shell .admin-vendor-media-sections .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+html.admin-shell .admin-vendor-media-sections .btn:focus-visible,
+html.admin-shell .admin-vendor-media-back:focus-visible,
+html.admin-shell .admin-vendor-media-title:focus-visible {
+  outline: 2px solid var(--color-hf-copper);
+  outline-offset: 2px;
+}
+
+html.admin-shell .admin-vendor-media-readonly {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 9999px;
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+html.admin-shell .admin-vendor-media-notice {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-hf-copper);
+  border-radius: 12px;
+  background-color: #fff;
+  color: #8a4520;
+}
+
+html.admin-shell .admin-vendor-media-notice[hidden],
+html.admin-shell .admin-vendor-media .admin-media-panel[hidden],
+html.admin-shell .admin-vendor-media-vendor-secondary[hidden],
+html.admin-shell .admin-vendor-media-dialog .btn[hidden] {
+  display: none;
+}
+
+html.admin-shell .admin-vendor-media-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem 0;
+}
+
+html.admin-shell .admin-vendor-media-folder-head {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-hf-line);
+}
+
+html.admin-shell .admin-vendor-media-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  margin: 0;
+  color: var(--color-hf-ink);
+  font-size: 1rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+html.admin-shell .admin-vendor-media-title:focus:not(:focus-visible) {
+  outline: none;
+}
+
+html.admin-shell .admin-vendor-media-vendor {
+  display: flex;
+  flex: 1 1 14rem;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+html.admin-shell .admin-vendor-media-vendor-secondary {
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+/* A <bdi> name takes the direction of its own text, so "start" would follow the name, not the page. Aligned by the
+ * page direction instead (an Arabic store name in English, an English one in Arabic); the name stays isolated.
+ * Explicit sides, as for the search icon above: text-align: match-parent is not supported by Chrome. */
+html.admin-shell[dir="rtl"] :is(
+  .admin-vendor-media-folder-name,
+  .admin-vendor-media-folder-vendor,
+  .admin-vendor-media-vendor-secondary
+) {
+  text-align: right;
+}
+
+html.admin-shell[dir="ltr"] :is(
+  .admin-vendor-media-folder-name,
+  .admin-vendor-media-folder-vendor,
+  .admin-vendor-media-vendor-secondary
+) {
+  text-align: left;
+}
+
+html.admin-shell[dir="rtl"] .admin-vendor-media-back > i {
+  transform: scaleX(-1);
+}
+
+html.admin-shell .admin-vendor-media-filter .form-select {
+  min-width: 12rem;
+}
+
+html.admin-shell .admin-vendor-media-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 0;
+  margin: 0;
+  padding-inline-start: 0;
+}
+
+html.admin-shell .admin-vendor-media-check .form-check-input {
+  float: none;
+  flex: none;
+  margin: 0;
+}
+
+html.admin-shell .admin-vendor-media-folders {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html.admin-shell .admin-vendor-media-folders:empty {
+  display: none;
+}
+
+html.admin-shell .admin-vendor-media-folder {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  height: 100%;
+  padding: 1rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 12px;
+  background-color: #fff;
+  color: var(--color-hf-ink);
+  text-decoration: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+html.admin-shell .admin-vendor-media-folder:hover {
+  border-color: var(--color-hf-sage);
+  box-shadow: 0 4px 12px rgb(43 43 38 / 8%);
+  color: var(--color-hf-ink);
+}
+
+html.admin-shell .admin-vendor-media-folder:focus-visible {
+  outline: 2px solid var(--color-hf-copper);
+  outline-offset: 2px;
+}
+
+html.admin-shell .admin-vendor-media-folder > i {
+  flex: none;
+  color: var(--color-hf-copper);
+  font-size: 2rem;
+}
+
+html.admin-shell .admin-vendor-media-folder-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+html.admin-shell .admin-vendor-media-folder-name {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+html.admin-shell .admin-vendor-media-folder-vendor,
+html.admin-shell .admin-vendor-media-folder-count {
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+html.admin-shell .admin-vendor-media-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+/* The tones of the vendors list badges (.admin-products-badge), in this page's own namespace. */
+html.admin-shell .admin-vendor-media-badge {
+  display: inline-block;
+  padding: 0.0625rem 0.5rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 9999px;
+  background-color: #fff;
+  color: var(--color-hf-ink);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+html.admin-shell .admin-vendor-media-badge.is-active {
+  border-color: var(--color-hf-olive);
+  color: var(--color-hf-olive);
+}
+
+html.admin-shell .admin-vendor-media-badge.is-low {
+  border-color: var(--color-hf-copper);
+  color: #8a4520;
+}
+
+html.admin-shell .admin-vendor-media-badge.is-suspended {
+  border-color: var(--color-hf-error);
+  background-color: var(--color-hf-error);
+  color: #fff;
+}
+
+html.admin-shell .admin-vendor-media-badge.is-muted {
+  border-style: dashed;
+  color: var(--color-hf-muted);
+}
+
+html.admin-shell .admin-vendor-media-facts {
+  gap: 0.625rem;
+  padding: 1.25rem;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 767.98px) {
+  html.admin-shell .admin-vendor-media-folder-head {
+    align-items: flex-start;
+  }
+
+  html.admin-shell .admin-vendor-media-filter,
+  html.admin-shell .admin-vendor-media-filter .form-select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  html.admin-shell .admin-vendor-media-dialog .admin-media-dialog-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  html.admin-shell .admin-vendor-media-dialog .admin-media-dialog-footer .btn-primary {
+    margin-inline-start: 0;
+  }
+}
+
+@media (max-width: 575.98px) {
+  html.admin-shell .admin-vendor-media-folders {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html.admin-shell .admin-vendor-media-sections .btn {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.admin-shell .admin-vendor-media-folder {
     transition: none;
   }
 }

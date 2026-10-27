@@ -16,6 +16,9 @@
         'edit' => $mediaGate->allows('update', $mediaProbe),
         'delete' => $mediaGate->allows('delete', $mediaProbe),
     ];
+    // ADMIN-MEDIA-ORGANIZATION-01 P4: the Admin / Vendor media switcher, for admins who may open both sections.
+    $mediaAdmin = auth('admin')->user();
+    $mediaSections = (bool) ($mediaAdmin?->isSuperAdmin() || ($mediaAdmin?->hasAbility('media.view') && $mediaAdmin->hasAbility('vendors.view')));
     $mediaMaxMb = rtrim(rtrim(number_format(((int) config('media-library.max_upload_size_kb', 10240)) / 1024, 1, '.', ''), '0'), '.');
 
     // t() without auto-creating the key (as MediaLibraryController does): until AdminMediaTranslationSeeder runs
@@ -77,6 +80,10 @@
 
 <x-dynamic-component :component="config('media-library.layout') ?: 'dashboard-layout'">
     <div class="col-span-12 admin-media" id="admin-media-library" data-can-create="{{ $mediaCan['create'] ? 'true' : 'false' }}" data-can-edit="{{ $mediaCan['edit'] ? 'true' : 'false' }}" data-can-delete="{{ $mediaCan['delete'] ? 'true' : 'false' }}">
+
+        @if ($mediaSections)
+            @include('dashboard.media.partials.sections', ['current' => 'admin', 'sectionText' => $mediaText])
+        @endif
 
         {{-- Content header (5.1): the page title is in the admin header. --}}
         <div class="admin-media-head">

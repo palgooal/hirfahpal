@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\TranslationValue;
 use Database\Seeders\AdminMediaTranslationSeeder;
+use Database\Seeders\AdminVendorTranslationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -60,9 +61,12 @@ class AdminMediaTranslationSeederTest extends TestCase
         $code = file_get_contents(app_path('Http/Controllers/Dashboard/MediaLibraryController.php'))
             .file_get_contents(app_path('Http/Middleware/EnsureSafeMediaUpload.php'))
             .file_get_contents(base_path('data/abilities.php'));
-        // The library page and the media picker pass their keys without the dashboard. prefix ($mediaText, $pickerText).
+        // The library page, the media picker and the vendor media page with its section switcher (P4) pass their keys
+        // without the dashboard. prefix ($mediaText, $pickerText, $vmText, $sectionText).
         $view = file_get_contents(resource_path('views/vendor/media-library/media.blade.php'))
-            .file_get_contents(resource_path('views/components/admin/media-picker.blade.php'));
+            .file_get_contents(resource_path('views/components/admin/media-picker.blade.php'))
+            .file_get_contents(resource_path('views/dashboard/vendor-media/index.blade.php'))
+            .file_get_contents(resource_path('views/dashboard/media/partials/sections.blade.php'));
 
         foreach (AdminMediaTranslationSeeder::TRANSLATIONS as $key => $values) {
             $short = substr($key, strlen('dashboard.'));
@@ -98,6 +102,26 @@ class AdminMediaTranslationSeederTest extends TestCase
         foreach (array_unique($used[1]) as $key) {
             $this->assertArrayHasKey('dashboard.'.$key, AdminMediaTranslationSeeder::TRANSLATIONS, $key);
         }
+    }
+
+    public function test_every_key_the_vendor_media_page_uses_is_seeded(): void
+    {
+        $views = file_get_contents(resource_path('views/dashboard/vendor-media/index.blade.php'))
+            .file_get_contents(resource_path('views/dashboard/media/partials/sections.blade.php'));
+        preg_match_all("/\\\$(?:vmText|sectionText)\\('([A-Za-z_]+)', '((?:[^'\\\\]|\\\\.)*)'\\)/", $views, $used, PREG_SET_ORDER);
+        $vendorKeys = AdminVendorTranslationSeeder::TRANSLATIONS;
+
+        $this->assertGreaterThan(40, count($used));
+
+        foreach ($used as [, $key, $default]) {
+            // Media_* keys are this seeder's; the vendor status labels are reused from the vendor seeder.
+            $values = str_starts_with($key, 'Media_') ? (AdminMediaTranslationSeeder::TRANSLATIONS['dashboard.'.$key] ?? null) : ($vendorKeys['dashboard.'.$key] ?? null);
+
+            $this->assertNotNull($values, $key);
+            $this->assertSame($values['en'], $default, "{$key}: the default in the view is the seeded English value.");
+        }
+
+        $this->assertSame(27, count(array_filter(array_keys(AdminMediaTranslationSeeder::TRANSLATIONS), fn (string $key) => str_starts_with($key, 'dashboard.Media_Vendors_') || str_starts_with($key, 'dashboard.Media_Section'))));
     }
 
     public function test_placeholders_are_kept_in_every_language(): void

@@ -33,7 +33,8 @@
             ['route' => 'dashboard.translation-values.index', 'active' => 'dashboard.translation-values.*', 'key' => 'dashboard.Nav_Translations', 'default' => 'Translations', 'icon' => 'ph-translate', 'visible' => $policy(App\Models\TranslationValue::class)],
             ['route' => 'dashboard.setting.index', 'active' => 'dashboard.setting.*', 'key' => 'dashboard.Nav_Settings', 'default' => 'Settings', 'icon' => 'ph-gear-six', 'visible' => $policy(App\Models\Setting::class)],
             // AD-UI-CAT-M3: the media library (palgoal/media-library routes); the server checks media.view itself.
-            ['route' => 'media-library.page', 'active' => 'media-library.*', 'key' => 'dashboard.Nav_Media_Library', 'default' => 'Media Library', 'icon' => 'ph-images', 'visible' => $ability('media.view')],
+            // ADMIN-MEDIA-ORGANIZATION-01 P4: also current on its vendor media section (routeIs takes a list).
+            ['route' => 'media-library.page', 'active' => ['media-library.*', 'dashboard.vendor-media.*'], 'key' => 'dashboard.Nav_Media_Library', 'default' => 'Media Library', 'icon' => 'ph-images', 'visible' => $ability('media.view')],
         ]],
     ];
 

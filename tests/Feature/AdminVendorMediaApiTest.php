@@ -300,7 +300,7 @@ class AdminVendorMediaApiTest extends TestCase
         Storage::disk('public')->assertExists('vendors/media/7/a.png');
 
         $routes = collect(app('router')->getRoutes()->getRoutes())->filter(fn ($route) => str_starts_with($route->uri(), 'dashboard/vendor-media'));
-        $this->assertSame(['dashboard.vendor-media.folders', 'dashboard.vendor-media.media'], $routes->map->getName()->sort()->values()->all());
+        $this->assertSame(['dashboard.vendor-media.folders', 'dashboard.vendor-media.index', 'dashboard.vendor-media.media'], $routes->map->getName()->sort()->values()->all());
         $routes->each(fn ($route) => $this->assertSame(['GET', 'HEAD'], $route->methods()));
         $routes->each(fn ($route) => $this->assertContains('auth:admin', $route->gatherMiddleware()));
     }

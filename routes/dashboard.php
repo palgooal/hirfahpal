@@ -83,7 +83,8 @@ Route::prefix('dashboard')
         Route::patch('vendors/{vendor}/commission-rate', [VendorManagementController::class, 'updateCommissionRate'])->name('vendors.commission-rate');
 
         // ADMIN-MEDIA-ORGANIZATION-01 P3: read-only vendor media folders (JSON). The vendor id is a plain number,
-        // resolved after media.view and vendors.view are checked.
+        // resolved after media.view and vendors.view are checked. P4: the page that browses them.
+        Route::get('vendor-media', [VendorMediaLibraryController::class, 'index'])->name('vendor-media.index');
         Route::get('vendor-media/folders', [VendorMediaLibraryController::class, 'folders'])->name('vendor-media.folders');
         Route::get('vendor-media/folders/{vendor}/media', [VendorMediaLibraryController::class, 'media'])
             ->where('vendor', '[1-9][0-9]{0,18}')->name('vendor-media.media');

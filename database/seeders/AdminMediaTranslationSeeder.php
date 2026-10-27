@@ -345,6 +345,117 @@ class AdminMediaTranslationSeeder extends Seeder
             'ar' => 'تعذّر الاتصال. تحقّق من الشبكة وحاول مجددًا.',
             'en' => 'The connection failed. Check the network and try again.',
         ],
+
+        // Vendor media (ADMIN-MEDIA-ORGANIZATION-01 P4): resources/views/dashboard/media/partials/sections.blade.php and
+        // resources/views/dashboard/vendor-media/index.blade.php. The vendor status labels are the Vendors_* keys.
+        'dashboard.Media_Sections_Label' => [
+            'ar' => 'أقسام مكتبة الوسائط',
+            'en' => 'Media library sections',
+        ],
+        'dashboard.Media_Section_Admin' => [
+            'ar' => 'وسائط الإدارة',
+            'en' => 'Admin media',
+        ],
+        'dashboard.Media_Section_Vendors' => [
+            'ar' => 'وسائط البائعين',
+            'en' => 'Vendor media',
+        ],
+        'dashboard.Media_Vendors_Intro' => [
+            'ar' => 'تصفّح الصور التي رفعها كل بائع. هذا العرض للاطلاع فقط.',
+            'en' => 'Browse the images each vendor uploaded. This view is read-only.',
+        ],
+        'dashboard.Media_Vendors_Read_Only' => [
+            'ar' => 'للاطلاع فقط',
+            'en' => 'Read only',
+        ],
+        'dashboard.Media_Vendors_Folders_Title' => [
+            'ar' => 'مجلدات البائعين',
+            'en' => 'Vendor folders',
+        ],
+        'dashboard.Media_Vendors_Filters_Label' => [
+            'ar' => 'البحث عن بائع',
+            'en' => 'Find a vendor',
+        ],
+        'dashboard.Media_Vendors_Search_Label' => [
+            'ar' => 'البحث في البائعين',
+            'en' => 'Search vendors',
+        ],
+        'dashboard.Media_Vendors_Search_Placeholder' => [
+            'ar' => 'ابحث باسم المتجر أو اسم البائع',
+            'en' => 'Search by store or vendor name',
+        ],
+        'dashboard.Media_Vendors_Status_All' => [
+            'ar' => 'كل حالات الحساب',
+            'en' => 'All account statuses',
+        ],
+        'dashboard.Media_Vendors_Has_Media' => [
+            'ar' => 'البائعون الذين لديهم صور فقط',
+            'en' => 'Vendors with images only',
+        ],
+        'dashboard.Media_Vendors_Count' => [
+            'ar' => 'عدد البائعين: :count',
+            'en' => 'Vendors: :count',
+        ],
+        'dashboard.Media_Vendors_Loading' => [
+            'ar' => 'جارٍ تحميل البائعين…',
+            'en' => 'Loading vendors…',
+        ],
+        'dashboard.Media_Vendors_Empty' => [
+            'ar' => 'لا يوجد بائعون بعد.',
+            'en' => 'No vendors yet.',
+        ],
+        'dashboard.Media_Vendors_Empty_Search' => [
+            'ar' => 'لا يوجد بائعون يطابقون البحث أو عوامل التصفية.',
+            'en' => 'No vendors match your search or filters.',
+        ],
+        'dashboard.Media_Vendors_Load_Error' => [
+            'ar' => 'تعذّر تحميل البائعين.',
+            'en' => 'The vendors could not be loaded.',
+        ],
+        'dashboard.Media_Vendors_Back' => [
+            'ar' => 'العودة إلى البائعين',
+            'en' => 'Back to vendors',
+        ],
+        'dashboard.Media_Vendors_Images_Label' => [
+            'ar' => 'صور :name',
+            'en' => 'Images of :name',
+        ],
+        'dashboard.Media_Vendors_Image_Search_Label' => [
+            'ar' => 'البحث في صور هذا المجلد',
+            'en' => 'Search images in this folder',
+        ],
+        'dashboard.Media_Vendors_Folder_Empty' => [
+            'ar' => 'لا توجد صور لهذا البائع.',
+            'en' => 'This vendor has no images.',
+        ],
+        'dashboard.Media_Vendors_Not_Found' => [
+            'ar' => 'تعذّر العثور على مجلد هذا البائع.',
+            'en' => 'This vendor folder could not be found.',
+        ],
+        'dashboard.Media_Vendors_Session_Expired' => [
+            'ar' => 'انتهت الجلسة. سجّل الدخول مجددًا للمتابعة.',
+            'en' => 'Your session has ended. Sign in again to continue.',
+        ],
+        'dashboard.Media_Vendors_Invalid_Request' => [
+            'ar' => 'تعذّرت معالجة الطلب. غيّر البحث وحاول مجددًا.',
+            'en' => 'The request could not be processed. Change the search and try again.',
+        ],
+        'dashboard.Media_Vendors_Not_Set' => [
+            'ar' => 'غير محدد',
+            'en' => 'Not set',
+        ],
+        'dashboard.Media_Vendors_No_Profile' => [
+            'ar' => 'بلا ملف متجر',
+            'en' => 'No store profile',
+        ],
+        'dashboard.Media_Vendors_Open_Original' => [
+            'ar' => 'فتح الصورة الأصلية',
+            'en' => 'Open the original image',
+        ],
+        'dashboard.Media_Vendors_New_Tab' => [
+            'ar' => '(تُفتح في تبويب جديد)',
+            'en' => '(opens in a new tab)',
+        ],
     ];
 
     public function run(): void

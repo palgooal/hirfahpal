@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 use Palgoal\MediaLibrary\Models\Media;
 
 /**
@@ -28,6 +29,14 @@ class VendorMediaLibraryController extends Controller
     private const FOLDERS_PER_PAGE = 24;
 
     private const MEDIA_PER_PAGE = 40;
+
+    /** P4: the read-only page that browses the folders below (resources/js/admin-vendor-media.js). */
+    public function index(Request $request): View
+    {
+        $this->authorizeAccess($request);
+
+        return view('dashboard.vendor-media.index');
+    }
 
     public function folders(Request $request): JsonResponse
     {

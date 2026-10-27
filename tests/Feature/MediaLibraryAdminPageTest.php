@@ -253,7 +253,7 @@ class MediaLibraryAdminPageTest extends TestCase
         $html = $this->page($this->admin(superAdmin: true));
 
         $this->assertMatchesRegularExpression('#<a href="'.preg_quote(route('media-library.page'), '#').'" class="pc-link"\s+aria-current="page"#', $html);
-        $this->assertSame(1, substr_count($html, 'aria-current="page"'));
+        $this->assertSame(1, preg_match_all('#class="pc-link"\s+aria-current="page"#', $html));
     }
 
     // ---------------------------------------------------------------- list data
