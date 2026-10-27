@@ -13,6 +13,7 @@ use App\Http\Controllers\Dashboard\ReviewManagementController;
 use App\Http\Controllers\Dashboard\SettingController;
 use App\Http\Controllers\Dashboard\SiteAvailabilityController;
 use App\Http\Controllers\Dashboard\VendorManagementController;
+use App\Http\Controllers\Dashboard\VendorMediaLibraryController;
 use App\Http\Controllers\Dashboard\VendorOrderManagementController;
 use Illuminate\Support\Facades\Route;
 
@@ -80,6 +81,12 @@ Route::prefix('dashboard')
         Route::patch('vendors/{vendor}/reject', [VendorManagementController::class, 'reject'])->name('vendors.reject');
         // FR-ADM-009: the per-vendor commission rate (vendor_profiles.commission_rate); no calculation or settlement.
         Route::patch('vendors/{vendor}/commission-rate', [VendorManagementController::class, 'updateCommissionRate'])->name('vendors.commission-rate');
+
+        // ADMIN-MEDIA-ORGANIZATION-01 P3: read-only vendor media folders (JSON). The vendor id is a plain number,
+        // resolved after media.view and vendors.view are checked.
+        Route::get('vendor-media/folders', [VendorMediaLibraryController::class, 'folders'])->name('vendor-media.folders');
+        Route::get('vendor-media/folders/{vendor}/media', [VendorMediaLibraryController::class, 'media'])
+            ->where('vendor', '[1-9][0-9]{0,18}')->name('vendor-media.media');
 
         Route::get('vendor-orders', [VendorOrderManagementController::class, 'index'])->name('vendor-orders.index');
         Route::get('vendor-orders/create', [VendorOrderManagementController::class, 'create'])->name('vendor-orders.create');

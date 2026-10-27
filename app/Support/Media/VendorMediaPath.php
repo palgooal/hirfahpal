@@ -3,6 +3,7 @@
 namespace App\Support\Media;
 
 use Illuminate\Database\Eloquent\Builder;
+use InvalidArgumentException;
 
 /**
  * MEDIA-SECURITY-01: vendor-owned media is the media whose file lives in a vendor's own library folder,
@@ -18,6 +19,8 @@ use Illuminate\Database\Eloquent\Builder;
 final class VendorMediaPath
 {
     private const OWNED = '#^vendors/media/[1-9][0-9]*/[^/]#i';
+
+    private const ROOT = 'vendors/media/';
 
     public static function isVendorOwned(?string $path): bool
     {
@@ -41,5 +44,64 @@ final class VendorMediaPath
             ." and instr({$path}, ?) = 0 and {$path} not like ? and instr({$path}, ?) = 0 and {$path} not like ?))",
             ['vendors/media/%', 'vendors', '\\', '/%', '//', '%/', '/.', '.%']
         );
+    }
+
+    /**
+     * ADMIN-MEDIA-ORGANIZATION-01 P3: a vendor's library folder, exactly as the vendor's media controller writes
+     * it. The trailing slash keeps vendor 1 apart from vendors 10 and 11.
+     */
+    public static function prefix(int $vendorId): string
+    {
+        if ($vendorId < 1) {
+            throw new InvalidArgumentException('A vendor id is a positive integer.');
+        }
+
+        return self::ROOT.$vendorId.'/';
+    }
+
+    /**
+     * ADMIN-MEDIA-ORGANIZATION-01 P3: the media in one vendor's folder, for read-only listings. Only canonical,
+     * server-generated paths match: the prefix with its exact case (hex() compares bytes on MySQL and SQLite
+     * alike, where LIKE and a _ci collation would not), then a file name without a slash, a backslash or a
+     * "." / ".." name. Every match is vendor-owned for isVendorOwned(); non-canonical spellings stay out of the
+     * folder and keep their mutation protections.
+     */
+    public static function scopeToVendor(Builder $query, int $vendorId, string $column = 'file_path'): Builder
+    {
+        $prefix = self::prefix($vendorId);
+        $path = $query->getQuery()->getGrammar()->wrap($column);
+        $file = "substr({$path}, ".(strlen($prefix) + 1).')';
+
+        return $query->whereRaw(
+            "({$path} like ? and hex(substr({$path}, 1, ".strlen($prefix).")) = ? and instr({$path}, ?) = 0"
+            ." and length({$file}) > 0 and instr({$file}, ?) = 0 and {$file} not in (?, ?))",
+            [$prefix.'%', strtoupper(bin2hex($prefix)), '\\', '/', '.', '..']
+        );
+    }
+
+    /**
+     * ADMIN-MEDIA-ORGANIZATION-01 P3: the number of media per vendor folder, in one grouped query, under the same
+     * canonical rule as scopeToVendor(). vendor_key is the hex of the folder's id segment, to join on
+     * hex(cast(vendors.id as char)): a byte comparison, so "07", "7 " or "7abc" never count for vendor 7.
+     * The expressions hold constants only (no bindings), so MySQL's ONLY_FULL_GROUP_BY sees the same
+     * expression in the select and the group by.
+     */
+    public static function folderCounts(Builder $query, string $column = 'file_path'): Builder
+    {
+        $path = $query->getQuery()->getGrammar()->wrap($column);
+        $root = self::ROOT;
+        $tail = "substr({$path}, ".(strlen($root) + 1).')';
+        $slash = "instr({$tail}, '/')";
+        $file = "substr({$tail}, {$slash} + 1)";
+        $key = "hex(substr({$tail}, 1, {$slash} - 1))";
+
+        return $query
+            ->selectRaw("{$key} as vendor_key, count(*) as media_count")
+            ->whereRaw(
+                "({$path} like '{$root}%' and hex(substr({$path}, 1, ".strlen($root).")) = '".strtoupper(bin2hex($root))."'"
+                ." and instr({$path}, char(92)) = 0 and {$slash} > 1 and length({$file}) > 0 and instr({$file}, '/') = 0"
+                ." and {$file} not in ('.', '..'))"
+            )
+            ->groupByRaw($key);
     }
 }
