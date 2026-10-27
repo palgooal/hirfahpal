@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Support\Categories\CategoryDeleteConfirmation;
 use App\Support\Categories\CategorySlug;
+use App\Support\Media\VendorMediaPath;
 use Closure;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
@@ -497,7 +498,8 @@ class CategoryManagementController extends Controller
      *  - image_media_id equal to the current image: no change, and no media ability is needed;
      *  - remove_image=1: unlink (['id' => null]); categories.edit is enough, the media item and its file stay;
      *  - another image_media_id: link or replace (['id' => <id>]); needs media.view (403 otherwise), and the
-     *    item must exist and be an allowed image (422 otherwise);
+     *    item must exist, be an allowed image and be admin media (422 otherwise; vendor-owned media, see
+     *    VendorMediaPath, is never linked to a category, whatever the admin's abilities);
      *  - both remove_image=1 and an image_media_id: 422.
      *
      * The id is checked again by the foreign key when the category is saved (see vanishedRelation()).
@@ -541,6 +543,13 @@ class CategoryManagementController extends Controller
         if ($media->file_type !== 'image' || ! in_array($media->mime_type, self::IMAGE_MIME_TYPES, true)) {
             throw ValidationException::withMessages([
                 'image_media_id' => $this->untranslatedDefault('dashboard.Category_image_invalid', 'The selected file is not a supported image (JPG, PNG, GIF or WebP).'),
+            ]);
+        }
+
+        // ADMIN-MEDIA-ORGANIZATION-01: category images come from the admin media library only.
+        if (VendorMediaPath::isVendorOwned($media->file_path)) {
+            throw ValidationException::withMessages([
+                'image_media_id' => $this->untranslatedDefault('dashboard.Category_image_vendor_owned', 'This image belongs to a vendor. Choose an image from the admin media library.'),
             ]);
         }
 
