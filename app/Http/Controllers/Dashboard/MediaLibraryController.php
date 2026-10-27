@@ -13,7 +13,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Palgoal\MediaLibrary\Http\Controllers\MediaController;
+use Palgoal\MediaLibrary\Http\Resources\MediaResource;
 use Palgoal\MediaLibrary\Models\Media;
 use Throwable;
 
@@ -41,26 +43,52 @@ class MediaLibraryController extends MediaController
     /**
      * AD-UI-CAT-M3 (decision Q-M9): the JSON list also carries the uploader's name, shown in the admin library.
      * Only the name, never other account details; null when the uploader no longer exists. The page itself
-     * and every other field come from the package unchanged.
+     * comes from the package unchanged.
+     *
+     * ADMIN-MEDIA-ORGANIZATION-01 P2: the list holds admin media only. The package builds its query inside its
+     * index(), so the JSON list is built here the same way (validation, page size, type, search, newest first,
+     * MediaResource) with vendor media left out before paginating (VendorMediaPath::excludeFrom), so totals and
+     * pages count admin media only. The shared picker reads this same list. An uploader name is never looked up
+     * for a vendor path, because media.uploader_id holds vendor ids there.
      */
     public function index(Request $request): View|JsonResponse
     {
-        $response = parent::index($request);
-
-        if (! $response instanceof JsonResponse) {
-            return $response;
+        if (! $request->wantsJson()) {
+            return parent::index($request);
         }
 
-        $payload = $response->getData(true);
-        $items = collect($payload['data'] ?? []);
-        $uploaderIds = $items->pluck('uploader_id')->filter()->unique()->values();
+        $this->authorize('viewAny', Media::class);
+
+        $request->validate([
+            'type' => ['nullable', 'string', Rule::in(config('media-library.allowed_types', [
+                'image', 'video', 'audio', 'document', 'other',
+            ]))],
+        ]);
+
+        $perPage = (int) $request->get('per_page', 40);
+        $perPage = $perPage > 0 && $perPage <= 100 ? $perPage : 40;
+
+        $query = VendorMediaPath::excludeFrom(Media::query()->latest());
+
+        if ($type = $request->get('type')) {
+            $query->ofType($type);
+        }
+
+        if ($term = $request->get('search') ?? $request->get('q')) {
+            $query->search($term);
+        }
+
+        $paginator = $query->paginate($perPage);
+        $media = collect($paginator->items());
+        $uploaderIds = $media->reject(fn (Media $item) => VendorMediaPath::isVendorOwned($item->file_path))
+            ->pluck('uploader_id')->filter()->unique()->values();
         $names = $uploaderIds->isEmpty() ? collect() : Admin::query()->whereKey($uploaderIds)->pluck('name', 'id');
 
-        $payload['data'] = $items
-            ->map(fn (array $item) => $item + ['uploader_name' => $names[$item['uploader_id'] ?? 0] ?? null])
-            ->all();
+        $payload = $paginator->through(fn (Media $item) => (new MediaResource($item))->resolve($request) + [
+            'uploader_name' => VendorMediaPath::isVendorOwned($item->file_path) ? null : ($names[$item->uploader_id ?? 0] ?? null),
+        ]);
 
-        return $response->setData($payload);
+        return response()->json($payload);
     }
 
     /**
