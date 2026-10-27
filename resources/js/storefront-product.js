@@ -130,14 +130,25 @@ if ($) {
             });
         }
 
-        const maxQuantity = Number($('#productQuantity').closest('[data-max-quantity]').data('maxQuantity')) || Number.MAX_SAFE_INTEGER;
-        $('#quantityIncrease').on('click', function () {
-            const quantity = Math.min(maxQuantity, Number($('#productQuantity').text()) + 1);
-            $('#productQuantity').text(quantity);
+        const $productQuantity = $('#productQuantity');
+        const maxQuantity = Number($productQuantity.closest('[data-max-quantity]').data('maxQuantity')) || Number.MAX_SAFE_INTEGER;
+
+        function setProductQuantity(quantity) {
+            const nextQuantity = Math.min(maxQuantity, Math.max(1, quantity));
+
+            $productQuantity.text(nextQuantity);
+            $('.product-cart-quantity').val(nextQuantity);
+            $('#quantityIncrease').prop('disabled', nextQuantity >= maxQuantity);
+            $('#quantityDecrease').prop('disabled', nextQuantity <= 1);
+        }
+
+        $('#quantityIncrease').on('click', function (event) {
+            event.preventDefault();
+            setProductQuantity(Number($productQuantity.text()) + 1);
         });
-        $('#quantityDecrease').on('click', function () {
-            const quantity = Math.max(1, Number($('#productQuantity').text()) - 1);
-            $('#productQuantity').text(quantity);
+        $('#quantityDecrease').on('click', function (event) {
+            event.preventDefault();
+            setProductQuantity(Number($productQuantity.text()) - 1);
         });
 
         const $productAccordion = $('#productAccordion');

@@ -26,6 +26,20 @@ class DynamicStorefrontPagesTest extends TestCase
         $this->get(route('product', ['slug' => 'missing']))->assertNotFound();
     }
 
+    public function test_product_quantity_controls_are_client_side_and_cart_forms_start_with_the_selected_quantity(): void
+    {
+        $product = $this->product();
+
+        $this->get(route('product', ['slug' => $product->slug, 'quantity' => 3]))
+            ->assertOk()
+            ->assertSee('type="button" id="quantityIncrease"', false)
+            ->assertSee('type="button" id="quantityDecrease"', false)
+            ->assertSee('id="productQuantity" aria-live="polite"', false)
+            ->assertSee('class="product-cart-quantity" type="hidden" name="quantity" value="3"', false)
+            ->assertDontSee('quantity-plus', false)
+            ->assertDontSee('quantity-minus', false);
+    }
+
     public function test_browse_honors_storefront_category_vendor_city_price_and_sort_links(): void
     {
         $category = Category::query()->create(['name' => 'Filtered category', 'slug' => 'filtered-category', 'is_active' => true]);
