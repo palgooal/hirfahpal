@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\Dashboard\ProductManagementController;
 use App\Models\Admin;
+use App\Models\Category;
 use App\Models\Language;
 use App\Models\Product;
 use App\Models\ProductAdminAction;
@@ -315,7 +316,7 @@ class ProductModerationSchemaTest extends TestCase
     {
         $vendor = Vendor::factory()->approved()->create();
         $admin = Admin::create(['name' => 'Super', 'email' => 'super@example.com', 'phone' => '0599000009', 'password' => 'password', 'status' => 'active', 'super_admin' => true]);
-        $form = ['vendor_id' => $vendor->id, 'name' => 'Jug', 'price' => '10', 'stock_quantity' => '5', 'status' => 'active', 'suspended_at' => '2026-01-01 00:00:00', 'archived_at' => '2026-01-01 00:00:00'];
+        $form = ['vendor_id' => $vendor->id, 'category_id' => $this->fixtureCategory(), 'name' => 'Jug', 'price' => '10', 'stock_quantity' => '5', 'status' => 'active', 'suspended_at' => '2026-01-01 00:00:00', 'archived_at' => '2026-01-01 00:00:00'];
 
         $this->actingAs($admin, 'admin')->post(route('dashboard.products.store'), $form + ['slug' => 'admin-jug'])->assertSessionHasNoErrors();
         $product = Product::where('slug', 'admin-jug')->sole();
@@ -429,5 +430,11 @@ class ProductModerationSchemaTest extends TestCase
     {
         return DB::table('products')->orderBy('id')->get(['id', 'name', 'slug', 'status', 'price', 'stock_quantity', 'published_at', 'updated_at'])
             ->map(fn ($row) => (array) $row)->all();
+    }
+
+    /** ADMIN-PRODUCT-FORM-02: a category is required on admin saves, so fixtures share one active category. */
+    private function fixtureCategory(): int
+    {
+        return Category::query()->firstOrCreate(['slug' => 'fixture-category'], ['name' => 'Pottery', 'is_active' => true])->id;
     }
 }

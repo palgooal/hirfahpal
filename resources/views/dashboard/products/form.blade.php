@@ -125,10 +125,14 @@
                     <div class="admin-cat-form-field">
                         <label class="form-label" for="product-vendor">{{ $fieldLabels['vendor_id'] }} <span class="admin-cat-form-mark">({{ $requiredMark }})</span></label>
                         @if ($editing)
-                            {{-- PRODUCT-MEDIA-01 P5-C (G2): a product keeps its vendor; shown read only, its id still submitted. --}}
+                            {{-- PRODUCT-MEDIA-01 P5-C (G2): a product keeps its vendor; its id is still submitted (hidden).
+                                 ADMIN-PRODUCT-FORM-02 (D6): shown in a disabled select, like the create field, whether or
+                                 not the vendor is still eligible for new products. --}}
                             @php($productVendor = $vendors->firstWhere('id', $product->vendor_id))
-                            <input type="text" @class(['form-control', 'is-invalid' => $errors->has('vendor_id')]) id="product-vendor" value="{{ $productVendor?->profile?->store_name ?? $productVendor?->name }}" readonly aria-readonly="true" aria-required="true" dir="auto"
+                            <select @class(['form-select', 'is-invalid' => $errors->has('vendor_id')]) id="product-vendor" disabled aria-disabled="true" aria-required="true"
                                 @error('vendor_id') aria-invalid="true" @enderror aria-describedby="{{ $describedBy('vendor_id', 'product-vendor-hint') }}">
+                                <option value="{{ $product->vendor_id }}" selected>{{ $productVendor?->profile?->store_name ?? $productVendor?->name }}</option>
+                            </select>
                             <input type="hidden" name="vendor_id" value="{{ $product->vendor_id }}">
                             <p class="admin-media-hint" id="product-vendor-hint">{{ $prodText('Products_Form_Vendor_Readonly_Hint', 'The vendor cannot be changed after the product is created.') }}</p>
                         @else
@@ -146,10 +150,11 @@
                     </div>
 
                     <div class="admin-cat-form-field">
-                        <label class="form-label" for="product-category">{{ $fieldLabels['category_id'] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
-                        <select @class(['form-select', 'is-invalid' => $errors->has('category_id')]) id="product-category" name="category_id"
+                        {{-- ADMIN-PRODUCT-FORM-02 (D1, D3): required; a product without one (legacy) shows the placeholder and needs a choice to be saved. --}}
+                        <label class="form-label" for="product-category">{{ $fieldLabels['category_id'] }} <span class="admin-cat-form-mark">({{ $requiredMark }})</span></label>
+                        <select @class(['form-select', 'is-invalid' => $errors->has('category_id')]) id="product-category" name="category_id" required aria-required="true"
                             @error('category_id') aria-invalid="true" @enderror @if ($d = $describedBy('category_id', $inactiveCategoryId ? 'product-category-hint' : null)) aria-describedby="{{ $d }}" @endif>
-                            <option value="">{{ $prodText('Products_Form_Category_None', 'No category') }}</option>
+                            <option value="" @selected($selectedCategory === '')>{{ $prodText('Products_Form_Category_Select', 'Select a category') }}</option>
                             @foreach ($categories as $category)
                                 <option value="{{ $category->id }}" @selected($selectedCategory === (string) $category->id)>{{ $category->id === $inactiveCategoryId ? str_replace(':name', $category->name, $prodText('Products_Form_Category_Inactive', ':name (inactive)')) : $category->name }}</option>
                             @endforeach

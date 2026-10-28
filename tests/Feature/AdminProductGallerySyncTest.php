@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\Dashboard\ProductManagementController;
 use App\Models\Admin;
+use App\Models\Category;
 use App\Models\Language;
 use App\Models\Product;
 use App\Models\ProductImage;
@@ -426,7 +427,7 @@ class AdminProductGallerySyncTest extends TestCase
     {
         $fresh = $product->fresh();
         $payload = $overrides + [
-            'vendor_id' => (string) $fresh->vendor_id, 'name' => $fresh->name, 'slug' => $fresh->slug, 'price' => (string) $fresh->price,
+            'vendor_id' => (string) $fresh->vendor_id, 'category_id' => (string) ($fresh->category_id ?? $this->fixtureCategory()), 'name' => $fresh->name, 'slug' => $fresh->slug, 'price' => (string) $fresh->price,
             'stock_quantity' => (string) $fresh->stock_quantity, 'status' => $fresh->status,
             'stock_quantity_original' => (string) $fresh->stock_quantity, 'stock_version' => ProductManagementController::stockVersion($fresh),
         ];
@@ -440,12 +441,12 @@ class AdminProductGallerySyncTest extends TestCase
     {
         return $this->actingAs($this->superAdmin(), 'admin')
             ->from(route('dashboard.products.create'))
-            ->post(route('dashboard.products.store'), $overrides + ['vendor_id' => '1', 'name' => 'Clay jug', 'price' => '10', 'stock_quantity' => '4', 'status' => 'draft']);
+            ->post(route('dashboard.products.store'), $overrides + ['vendor_id' => '1', 'category_id' => (string) $this->fixtureCategory(), 'name' => 'Clay jug', 'price' => '10', 'stock_quantity' => '4', 'status' => 'draft']);
     }
 
     private function product(array $attributes = []): Product
     {
-        return Product::create($attributes + ['vendor_id' => 1, 'name' => 'Clay jug', 'slug' => 'clay-jug-'.uniqid(), 'price' => 10, 'stock_quantity' => 4, 'status' => 'draft']);
+        return Product::create($attributes + ['vendor_id' => 1, 'category_id' => $this->fixtureCategory(), 'name' => 'Clay jug', 'slug' => 'clay-jug-'.uniqid(), 'price' => 10, 'stock_quantity' => 4, 'status' => 'draft']);
     }
 
     /** @return list<ProductImage> */
@@ -499,5 +500,11 @@ class AdminProductGallerySyncTest extends TestCase
             'file_type' => 'image',
             'disk' => 'public',
         ]);
+    }
+
+    /** ADMIN-PRODUCT-FORM-02: a category is required on admin saves, so fixtures share one active category. */
+    private function fixtureCategory(): int
+    {
+        return Category::query()->firstOrCreate(['slug' => 'fixture-category'], ['name' => 'Pottery', 'is_active' => true])->id;
     }
 }

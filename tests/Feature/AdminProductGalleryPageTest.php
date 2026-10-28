@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\Dashboard\ProductManagementController;
 use App\Models\Admin;
+use App\Models\Category;
 use App\Models\Language;
 use App\Models\Product;
 use App\Models\ProductImage;
@@ -198,8 +199,8 @@ class AdminProductGalleryPageTest extends TestCase
         $this->assertMatchesRegularExpression('#data-ref="existing:'.$own->id.'".*?alt="Blue jug".*?is-main#s', $html);
         $this->assertSame(1, substr_count($html, 'admin-product-gallery-badge is-main'));
 
-        // The vendor: read only, its id still submitted, the label and markers kept.
-        $this->assertMatchesRegularExpression('#<input type="text"[^>]*id="product-vendor"[^>]*readonly aria-readonly="true" aria-required="true"#', $html);
+        // The vendor: a disabled select (ADMIN-PRODUCT-FORM-02, D6), its id still submitted, the label and markers kept.
+        $this->assertMatchesRegularExpression('#<select class="form-select" id="product-vendor" disabled aria-disabled="true" aria-required="true"#', $html);
         $this->assertStringContainsString('<input type="hidden" name="vendor_id" value="1">', $html);
         $this->assertDoesNotMatchRegularExpression('#<select[^>]*name="vendor_id"#', $html);
     }
@@ -680,7 +681,10 @@ class AdminProductGalleryPageTest extends TestCase
 
     private function product(int $vendorId): Product
     {
-        return Product::create(['vendor_id' => $vendorId, 'name' => 'Clay jug', 'slug' => 'clay-jug-'.uniqid(), 'price' => 10, 'stock_quantity' => 4, 'status' => 'draft']);
+        // ADMIN-PRODUCT-FORM-02: a category is required on save, so the fixture has one.
+        $category = Category::query()->firstOrCreate(['slug' => 'gallery-fixture'], ['name' => 'Pottery', 'is_active' => true]);
+
+        return Product::create(['vendor_id' => $vendorId, 'category_id' => $category->id, 'name' => 'Clay jug', 'slug' => 'clay-jug-'.uniqid(), 'price' => 10, 'stock_quantity' => 4, 'status' => 'draft']);
     }
 
     /**

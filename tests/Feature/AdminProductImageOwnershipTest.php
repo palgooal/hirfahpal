@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\Dashboard\ProductManagementController;
 use App\Models\Admin;
+use App\Models\Category;
 use App\Models\Language;
 use App\Models\Product;
 use App\Models\RoleUser;
@@ -278,6 +279,7 @@ class AdminProductImageOwnershipTest extends TestCase
     {
         return $overrides + [
             'vendor_id' => '1',
+            'category_id' => (string) $this->fixtureCategory(),
             'name' => 'Clay jug',
             'price' => '10',
             'stock_quantity' => '4',
@@ -288,7 +290,7 @@ class AdminProductImageOwnershipTest extends TestCase
     private function product(int $vendorId, array $attributes = []): Product
     {
         return Product::create($attributes + [
-            'vendor_id' => $vendorId, 'name' => 'Clay jug', 'slug' => 'clay-jug-'.uniqid(), 'price' => 10, 'stock_quantity' => 4, 'status' => 'draft',
+            'vendor_id' => $vendorId, 'category_id' => $this->fixtureCategory(), 'name' => 'Clay jug', 'slug' => 'clay-jug-'.uniqid(), 'price' => 10, 'stock_quantity' => 4, 'status' => 'draft',
         ]);
     }
 
@@ -345,5 +347,11 @@ class AdminProductImageOwnershipTest extends TestCase
             'file_type' => 'image',
             'disk' => 'public',
         ]);
+    }
+
+    /** ADMIN-PRODUCT-FORM-02: a category is required on admin saves, so fixtures share one active category. */
+    private function fixtureCategory(): int
+    {
+        return Category::query()->firstOrCreate(['slug' => 'fixture-category'], ['name' => 'Pottery', 'is_active' => true])->id;
     }
 }

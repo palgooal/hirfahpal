@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Http\Controllers\Dashboard\ProductManagementController;
 use App\Models\Admin;
+use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Language;
 use App\Models\Product;
@@ -515,6 +516,7 @@ class AdminProductSafetyTest extends TestCase
     {
         return Product::create($overrides + [
             'vendor_id' => $this->vendor->id,
+            'category_id' => $this->fixtureCategory(),
             'name' => 'Clay jug',
             'slug' => 'clay-jug',
             'price' => 10,
@@ -528,6 +530,7 @@ class AdminProductSafetyTest extends TestCase
     {
         return $overrides + [
             'vendor_id' => $this->vendor->id,
+            'category_id' => (string) $this->fixtureCategory(),
             'name' => 'Clay jug',
             'slug' => 'clay-jug',
             'price' => '10',
@@ -643,5 +646,11 @@ class AdminProductSafetyTest extends TestCase
         }
 
         return $admin;
+    }
+
+    /** ADMIN-PRODUCT-FORM-02: a category is required on admin saves, so fixtures share one active category. */
+    private function fixtureCategory(): int
+    {
+        return Category::query()->firstOrCreate(['slug' => 'fixture-category'], ['name' => 'Pottery', 'is_active' => true])->id;
     }
 }

@@ -344,7 +344,7 @@ class AdminProductFormTest extends TestCase
         foreach (['kg', 'g', 't'] as $unit) {
             $values = $this->formValues($this->page($admin, route('dashboard.products.create')));
             $this->actingAs($admin, 'admin')->post(route('dashboard.products.store'), [
-                'vendor_id' => $this->vendor->id, 'name' => 'Clay jug '.$unit, 'price' => '12.50', 'stock_quantity' => '4', 'weight' => '2', 'weight_unit' => $unit,
+                'vendor_id' => $this->vendor->id, 'category_id' => $this->active->id, 'name' => 'Clay jug '.$unit, 'price' => '12.50', 'stock_quantity' => '4', 'weight' => '2', 'weight_unit' => $unit,
             ] + $values)->assertRedirect(route('dashboard.products.index'));
 
             $product = Product::query()->where('name', 'Clay jug '.$unit)->sole();
@@ -364,7 +364,7 @@ class AdminProductFormTest extends TestCase
             'ar' => 'لا يمكن رفع الصور من هنا. اخترها من مكتبة وسائط البائع.'] as $locale => $message) {
             foreach ([UploadedFile::fake()->image('jug.png'), UploadedFile::fake()->createWithContent('jug.png', 'not an image')] as $file) {
                 $this->actingAs($admin, 'admin')->withSession(['locale' => $locale])->post(route('dashboard.products.store'), [
-                    'vendor_id' => $this->vendor->id, 'name' => 'Clay jug', 'price' => '12.50', 'stock_quantity' => '4', 'images' => [$file],
+                    'vendor_id' => $this->vendor->id, 'category_id' => $this->active->id, 'name' => 'Clay jug', 'price' => '12.50', 'stock_quantity' => '4', 'images' => [$file],
                 ] + $values)->assertSessionHasErrors(['images' => $message]);
             }
         }
@@ -440,7 +440,7 @@ class AdminProductFormTest extends TestCase
         // The edit form as a browser submits it: five values per list, the empty ones included.
         $tags = fn (string $name) => array_map(fn ($node) => $node->getAttribute('value'), iterator_to_array($xpath->query('//input[@name="'.$name.'[]"]')));
         $this->actingAs($admin, 'admin')->from(route('dashboard.products.edit', $product))->put(route('dashboard.products.update', $product), [
-            'vendor_id' => $this->vendor->id, 'name' => $product->name, 'slug' => $product->slug, 'price' => '10', 'stock_quantity' => '10', 'status' => 'active',
+            'vendor_id' => $this->vendor->id, 'category_id' => $this->active->id, 'name' => $product->name, 'slug' => $product->slug, 'price' => '10', 'stock_quantity' => '10', 'status' => 'active',
             'stock_quantity_original' => '10', 'stock_version' => ProductManagementController::stockVersion($product),
             'highlight_tags' => $tags('highlight_tags'), 'craft_tags' => $tags('craft_tags'),
         ])->assertSessionHasNoErrors();
@@ -506,11 +506,184 @@ class AdminProductFormTest extends TestCase
         $product = $this->product();
         $html = $this->page($this->admin(super: true), route('dashboard.products.edit', $product));
 
-        $this->assertMatchesRegularExpression('#<input type="text"[^>]*id="product-vendor"[^>]*readonly aria-readonly="true" aria-required="true"#', $html);
+        // ADMIN-PRODUCT-FORM-02 (D6): a disabled select with the stored vendor only; the hidden input submits it.
+        $this->assertMatchesRegularExpression('#<select class="form-select" id="product-vendor" disabled aria-disabled="true" aria-required="true"[^>]*>\s*<option value="'.$this->vendor->id.'" selected>[^<]+</option>\s*</select>#', $html);
         $this->assertStringContainsString('<input type="hidden" name="vendor_id" value="'.$this->vendor->id.'">', $html);
         $this->assertStringNotContainsString('Select a vendor', $html, 'No placeholder on edit.');
-        $this->assertDoesNotMatchRegularExpression('#<select[^>]*name="vendor_id"#', $html);
+        $this->assertDoesNotMatchRegularExpression('#<select[^>]*name="vendor_id"#', $html, 'The disabled select submits nothing.');
         $this->assertSame((string) $this->vendor->id, $this->formValues($html)['vendor_id']);
+    }
+
+    // ---------------------------------------------------------------- ADMIN-PRODUCT-FORM-02: category and vendor
+
+    public function test_a_product_needs_a_category_on_create(): void
+    {
+        $this->seed(AdminProductTranslationSeeder::class);
+        $admin = $this->admin(super: true);
+
+        // The label in the sentence is lower-cased in English, as for every field (messageAttributes()).
+        foreach (['en' => 'The category field is required.', 'ar' => 'حقل التصنيف مطلوب.'] as $locale => $message) {
+            foreach (['', null] as $category) {
+                $this->actingAs($admin, 'admin')->withSession(['locale' => $locale])->from(route('dashboard.products.create'))->post(route('dashboard.products.store'), [
+                    'vendor_id' => $this->vendor->id, 'category_id' => $category, 'name' => 'Clay jug', 'price' => '10', 'stock_quantity' => '4', 'status' => 'draft',
+                ])->assertRedirect(route('dashboard.products.create'))->assertSessionHasErrors(['category_id' => $message]);
+            }
+        }
+
+        $this->assertSame(0, Product::count());
+    }
+
+    public function test_a_new_product_refuses_an_inactive_or_unknown_category_with_a_translated_message(): void
+    {
+        $this->seed(AdminProductTranslationSeeder::class);
+        $admin = $this->admin(super: true);
+
+        foreach (['en' => 'Choose an active category.', 'ar' => 'اختر تصنيفًا نشطًا.'] as $locale => $message) {
+            foreach ([$this->inactive->id, 999_999] as $category) {
+                $this->actingAs($admin, 'admin')->withSession(['locale' => $locale])->from(route('dashboard.products.create'))->post(route('dashboard.products.store'), [
+                    'vendor_id' => $this->vendor->id, 'category_id' => $category, 'name' => 'Clay jug', 'price' => '10', 'stock_quantity' => '4', 'status' => 'draft',
+                ])->assertSessionHasErrors(['category_id' => $message]);
+            }
+        }
+
+        $this->assertSame(0, Product::count());
+    }
+
+    public function test_a_legacy_product_without_a_category_must_get_one_on_its_next_save(): void
+    {
+        $admin = $this->admin(super: true);
+        $legacy = $this->product(['category_id' => null]);
+        $html = $this->page($admin, route('dashboard.products.edit', $legacy));
+        $values = $this->formValues($html);
+
+        // No backfill: the placeholder is shown selected, and saving it unchanged is refused.
+        $this->assertSame('', $values['category_id']);
+        $this->assertSame(1, $this->xpath($html)->query('//select[@id="product-category"]/option[@value=""][@selected]')->length);
+        $this->actingAs($admin, 'admin')->from(route('dashboard.products.edit', $legacy))->put(route('dashboard.products.update', $legacy), $values)
+            ->assertSessionHasErrors('category_id');
+        $this->assertNull($legacy->fresh()->category_id);
+
+        // An inactive category is not offered and is refused; an active one saves.
+        $this->actingAs($admin, 'admin')->from(route('dashboard.products.edit', $legacy))->put(route('dashboard.products.update', $legacy), ['category_id' => $this->inactive->id] + $values)
+            ->assertSessionHasErrors(['category_id' => 'Choose an active category.']);
+        $this->actingAs($admin, 'admin')->from(route('dashboard.products.edit', $legacy))->put(route('dashboard.products.update', $legacy), ['category_id' => $this->active->id] + $values)
+            ->assertSessionHasNoErrors();
+        $this->assertSame($this->active->id, $legacy->fresh()->category_id);
+    }
+
+    public function test_an_edited_product_keeps_its_inactive_category_but_cannot_move_to_another_inactive_one(): void
+    {
+        $admin = $this->admin(super: true);
+        $retired = Category::create(['name' => 'Retired', 'slug' => 'retired', 'is_active' => false]);
+        $legacy = $this->product(['category_id' => $this->inactive->id]);
+        $values = $this->formValues($this->page($admin, route('dashboard.products.edit', $legacy)));
+
+        $this->assertSame((string) $this->inactive->id, $values['category_id']);
+        $this->actingAs($admin, 'admin')->from(route('dashboard.products.edit', $legacy))->put(route('dashboard.products.update', $legacy), ['category_id' => $retired->id] + $values)
+            ->assertSessionHasErrors(['category_id' => 'Choose an active category.']);
+        $this->assertSame($this->inactive->id, $legacy->fresh()->category_id);
+
+        // The form as first opened (current inactive category selected) still saves.
+        $this->actingAs($admin, 'admin')->from(route('dashboard.products.edit', $legacy))->put(route('dashboard.products.update', $legacy), ['price' => '11'] + $values)
+            ->assertSessionHasNoErrors();
+        $this->assertSame($this->inactive->id, $legacy->fresh()->category_id);
+    }
+
+    public function test_the_category_field_is_required_with_a_translated_placeholder_in_both_directions(): void
+    {
+        $this->seed(AdminDashboardTranslationSeeder::class);
+        $this->seed(AdminProductTranslationSeeder::class);
+        $admin = $this->admin(super: true);
+
+        foreach (['ar' => ['اختر التصنيف', 'إلزامي', 'rtl'], 'en' => ['Select a category', 'Required', 'ltr']] as $locale => [$placeholder, $required, $dir]) {
+            foreach ([route('dashboard.products.create'), route('dashboard.products.edit', $this->product(['slug' => 'jug-'.$locale]))] as $url) {
+                $html = $this->page($admin, $url, $locale);
+
+                $this->assertMatchesRegularExpression('#<html lang="'.$locale.'"[^>]* dir="'.$dir.'"#', $html);
+                $this->assertMatchesRegularExpression('#<label class="form-label" for="product-category">[^<]+<span class="admin-cat-form-mark">\('.$required.'\)</span></label>#u', $html);
+                $this->assertMatchesRegularExpression('#<select class="form-select" id="product-category" name="category_id" required aria-required="true"#', $html);
+                $this->assertMatchesRegularExpression('#<option value=""[^>]*>'.$placeholder.'</option>#u', $html);
+                $this->assertStringNotContainsString('No category', $html);
+                $this->assertStringNotContainsString('بلا تصنيف', $html);
+            }
+        }
+    }
+
+    public function test_the_create_dropdown_lists_only_active_approved_vendors(): void
+    {
+        $eligible = Vendor::factory()->approved()->create(['name' => 'Zed Approved']);
+        $ineligible = [
+            Vendor::factory()->withProfile('pending')->create(['name' => 'Pending one']),
+            Vendor::factory()->withProfile('rejected')->create(['name' => 'Rejected one']),
+            Vendor::factory()->approved()->create(['name' => 'Blocked one', 'status' => 'blocked']),
+            Vendor::factory()->approved()->create(['name' => 'Inactive one', 'status' => 'pending']),
+            Vendor::factory()->create(['name' => 'No profile']),
+        ];
+
+        $options = array_map(
+            fn ($option) => $option->getAttribute('value'),
+            iterator_to_array($this->xpath($this->page($this->admin(super: true), route('dashboard.products.create')))->query('//select[@id="product-vendor"]/option'))
+        );
+
+        $this->assertSame('', $options[0], 'The placeholder comes first.');
+        sort($options);
+        $expected = ['', (string) $this->vendor->id, (string) $eligible->id];
+        sort($expected);
+        $this->assertSame($expected, $options, 'Only the placeholder and the active, approved vendors.');
+        foreach ($ineligible as $vendor) {
+            $this->assertNotContains((string) $vendor->id, $options, $vendor->name);
+        }
+    }
+
+    public function test_an_ineligible_or_unknown_vendor_is_refused_on_create_with_a_translated_message(): void
+    {
+        $this->seed(AdminProductTranslationSeeder::class);
+        $admin = $this->admin(super: true);
+        $vendors = [
+            Vendor::factory()->withProfile('pending')->create()->id,
+            Vendor::factory()->withProfile('rejected')->create()->id,
+            Vendor::factory()->approved()->create(['status' => 'blocked'])->id,
+            Vendor::factory()->create()->id,
+            999_999,
+        ];
+
+        foreach (['en' => 'Choose an active vendor whose store is approved.', 'ar' => 'اختر بائعًا نشطًا ومتجره معتمد.'] as $locale => $message) {
+            foreach ($vendors as $vendor) {
+                $this->actingAs($admin, 'admin')->withSession(['locale' => $locale])->from(route('dashboard.products.create'))->post(route('dashboard.products.store'), [
+                    'vendor_id' => $vendor, 'category_id' => $this->active->id, 'name' => 'Clay jug', 'price' => '10', 'stock_quantity' => '4', 'status' => 'draft',
+                ])->assertSessionHasErrors(['vendor_id' => $message]);
+            }
+        }
+
+        $this->assertSame(0, Product::count());
+    }
+
+    public function test_an_edited_product_keeps_its_vendor_even_when_that_vendor_is_no_longer_eligible(): void
+    {
+        $admin = $this->admin(super: true);
+        $product = $this->product();
+        $this->vendor->update(['status' => 'blocked']);
+        $this->vendor->profile->update(['approval_status' => 'rejected']);
+        $html = $this->page($admin, route('dashboard.products.edit', $product));
+
+        // The disabled select shows the stored vendor only; the hidden input submits it.
+        $options = $this->xpath($html)->query('//select[@id="product-vendor"]/option');
+        $this->assertSame(1, $options->length);
+        $this->assertSame((string) $this->vendor->id, $options->item(0)->getAttribute('value'));
+        $this->assertTrue($options->item(0)->hasAttribute('selected'));
+        $this->assertStringContainsString('<input type="hidden" name="vendor_id" value="'.$this->vendor->id.'">', $html);
+
+        // Saving keeps it; another vendor, even an eligible one, is refused and nothing is written (G2).
+        $values = $this->formValues($html);
+        $this->actingAs($admin, 'admin')->from(route('dashboard.products.edit', $product))->put(route('dashboard.products.update', $product), ['price' => '12'] + $values)
+            ->assertSessionHasNoErrors();
+        $this->assertSame([$this->vendor->id, '12.00'], [$product->fresh()->vendor_id, $product->fresh()->price]);
+
+        $other = Vendor::factory()->approved()->create();
+        $values = $this->formValues($this->page($admin, route('dashboard.products.edit', $product)));
+        $this->actingAs($admin, 'admin')->from(route('dashboard.products.edit', $product))->put(route('dashboard.products.update', $product), ['vendor_id' => $other->id, 'price' => '13'] + $values)
+            ->assertSessionHasErrors(['vendor_id' => 'The vendor of an existing product cannot be changed.']);
+        $this->assertSame([$this->vendor->id, '12.00'], [$product->fresh()->vendor_id, $product->fresh()->price]);
     }
 
     // ---------------------------------------------------------------- tags (P5-C-FIX-01)
@@ -522,7 +695,7 @@ class AdminProductFormTest extends TestCase
         $this->assertContains(ConvertEmptyStringsToNull::class, app(HttpKernel::class)->getGlobalMiddleware());
 
         $this->actingAs($this->admin(super: true), 'admin')->from(route('dashboard.products.create'))->post(route('dashboard.products.store'), [
-            'vendor_id' => $this->vendor->id, 'name' => 'Clay jug', 'price' => '10', 'stock_quantity' => '4', 'status' => 'draft',
+            'vendor_id' => $this->vendor->id, 'category_id' => $this->active->id, 'name' => 'Clay jug', 'price' => '10', 'stock_quantity' => '4', 'status' => 'draft',
             'highlight_tags' => ['', 'New', '', '  Hand made ', ''],
             'craft_tags' => ['', '', '', '', ''],
         ])->assertSessionHasNoErrors();
@@ -538,7 +711,7 @@ class AdminProductFormTest extends TestCase
         $admin = $this->admin(super: true);
         $update = fn (array $tags) => $this->actingAs($admin, 'admin')->from(route('dashboard.products.edit', $product))
             ->put(route('dashboard.products.update', $product), $tags + [
-                'vendor_id' => $this->vendor->id, 'name' => 'Clay jug', 'slug' => 'clay-jug', 'price' => '10', 'stock_quantity' => '10', 'status' => 'active',
+                'vendor_id' => $this->vendor->id, 'category_id' => $this->active->id, 'name' => 'Clay jug', 'slug' => 'clay-jug', 'price' => '10', 'stock_quantity' => '10', 'status' => 'active',
                 'stock_quantity_original' => (string) $product->fresh()->stock_quantity, 'stock_version' => ProductManagementController::stockVersion($product->fresh()),
             ]);
 
@@ -572,6 +745,8 @@ class AdminProductFormTest extends TestCase
     {
         return Product::create($attributes + [
             'vendor_id' => $this->vendor->id,
+            // ADMIN-PRODUCT-FORM-02: a category is required on save, so the fixture has one.
+            'category_id' => $this->active->id,
             'name' => 'Clay jug',
             'slug' => 'clay-jug',
             'price' => 10,

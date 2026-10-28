@@ -212,7 +212,10 @@ class AdminProductTranslationSeeder extends Seeder
         'dashboard.Products_Form_Field_Description' => ['ar' => 'الوصف', 'en' => 'Description'],
         'dashboard.Products_Form_Field_Status' => ['ar' => 'الحالة', 'en' => 'Status'],
         'dashboard.Products_Form_Field_Featured' => ['ar' => 'منتج مميز', 'en' => 'Featured product'],
-        'dashboard.Products_Form_Category_None' => ['ar' => 'بلا تصنيف', 'en' => 'No category'],
+        // ADMIN-PRODUCT-FORM-02 (D1): the category is required; Products_Form_Category_None ("No category") went with the
+        // optional choice, its existing rows are left as they are.
+        'dashboard.Products_Form_Category_Select' => ['ar' => 'اختر التصنيف', 'en' => 'Select a category'],
+        'dashboard.Products_Form_Category_Ineligible' => ['ar' => 'اختر تصنيفًا نشطًا.', 'en' => 'Choose an active category.'],
         'dashboard.Products_Form_Category_Inactive' => ['ar' => ':name (غير نشط)', 'en' => ':name (inactive)'],
         'dashboard.Products_Form_Category_Inactive_Hint' => [
             'ar' => 'التصنيف الحالي غير نشط، ويبقى كما هو عند الحفظ. اختر تصنيفًا آخر إن أردت نقل المنتج.',
@@ -349,6 +352,11 @@ class AdminProductTranslationSeeder extends Seeder
         'dashboard.Products_Form_Vendor_Immutable' => [
             'ar' => 'لا يمكن تغيير بائع منتج موجود.',
             'en' => 'The vendor of an existing product cannot be changed.',
+        ],
+        // ADMIN-PRODUCT-FORM-02 (D2): a new product needs an active vendor with an approved store.
+        'dashboard.Products_Form_Vendor_Ineligible' => [
+            'ar' => 'اختر بائعًا نشطًا ومتجره معتمد.',
+            'en' => 'Choose an active vendor whose store is approved.',
         ],
         // PRODUCT-MEDIA-01 P5-B: the ordered product gallery (reorder, main image, remove, replace, add).
         'dashboard.Products_Form_Gallery_Invalid' => [

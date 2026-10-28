@@ -12,6 +12,7 @@ use App\Support\Media\VendorMediaPath;
 use Carbon\CarbonInterface;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
@@ -326,7 +327,11 @@ class ProductManagementController extends Controller
 
         return [
             'product' => $product,
-            'vendors' => Vendor::query()->with('profile')->orderBy('name')->get(),
+            // ADMIN-PRODUCT-FORM-02 (D2, D5, D6): a new product offers the eligible vendors only; an existing product
+            // shows its stored vendor (in a disabled select), whether or not it is still eligible.
+            'vendors' => $product->exists
+                ? Vendor::query()->with('profile')->whereKey($product->vendor_id)->get()
+                : $this->eligibleVendors(Vendor::query())->with('profile')->orderBy('name')->get(),
             'categories' => $categories,
             'inactiveCategoryId' => $inactiveCategory?->id,
             'statusKeys' => $this->statusKeys(),
@@ -490,6 +495,18 @@ class ProductManagementController extends Controller
         );
     }
 
+    /**
+     * ADMIN-PRODUCT-FORM-02 (D2): the vendors a new product may be created for: an active account with an approved
+     * profile (the vendor side of Product::scopeSellable()). Works on an Eloquent or a plain query of vendors.
+     */
+    private function eligibleVendors(Builder|QueryBuilder $query): Builder|QueryBuilder
+    {
+        return $query->where('vendors.status', 'active')
+            ->whereExists(fn (QueryBuilder $profile) => $profile->selectRaw('1')->from('vendor_profiles')
+                ->whereColumn('vendor_profiles.vendor_id', 'vendors.id')
+                ->where('vendor_profiles.approval_status', 'approved'));
+    }
+
     private function validatedData(Request $request, ?Product $product = null): array
     {
         // PRD-06: bounds of the columns (products: price and compare_at_price DECIMAL(10,2), weight DECIMAL(8,2),
@@ -498,8 +515,15 @@ class ProductManagementController extends Controller
         // regular price and compare_at_price the optional sale price, so it must be lower.
         $data = $request->validate([
             // P5-A (G2): a product keeps the vendor it was created for; another vendor is refused, never ignored.
-            'vendor_id' => ['required', 'exists:vendors,id', ...($product?->exists ? [Rule::in([(string) $product->vendor_id])] : [])],
-            'category_id' => ['nullable', 'exists:categories,id'],
+            // ADMIN-PRODUCT-FORM-02 (D2): a new product needs an active vendor with an approved profile.
+            'vendor_id' => ['required', ...($product?->exists
+                ? ['exists:vendors,id', Rule::in([(string) $product->vendor_id])]
+                : [Rule::exists('vendors', 'id')->where(fn ($query) => $this->eligibleVendors($query))])],
+            // ADMIN-PRODUCT-FORM-02 (D1, D3): a category is required, and it must be active; an existing product may
+            // keep its current category even if that one is now inactive (M7-FIX-01). D7: no parent/child rule.
+            'category_id' => ['required', Rule::exists('categories', 'id')->where(fn ($query) => $product?->category_id !== null
+                ? $query->where(fn ($eligible) => $eligible->where('is_active', true)->orWhere('id', $product->category_id))
+                : $query->where('is_active', true))],
             'name' => ['required', 'string', 'max:255'],
             // The slug rules are unchanged, except the characters that cannot be part of the storefront
             // products/{slug} URL (path separators, query, fragment, percent, whitespace).
@@ -524,6 +548,8 @@ class ProductManagementController extends Controller
             'craft_tags.*' => ['nullable', 'string', 'max:40'],
         ], [
             'vendor_id.in' => $this->untranslatedDefault('dashboard.Products_Form_Vendor_Immutable', 'The vendor of an existing product cannot be changed.'),
+            'vendor_id.exists' => $this->untranslatedDefault('dashboard.Products_Form_Vendor_Ineligible', 'Choose an active vendor whose store is approved.'),
+            'category_id.exists' => $this->untranslatedDefault('dashboard.Products_Form_Category_Ineligible', 'Choose an active category.'),
         ], $this->messageAttributes());
 
         $data['slug'] = ($data['slug'] ?? null) ?: $this->uniqueSlug($data['name'], $product);
