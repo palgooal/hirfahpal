@@ -131,6 +131,14 @@ export function interpretList({ status, body }) {
     return { ok: false, error };
 }
 
+/**
+ * ADMIN-P5-UX-01: what the chooser says when it has no image. An empty library also explains that product images
+ * come from the vendor's library, never the admin one; a search without results does not.
+ */
+export const emptyChoices = (search, messages) => (search
+    ? { text: messages.libraryEmptySearch, hint: false }
+    : { text: messages.libraryEmpty, hint: true });
+
 export function errorText(error, messages) {
     return { network: messages.network, session: messages.session, forbidden: messages.forbidden, invalid: messages.invalid }[error] || messages.loadError;
 }
@@ -449,6 +457,7 @@ export function initProductGallery(root, config, win = window) {
     const loading = $('product-gallery-loading');
     const choicesEmpty = $('product-gallery-choices-empty');
     const choicesEmptyText = $('product-gallery-choices-empty-text');
+    const choicesEmptyHint = $('product-gallery-choices-empty-hint');
     const error = $('product-gallery-error');
     const errorTextNode = $('product-gallery-error-text');
     const retry = $('product-gallery-retry');
@@ -499,7 +508,9 @@ export function initProductGallery(root, config, win = window) {
                     choices.append(renderChoice(doc, media, { messages, base, taken, onChoose: choose }));
                 });
 
-                choicesEmptyText.textContent = loader.state.query.search ? messages.libraryEmptySearch : messages.libraryEmpty;
+                const empty = emptyChoices(loader.state.query.search, messages);
+                choicesEmptyText.textContent = empty.text;
+                choicesEmptyHint.hidden = !empty.hint;
                 showState(loader.state.items.length === 0 ? 'empty' : 'none');
                 more.hidden = !loader.hasMore;
             }

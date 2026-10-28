@@ -87,6 +87,27 @@ class AdminProductTranslationSeederTest extends TestCase
         $this->assertStringNotContainsString('Products_Form_Images_Invalid', $controller);
     }
 
+    public function test_the_empty_vendor_library_message_and_its_hint_are_seeded_and_the_old_english_corrected(): void
+    {
+        // ADMIN-P5-UX-01.
+        TranslationValue::create(['key' => 'dashboard.Products_Gallery_Library_Empty', 'locale' => 'en', 'value' => 'This vendor has no images in their media library yet.']);
+        $this->seed(AdminProductTranslationSeeder::class);
+
+        $this->assertSame('لا توجد صور في مكتبة وسائط هذا البائع بعد.', $this->value('dashboard.Products_Gallery_Library_Empty', 'ar'));
+        $this->assertSame('There are no images in this vendor\'s media library yet.', $this->value('dashboard.Products_Gallery_Library_Empty', 'en'));
+        $this->assertSame('تُختار صور المنتجات من مكتبة البائع المحدد، وليس من مكتبة وسائط الإدارة. يمكن للبائع رفع الصور من لوحة التحكم الخاصة به.', $this->value('dashboard.Products_Gallery_Library_Empty_Hint', 'ar'));
+        $this->assertSame('Product images must be selected from the chosen vendor\'s media library, not the admin media library. The vendor can upload images from their own dashboard.', $this->value('dashboard.Products_Gallery_Library_Empty_Hint', 'en'));
+        $this->assertSame(1, TranslationValue::where('key', 'dashboard.Products_Gallery_Library_Empty')->where('locale', 'en')->count());
+    }
+
+    public function test_a_customised_empty_vendor_library_message_is_kept(): void
+    {
+        TranslationValue::create(['key' => 'dashboard.Products_Gallery_Library_Empty', 'locale' => 'en', 'value' => 'No vendor images yet.']);
+        $this->seed(AdminProductTranslationSeeder::class);
+
+        $this->assertSame('No vendor images yet.', $this->value('dashboard.Products_Gallery_Library_Empty', 'en'));
+    }
+
     public function test_the_vendor_placeholder_of_the_create_form_is_seeded(): void
     {
         // P5-C-FIX-03 (D-1): the empty first option of the vendor list.

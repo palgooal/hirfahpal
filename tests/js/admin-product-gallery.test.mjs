@@ -7,6 +7,7 @@ import {
     addItem,
     altText,
     createLoader,
+    emptyChoices,
     errorText,
     galleryRefs,
     initialItems,
@@ -105,6 +106,13 @@ test('adding keeps the order, refuses a seventh image and an image already in th
     const full = six.reduce((acc, next) => addItem(acc, next, 6), []);
     assert.equal(full.length, 6);
     assert.equal(addItem(full, C, 6), full);
+});
+
+test('ADMIN-P5-UX-01: an empty library explains where product images come from; an empty search does not', () => {
+    const texts = { libraryEmpty: 'There are no images in this vendor\'s media library yet.', libraryEmptySearch: 'No images match your search.' };
+
+    assert.deepEqual(emptyChoices('', texts), { text: texts.libraryEmpty, hint: true });
+    assert.deepEqual(emptyChoices('jug', texts), { text: texts.libraryEmptySearch, hint: false });
 });
 
 test('P5-HARDEN-01: a gallery above the limit starts whole, never truncated', () => {

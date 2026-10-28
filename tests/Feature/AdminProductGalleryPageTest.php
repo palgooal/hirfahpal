@@ -491,6 +491,37 @@ class AdminProductGalleryPageTest extends TestCase
         $this->assertSame(7, $product->images()->count());
     }
 
+    public function test_the_empty_library_explains_that_product_images_come_from_the_vendors_library(): void
+    {
+        // ADMIN-P5-UX-01: the hint sits in the empty state only (hidden until the script shows an empty library), never
+        // in the loading or error states; the first sentence is the script's libraryEmpty message.
+        $this->seed(AdminDashboardTranslationSeeder::class);
+        $this->seed(AdminProductTranslationSeeder::class);
+        $admin = $this->superAdmin();
+        $texts = [
+            'ar' => ['لا توجد صور في مكتبة وسائط هذا البائع بعد.', 'تُختار صور المنتجات من مكتبة البائع المحدد، وليس من مكتبة وسائط الإدارة. يمكن للبائع رفع الصور من لوحة التحكم الخاصة به.'],
+            'en' => ['There are no images in this vendor\'s media library yet.', 'Product images must be selected from the chosen vendor\'s media library, not the admin media library. The vendor can upload images from their own dashboard.'],
+        ];
+
+        foreach ($texts as $locale => [$empty, $hint]) {
+            foreach ([route('dashboard.products.create'), route('dashboard.products.edit', $this->product(1))] as $url) {
+                $html = $this->page($admin, $url, $locale);
+
+                $this->assertMatchesRegularExpression('#<html lang="'.$locale.'"[^>]* dir="'.($locale === 'ar' ? 'rtl' : 'ltr').'"#', $html);
+                $this->assertSame($empty, $this->config($html)['messages']['libraryEmpty']);
+                $this->assertMatchesRegularExpression(
+                    '#<div class="admin-media-state" id="product-gallery-choices-empty" hidden>\s*<i[^>]*></i>\s*<span id="product-gallery-choices-empty-text"></span>\s*(?:\{\{--.*?--\}\}\s*)?<span class="admin-media-hint" id="product-gallery-choices-empty-hint" hidden>'.preg_quote(e($hint), '#').'</span>\s*</div>#s',
+                    $html
+                );
+                $this->assertSame(1, substr_count($html, e($hint)), 'Only in the empty state.');
+            }
+        }
+
+        // The loading and error states keep their own content.
+        $this->assertMatchesRegularExpression('#id="product-gallery-loading" role="status" hidden>\s*<span class="admin-media-spinner"[^>]*></span>\s*<span>[^<]+</span>\s*</div>#', $html);
+        $this->assertMatchesRegularExpression('#id="product-gallery-error" role="alert" hidden>\s*<i[^>]*></i>\s*<span id="product-gallery-error-text"></span>#', $html);
+    }
+
     public function test_neither_the_script_nor_the_form_data_cut_the_gallery(): void
     {
         $this->assertDoesNotMatchRegularExpression('/\.slice\(\s*0\s*,\s*max\s*\)/', file_get_contents(base_path(self::SCRIPT)));

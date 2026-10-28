@@ -32,6 +32,8 @@
         <div class="admin-media-state" id="product-gallery-choices-empty" hidden>
             <i class="ph-duotone ph-images" aria-hidden="true"></i>
             <span id="product-gallery-choices-empty-text"></span>
+            {{-- ADMIN-P5-UX-01: why an admin library image is not offered here; shown for an empty library only, not for a search without results. --}}
+            <span class="admin-media-hint" id="product-gallery-choices-empty-hint" hidden>{{ $prodText('Products_Gallery_Library_Empty_Hint', 'Product images must be selected from the chosen vendor\'s media library, not the admin media library. The vendor can upload images from their own dashboard.') }}</span>
         </div>
         <div class="admin-media-state admin-media-state-error" id="product-gallery-error" role="alert" hidden>
             <i class="ph-duotone ph-warning" aria-hidden="true"></i>

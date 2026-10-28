@@ -312,7 +312,12 @@ class AdminProductTranslationSeeder extends Seeder
         'dashboard.Products_Gallery_Choose' => ['ar' => 'اختيار :name', 'en' => 'Choose :name'],
         'dashboard.Products_Gallery_In_Gallery' => ['ar' => 'مضافة بالفعل', 'en' => 'Already added'],
         'dashboard.Products_Gallery_Loading' => ['ar' => 'جارٍ تحميل الصور…', 'en' => 'Loading images…'],
-        'dashboard.Products_Gallery_Library_Empty' => ['ar' => 'لا توجد صور في مكتبة وسائط هذا البائع بعد.', 'en' => 'This vendor has no images in their media library yet.'],
+        'dashboard.Products_Gallery_Library_Empty' => ['ar' => 'لا توجد صور في مكتبة وسائط هذا البائع بعد.', 'en' => 'There are no images in this vendor\'s media library yet.'],
+        // ADMIN-P5-UX-01: the empty library explains that admin library images are not product images.
+        'dashboard.Products_Gallery_Library_Empty_Hint' => [
+            'ar' => 'تُختار صور المنتجات من مكتبة البائع المحدد، وليس من مكتبة وسائط الإدارة. يمكن للبائع رفع الصور من لوحة التحكم الخاصة به.',
+            'en' => 'Product images must be selected from the chosen vendor\'s media library, not the admin media library. The vendor can upload images from their own dashboard.',
+        ],
         'dashboard.Products_Gallery_Library_Empty_Search' => ['ar' => 'لا توجد صور تطابق البحث.', 'en' => 'No images match your search.'],
         'dashboard.Products_Gallery_Load_Error' => ['ar' => 'تعذّر تحميل الصور.', 'en' => 'The images could not be loaded.'],
         'dashboard.Products_Gallery_Retry' => ['ar' => 'إعادة المحاولة', 'en' => 'Try again'],
@@ -418,6 +423,13 @@ class AdminProductTranslationSeeder extends Seeder
      * @var list<array{key: string, locale: string, from: string, to: string}>
      */
     public const CORRECTIONS = [
+        // ADMIN-P5-UX-01: the empty vendor library message, reworded in English (Arabic unchanged).
+        [
+            'key' => 'dashboard.Products_Gallery_Library_Empty',
+            'locale' => 'en',
+            'from' => 'This vendor has no images in their media library yet.',
+            'to' => 'There are no images in this vendor\'s media library yet.',
+        ],
         [
             'key' => 'dashboard.Product_saved',
             'locale' => 'ar',

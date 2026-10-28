@@ -40,7 +40,7 @@
             'dialogReplaceTitle' => $prodText('Products_Gallery_Dialog_Replace_Title', 'Choose a replacement image'),
             'choose' => $prodText('Products_Gallery_Choose', 'Choose :name'),
             'inGallery' => $prodText('Products_Gallery_In_Gallery', 'Already added'),
-            'libraryEmpty' => $prodText('Products_Gallery_Library_Empty', 'This vendor has no images in their media library yet.'),
+            'libraryEmpty' => $prodText('Products_Gallery_Library_Empty', 'There are no images in this vendor\'s media library yet.'),
             'libraryEmptySearch' => $prodText('Products_Gallery_Library_Empty_Search', 'No images match your search.'),
             'loadError' => $prodText('Products_Gallery_Load_Error', 'The images could not be loaded.'),
             'forbidden' => $prodText('Products_Gallery_Forbidden', 'You do not have permission to do this.'),
