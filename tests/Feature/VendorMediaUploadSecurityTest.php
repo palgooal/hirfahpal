@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\Vendor;
 use Database\Seeders\AdminMediaTranslationSeeder;
+use Database\Seeders\VendorDashboardTranslationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -155,6 +156,48 @@ class VendorMediaUploadSecurityTest extends TestCase
             ->assertUnprocessable()->assertJsonValidationErrors(['files.0' => 'أبعاد الصورة كبيرة جدًا.']);
     }
 
+    // ---------------------------------------------------------------- VENDOR-MEDIA-02B: batch limit
+
+    public function test_one_and_ten_images_per_request_are_accepted(): void
+    {
+        $this->upload($this->images(1))->assertCreated()->assertJsonCount(1, 'images');
+        $response = $this->upload($this->images(10))->assertCreated()->assertJsonCount(10, 'images');
+
+        $this->assertSame(['id', 'path', 'alt_text', 'url'], array_keys($response->json('images.9')));
+        $this->assertSame(11, Media::query()->where('uploader_id', $this->vendor->id)->count());
+        $this->assertCount(11, Storage::disk('public')->allFiles("vendors/media/{$this->vendor->id}"));
+    }
+
+    public function test_eleven_images_are_refused_whole_and_nothing_is_stored(): void
+    {
+        $this->upload($this->images(11))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['files' => 'You can upload up to 10 images at a time.']);
+
+        $this->assertSame(0, Media::query()->count());
+        $this->assertSame([], Storage::disk('public')->allFiles());
+    }
+
+    public function test_the_batch_limit_message_is_served_in_arabic(): void
+    {
+        $this->seed(VendorDashboardTranslationSeeder::class);
+        config(['app.locale' => 'ar']);
+
+        $this->upload($this->images(11))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['files' => 'يمكنك رفع 10 صور كحد أقصى في المرة الواحدة.']);
+        $this->assertSame(0, Media::query()->count());
+    }
+
+    public function test_the_library_itself_has_no_total_limit(): void
+    {
+        foreach (range(1, 3) as $batch) {
+            $this->upload($this->images(10))->assertCreated();
+        }
+
+        $this->assertSame(30, Media::query()->where('uploader_id', $this->vendor->id)->count());
+    }
+
     // ---------------------------------------------------------------- access and isolation
 
     public function test_guests_and_unapproved_vendors_cannot_upload(): void
@@ -190,6 +233,12 @@ class VendorMediaUploadSecurityTest extends TestCase
     private function upload(array $files): TestResponse
     {
         return $this->actingAs($this->vendor, 'vendor')->post(route('vendor.dashboard.products.media.store'), ['files' => $files], ['Accept' => 'application/json']);
+    }
+
+    /** @return list<UploadedFile> */
+    private function images(int $count): array
+    {
+        return array_map(fn (int $i) => $this->file($this->image('image/png'), "photo-{$i}.png", 'image/png'), range(1, $count));
     }
 
     /** A real temporary file, so its bytes are what the checks see. */

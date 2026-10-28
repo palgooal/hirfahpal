@@ -341,6 +341,8 @@ class VendorDashboardTranslationSeeder extends Seeder
         ],
         'vendor.Product_Gallery_Image_Alt' => ['ar' => 'صورة المنتج', 'en' => 'Product image'],
         'vendor.Product_Gallery_Media_Alt' => ['ar' => 'صورة من مكتبة الوسائط', 'en' => 'Media library image'],
+        // VENDOR-MEDIA-02B: the batch limit of one media library upload.
+        'vendor.Media_Upload_Max_Files' => ['ar' => 'يمكنك رفع :max صور كحد أقصى في المرة الواحدة.', 'en' => 'You can upload up to :max images at a time.'],
     ];
 
     public function run(): void

@@ -13,6 +13,9 @@ use Palgoal\MediaLibrary\Models\Media;
 /** A vendor-scoped facade over the shared Media Library table. */
 class MediaLibraryController extends Controller
 {
+    /** VENDOR-MEDIA-02B: the most images one upload request may carry. */
+    public const MAX_FILES_PER_UPLOAD = 10;
+
     public function index(Request $request): JsonResponse
     {
         $vendor = $request->user('vendor');
@@ -26,7 +29,12 @@ class MediaLibraryController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $data = $request->validate(['files' => ['required', 'array', 'min:1'], 'files.*' => ['file', 'mimes:jpeg,jpg,png,gif,webp', 'max:10240']]);
+        // VENDOR-MEDIA-02B: at most MAX_FILES_PER_UPLOAD images per request (the library itself has no limit). The
+        // whole request is refused before anything is stored.
+        $data = $request->validate(
+            ['files' => ['required', 'array', 'min:1', 'max:'.self::MAX_FILES_PER_UPLOAD], 'files.*' => ['file', 'mimes:jpeg,jpg,png,gif,webp', 'max:10240']],
+            ['files.max' => $this->text('vendor.Media_Upload_Max_Files', 'You can upload up to :max images at a time.')]
+        );
         $vendor = $request->user('vendor');
         $uploaded = [];
 
@@ -52,6 +60,19 @@ class MediaLibraryController extends Controller
         $media->delete();
 
         return response()->json(['message' => 'Media deleted.']);
+    }
+
+    /** t() without auto-creating the key, so an Arabic row is never created with English text. */
+    private function text(string $key, string $default): string
+    {
+        $autoCreate = config('palgoals-locale.auto_create');
+        config(['palgoals-locale.auto_create' => false]);
+
+        try {
+            return t($key, $default);
+        } finally {
+            config(['palgoals-locale.auto_create' => $autoCreate]);
+        }
     }
 
     private function prefix(int $vendorId): string
