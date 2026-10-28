@@ -13,6 +13,7 @@ use App\Models\Vendor;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Palgoal\MediaLibrary\Models\Media;
 use Tests\TestCase;
 
 /**
@@ -83,9 +84,19 @@ class ProductCategoryForeignKeyTest extends TestCase
         $vendor = Vendor::factory()->approved()->create();
         $category = Category::create(['name' => 'Vanishing', 'slug' => 'vanishing']);
         $this->deleteAfterValidation(StoreProductRequest::class, $category);
+        // G7-C2-1: images from the vendor's own media library, so only the category fails.
+        $images = array_map(function (string $name) use ($vendor) {
+            $path = "vendors/media/{$vendor->id}/{$name}";
+            Media::create([
+                'file_name' => $name, 'file_original_name' => $name, 'file_path' => $path, 'file_extension' => 'jpg',
+                'mime_type' => 'image/jpeg', 'size' => 5, 'file_type' => 'image', 'disk' => 'public', 'uploader_id' => $vendor->id,
+            ]);
+
+            return ['path' => $path];
+        }, ['a.jpg', 'b.jpg']);
 
         $this->actingAs($vendor, 'vendor')
-            ->postJson(route('vendor.dashboard.products.store'), $this->vendorPayload($category) + ['images' => [['path' => 'a.jpg'], ['path' => 'b.jpg']]])
+            ->postJson(route('vendor.dashboard.products.store'), $this->vendorPayload($category) + ['images' => $images])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('category_id');
 

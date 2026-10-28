@@ -99,15 +99,20 @@ class VendorProductImageDeletionTest extends TestCase
     public function test_a_traversal_path_given_at_product_creation_deletes_nothing_either(): void
     {
         $theirs = $this->libraryImage($this->other);
-        // The id the new product will get, so the path starts with that product's own upload folder.
+        // The id the new product would get, so the path starts with that product's own upload folder.
         $next = (int) Product::query()->max('id') + 1;
-        $product = Product::query()->findOrFail($this->actingAs($this->vendor, 'vendor')->postJson(route('vendor.dashboard.products.store'), [
-            'name' => 'Clay jug', 'price' => 10, 'stock_quantity' => 2,
-            'images' => [['path' => "vendors/products/{$this->vendor->id}/{$next}/../../../media/{$this->other->id}/".basename($theirs->file_path)]],
-        ])->assertCreated()->json('product.id'));
-        $this->assertSame($next, $product->id);
+        $traversal = "vendors/products/{$this->vendor->id}/{$next}/../../../media/{$this->other->id}/".basename($theirs->file_path);
+        $count = Product::query()->count();
 
-        $this->remove($product, $product->images()->sole())->assertOk();
+        // G7-C2-1 (V2): such a path is no longer accepted at creation.
+        $this->actingAs($this->vendor, 'vendor')->postJson(route('vendor.dashboard.products.store'), [
+            'name' => 'Clay jug', 'price' => 10, 'stock_quantity' => 2, 'images' => [['path' => $traversal]],
+        ])->assertUnprocessable()->assertJsonValidationErrors('images.0.path');
+        $this->assertSame($count, Product::query()->count());
+
+        // One stored earlier (legacy data) is still only unlinked.
+        $product = $this->product($this->vendor);
+        $this->remove($product, $this->attach($product, $traversal, true))->assertOk();
 
         Storage::disk('public')->assertExists($theirs->file_path);
     }

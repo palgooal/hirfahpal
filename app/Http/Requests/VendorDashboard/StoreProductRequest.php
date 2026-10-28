@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\VendorDashboard;
 
+use App\Rules\VendorLibraryImage;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreProductRequest extends FormRequest
@@ -38,7 +39,8 @@ class StoreProductRequest extends FormRequest
             'craft_tags' => ['nullable', 'array', 'max:5'],
             'craft_tags.*' => ['string', 'max:40'],
             'images' => ['nullable', 'array'],
-            'images.*.path' => ['required_with:images', 'string', 'max:2048'],
+            // G7-C2-1 (V2): every image must be one of the vendor's own media library images.
+            'images.*.path' => ['required_with:images', 'string', 'max:2048', new VendorLibraryImage((int) $this->user('vendor')->id)],
             'images.*.alt_text' => ['nullable', 'string', 'max:255'],
             'images.*.sort_order' => ['nullable', 'integer', 'min:0'],
             'images.*.is_primary' => ['nullable', 'boolean'],

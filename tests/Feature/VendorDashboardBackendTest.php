@@ -11,6 +11,7 @@ use App\Models\VendorOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Palgoal\MediaLibrary\Models\Media;
 use Tests\TestCase;
 
 class VendorDashboardBackendTest extends TestCase
@@ -25,6 +26,12 @@ class VendorDashboardBackendTest extends TestCase
             'slug' => 'ceramics',
             'is_active' => true,
         ]);
+        // G7-C2-1: product images come from the vendor's own media library.
+        $path = "vendors/media/{$vendor->id}/handmade-bowl.jpg";
+        Media::create([
+            'file_name' => 'handmade-bowl.jpg', 'file_original_name' => 'handmade-bowl.jpg', 'file_path' => $path, 'file_extension' => 'jpg',
+            'mime_type' => 'image/jpeg', 'size' => 5, 'file_type' => 'image', 'disk' => 'public', 'uploader_id' => $vendor->id,
+        ]);
 
         $response = $this->actingAs($vendor, 'vendor')->postJson(route('vendor.dashboard.products.store'), [
             'category_id' => $category->id,
@@ -35,7 +42,7 @@ class VendorDashboardBackendTest extends TestCase
             'status' => 'active',
             'images' => [
                 [
-                    'path' => 'products/handmade-bowl.jpg',
+                    'path' => $path,
                     'is_primary' => true,
                 ],
             ],
@@ -44,7 +51,7 @@ class VendorDashboardBackendTest extends TestCase
         $response->assertCreated()
             ->assertJsonPath('product.vendor_id', $vendor->id)
             ->assertJsonPath('product.slug', 'handmade-bowl')
-            ->assertJsonPath('product.images.0.path', 'products/handmade-bowl.jpg');
+            ->assertJsonPath('product.images.0.path', $path);
 
         $this->assertDatabaseHas('products', [
             'vendor_id' => $vendor->id,
