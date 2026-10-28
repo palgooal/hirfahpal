@@ -9,7 +9,9 @@ import {
     createLoader,
     errorText,
     galleryRefs,
+    initialItems,
     interpretList,
+    limitState,
     itemFromMedia,
     mediaListUrl,
     moveItem,
@@ -105,7 +107,35 @@ test('adding keeps the order, refuses a seventh image and an image already in th
     assert.equal(addItem(full, C, 6), full);
 });
 
-test('moving swaps neighbours, the first image is the main one, and the ends do nothing', () => {
+test('P5-HARDEN-01: a gallery above the limit starts whole, never truncated', () => {
+    const seven = Array.from({ length: 7 }, (_, at) => item(`existing:${at + 1}`));
+    const start = initialItems(seven);
+
+    assert.deepEqual(galleryRefs(start), galleryRefs(seven));
+    assert.notEqual(start, seven, 'A copy: the config is never changed.');
+    assert.deepEqual(initialItems(undefined), []);
+    assert.deepEqual(initialItems({ length: 3 }), []);
+});
+
+test('P5-HARDEN-01: above the limit nothing can be added; removing, moving and replacing still work', () => {
+    const seven = Array.from({ length: 7 }, (_, at) => item(`existing:${at + 1}`));
+
+    assert.deepEqual(limitState(7, 6), { canAdd: false, full: false, over: true });
+    assert.deepEqual(limitState(6, 6), { canAdd: false, full: true, over: false });
+    assert.deepEqual(limitState(5, 6), { canAdd: true, full: false, over: false });
+
+    assert.equal(addItem(seven, C, 6), seven, 'Adding is refused.');
+    const replaced = replaceItem(seven, 3, C);
+    assert.equal(replaced.length, 7, 'Replacing never grows the list.');
+    assert.equal(replaced[3], C);
+    assert.deepEqual(galleryRefs(moveItem(seven, 6, -1)).slice(5), ['existing:7', 'existing:6']);
+    const six = removeItem(seven, 0);
+    assert.equal(six.length, 6);
+    assert.deepEqual(limitState(six.length, 6), { canAdd: false, full: true, over: false });
+    assert.equal(six[0].ref, 'existing:2', 'The next image becomes the first, the main one.');
+});
+
+test('moving swaps neighbours,the first image is the main one, and the ends do nothing', () => {
     const list = [A, B, C];
 
     assert.deepEqual(galleryRefs(moveItem(list, 2, -1)), ['existing:1', 'media:9', 'existing:2']);

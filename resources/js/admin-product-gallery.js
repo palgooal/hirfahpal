@@ -3,6 +3,9 @@
  * with the partials gallery.blade.php (the field) and gallery-dialog.blade.php (the chooser).
  *
  * An ordered list of up to six images from the product vendor's own media library; the first is the main image.
+ * P5-HARDEN-01: a product saved elsewhere with more than six images shows all of them, never a truncated list (a
+ * truncated list would unlink the rest on save). Above the limit nothing can be added, removing and moving stay
+ * available, a warning says so, and the server refuses the list until it has six or fewer.
  * The admin adds, replaces, removes and moves images with buttons (keyboard first, no drag only). Nothing is uploaded
  * or deleted here: removing an image only unlinks it, and the chooser reads dashboard.products.vendor-media.* (read
  * only, scoped on the server to the product's vendor). Once the list changes, the form carries the P5-B contract:
@@ -59,6 +62,12 @@ export function moveItem(items, index, delta) {
 
     return next;
 }
+
+/** The starting list, every image kept: never cut to the limit, so a save cannot drop the ones past it. */
+export const initialItems = (items) => (Array.isArray(items) ? [...items] : []);
+
+/** What the limit allows: adding below it only, the full note at it, the over note above it. */
+export const limitState = (count, max) => ({ canAdd: count < max, full: count === max, over: count > max });
 
 /** The P5-B references, in order. */
 export const galleryRefs = (items) => items.map((item) => item.ref);
@@ -339,12 +348,13 @@ export function initProductGallery(root, config, win = window) {
     const empty = $('product-gallery-empty');
     const add = $('product-gallery-add');
     const full = $('product-gallery-full');
+    const over = $('product-gallery-over');
     const vendorFirst = $('product-gallery-vendor-first');
     const inputs = $('product-gallery-inputs');
     const status = $('product-gallery-status');
     const vendor = editing ? null : $('product-vendor');
 
-    let items = Array.isArray(config.items) ? config.items.slice(0, max) : [];
+    let items = initialItems(config.items);
     let dirty = Boolean(config.restored);
 
     const vendorId = () => (editing ? '' : String(vendor?.value ?? ''));
@@ -379,8 +389,11 @@ export function initProductGallery(root, config, win = window) {
         count.textContent = format(messages.count, { count: items.length, max });
         empty.hidden = items.length > 0;
         add.hidden = false;
-        add.disabled = items.length >= max || !canChoose();
-        full.hidden = items.length < max;
+        const limit = limitState(items.length, max);
+        add.disabled = !limit.canAdd || !canChoose();
+        full.hidden = !limit.full;
+        over.hidden = !limit.over;
+        over.textContent = limit.over ? format(messages.overMax, { count: items.length, max }) : '';
         vendorFirst.hidden = canChoose();
         writeInputs();
     };

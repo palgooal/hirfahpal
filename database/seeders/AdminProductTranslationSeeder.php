@@ -272,6 +272,11 @@ class AdminProductTranslationSeeder extends Seeder
             'ar' => 'يحتوي المنتج على الحد الأقصى وهو :max صور. احذف صورة لإضافة أخرى.',
             'en' => 'The product has the maximum of :max images. Remove one to add another.',
         ],
+        // P5-HARDEN-01: a product with more than six images, shown whole and never truncated.
+        'dashboard.Products_Gallery_Over_Max' => [
+            'ar' => 'يحتوي هذا المنتج على :count صور، وهذا أكثر من الحد الأقصى وهو :max صور. لا يمكن إضافة صور. أزل صورًا حتى يبقى :max أو أقل لحفظ تغييرات الصور. لا تُزال أي صورة تلقائيًا.',
+            'en' => 'This product has :count images, more than the maximum of :max. Nothing can be added. Remove images until :max or fewer remain to save changes to the images. No image is removed automatically.',
+        ],
         'dashboard.Products_Gallery_Empty' => ['ar' => 'لا توجد صور بعد.', 'en' => 'No images yet.'],
         'dashboard.Products_Gallery_No_Script' => [
             'ar' => 'فعّل JavaScript لتغيير صور المنتج. تبقى الصور الحالية عند الحفظ.',

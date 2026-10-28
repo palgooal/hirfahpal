@@ -6,12 +6,14 @@ use App\Http\Controllers\Dashboard\ProductManagementController;
 use App\Models\Admin;
 use App\Models\Language;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\RoleUser;
 use App\Models\TranslationValue;
 use App\Models\Vendor;
 use Database\Seeders\AdminDashboardTranslationSeeder;
 use Database\Seeders\AdminProductTranslationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Testing\TestResponse;
@@ -360,6 +362,141 @@ class AdminProductGalleryPageTest extends TestCase
         $this->assertSame(6, $product->images()->count());
     }
 
+    // ---------------------------------------------------------------- P5-HARDEN-01: more than six images
+
+    public function test_a_product_with_seven_images_shows_all_of_them_with_a_translated_warning(): void
+    {
+        $this->seed(AdminDashboardTranslationSeeder::class);
+        $this->seed(AdminProductTranslationSeeder::class);
+        [$product, $images] = $this->productWithSevenImages();
+        $admin = $this->superAdmin();
+        $refs = $images->map(fn ($image) => "existing:{$image->id}")->all();
+
+        $en = $this->page($admin, route('dashboard.products.edit', $product), 'en');
+        $config = $this->config($en);
+        $this->assertSame($refs, array_column($config['items'], 'ref'), 'Every image is listed, in order, none cut off.');
+        $this->assertSame(6, $config['max']);
+        $this->assertSame(7, preg_match_all('#<li class="admin-product-gallery-item" data-ref="existing:\d+">#', $en), 'All seven are rendered without the script too.');
+        $this->assertStringContainsString('7 of 6 images', $en);
+        $this->assertMatchesRegularExpression('#<p class="admin-product-gallery-note" id="product-gallery-over"\s*>This product has 7 images, more than the maximum of 6\. Nothing can be added\. Remove images until 6 or fewer remain to save changes to the images\. No image is removed automatically\.</p>#', $en);
+
+        $ar = $this->page($admin, route('dashboard.products.edit', $product), 'ar');
+        $this->assertStringContainsString('>يحتوي هذا المنتج على 7 صور، وهذا أكثر من الحد الأقصى وهو 6 صور. لا يمكن إضافة صور. أزل صورًا حتى يبقى 6 أو أقل لحفظ تغييرات الصور. لا تُزال أي صورة تلقائيًا.</p>', $ar);
+        $this->assertStringStartsWith('يحتوي هذا المنتج على :count صور', $this->config($ar)['messages']['overMax']);
+    }
+
+    public function test_six_images_show_no_over_limit_warning(): void
+    {
+        $product = $this->product(1);
+        foreach (range(0, 5) as $i) {
+            $product->images()->create(['path' => "vendors/media/1/{$i}.png", 'sort_order' => $i, 'is_primary' => $i === 0]);
+        }
+
+        $html = $this->page($this->superAdmin(), route('dashboard.products.edit', $product));
+
+        $this->assertMatchesRegularExpression('#<p class="admin-product-gallery-note" id="product-gallery-over"\s+hidden\s*></p>#', $html);
+        $this->assertStringContainsString('6 of 6 images', $html);
+    }
+
+    public function test_other_fields_of_a_product_with_seven_images_save_and_the_images_stay(): void
+    {
+        [$product, $images] = $this->productWithSevenImages();
+        $admin = $this->superAdmin();
+        $before = $product->images()->get(['id', 'path', 'sort_order', 'is_primary'])->toArray();
+        $fields = $this->formFields($this->page($admin, route('dashboard.products.edit', $product)), ['name' => 'Blue clay jug']);
+
+        $this->actingAs($admin, 'admin')->from(route('dashboard.products.edit', $product))
+            ->put(route('dashboard.products.update', $product), $fields)
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('Blue clay jug', $product->fresh()->name);
+        $this->assertSame($before, $product->images()->get(['id', 'path', 'sort_order', 'is_primary'])->toArray());
+        // An addition through the append-only path is still refused.
+        $extra = $this->media('vendors/media/1/extra.png');
+        $this->actingAs($admin, 'admin')->from(route('dashboard.products.edit', $product))
+            ->put(route('dashboard.products.update', $product), $fields + ['media_image_ids' => [$extra->id]])
+            ->assertSessionHasErrors(['media_image_ids' => 'A product can have up to 6 images.']);
+        $this->assertSame(7, $product->images()->count());
+    }
+
+    public function test_saving_seven_images_is_refused_changes_nothing_and_comes_back_whole(): void
+    {
+        [$product, $images] = $this->productWithSevenImages();
+        $admin = $this->superAdmin();
+        $edit = route('dashboard.products.edit', $product);
+        $fields = $this->formFields($this->page($admin, $edit));
+        $before = $product->images()->get(['id', 'path', 'sort_order', 'is_primary'])->toArray();
+        // The seven, reordered: the last one first.
+        $refs = $images->map(fn ($image) => "existing:{$image->id}")->all();
+        $refs = [array_pop($refs), ...$refs];
+
+        $this->actingAs($admin, 'admin')->from($edit)
+            ->put(route('dashboard.products.update', $product), $fields + ['gallery_sync' => '1', 'gallery' => $refs])
+            ->assertRedirect($edit)
+            ->assertSessionHasErrors(['gallery' => 'A product can have up to 6 images.']);
+
+        $this->assertSame($before, $product->images()->get(['id', 'path', 'sort_order', 'is_primary'])->toArray(), 'No association changed.');
+        foreach ($images as $image) {
+            Storage::disk('public')->assertExists($image->path);
+        }
+
+        // The refused list comes back in full, in the submitted order, never cut to six.
+        $html = $this->actingAs($admin, 'admin')->get($edit)->getContent();
+        $config = $this->config($html);
+        $this->assertTrue($config['restored']);
+        $this->assertSame($refs, array_column($config['items'], 'ref'));
+        $this->assertStringContainsString('name="gallery_fingerprint" value="'.$fields['gallery_fingerprint'].'"', $html);
+    }
+
+    public function test_bringing_seven_images_down_to_six_saves(): void
+    {
+        [$product, $images] = $this->productWithSevenImages();
+        $admin = $this->superAdmin();
+        $fields = $this->formFields($this->page($admin, route('dashboard.products.edit', $product)));
+        $removed = $images[2];
+        $kept = $images->reject(fn ($image) => $image->is($removed))->values();
+        // Remove the third, then move the last one first.
+        $refs = $kept->map(fn ($image) => "existing:{$image->id}")->all();
+        $refs = [array_pop($refs), ...$refs];
+
+        $this->actingAs($admin, 'admin')->from(route('dashboard.products.edit', $product))
+            ->put(route('dashboard.products.update', $product), $fields + ['gallery_sync' => '1', 'gallery' => $refs])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(array_map(fn ($ref) => (int) substr($ref, 9), $refs), $product->images()->pluck('id')->all());
+        $this->assertSame($kept->last()->id, $product->fresh()->primaryImage->id, 'The first image is the main one.');
+        $this->assertSame(1, $product->images()->where('is_primary', true)->count());
+        $this->assertModelMissing($removed);
+        Storage::disk('public')->assertExists($removed->path);
+    }
+
+    public function test_more_than_six_images_are_still_checked_against_the_vendor_and_the_fingerprint(): void
+    {
+        [$product, $images] = $this->productWithSevenImages();
+        $foreign = $this->media('vendors/media/10/theirs.png');
+        $admin = $this->superAdmin();
+        $edit = route('dashboard.products.edit', $product);
+        $fields = $this->formFields($this->page($admin, $edit));
+        $six = $images->take(6)->map(fn ($image) => "existing:{$image->id}")->all();
+
+        // Another vendor's image in place of one of the six: refused.
+        $this->actingAs($admin, 'admin')->from($edit)
+            ->put(route('dashboard.products.update', $product), $fields + ['gallery_sync' => '1', 'gallery' => [...array_slice($six, 0, 5), "media:{$foreign->id}"]])
+            ->assertSessionHasErrors('gallery');
+        // A stale fingerprint: refused, even with six.
+        $this->actingAs($admin, 'admin')->from($edit)
+            ->put(route('dashboard.products.update', $product), ['gallery_fingerprint' => str_repeat('0', 40)] + $fields + ['gallery_sync' => '1', 'gallery' => $six])
+            ->assertSessionHasErrors('gallery');
+
+        $this->assertSame(7, $product->images()->count());
+    }
+
+    public function test_neither_the_script_nor_the_form_data_cut_the_gallery(): void
+    {
+        $this->assertDoesNotMatchRegularExpression('/\.slice\(\s*0\s*,\s*max\s*\)/', file_get_contents(base_path(self::SCRIPT)));
+        $this->assertDoesNotMatchRegularExpression('/->take\(\s*6\s*\)/', file_get_contents(app_path('Http/Controllers/Dashboard/ProductManagementController.php')));
+    }
+
     public function test_the_form_never_creates_translation_rows(): void
     {
         $this->seed(AdminDashboardTranslationSeeder::class);
@@ -513,6 +650,23 @@ class AdminProductGalleryPageTest extends TestCase
     private function product(int $vendorId): Product
     {
         return Product::create(['vendor_id' => $vendorId, 'name' => 'Clay jug', 'slug' => 'clay-jug-'.uniqid(), 'price' => 10, 'stock_quantity' => 4, 'status' => 'draft']);
+    }
+
+    /**
+     * A product given seven images outside the admin form (the vendor side has no limit yet), files on the disk.
+     *
+     * @return array{0: Product, 1: Collection<int, ProductImage>}
+     */
+    private function productWithSevenImages(): array
+    {
+        $product = $this->product(1);
+        $images = collect(range(0, 6))->map(function (int $i) use ($product) {
+            Storage::disk('public')->put("vendors/media/1/seven-{$i}.png", 'file');
+
+            return $product->images()->create(['path' => "vendors/media/1/seven-{$i}.png", 'alt_text' => "Jug {$i}", 'sort_order' => $i, 'is_primary' => $i === 0]);
+        });
+
+        return [$product, $images];
     }
 
     private function superAdmin(): Admin

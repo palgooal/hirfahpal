@@ -4,6 +4,8 @@
     image is the main one. The script writes the P5-B contract (gallery_sync=1, gallery[] in order, and
     gallery_fingerprint when editing) only once the list is changed, so saving other fields leaves the images alone.
     Without the script the current images are listed here and kept. Removing an image unlinks it; its file stays.
+    P5-HARDEN-01: every current image is listed, even above six (a product given more elsewhere); a warning then
+    says nothing can be added and the list must be brought down to six before the images can be saved.
     $gallery comes from ProductManagementController::galleryFormData(); $prodText reads t() without auto-create.
 --}}
 @php
@@ -22,6 +24,7 @@
         'messages' => [
             'count' => $prodText('Products_Gallery_Count', ':count of :max images'),
             'main' => $prodText('Products_Gallery_Main', 'Main image'),
+            'overMax' => $prodText('Products_Gallery_Over_Max', 'This product has :count images, more than the maximum of :max. Nothing can be added. Remove images until :max or fewer remain to save changes to the images. No image is removed automatically.'),
             'legacy' => $prodText('Products_Gallery_Legacy', 'Not in the vendor library'),
             'position' => $prodText('Products_Gallery_Position', 'Image :position'),
             'moveUp' => $prodText('Products_Gallery_Move_Up', 'Move up'),
@@ -61,6 +64,7 @@
     </div>
 
     <p class="admin-product-gallery-note" id="product-gallery-vendor-first" hidden>{{ $prodText('Products_Gallery_Vendor_First', 'Choose the vendor first to add its images.') }}</p>
+    <p class="admin-product-gallery-note" id="product-gallery-over" @if (count($gallery['items']) <= $gallery['max']) hidden @endif>{{ count($gallery['items']) > $gallery['max'] ? str_replace([':count', ':max'], [count($gallery['items']), $gallery['max']], $galleryConfig['messages']['overMax']) : '' }}</p>
     <p class="admin-product-gallery-note" id="product-gallery-full" hidden>{{ str_replace(':max', $gallery['max'], $prodText('Products_Gallery_Full', 'The product has the maximum of :max images. Remove one to add another.')) }}</p>
 
     <ol class="admin-product-gallery-list" id="product-gallery-list" aria-labelledby="product-gallery-label">

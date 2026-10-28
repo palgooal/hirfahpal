@@ -370,7 +370,8 @@ class ProductManagementController extends Controller
         if ($restored) {
             $refs = collect((array) old('gallery', []))
                 ->filter(fn ($ref) => is_string($ref) && preg_match('/^(existing|media):[1-9][0-9]{0,18}$/', $ref) === 1)
-                ->unique()->take(6)->values();
+                // P5-HARDEN-01: never cut to six; a refused longer list comes back whole, so nothing is dropped silently.
+                ->unique()->values();
             $mediaIds = $refs->filter(fn (string $ref) => str_starts_with($ref, 'media:'))->map(fn (string $ref) => (int) substr($ref, 6))->values()->all();
             $media = $vendorId > 0 && $mediaIds !== [] ? $this->vendorImages($vendorId, $mediaIds)->get()->keyBy('id') : collect();
             $existing = $items->keyBy('ref');
@@ -604,7 +605,9 @@ class ProductManagementController extends Controller
             throw ValidationException::withMessages(['media_image_ids' => $this->vendorImagesOnlyMessage()]);
         }
 
-        if (($product?->images()->count() ?? 0) + count($mediaIds) > 6) {
+        // P5-HARDEN-01: only an addition is limited. Without one, a product already above six (given its images
+        // elsewhere) can still be saved, its images left as they are.
+        if ($mediaIds !== [] && ($product?->images()->count() ?? 0) + count($mediaIds) > 6) {
             throw ValidationException::withMessages([
                 'media_image_ids' => $this->untranslatedDefault('dashboard.Products_Form_Images_Max', 'A product can have up to 6 images.'),
             ]);
