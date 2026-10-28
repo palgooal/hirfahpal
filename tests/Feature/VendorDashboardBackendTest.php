@@ -87,8 +87,9 @@ class VendorDashboardBackendTest extends TestCase
         ]);
     }
 
-    public function test_vendor_can_upload_a_safe_product_image(): void
+    public function test_vendor_can_upload_a_safe_image_to_the_library_and_attach_it_to_a_product(): void
     {
+        // G7-C2-4: images reach a product through the vendor's media library only (no direct product upload).
         Storage::fake('public');
         $vendor = Vendor::factory()->approved()->create();
         $product = Product::query()->create([
@@ -101,36 +102,36 @@ class VendorDashboardBackendTest extends TestCase
         ]);
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL0RAAAAABJRU5ErkJggg==');
 
-        $response = $this->actingAs($vendor, 'vendor')->post(route('vendor.dashboard.products.images.upload', $product), [
-            'file' => UploadedFile::fake()->createWithContent('photo.png', $png),
-        ]);
+        $path = $this->actingAs($vendor, 'vendor')->post(route('vendor.dashboard.products.media.store'), [
+            'files' => [UploadedFile::fake()->createWithContent('photo.png', $png)],
+        ], ['Accept' => 'application/json'])->assertCreated()->json('images.0.path');
 
-        $response->assertCreated()->assertJsonPath('image.is_primary', true);
-        $path = $response->json('image.path');
-        $this->assertStringStartsWith('vendors/products/'.$vendor->id.'/'.$product->id.'/', $path);
-        $this->assertStringEndsWith('.png', $path);
+        $this->assertMatchesRegularExpression('#^vendors/media/'.$vendor->id.'/[0-9a-f-]{36}\.png$#', $path);
         Storage::disk('public')->assertExists($path);
+
+        $this->actingAs($vendor, 'vendor')->postJson(route('vendor.dashboard.products.images.store', $product), ['path' => $path])
+            ->assertCreated()
+            ->assertJsonPath('image.path', $path)
+            ->assertJsonPath('image.is_primary', true);
     }
 
-    public function test_vendor_product_upload_rejects_a_non_image_file(): void
+    public function test_vendor_library_upload_rejects_a_non_image_file(): void
     {
         Storage::fake('public');
         $vendor = Vendor::factory()->approved()->create();
-        $product = Product::query()->create([
-            'vendor_id' => $vendor->id,
-            'name' => 'Safe Product',
-            'slug' => 'safe-product',
-            'price' => 10,
-            'stock_quantity' => 5,
-            'status' => 'draft',
-        ]);
 
-        $this->actingAs($vendor, 'vendor')->post(route('vendor.dashboard.products.images.upload', $product), [
-            'file' => UploadedFile::fake()->createWithContent('image.png', '<script>alert(1)</script>'),
-        ])->assertSessionHasErrors('file');
+        // A real file (not UploadedFile::fake(), whose MIME type follows the name), so the content is what is checked.
+        $tmp = tempnam(sys_get_temp_dir(), 'g7c24');
+        file_put_contents($tmp, '<script>alert(1)</script>');
 
+        $this->actingAs($vendor, 'vendor')->post(route('vendor.dashboard.products.media.store'), [
+            'files' => [new UploadedFile($tmp, 'image.png', 'image/png', null, true)],
+        ], ['Accept' => 'application/json'])->assertUnprocessable()->assertJsonValidationErrors('files.0');
+        @unlink($tmp);
+
+        $this->assertDatabaseCount('media', 0);
         $this->assertDatabaseCount('product_images', 0);
-        Storage::disk('public')->assertDirectoryEmpty('vendors');
+        $this->assertSame([], Storage::disk('public')->allFiles());
     }
 
     public function test_vendor_can_accept_their_pending_order(): void

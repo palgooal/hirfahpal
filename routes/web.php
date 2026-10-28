@@ -237,7 +237,6 @@ foreach (AccountGuard::all() as $accountType => $account) {
                             Route::apiResource('products', VendorDashboardProductController::class)
                                 ->names('dashboard.products');
                             Route::post('products/{product}/images', [VendorDashboardProductImageController::class, 'store'])->name('dashboard.products.images.store');
-                            Route::post('products/{product}/upload-image', [VendorDashboardProductImageController::class, 'upload'])->name('dashboard.products.images.upload');
                             Route::patch('products/{product}/images/{productImage}', [VendorDashboardProductImageController::class, 'update'])->name('dashboard.products.images.update');
                             Route::delete('products/{product}/images/{productImage}', [VendorDashboardProductImageController::class, 'destroy'])->name('dashboard.products.images.destroy');
 

@@ -8,6 +8,7 @@ use App\Models\Vendor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Palgoal\MediaLibrary\Models\Media;
 use Tests\TestCase;
@@ -55,12 +56,10 @@ class VendorProductImageDeletionTest extends TestCase
 
     public function test_removing_an_uploaded_product_image_keeps_its_file(): void
     {
-        // A legacy product upload, created through the vendor's own upload endpoint.
-        $path = $this->actingAs($this->vendor, 'vendor')
-            ->post(route('vendor.dashboard.products.images.upload', $this->product), ['file' => UploadedFile::fake()->image('jug.png', 40, 40)], ['Accept' => 'application/json'])
-            ->assertCreated()->json('image.path');
-        $image = ProductImage::query()->where('path', $path)->sole();
-        $this->assertStringStartsWith("vendors/products/{$this->vendor->id}/{$this->product->id}/", $path);
+        // A legacy product upload, as the former direct upload endpoint (removed in G7-C2-4) stored it.
+        $path = "vendors/products/{$this->vendor->id}/{$this->product->id}/".Str::uuid().'.png';
+        Storage::disk('public')->put($path, UploadedFile::fake()->image('jug.png', 40, 40)->getContent());
+        $image = $this->attach($this->product, $path, true);
 
         $this->remove($this->product, $image)->assertOk();
 

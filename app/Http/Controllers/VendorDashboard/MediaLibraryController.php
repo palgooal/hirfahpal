@@ -31,7 +31,9 @@ class MediaLibraryController extends Controller
         $uploaded = [];
 
         foreach ($data['files'] as $file) {
-            $path = $file->storeAs($this->prefix($vendor->id), Str::uuid().'.'.strtolower($file->extension()), 'public');
+            // G7-C2-4: the folder without its trailing slash, so the stored path is canonical
+            // (vendors/media/{id}/{uuid}.ext, not ...//...): only canonical paths can be attached to a product.
+            $path = $file->storeAs(rtrim($this->prefix($vendor->id), '/'), Str::uuid().'.'.strtolower($file->extension()), 'public');
             $uploaded[] = Media::create([
                 'file_name' => basename($path), 'file_original_name' => $file->getClientOriginalName(), 'file_path' => $path,
                 'file_extension' => strtolower($file->extension()), 'mime_type' => $file->getMimeType(), 'size' => $file->getSize(),
