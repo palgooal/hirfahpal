@@ -286,6 +286,61 @@ class VendorDashboardTranslationSeeder extends Seeder
             'ar' => 'يرجى مراجعة هذه القيمة.',
             'en' => 'Please check this value.',
         ],
+        // G7-C2-5: the product image gallery of the vendor product editor (resources/js/vendor-product-editor.js).
+        'vendor.Product_Gallery_Change' => ['ar' => 'تغيير', 'en' => 'Change'],
+        'vendor.Product_Gallery_Set_Main' => ['ar' => 'تعيين كصورة رئيسية', 'en' => 'Set as main'],
+        'vendor.Product_Gallery_Remove' => ['ar' => 'إزالة', 'en' => 'Remove'],
+        'vendor.Product_Gallery_Confirm_Remove' => [
+            'ar' => 'إزالة هذه الصورة من المنتج؟ يبقى الملف في مكتبة الوسائط.',
+            'en' => 'Remove this image from the product? The file stays in your media library.',
+        ],
+        'vendor.Product_Gallery_No_Main' => ['ar' => 'لم تُختر صورة رئيسية.', 'en' => 'No main image selected.'],
+        'vendor.Product_Gallery_No_Gallery' => ['ar' => 'لم تُختر صور إضافية للمعرض.', 'en' => 'No gallery images selected.'],
+        'vendor.Product_Gallery_Count' => ['ar' => ':count من :max صور', 'en' => ':count of :max images'],
+        'vendor.Product_Gallery_Title_Main' => ['ar' => 'اختر الصورة الرئيسية للمنتج', 'en' => 'Choose the main product image'],
+        'vendor.Product_Gallery_Title_Replace' => ['ar' => 'اختر صورة بديلة', 'en' => 'Choose a replacement image'],
+        'vendor.Product_Gallery_Title_Gallery' => ['ar' => 'اختر صورة للمعرض', 'en' => 'Choose a gallery image'],
+        'vendor.Product_Gallery_Loading' => ['ar' => 'جارٍ تحميل الصور…', 'en' => 'Loading images…'],
+        'vendor.Product_Gallery_Library_Empty' => [
+            'ar' => 'لا توجد صور في مكتبة الوسائط الخاصة بك بعد. ارفع صورة من هذه النافذة.',
+            'en' => 'There are no images in your media library yet. Upload one from this window.',
+        ],
+        'vendor.Product_Gallery_Library_Error' => ['ar' => 'تعذّر تحميل مكتبة الوسائط.', 'en' => 'Your media library could not be loaded.'],
+        'vendor.Product_Gallery_Saving' => ['ar' => 'جارٍ الحفظ…', 'en' => 'Saving…'],
+        'vendor.Product_Gallery_Uploading' => ['ar' => 'جارٍ الرفع…', 'en' => 'Uploading…'],
+        'vendor.Product_Gallery_Added' => ['ar' => 'أُضيفت الصورة.', 'en' => 'Image added.'],
+        'vendor.Product_Gallery_Replaced' => ['ar' => 'استُبدلت الصورة.', 'en' => 'Image replaced.'],
+        'vendor.Product_Gallery_Removed' => [
+            'ar' => 'أُزيلت الصورة. يبقى الملف في مكتبة الوسائط.',
+            'en' => 'Image removed. The file stays in your media library.',
+        ],
+        'vendor.Product_Gallery_Main_Changed' => ['ar' => 'تغيّرت الصورة الرئيسية.', 'en' => 'Main image changed.'],
+        'vendor.Product_Gallery_Limit' => [
+            'ar' => 'يمكن أن يحتوي المنتج على 6 صور كحد أقصى. أزل صورة أو استبدلها لإضافة أخرى.',
+            'en' => 'A product can have up to 6 images. Remove or replace an image to add another.',
+        ],
+        'vendor.Product_Gallery_Not_In_Library' => [
+            'ar' => 'هذه الصورة ليست في مكتبة الوسائط الخاصة بك أو أُزيلت منها. اختر صورة أخرى.',
+            'en' => 'This image is not in your media library, or it was removed. Choose another image.',
+        ],
+        'vendor.Product_Gallery_Gone' => [
+            'ar' => 'لم تعد هذه الصورة أو هذا المنتج متاحًا. أعد تحميل الصفحة وحاول مجددًا.',
+            'en' => 'This image or product is no longer available. Reload the page and try again.',
+        ],
+        'vendor.Product_Gallery_Session' => ['ar' => 'انتهت جلستك. سجّل الدخول مجددًا للمتابعة.', 'en' => 'Your session has ended. Sign in again to continue.'],
+        'vendor.Product_Gallery_Forbidden' => ['ar' => 'ليست لديك صلاحية للقيام بذلك.', 'en' => 'You do not have permission to do this.'],
+        'vendor.Product_Gallery_Invalid' => [
+            'ar' => 'تعذّرت معالجة الطلب. أعد تحميل الصفحة وحاول مجددًا.',
+            'en' => 'The request could not be processed. Reload the page and try again.',
+        ],
+        'vendor.Product_Gallery_Network' => ['ar' => 'تعذّر الاتصال. تحقق من الشبكة وحاول مجددًا.', 'en' => 'The connection failed. Check the network and try again.'],
+        'vendor.Product_Gallery_Failed' => ['ar' => 'حدث خطأ ما. حاول مجددًا.', 'en' => 'Something went wrong. Try again.'],
+        'vendor.Product_Gallery_Upload_Invalid' => [
+            'ar' => 'يجب أن يكون الملف صورة JPEG أو PNG أو GIF أو WebP بحجم 10 ميغابايت كحد أقصى.',
+            'en' => 'The file must be a JPEG, PNG, GIF or WebP image of up to 10 MB.',
+        ],
+        'vendor.Product_Gallery_Image_Alt' => ['ar' => 'صورة المنتج', 'en' => 'Product image'],
+        'vendor.Product_Gallery_Media_Alt' => ['ar' => 'صورة من مكتبة الوسائط', 'en' => 'Media library image'],
     ];
 
     public function run(): void

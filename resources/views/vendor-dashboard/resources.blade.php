@@ -67,10 +67,60 @@
                             <div class="col-md-6"><label class="form-label" for="vendor-product-weight">{{ t('vendor.Product_Weight', 'Weight') }}</label><input id="vendor-product-weight" class="form-control" name="weight" type="number" min="0" step="0.01"></div>
                             </div>
                         </fieldset>
-                        <fieldset class="admin-cat-form-section">
+                        @php
+                            // G7-C2-5: the gallery's texts, read without creating translation rows
+                            // (VendorDashboardTranslationSeeder holds them in Arabic and English).
+                            $galleryText = function (string $key, string $default): string {
+                                $autoCreate = config('palgoals-locale.auto_create');
+                                config(['palgoals-locale.auto_create' => false]);
+
+                                try {
+                                    return t('vendor.Product_Gallery_'.$key, $default);
+                                } finally {
+                                    config(['palgoals-locale.auto_create' => $autoCreate]);
+                                }
+                            };
+                            $galleryMessages = [
+                                'change' => $galleryText('Change', 'Change'),
+                                'setMain' => $galleryText('Set_Main', 'Set as main'),
+                                'remove' => $galleryText('Remove', 'Remove'),
+                                'confirmRemove' => $galleryText('Confirm_Remove', 'Remove this image from the product? The file stays in your media library.'),
+                                'noMain' => $galleryText('No_Main', 'No main image selected.'),
+                                'noGallery' => $galleryText('No_Gallery', 'No gallery images selected.'),
+                                'count' => $galleryText('Count', ':count of :max images'),
+                                'titleMain' => $galleryText('Title_Main', 'Choose the main product image'),
+                                'titleReplace' => $galleryText('Title_Replace', 'Choose a replacement image'),
+                                'titleGallery' => $galleryText('Title_Gallery', 'Choose a gallery image'),
+                                'loading' => $galleryText('Loading', 'Loading images…'),
+                                'libraryEmpty' => $galleryText('Library_Empty', 'There are no images in your media library yet. Upload one from this window.'),
+                                'libraryError' => $galleryText('Library_Error', 'Your media library could not be loaded.'),
+                                'saving' => $galleryText('Saving', 'Saving…'),
+                                'uploading' => $galleryText('Uploading', 'Uploading…'),
+                                'added' => $galleryText('Added', 'Image added.'),
+                                'replaced' => $galleryText('Replaced', 'Image replaced.'),
+                                'removed' => $galleryText('Removed', 'Image removed. The file stays in your media library.'),
+                                'mainChanged' => $galleryText('Main_Changed', 'Main image changed.'),
+                                'limit' => $galleryText('Limit', 'A product can have up to 6 images. Remove or replace an image to add another.'),
+                                'library' => $galleryText('Not_In_Library', 'This image is not in your media library, or it was removed. Choose another image.'),
+                                'gone' => $galleryText('Gone', 'This image or product is no longer available. Reload the page and try again.'),
+                                'session' => $galleryText('Session', 'Your session has ended. Sign in again to continue.'),
+                                'forbidden' => $galleryText('Forbidden', 'You do not have permission to do this.'),
+                                'invalid' => $galleryText('Invalid', 'The request could not be processed. Reload the page and try again.'),
+                                'network' => $galleryText('Network', 'The connection failed. Check the network and try again.'),
+                                'failed' => $galleryText('Failed', 'Something went wrong. Try again.'),
+                                'uploadInvalid' => $galleryText('Upload_Invalid', 'The file must be a JPEG, PNG, GIF or WebP image of up to 10 MB.'),
+                                'imageAlt' => $galleryText('Image_Alt', 'Product image'),
+                                'mediaAlt' => $galleryText('Media_Alt', 'Media library image'),
+                            ];
+                        @endphp
+                        <fieldset class="admin-cat-form-section" data-product-gallery aria-busy="false">
                             <legend class="admin-cat-form-legend">Product images</legend>
-                            <div class="mb-4"><div class="d-flex justify-content-between align-items-center gap-2"><div><label class="form-label mb-0">Main product image</label><p class="form-text mb-0">Shown first on the store.</p></div><button class="btn btn-light-primary" type="button" data-product-primary-open>Choose from media</button></div><div class="d-flex flex-wrap gap-2 mt-2" data-product-primary-image aria-live="polite"></div></div>
-                            <div><div class="d-flex justify-content-between align-items-center gap-2"><div><label class="form-label mb-0">Product gallery</label><p class="form-text mb-0">Choose additional images from your media library.</p></div><button class="btn btn-light-primary" type="button" data-product-gallery-open>Add gallery image</button></div><div class="d-flex flex-wrap gap-2 mt-2" data-product-gallery-images aria-live="polite"></div></div>
+                            <p class="form-text mt-0" data-product-gallery-count></p>
+                            <div class="mb-4"><div class="d-flex justify-content-between align-items-center gap-2"><div><label class="form-label mb-0">Main product image</label><p class="form-text mb-0">Shown first on the store.</p></div><button class="btn btn-light-primary" type="button" data-product-primary-open>Choose from media</button></div><div class="d-flex flex-wrap gap-2 mt-2" data-product-primary-image></div></div>
+                            <div><div class="d-flex justify-content-between align-items-center gap-2"><div><label class="form-label mb-0">Product gallery</label><p class="form-text mb-0">Choose additional images from your media library.</p></div><button class="btn btn-light-primary" type="button" data-product-gallery-open data-limited="true">Add gallery image</button></div><div class="d-flex flex-wrap gap-2 mt-2" data-product-gallery-images></div></div>
+                            <p class="form-text mb-0 mt-2" role="status" aria-live="polite" data-product-gallery-status></p>
+                            <p class="text-danger mb-0 mt-2" role="alert" data-product-gallery-error hidden></p>
+                            <script type="application/json" data-product-gallery-messages>@json($galleryMessages)</script>
                             <div class="border rounded p-3 mt-3" data-product-media-library hidden><div class="d-flex justify-content-between align-items-center mb-2"><strong data-product-media-title>Choose an image from media</strong><div class="d-flex gap-2"><button class="btn btn-sm btn-primary" type="button" data-product-media-upload>Upload new image</button><button class="btn btn-sm btn-light-secondary" type="button" data-product-media-close>Close</button></div></div><input class="visually-hidden" type="file" accept="image/jpeg,image/png,image/gif,image/webp" data-product-media-file multiple><div class="d-flex flex-wrap gap-2" data-product-media-items></div></div>
                         </fieldset>
                         <p class="text-danger mt-3 mb-0" role="alert" data-product-error hidden></p>
