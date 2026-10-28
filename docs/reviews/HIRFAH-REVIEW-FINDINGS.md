@@ -1710,7 +1710,7 @@ FR-VEN-004 (store data) and FR-VEN-005/FR-VEN-006 (add/edit product) as applicab
 - Unapproved vendors cannot upload (VEN-BE-001 gate).
 
 **Resolution Notes**
-—
+**2026-10-28 — cross-reference only; status stays OPEN.** Phase G7 ([G7-CLOSURE-01](G7-CLOSURE-01.md), CLOSED — PASS WITH FOLLOW-UPS) implemented and verified the **product image** part: product images come only from the vendor's own media library (`vendors/media/{vendorId}/`, exact path match, `App\Rules\VendorLibraryImage`); another vendor's and Admin media are refused; the direct product upload endpoint was removed; removing an image never deletes its file; at most six images per product. Not verified by G7 and still within this finding: store media (logo / cover) and upload validation hardening (G7-FU-02). This note does not change the priority, the status or the Palgoals Backend Team's review of this finding.
 
 ---
 
