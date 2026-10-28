@@ -7,6 +7,7 @@ use App\Http\Requests\VendorDashboard\StoreProductRequest;
 use App\Http\Requests\VendorDashboard\UpdateProductRequest;
 use App\Models\Category;
 use App\Models\Product;
+use App\Support\Products\ProductGallery;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -59,16 +60,20 @@ class ProductController extends Controller
 
                 $product = $vendor->products()->create($data);
 
+                // G7-C2-3 (V4): the sent order (sort_order, then the list order) with the first image sent as the main
+                // one moved first; without one, the first image is the main one.
+                $primaryId = null;
                 foreach ($images as $index => $image) {
-                    $product->images()->create([
+                    $created = $product->images()->create([
                         'path' => $image['path'],
                         'alt_text' => $image['alt_text'] ?? $product->name,
                         'sort_order' => $image['sort_order'] ?? $index,
-                        'is_primary' => (bool) ($image['is_primary'] ?? $index === 0),
+                        'is_primary' => false,
                     ]);
+                    $primaryId ??= ! empty($image['is_primary']) ? $created->id : null;
                 }
 
-                $this->normalizePrimaryImage($product);
+                ProductGallery::normalize($product, $primaryId);
 
                 return $product->fresh(['category', 'images']);
             });
@@ -178,22 +183,6 @@ class ProductController extends Controller
     private function authorizeProduct(Request $request, Product $product): void
     {
         abort_unless((int) $product->vendor_id === (int) $request->user('vendor')->id, 404);
-    }
-
-    private function normalizePrimaryImage(Product $product): void
-    {
-        $primary = $product->images()->where('is_primary', true)->orderBy('sort_order')->first();
-
-        if (! $primary) {
-            $first = $product->images()->orderBy('sort_order')->first();
-            $first?->update(['is_primary' => true]);
-
-            return;
-        }
-
-        $product->images()
-            ->whereKeyNot($primary->id)
-            ->update(['is_primary' => false]);
     }
 
     private function statuses(): array
