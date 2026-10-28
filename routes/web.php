@@ -38,6 +38,7 @@ use App\Http\Controllers\VendorDashboard\ProfileController as VendorDashboardPro
 use App\Http\Controllers\VendorDashboard\ProfileMediaController as VendorDashboardProfileMediaController;
 use App\Http\Controllers\VendorDashboard\ReturnRequestController as VendorReturnRequestController;
 use App\Http\Controllers\VendorDashboard\ReviewController as VendorDashboardReviewController;
+use App\Http\Middleware\EnsureSafeVendorMediaUpload;
 use App\Support\Auth\AccountGuard;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -232,7 +233,9 @@ foreach (AccountGuard::all() as $accountType => $account) {
                                 ->name('dashboard.profile.media.destroy');
 
                             Route::get('products/media/library', [VendorDashboardMediaLibraryController::class, 'index'])->name('dashboard.products.media.library');
-                            Route::post('products/media/library', [VendorDashboardMediaLibraryController::class, 'store'])->name('dashboard.products.media.store');
+                            // VENDOR-MEDIA-02A: the admin library's content checks on every uploaded file.
+                            Route::post('products/media/library', [VendorDashboardMediaLibraryController::class, 'store'])
+                                ->middleware(EnsureSafeVendorMediaUpload::class)->name('dashboard.products.media.store');
                             Route::delete('products/media/library/{media}', [VendorDashboardMediaLibraryController::class, 'destroy'])->name('dashboard.products.media.destroy');
                             Route::apiResource('products', VendorDashboardProductController::class)
                                 ->names('dashboard.products');

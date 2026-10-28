@@ -100,7 +100,11 @@ class VendorDashboardBackendTest extends TestCase
             'stock_quantity' => 5,
             'status' => 'draft',
         ]);
-        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL0RAAAAABJRU5ErkJggg==');
+        // VENDOR-MEDIA-02A: a real, decodable PNG (the library upload now decodes images, as the admin library does).
+        $image = imagecreatetruecolor(4, 4);
+        ob_start();
+        imagepng($image);
+        $png = (string) ob_get_clean();
 
         $path = $this->actingAs($vendor, 'vendor')->post(route('vendor.dashboard.products.media.store'), [
             'files' => [UploadedFile::fake()->createWithContent('photo.png', $png)],

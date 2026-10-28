@@ -41,7 +41,7 @@ class EnsureSafeMediaUpload
     {
         $files = array_filter(Arr::dot($request->allFiles()), fn ($file) => $file instanceof UploadedFile);
 
-        if ($files === [] || Gate::denies('create', Media::class)) {
+        if ($files === [] || ! $this->shouldInspect($request)) {
             return $next($request);
         }
 
@@ -58,6 +58,16 @@ class EnsureSafeMediaUpload
         }
 
         return $next($request);
+    }
+
+    /**
+     * Package routes: a request the media policy refuses anyway is passed through untouched, so its answer stays 403.
+     * VENDOR-MEDIA-02A: EnsureSafeVendorMediaUpload overrides this for the vendor library, whose users are vendors
+     * (never allowed by the admin media policy) and whose route already requires an approved vendor.
+     */
+    protected function shouldInspect(Request $request): bool
+    {
+        return Gate::allows('create', Media::class);
     }
 
     private function rejection(UploadedFile $file): ?string
