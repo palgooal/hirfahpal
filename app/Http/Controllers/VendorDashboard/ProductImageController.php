@@ -11,12 +11,18 @@ use App\Models\ProductImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ProductImageController extends Controller
 {
+    /** G7-C2-2 (V3): the most images one product can have (the vendor's media library itself has no limit). */
+    public const MAX_IMAGES = 6;
+
+    public const MAX_IMAGES_MESSAGE = 'A product can have up to 6 images.';
+
     private const UPLOAD_MIMES = [
         'image/jpeg' => 'jpg',
         'image/png' => 'png',
@@ -27,8 +33,21 @@ class ProductImageController extends Controller
     {
         $this->authorizeProduct($request, $product);
 
-        $image = $product->images()->create($this->imageData($request->validated()));
-        $this->normalizePrimaryImage($product, $image);
+        // G7-C2-2 (V3): the product row is locked before its images are counted, so concurrent additions are
+        // serialised and can never pass six together. A product already at or above six (legacy data included)
+        // takes no more; nothing is trimmed.
+        $image = DB::transaction(function () use ($request, $product) {
+            $locked = Product::query()->whereKey($product->getKey())->lockForUpdate()->firstOrFail();
+
+            if ($locked->images()->count() >= self::MAX_IMAGES) {
+                throw ValidationException::withMessages(['images' => self::MAX_IMAGES_MESSAGE]);
+            }
+
+            $image = $locked->images()->create($this->imageData($request->validated()));
+            $this->normalizePrimaryImage($locked, $image);
+
+            return $image;
+        });
 
         return response()->json([
             'message' => 'Product image added successfully.',

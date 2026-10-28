@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\VendorDashboard;
 
+use App\Http\Controllers\VendorDashboard\ProductImageController;
 use App\Rules\VendorLibraryImage;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -38,12 +39,20 @@ class StoreProductRequest extends FormRequest
             'highlight_tags.*' => ['string', 'max:40'],
             'craft_tags' => ['nullable', 'array', 'max:5'],
             'craft_tags.*' => ['string', 'max:40'],
-            'images' => ['nullable', 'array'],
+            // G7-C2-2 (V3): at most six images per product.
+            'images' => ['nullable', 'array', 'max:'.ProductImageController::MAX_IMAGES],
             // G7-C2-1 (V2): every image must be one of the vendor's own media library images.
             'images.*.path' => ['required_with:images', 'string', 'max:2048', new VendorLibraryImage((int) $this->user('vendor')->id)],
             'images.*.alt_text' => ['nullable', 'string', 'max:255'],
             'images.*.sort_order' => ['nullable', 'integer', 'min:0'],
             'images.*.is_primary' => ['nullable', 'boolean'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'images.max' => ProductImageController::MAX_IMAGES_MESSAGE,
         ];
     }
 }
