@@ -22,6 +22,7 @@ export default defineConfig({
                 'resources/js/admin-media-library.js',
                 'resources/js/admin-media-picker.js',
                 'resources/js/admin-vendor-media.js',
+                'resources/js/admin-product-gallery.js',
                 'resources/js/admin-categories.js',
                 'resources/js/admin-product-show.js',
                 'resources/css/storefront.css',

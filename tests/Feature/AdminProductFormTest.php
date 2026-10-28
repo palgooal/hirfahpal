@@ -15,6 +15,8 @@ use Database\Seeders\AdminDashboardTranslationSeeder;
 use Database\Seeders\AdminProductTranslationSeeder;
 use DOMDocument;
 use DOMXPath;
+use Illuminate\Contracts\Http\Kernel as HttpKernel;
+use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -59,7 +61,8 @@ class AdminProductFormTest extends TestCase
         $this->assertSame('', $values['category_id']);
 
         $this->actingAs($admin, 'admin')->post(route('dashboard.products.store'), [
-            'name' => 'Clay jug', 'price' => '12.50', 'stock_quantity' => '4', 'category_id' => $this->active->id, 'weight' => '1500', 'weight_unit' => 'g',
+            // P5-C-FIX-03: the vendor is chosen explicitly (the form preselects none).
+            'vendor_id' => $this->vendor->id, 'name' => 'Clay jug', 'price' => '12.50', 'stock_quantity' => '4', 'category_id' => $this->active->id, 'weight' => '1500', 'weight_unit' => 'g',
         ] + $values)->assertRedirect(route('dashboard.products.index'))->assertSessionHas('success');
 
         $product = Product::sole();
@@ -154,7 +157,8 @@ class AdminProductFormTest extends TestCase
         $xpath = $this->xpath($html);
 
         $fields = $xpath->query('//form[@novalidate]//*[self::input[not(@type="hidden")] or self::select or self::textarea]');
-        $this->assertSame(16, $fields->length);
+        // ADMIN-PRODUCT-FORM-FIX-01: the 16 fields of M7 plus the 5 + 5 tag inputs added since, each now labelled.
+        $this->assertSame(26, $fields->length);
         foreach ($fields as $field) {
             $id = $field->getAttribute('id');
             $this->assertNotSame('', $id, $field->getAttribute('name'));
@@ -340,7 +344,7 @@ class AdminProductFormTest extends TestCase
         foreach (['kg', 'g', 't'] as $unit) {
             $values = $this->formValues($this->page($admin, route('dashboard.products.create')));
             $this->actingAs($admin, 'admin')->post(route('dashboard.products.store'), [
-                'name' => 'Clay jug '.$unit, 'price' => '12.50', 'stock_quantity' => '4', 'weight' => '2', 'weight_unit' => $unit,
+                'vendor_id' => $this->vendor->id, 'name' => 'Clay jug '.$unit, 'price' => '12.50', 'stock_quantity' => '4', 'weight' => '2', 'weight_unit' => $unit,
             ] + $values)->assertRedirect(route('dashboard.products.index'));
 
             $product = Product::query()->where('name', 'Clay jug '.$unit)->sole();
@@ -349,19 +353,216 @@ class AdminProductFormTest extends TestCase
         }
     }
 
-    public function test_an_invalid_image_shows_the_translated_error(): void
+    public function test_an_image_upload_is_refused_with_the_translated_message(): void
     {
+        // PRODUCT-MEDIA-01 P5-A (G3): the admin product form no longer stores uploaded files, valid or not.
         $this->seed(AdminProductTranslationSeeder::class);
         $admin = $this->admin(super: true);
         $values = $this->formValues($this->page($admin, route('dashboard.products.create')));
-        $fake = UploadedFile::fake()->createWithContent('jug.png', 'not an image');
 
-        foreach (['en' => 'Each image must be a valid JPG, PNG, GIF or WebP file, with an extension matching its content.',
-            'ar' => 'يجب أن تكون كل صورة ملف JPG أو PNG أو GIF أو WebP صالحًا، وامتداده مطابق لمحتواه.'] as $locale => $message) {
-            $this->actingAs($admin, 'admin')->withSession(['locale' => $locale])->post(route('dashboard.products.store'), [
-                'name' => 'Clay jug', 'price' => '12.50', 'stock_quantity' => '4', 'images' => [$fake],
-            ] + $values)->assertSessionHasErrors(['images' => $message]);
+        foreach (['en' => 'Images cannot be uploaded here. Choose them from the vendor\'s media library.',
+            'ar' => 'لا يمكن رفع الصور من هنا. اخترها من مكتبة وسائط البائع.'] as $locale => $message) {
+            foreach ([UploadedFile::fake()->image('jug.png'), UploadedFile::fake()->createWithContent('jug.png', 'not an image')] as $file) {
+                $this->actingAs($admin, 'admin')->withSession(['locale' => $locale])->post(route('dashboard.products.store'), [
+                    'vendor_id' => $this->vendor->id, 'name' => 'Clay jug', 'price' => '12.50', 'stock_quantity' => '4', 'images' => [$file],
+                ] + $values)->assertSessionHasErrors(['images' => $message]);
+            }
         }
+        $this->assertSame(0, Product::count());
+    }
+
+    // ---------------------------------------------------------------- status and settings (ADMIN-PRODUCT-FORM-FIX-01)
+
+    public function test_every_tag_input_has_its_own_id_and_label_in_a_named_group(): void
+    {
+        $this->seed(AdminProductTranslationSeeder::class);
+        $xpath = $this->xpath($this->page($this->admin(super: true), route('dashboard.products.edit', $this->product())));
+        $ids = array_map(fn ($node) => $node->getAttribute('id'), iterator_to_array($xpath->query('//form[@novalidate]//*[@id]')));
+
+        $this->assertSame(count($ids), count(array_unique($ids)), 'Every id in the form is unique.');
+
+        foreach (['highlight' => ['highlight_tags[]', 'Top tags', 'Top tag'], 'craft' => ['craft_tags[]', 'Craft tags', 'Craft tag']] as $slug => [$name, $group, $label]) {
+            $inputs = $xpath->query('//input[@name="'.$name.'"]');
+            $this->assertSame(5, $inputs->length, $name);
+
+            foreach ($inputs as $index => $input) {
+                $id = "product-{$slug}-tag-".($index + 1);
+                $this->assertSame($id, $input->getAttribute('id'));
+                $labels = $xpath->query('//label[@for="'.$id.'"]');
+                $this->assertSame(1, $labels->length, $id);
+                $this->assertSame("{$label} ".($index + 1), trim($labels->item(0)->textContent));
+                $this->assertSame('40', $input->getAttribute('maxlength'));
+            }
+
+            $groupNode = $xpath->query('//*[@role="group"][@aria-labelledby="product-'.$slug.'-tags-label"]')->item(0);
+            $this->assertNotNull($groupNode, "{$slug}: a named group");
+            $this->assertSame($group, trim($xpath->query('//*[@id="product-'.$slug.'-tags-label"]')->item(0)->textContent));
+            $this->assertSame(5, $xpath->query('.//input[@name="'.$name.'"]', $groupNode)->length);
+        }
+
+        $this->assertSame('product-limited-edition-hint', $xpath->query('//*[@id="product-limited-edition"]')->item(0)->getAttribute('aria-describedby'));
+    }
+
+    public function test_the_status_and_settings_section_is_translated(): void
+    {
+        $this->seed(AdminProductTranslationSeeder::class);
+        $admin = $this->admin(super: true);
+        $section = fn (string $locale) => $this->xpath($this->page($admin, route('dashboard.products.create'), $locale))
+            ->query('//form//fieldset[4]')->item(0);
+
+        $ar = $section('ar');
+        $text = preg_replace('/\s+/u', ' ', $ar->textContent);
+        foreach (['إصدار محدود', 'اعرض شارة الإصدار المحدود فقط عندما تنطبق.', 'الوسوم البارزة', 'وسوم الحرفة', 'الوسم البارز 1', 'وسم الحرفة 5'] as $arabic) {
+            $this->assertStringContainsString($arabic, $text);
+        }
+        foreach (['Limited edition', 'Show the limited-edition', 'Top tag', 'Craft tag', 'Optional tag', 'Hand painted'] as $english) {
+            $this->assertStringNotContainsString($english, $text, "No English \"{$english}\" in the Arabic section.");
+        }
+        $placeholders = array_map(fn ($node) => $node->getAttribute('placeholder'), iterator_to_array((new DOMXPath($ar->ownerDocument))->query('.//input[@placeholder]', $ar)));
+        $this->assertSame(['جديد', 'وسم اختياري', 'وسم اختياري', 'وسم اختياري', 'وسم اختياري', 'مرسوم يدويًا', 'وسم اختياري', 'وسم اختياري', 'وسم اختياري', 'وسم اختياري'], $placeholders);
+
+        $en = preg_replace('/\s+/u', ' ', $section('en')->textContent);
+        foreach (['Limited edition', 'Show the limited-edition label only when it applies.', 'Top tags', 'Craft tags', 'Top tag 1', 'Craft tag 5'] as $english) {
+            $this->assertStringContainsString($english, $en);
+        }
+    }
+
+    public function test_existing_tags_are_shown_and_saved_back_unchanged(): void
+    {
+        $product = $this->product(['highlight_tags' => ['New', 'Seasonal'], 'craft_tags' => ['Glazed', 'Kiln', 'Wheel thrown']]);
+        $admin = $this->admin(super: true);
+        $html = $this->page($admin, route('dashboard.products.edit', $product));
+        $xpath = $this->xpath($html);
+
+        $this->assertSame(['New', 'Seasonal', '', '', ''], array_map(fn ($node) => $node->getAttribute('value'), iterator_to_array($xpath->query('//input[@name="highlight_tags[]"]'))));
+        $this->assertSame(['Glazed', 'Kiln', 'Wheel thrown', '', ''], array_map(fn ($node) => $node->getAttribute('value'), iterator_to_array($xpath->query('//input[@name="craft_tags[]"]'))));
+
+        // The edit form as a browser submits it: five values per list, the empty ones included.
+        $tags = fn (string $name) => array_map(fn ($node) => $node->getAttribute('value'), iterator_to_array($xpath->query('//input[@name="'.$name.'[]"]')));
+        $this->actingAs($admin, 'admin')->from(route('dashboard.products.edit', $product))->put(route('dashboard.products.update', $product), [
+            'vendor_id' => $this->vendor->id, 'name' => $product->name, 'slug' => $product->slug, 'price' => '10', 'stock_quantity' => '10', 'status' => 'active',
+            'stock_quantity_original' => '10', 'stock_version' => ProductManagementController::stockVersion($product),
+            'highlight_tags' => $tags('highlight_tags'), 'craft_tags' => $tags('craft_tags'),
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(['New', 'Seasonal'], $product->fresh()->highlight_tags);
+        $this->assertSame(['Glazed', 'Kiln', 'Wheel thrown'], $product->fresh()->craft_tags);
+    }
+
+    // ---------------------------------------------------------------- vendor choice (P5-C-FIX-03, D-1)
+
+    public function test_no_vendor_is_preselected_on_create_and_the_placeholder_is_translated(): void
+    {
+        $this->seed(AdminProductTranslationSeeder::class);
+        Vendor::factory()->approved()->create();
+        $admin = $this->admin(super: true);
+
+        foreach (['ar' => 'اختر البائع', 'en' => 'Select a vendor'] as $locale => $placeholder) {
+            $xpath = $this->xpath($this->page($admin, route('dashboard.products.create'), $locale));
+            $options = $xpath->query('//select[@id="product-vendor"]/option');
+
+            $this->assertSame('', $options->item(0)->getAttribute('value'), $locale);
+            $this->assertSame($placeholder, trim($options->item(0)->textContent), $locale);
+            $this->assertTrue($options->item(0)->hasAttribute('selected'), "{$locale}: the empty option is the selected one.");
+            $this->assertSame(1, $xpath->query('//select[@id="product-vendor"]/option[@selected]')->length, "{$locale}: no vendor is preselected.");
+            $this->assertSame(3, $options->length, 'The placeholder and the two vendors.');
+        }
+
+        $this->assertSame('', $this->formValues($this->page($admin, route('dashboard.products.create')))['vendor_id']);
+    }
+
+    public function test_a_product_without_a_vendor_is_refused(): void
+    {
+        $admin = $this->admin(super: true);
+
+        foreach (['', null] as $vendor) {
+            $this->actingAs($admin, 'admin')->from(route('dashboard.products.create'))->post(route('dashboard.products.store'), [
+                'vendor_id' => $vendor, 'name' => 'Clay jug', 'price' => '10', 'stock_quantity' => '4', 'status' => 'draft',
+            ])->assertRedirect(route('dashboard.products.create'))->assertSessionHasErrors('vendor_id');
+        }
+
+        $this->assertSame(0, Product::count());
+    }
+
+    public function test_the_chosen_vendor_is_kept_after_a_validation_error(): void
+    {
+        $other = Vendor::factory()->approved()->create();
+        $admin = $this->admin(super: true);
+
+        $this->actingAs($admin, 'admin')->from(route('dashboard.products.create'))->post(route('dashboard.products.store'), [
+            'vendor_id' => $other->id, 'name' => '', 'price' => '10', 'stock_quantity' => '4', 'status' => 'draft',
+        ])->assertSessionHasErrors('name');
+
+        $xpath = $this->xpath($this->page($admin, route('dashboard.products.create')));
+        $selected = $xpath->query('//select[@id="product-vendor"]/option[@selected]');
+
+        $this->assertSame(1, $selected->length);
+        $this->assertSame((string) $other->id, $selected->item(0)->getAttribute('value'), 'The submitted vendor, not the placeholder.');
+    }
+
+    public function test_the_edit_vendor_field_is_unchanged(): void
+    {
+        $this->seed(AdminProductTranslationSeeder::class);
+        $product = $this->product();
+        $html = $this->page($this->admin(super: true), route('dashboard.products.edit', $product));
+
+        $this->assertMatchesRegularExpression('#<input type="text"[^>]*id="product-vendor"[^>]*readonly aria-readonly="true" aria-required="true"#', $html);
+        $this->assertStringContainsString('<input type="hidden" name="vendor_id" value="'.$this->vendor->id.'">', $html);
+        $this->assertStringNotContainsString('Select a vendor', $html, 'No placeholder on edit.');
+        $this->assertDoesNotMatchRegularExpression('#<select[^>]*name="vendor_id"#', $html);
+        $this->assertSame((string) $this->vendor->id, $this->formValues($html)['vendor_id']);
+    }
+
+    // ---------------------------------------------------------------- tags (P5-C-FIX-01)
+
+    public function test_empty_tag_fields_as_a_browser_sends_them_do_not_block_creating_a_product(): void
+    {
+        // The form has five inputs per tag list; a browser sends the empty ones as "", which the global
+        // ConvertEmptyStringsToNull middleware (part of every request here too) turns into null.
+        $this->assertContains(ConvertEmptyStringsToNull::class, app(HttpKernel::class)->getGlobalMiddleware());
+
+        $this->actingAs($this->admin(super: true), 'admin')->from(route('dashboard.products.create'))->post(route('dashboard.products.store'), [
+            'vendor_id' => $this->vendor->id, 'name' => 'Clay jug', 'price' => '10', 'stock_quantity' => '4', 'status' => 'draft',
+            'highlight_tags' => ['', 'New', '', '  Hand made ', ''],
+            'craft_tags' => ['', '', '', '', ''],
+        ])->assertSessionHasNoErrors();
+
+        $product = Product::query()->where('name', 'Clay jug')->sole();
+        $this->assertSame(['New', 'Hand made'], $product->highlight_tags);
+        $this->assertSame([], $product->craft_tags);
+    }
+
+    public function test_empty_and_filled_tag_fields_update_a_product(): void
+    {
+        $product = $this->product(['highlight_tags' => ['Old'], 'craft_tags' => ['Glazed', 'Kiln']]);
+        $admin = $this->admin(super: true);
+        $update = fn (array $tags) => $this->actingAs($admin, 'admin')->from(route('dashboard.products.edit', $product))
+            ->put(route('dashboard.products.update', $product), $tags + [
+                'vendor_id' => $this->vendor->id, 'name' => 'Clay jug', 'slug' => 'clay-jug', 'price' => '10', 'stock_quantity' => '10', 'status' => 'active',
+                'stock_quantity_original' => (string) $product->fresh()->stock_quantity, 'stock_version' => ProductManagementController::stockVersion($product->fresh()),
+            ]);
+
+        $update(['highlight_tags' => ['Seasonal', '', '', '', ''], 'craft_tags' => ['', 'Wheel thrown', '', 'Wheel thrown', '']])->assertSessionHasNoErrors();
+        $this->assertSame(['Seasonal'], $product->fresh()->highlight_tags);
+        $this->assertSame(['Wheel thrown'], $product->fresh()->craft_tags, 'Duplicates and empty fields are dropped as before.');
+
+        $update(['highlight_tags' => ['', '', '', '', ''], 'craft_tags' => ['', '', '', '', '']])->assertSessionHasNoErrors();
+        $this->assertSame([], $product->fresh()->highlight_tags);
+        $this->assertSame([], $product->fresh()->craft_tags);
+    }
+
+    public function test_invalid_tags_are_still_refused(): void
+    {
+        $admin = $this->admin(super: true);
+        $store = fn (array $tags) => $this->actingAs($admin, 'admin')->from(route('dashboard.products.create'))->post(route('dashboard.products.store'), $tags + [
+            'vendor_id' => $this->vendor->id, 'name' => 'Clay jug', 'price' => '10', 'stock_quantity' => '4', 'status' => 'draft',
+        ]);
+
+        $store(['highlight_tags' => ['', str_repeat('a', 41)]])->assertSessionHasErrors('highlight_tags.1');
+        $store(['craft_tags' => ['Glazed', ['nested']]])->assertSessionHasErrors('craft_tags.1');
+        $store(['highlight_tags' => ['a', 'b', 'c', 'd', 'e', 'f']])->assertSessionHasErrors('highlight_tags');
+        $store(['craft_tags' => 'Glazed'])->assertSessionHasErrors('craft_tags');
+
         $this->assertSame(0, Product::count());
     }
 

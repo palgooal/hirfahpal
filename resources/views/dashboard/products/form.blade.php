@@ -27,7 +27,10 @@
         'sku' => 'product-sku', 'price' => 'product-price', 'compare_at_price' => 'product-compare-price', 'stock_quantity' => 'product-stock',
         'low_stock_threshold' => 'product-low-stock', 'weight' => 'product-weight', 'weight_unit' => 'product-weight-unit', 'short_description' => 'product-short-description',
         'description' => 'product-description', 'images' => 'product-images', 'status' => 'product-status', 'is_featured' => 'product-featured',
+        'gallery' => 'product-images', 'gallery_fingerprint' => 'product-images', 'gallery_sync' => 'product-images', 'media_image_ids' => 'product-images',
     ];
+    // PRODUCT-MEDIA-01 P5-C: gallery.N and media_image_ids.N errors belong to the images field.
+    $summaryField = fn (string $field): string => preg_replace('/^(gallery|media_image_ids)\..*$/', '$1', $field);
     // aria-describedby: the hint, then the error when there is one.
     $describedBy = fn (string $field, ?string $hint = null) => trim(($hint ? $hint.' ' : '').($errors->has($field) ? $fieldIds[$field].'-error' : '')) ?: null;
 
@@ -91,7 +94,7 @@
                     <p>{{ $prodText('Products_Form_Errors', 'Please correct the following:') }}</p>
                     <ul>
                         @foreach ($errors->getMessages() as $field => $messages)
-                            <li><a href="#{{ $fieldIds[$field] ?? 'product-name' }}">{{ $fieldLabels[$field] ?? $field }}</a>: {{ $messages[0] }}</li>
+                            <li><a href="#{{ $fieldIds[$summaryField($field)] ?? 'product-name' }}">{{ $fieldLabels[$summaryField($field)] ?? $field }}</a>: {{ $messages[0] }}</li>
                         @endforeach
                     </ul>
                 </div>
@@ -121,12 +124,24 @@
                 <div class="admin-cat-form-row">
                     <div class="admin-cat-form-field">
                         <label class="form-label" for="product-vendor">{{ $fieldLabels['vendor_id'] }} <span class="admin-cat-form-mark">({{ $requiredMark }})</span></label>
-                        <select @class(['form-select', 'is-invalid' => $errors->has('vendor_id')]) id="product-vendor" name="vendor_id" required aria-required="true"
-                            @error('vendor_id') aria-invalid="true" @enderror @if ($d = $describedBy('vendor_id')) aria-describedby="{{ $d }}" @endif>
-                            @foreach ($vendors as $vendor)
-                                <option value="{{ $vendor->id }}" @selected((string) old('vendor_id', $product->vendor_id) === (string) $vendor->id)>{{ $vendor->profile?->store_name ?? $vendor->name }}</option>
-                            @endforeach
-                        </select>
+                        @if ($editing)
+                            {{-- PRODUCT-MEDIA-01 P5-C (G2): a product keeps its vendor; shown read only, its id still submitted. --}}
+                            @php($productVendor = $vendors->firstWhere('id', $product->vendor_id))
+                            <input type="text" @class(['form-control', 'is-invalid' => $errors->has('vendor_id')]) id="product-vendor" value="{{ $productVendor?->profile?->store_name ?? $productVendor?->name }}" readonly aria-readonly="true" aria-required="true" dir="auto"
+                                @error('vendor_id') aria-invalid="true" @enderror aria-describedby="{{ $describedBy('vendor_id', 'product-vendor-hint') }}">
+                            <input type="hidden" name="vendor_id" value="{{ $product->vendor_id }}">
+                            <p class="admin-media-hint" id="product-vendor-hint">{{ $prodText('Products_Form_Vendor_Readonly_Hint', 'The vendor cannot be changed after the product is created.') }}</p>
+                        @else
+                            <select @class(['form-select', 'is-invalid' => $errors->has('vendor_id')]) id="product-vendor" name="vendor_id" required aria-required="true"
+                                @error('vendor_id') aria-invalid="true" @enderror aria-describedby="{{ $describedBy('vendor_id', 'product-vendor-hint') }}">
+                                {{-- P5-C-FIX-03 (D-1): no vendor is chosen for the admin; the gallery waits for an explicit choice. --}}
+                                <option value="" @selected((string) old('vendor_id', '') === '')>{{ $prodText('Products_Form_Vendor_Select', 'Select a vendor') }}</option>
+                                @foreach ($vendors as $vendor)
+                                    <option value="{{ $vendor->id }}" @selected((string) old('vendor_id', $product->vendor_id) === (string) $vendor->id)>{{ $vendor->profile?->store_name ?? $vendor->name }}</option>
+                                @endforeach
+                            </select>
+                            <p class="admin-media-hint" id="product-vendor-hint">{{ $prodText('Products_Form_Vendor_Create_Hint', 'The product images come from this vendor\'s media library. The vendor cannot be changed later.') }}</p>
+                        @endif
                         @error('vendor_id') <p class="admin-cat-form-error" id="product-vendor-error">{{ $message }}</p> @enderror
                     </div>
 
@@ -243,26 +258,11 @@
                     @error('weight_unit') <p class="admin-cat-form-error" id="product-weight-unit-error">{{ $message }}</p> @enderror
                 </div>
 
-                <div class="admin-cat-form-field">
-                    <span class="form-label">{{ $prodText('Products_Form_Images', 'Product images') }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></span>
-                    <p class="admin-media-hint" id="product-images-hint">{{ $prodText('Products_Form_Images_Hint', 'Choose up to 6 images from the media library. You can upload a new JPG, JPEG, PNG, GIF or WebP image from the same window. The first selected image becomes the main image.') }}</p>
-                    <div class="admin-cat-form-row">
-                        @foreach (range(0, 5) as $imageIndex)
-                            <x-admin.media-picker
-                                name="media_image_ids[{{ $imageIndex }}]"
-                                :value="old('media_image_ids.'.$imageIndex)"
-                                :label-key="$imageIndex === 0 ? 'Products_Form_Primary_Image' : 'Products_Form_Additional_Image'"
-                                :label-default="$imageIndex === 0 ? 'Main product image' : 'Additional product image'"
-                                :can-remove="false"
-                            />
-                        @endforeach
-                    </div>
-                    @error('media_image_ids') <p class="admin-cat-form-error" id="product-images-error">{{ $message }}</p> @enderror
-                    @error('media_image_ids.*') <p class="admin-cat-form-error" id="product-images-error">{{ $message }}</p> @enderror
-                    @if ($editing && $product->images()->exists() && $canViewProducts)
-                        <p class="admin-media-hint"><a href="{{ route('dashboard.products.show', $product) }}#product-panel-images">{{ $prodText('Products_Form_Manage_Images', 'View current images') }}</a></p>
-                    @endif
-                </div>
+                {{-- PRODUCT-MEDIA-01 P5-C: one vendor-scoped gallery editor instead of the six media pickers. --}}
+                @include('dashboard.products.partials.gallery', ['gallery' => $gallery, 'prodText' => $prodText, 'optionalMark' => $optionalMark])
+                @if ($editing && $product->images()->exists() && $canViewProducts)
+                    <p class="admin-media-hint"><a href="{{ route('dashboard.products.show', $product) }}#product-panel-images">{{ $prodText('Products_Form_Manage_Images', 'View current images') }}</a></p>
+                @endif
             </fieldset>
 
             {{-- 4. Status and settings --}}
@@ -293,12 +293,25 @@
                 </div>
                 <div class="admin-product-form-check">
                     <input type="hidden" name="is_limited_edition" value="0">
-                    <input type="checkbox" class="form-check-input" id="product-limited-edition" name="is_limited_edition" value="1" @checked(old('is_limited_edition', $product->is_limited_edition))>
-                    <div><label class="form-label" for="product-limited-edition">{{ $fieldLabels['is_limited_edition'] }}</label><p class="admin-media-hint">Show the limited-edition label only when it applies.</p></div>
+                    <input type="checkbox" class="form-check-input" id="product-limited-edition" name="is_limited_edition" value="1" @checked(old('is_limited_edition', $product->is_limited_edition)) aria-describedby="product-limited-edition-hint">
+                    <div><label class="form-label" for="product-limited-edition">{{ $fieldLabels['is_limited_edition'] }}</label><p class="admin-media-hint" id="product-limited-edition-hint">{{ $prodText('Products_Form_Limited_Hint', 'Show the limited-edition label only when it applies.') }}</p></div>
                 </div>
                 <div class="admin-cat-form-row">
-                    <div class="admin-cat-form-field"><label class="form-label">Top tags</label>@foreach (range(0, 4) as $tagIndex)<input class="form-control mb-2" name="highlight_tags[]" value="{{ old('highlight_tags.'.$tagIndex, $product->highlight_tags[$tagIndex] ?? '') }}" maxlength="40" placeholder="{{ $tagIndex === 0 ? 'New' : 'Optional tag' }}">@endforeach</div>
-                    <div class="admin-cat-form-field"><label class="form-label">Craft tags</label>@foreach (range(0, 4) as $tagIndex)<input class="form-control mb-2" name="craft_tags[]" value="{{ old('craft_tags.'.$tagIndex, $product->craft_tags[$tagIndex] ?? '') }}" maxlength="40" placeholder="{{ $tagIndex === 0 ? 'Hand painted' : 'Optional tag' }}">@endforeach</div>
+                    {{-- ADMIN-PRODUCT-FORM-FIX-01: each of the five inputs per list has its own id and (visually hidden) label,
+                         grouped under the visible heading; names, values and limits are unchanged. --}}
+                    @foreach ([
+                        'highlight_tags' => ['highlight', 'Products_Form_Highlight_Tags', 'Top tags', 'Products_Form_Highlight_Tag_Label', 'Top tag :number', 'Products_Form_Highlight_Tag_Placeholder', 'New'],
+                        'craft_tags' => ['craft', 'Products_Form_Craft_Tags', 'Craft tags', 'Products_Form_Craft_Tag_Label', 'Craft tag :number', 'Products_Form_Craft_Tag_Placeholder', 'Hand painted'],
+                    ] as $tagField => [$tagSlug, $groupKey, $groupDefault, $labelKey, $labelDefault, $firstKey, $firstDefault])
+                        <div class="admin-cat-form-field" role="group" aria-labelledby="product-{{ $tagSlug }}-tags-label">
+                            <span class="form-label" id="product-{{ $tagSlug }}-tags-label">{{ $prodText($groupKey, $groupDefault) }}</span>
+                            @foreach (range(0, 4) as $tagIndex)
+                                <label class="visually-hidden" for="product-{{ $tagSlug }}-tag-{{ $tagIndex + 1 }}">{{ str_replace(':number', $tagIndex + 1, $prodText($labelKey, $labelDefault)) }}</label>
+                                <input type="text" class="form-control mb-2" id="product-{{ $tagSlug }}-tag-{{ $tagIndex + 1 }}" name="{{ $tagField }}[]" value="{{ old($tagField.'.'.$tagIndex, $product->{$tagField}[$tagIndex] ?? '') }}" maxlength="40" dir="auto"
+                                    placeholder="{{ $tagIndex === 0 ? $prodText($firstKey, $firstDefault) : $prodText('Products_Form_Tag_Placeholder', 'Optional tag') }}">
+                            @endforeach
+                        </div>
+                    @endforeach
                 </div>
             </fieldset>
 
@@ -310,5 +323,12 @@
                 <a href="{{ $backUrl }}" class="btn btn-light-secondary">{{ $prodText('Products_Form_Cancel', 'Cancel') }}</a>
             </div>
         </form>
+
+        {{-- Outside the form: the vendor image chooser of the gallery (read only, no upload). --}}
+        @include('dashboard.products.partials.gallery-dialog', ['prodText' => $prodText])
     </div>
+
+    @push('scripts')
+        @vite('resources/js/admin-product-gallery.js')
+    @endpush
 </x-dashboard-layout>

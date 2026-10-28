@@ -23,6 +23,7 @@
 @source "../js/admin-media-picker.js";
 @source "../js/admin-media";
 @source "../js/admin-vendor-media.js";
+@source "../js/admin-product-gallery.js";
 @source "../js/admin-categories.js";
 
 /* Approved identity tokens (DEC-AD-UI-04.a), prefixed so they cannot clash with Able Pro or Bootstrap class names. */
@@ -3081,5 +3082,192 @@ html.admin-shell .admin-vendor-media-facts {
 @media (prefers-reduced-motion: reduce) {
   html.admin-shell .admin-vendor-media-folder {
     transition: none;
+  }
+}
+
+/* ---- Product gallery (PRODUCT-MEDIA-01 P5-C) ----
+ * resources/views/dashboard/products/partials/gallery.blade.php and gallery-dialog.blade.php with
+ * resources/js/admin-product-gallery.js. The chooser reuses the media library classes (grid, states, dialog)
+ * unchanged; everything new is under .admin-product-gallery-*. Logical properties only, so RTL and LTR need no
+ * separate rules.
+ */
+html.admin-shell .admin-product-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+html.admin-shell .admin-product-gallery-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+html.admin-shell .admin-product-gallery-count {
+  margin: 0;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-product-gallery-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+html.admin-shell .admin-product-gallery [hidden],
+html.admin-shell .admin-product-gallery-dialog [hidden] {
+  display: none;
+}
+
+html.admin-shell .admin-product-gallery-note,
+html.admin-shell .admin-product-gallery-empty {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px dashed var(--color-hf-line);
+  border-radius: 12px;
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-muted);
+  font-size: 0.875rem;
+}
+
+html.admin-shell .admin-product-gallery-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html.admin-shell .admin-product-gallery-list:empty {
+  display: none;
+}
+
+html.admin-shell .admin-product-gallery-item {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: 0.5rem 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 12px;
+  background-color: #fff;
+}
+
+html.admin-shell .admin-product-gallery-item:first-child {
+  border-color: var(--color-hf-olive);
+}
+
+html.admin-shell .admin-product-gallery-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 10px;
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-muted);
+  font-size: 1.75rem;
+}
+
+html.admin-shell .admin-product-gallery-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+html.admin-shell .admin-product-gallery-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+html.admin-shell .admin-product-gallery-position {
+  color: var(--color-hf-muted);
+  font-size: 0.75rem;
+}
+
+html.admin-shell .admin-product-gallery-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html.admin-shell .admin-product-gallery-badge {
+  display: inline-block;
+  padding: 0.0625rem 0.5rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+html.admin-shell .admin-product-gallery-badge.is-main {
+  border-color: var(--color-hf-olive);
+  background-color: var(--color-hf-olive);
+  color: #fff;
+}
+
+html.admin-shell .admin-product-gallery-badge.is-legacy {
+  border-style: dashed;
+  color: var(--color-hf-muted);
+}
+
+html.admin-shell .admin-product-gallery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  gap: 0.375rem;
+}
+
+html.admin-shell .admin-product-gallery-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+html.admin-shell .admin-product-gallery-actions .btn:focus-visible,
+html.admin-shell .admin-product-gallery-add:focus-visible {
+  outline: 2px solid var(--color-hf-copper);
+  outline-offset: 2px;
+}
+
+html.admin-shell .admin-product-gallery-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+}
+
+html.admin-shell .admin-product-gallery-filters {
+  padding: 0;
+  border-bottom: 0;
+}
+
+html.admin-shell .admin-product-gallery-choice .admin-media-open:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (max-width: 575.98px) {
+  html.admin-shell .admin-product-gallery-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html.admin-shell .admin-product-gallery-add {
+    width: 100%;
+    justify-content: center;
   }
 }

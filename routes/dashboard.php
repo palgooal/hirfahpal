@@ -26,6 +26,11 @@ Route::prefix('dashboard')
         // N-CAT-1: the server-side delete confirmation (GET shows it; only the DELETE route deletes).
         Route::get('categories/{category}/delete', [CategoryManagementController::class, 'confirmDelete'])->name('categories.delete');
         Route::resource('categories', CategoryManagementController::class)->except(['show']);
+        // PRODUCT-MEDIA-01 P5-C: read-only images of a vendor's own media library for the product gallery (JSON),
+        // products.create for a new product (the chosen vendor), products.edit for a product (its stored vendor).
+        // Declared before the resource, so "vendor-media" is never read as a product id.
+        Route::get('products/vendor-media', [ProductManagementController::class, 'vendorMediaForCreate'])->name('products.vendor-media.create');
+        Route::get('products/{product}/vendor-media', [ProductManagementController::class, 'vendorMediaForProduct'])->whereNumber('product')->name('products.vendor-media.edit');
         Route::resource('products', ProductManagementController::class);
         // AD-UI-PROD-M5: suspension. The id is a plain number (no model binding), so the ability is checked before
         // the product is read; the controller then reads it locked inside its transaction.

@@ -60,6 +60,43 @@ class AdminProductTranslationSeederTest extends TestCase
         }
     }
 
+    public function test_the_p5_image_gallery_and_vendor_messages_are_seeded(): void
+    {
+        // PRODUCT-MEDIA-01 P5-A: vendor-only images (G1), no admin uploads (G3), the six-image limit, a fixed vendor (G2);
+        // P5-B: the ordered gallery.
+        $this->seed(AdminProductTranslationSeeder::class);
+        $controller = file_get_contents(app_path('Http/Controllers/Dashboard/ProductManagementController.php'));
+
+        foreach ([
+            'Products_Form_Images_Vendor_Only' => 'يجب أن تكون كل صورة مختارة من مكتبة وسائط هذا البائع.',
+            'Products_Form_Images_Upload_Disabled' => 'لا يمكن رفع الصور من هنا. اخترها من مكتبة وسائط البائع.',
+            'Products_Form_Images_Max' => 'يمكن أن يحتوي المنتج على 6 صور كحد أقصى.',
+            'Products_Form_Vendor_Immutable' => 'لا يمكن تغيير بائع منتج موجود.',
+            // P5-B: the ordered gallery.
+            'Products_Form_Gallery_Invalid' => 'تعذّرت قراءة قائمة الصور. أعد تحميل الصفحة وحاول مجددًا.',
+            'Products_Form_Gallery_Outdated' => 'تغيّرت صور المنتج أثناء فتح هذه الصفحة. أعد تحميل الصفحة وراجعها قبل الحفظ.',
+            'Products_Form_Gallery_Not_Product' => 'إحدى الصور في القائمة لا تخص هذا المنتج.',
+            'Products_Form_Gallery_Duplicate' => 'يمكن أن تظهر كل صورة مرة واحدة فقط في القائمة.',
+        ] as $key => $arabic) {
+            $this->assertSame($arabic, $this->value('dashboard.'.$key, 'ar'), $key);
+            $this->assertStringContainsString("'dashboard.{$key}'", $controller, "{$key} is used by the controller.");
+        }
+
+        // The removed upload path took its message with it.
+        $this->assertArrayNotHasKey('dashboard.Products_Form_Images_Invalid', AdminProductTranslationSeeder::TRANSLATIONS);
+        $this->assertStringNotContainsString('Products_Form_Images_Invalid', $controller);
+    }
+
+    public function test_the_vendor_placeholder_of_the_create_form_is_seeded(): void
+    {
+        // P5-C-FIX-03 (D-1): the empty first option of the vendor list.
+        $this->seed(AdminProductTranslationSeeder::class);
+
+        $this->assertSame('اختر البائع', $this->value('dashboard.Products_Form_Vendor_Select', 'ar'));
+        $this->assertSame('Select a vendor', $this->value('dashboard.Products_Form_Vendor_Select', 'en'));
+        $this->assertStringContainsString("\$prodText('Products_Form_Vendor_Select', 'Select a vendor')", file_get_contents(resource_path('views/dashboard/products/form.blade.php')));
+    }
+
     public function test_the_english_values_are_the_defaults_used_in_the_code(): void
     {
         $code = $this->sources();
@@ -267,6 +304,9 @@ class AdminProductTranslationSeederTest extends TestCase
             .file_get_contents(resource_path('views/dashboard/products/index.blade.php'))
             .file_get_contents(resource_path('views/dashboard/products/show.blade.php'))
             .file_get_contents(resource_path('views/dashboard/products/form.blade.php'))
+            // PRODUCT-MEDIA-01 P5-C: the gallery editor of the form.
+            .file_get_contents(resource_path('views/dashboard/products/partials/gallery.blade.php'))
+            .file_get_contents(resource_path('views/dashboard/products/partials/gallery-dialog.blade.php'))
             .file_get_contents(base_path('data/abilities.php'));
     }
 

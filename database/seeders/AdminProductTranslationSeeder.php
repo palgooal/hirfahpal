@@ -252,20 +252,127 @@ class AdminProductTranslationSeeder extends Seeder
         'dashboard.Products_Form_Weight_Unit_G' => ['ar' => 'غ', 'en' => 'g'],
         'dashboard.Products_Form_Weight_Unit_T' => ['ar' => 'طن', 'en' => 'ton'],
         'dashboard.Products_Form_Images' => ['ar' => 'صور المنتج', 'en' => 'Product images'],
-        'dashboard.Products_Form_Images_Hint' => [
-            'ar' => 'اختر حتى 6 صور بصيغة JPG أو PNG أو GIF أو WebP (بحد أقصى 5 ميغابايت لكل صورة). تصبح أول صورة مرفوعة الصورة الرئيسية، ويمكنك مراجعة كل الصور من صفحة المنتج.',
-            'en' => 'Choose up to 6 JPG, PNG, GIF or WebP images (5 MB each). The first uploaded image becomes the main image. You can review all images from the product page.',
+        // PRODUCT-MEDIA-01 P5-C: the vendor field and the gallery editor (partials/gallery.blade.php, gallery-dialog.blade.php).
+        // Products_Form_Images_Hint went with the six pickers and the uploads; its existing rows are left as they are.
+        'dashboard.Products_Form_Vendor_Readonly_Hint' => ['ar' => 'لا يمكن تغيير البائع بعد إنشاء المنتج.', 'en' => 'The vendor cannot be changed after the product is created.'],
+        // P5-C-FIX-03 (D-1): the empty first option of the vendor list on create.
+        'dashboard.Products_Form_Vendor_Select' => ['ar' => 'اختر البائع', 'en' => 'Select a vendor'],
+        'dashboard.Products_Form_Vendor_Create_Hint' => [
+            'ar' => 'تأتي صور المنتج من مكتبة وسائط هذا البائع. لا يمكن تغيير البائع لاحقًا.',
+            'en' => 'The product images come from this vendor\'s media library. The vendor cannot be changed later.',
+        ],
+        'dashboard.Products_Gallery_Hint' => [
+            'ar' => 'اختر حتى 6 صور من مكتبة وسائط البائع. الصورة الأولى هي الصورة الرئيسية، واستخدم أزرار التحريك لتغيير الترتيب.',
+            'en' => 'Choose up to 6 images from the vendor\'s media library. The first image is the main image; use the move buttons to change the order.',
+        ],
+        'dashboard.Products_Gallery_Count' => ['ar' => ':count من :max صور', 'en' => ':count of :max images'],
+        'dashboard.Products_Gallery_Add' => ['ar' => 'إضافة صورة', 'en' => 'Add image'],
+        'dashboard.Products_Gallery_Vendor_First' => ['ar' => 'اختر البائع أولًا لإضافة صوره.', 'en' => 'Choose the vendor first to add its images.'],
+        'dashboard.Products_Gallery_Full' => [
+            'ar' => 'يحتوي المنتج على الحد الأقصى وهو :max صور. احذف صورة لإضافة أخرى.',
+            'en' => 'The product has the maximum of :max images. Remove one to add another.',
+        ],
+        'dashboard.Products_Gallery_Empty' => ['ar' => 'لا توجد صور بعد.', 'en' => 'No images yet.'],
+        'dashboard.Products_Gallery_No_Script' => [
+            'ar' => 'فعّل JavaScript لتغيير صور المنتج. تبقى الصور الحالية عند الحفظ.',
+            'en' => 'Turn on JavaScript to change the product images. The current images are kept when you save.',
+        ],
+        'dashboard.Products_Gallery_Main' => ['ar' => 'الصورة الرئيسية', 'en' => 'Main image'],
+        'dashboard.Products_Gallery_Legacy' => ['ar' => 'ليست من مكتبة البائع', 'en' => 'Not in the vendor library'],
+        'dashboard.Products_Gallery_Position' => ['ar' => 'الصورة :position', 'en' => 'Image :position'],
+        'dashboard.Products_Gallery_Move_Up' => ['ar' => 'تحريك للأعلى', 'en' => 'Move up'],
+        'dashboard.Products_Gallery_Move_Down' => ['ar' => 'تحريك للأسفل', 'en' => 'Move down'],
+        'dashboard.Products_Gallery_Replace' => ['ar' => 'استبدال', 'en' => 'Replace'],
+        'dashboard.Products_Gallery_Remove' => ['ar' => 'إزالة', 'en' => 'Remove'],
+        'dashboard.Products_Gallery_Added' => ['ar' => 'أُضيفت :name.', 'en' => ':name was added.'],
+        'dashboard.Products_Gallery_Removed' => [
+            'ar' => 'أُزيلت :name من المنتج. يبقى الملف في مكتبة الوسائط.',
+            'en' => ':name was removed from the product. The file stays in the media library.',
+        ],
+        'dashboard.Products_Gallery_Moved' => ['ar' => 'أصبحت :name الصورة :position.', 'en' => ':name is now image :position.'],
+        'dashboard.Products_Gallery_Replaced' => ['ar' => 'استُبدلت :name.', 'en' => ':name was replaced.'],
+        'dashboard.Products_Gallery_Cleared' => [
+            'ar' => 'أُزيلت الصور المختارة لأن البائع تغيّر.',
+            'en' => 'The chosen images were cleared because the vendor changed.',
+        ],
+        'dashboard.Products_Gallery_Dialog_Title' => ['ar' => 'اختيار صورة', 'en' => 'Choose an image'],
+        'dashboard.Products_Gallery_Dialog_Replace_Title' => ['ar' => 'اختيار صورة بديلة', 'en' => 'Choose a replacement image'],
+        'dashboard.Products_Gallery_Dialog_Intro' => [
+            'ar' => 'تُعرض صور هذا البائع فقط. يرفع البائعون صورهم من لوحة التحكم الخاصة بهم.',
+            'en' => 'Only this vendor\'s images are shown. Vendors upload their images from their own dashboard.',
+        ],
+        'dashboard.Products_Gallery_Search_Label' => ['ar' => 'البحث في الصور', 'en' => 'Search images'],
+        'dashboard.Products_Gallery_Search_Placeholder' => ['ar' => 'ابحث بالاسم أو العنوان أو التسمية التوضيحية', 'en' => 'Search by name, title or caption'],
+        'dashboard.Products_Gallery_Choices_Label' => ['ar' => 'صور البائع', 'en' => 'Vendor images'],
+        'dashboard.Products_Gallery_Choose' => ['ar' => 'اختيار :name', 'en' => 'Choose :name'],
+        'dashboard.Products_Gallery_In_Gallery' => ['ar' => 'مضافة بالفعل', 'en' => 'Already added'],
+        'dashboard.Products_Gallery_Loading' => ['ar' => 'جارٍ تحميل الصور…', 'en' => 'Loading images…'],
+        'dashboard.Products_Gallery_Library_Empty' => ['ar' => 'لا توجد صور في مكتبة وسائط هذا البائع بعد.', 'en' => 'This vendor has no images in their media library yet.'],
+        'dashboard.Products_Gallery_Library_Empty_Search' => ['ar' => 'لا توجد صور تطابق البحث.', 'en' => 'No images match your search.'],
+        'dashboard.Products_Gallery_Load_Error' => ['ar' => 'تعذّر تحميل الصور.', 'en' => 'The images could not be loaded.'],
+        'dashboard.Products_Gallery_Retry' => ['ar' => 'إعادة المحاولة', 'en' => 'Try again'],
+        'dashboard.Products_Gallery_Load_More' => ['ar' => 'تحميل المزيد', 'en' => 'Load more'],
+        'dashboard.Products_Gallery_Close' => ['ar' => 'إغلاق', 'en' => 'Close'],
+        'dashboard.Products_Gallery_Forbidden' => ['ar' => 'ليست لديك صلاحية للقيام بذلك.', 'en' => 'You do not have permission to do this.'],
+        'dashboard.Products_Gallery_Network' => ['ar' => 'تعذّر الاتصال. تحقّق من الشبكة وحاول مجددًا.', 'en' => 'The connection failed. Check the network and try again.'],
+        'dashboard.Products_Gallery_Session' => ['ar' => 'انتهت الجلسة. سجّل الدخول مجددًا للمتابعة.', 'en' => 'Your session has ended. Sign in again to continue.'],
+        'dashboard.Products_Gallery_Invalid_Request' => [
+            'ar' => 'تعذّرت معالجة الطلب. غيّر البحث وحاول مجددًا.',
+            'en' => 'The request could not be processed. Change the search and try again.',
         ],
         'dashboard.Products_Form_Manage_Images' => ['ar' => 'عرض الصور الحالية', 'en' => 'View current images'],
-        'dashboard.Products_Form_Images_Invalid' => [
-            'ar' => 'يجب أن تكون كل صورة ملف JPG أو PNG أو GIF أو WebP صالحًا، وامتداده مطابق لمحتواه.',
-            'en' => 'Each image must be a valid JPG, PNG, GIF or WebP file, with an extension matching its content.',
+        // PRODUCT-MEDIA-01 P5-A: product images come from the product vendor's own media library only (G1), the admin
+        // cannot upload them (G3), and a product keeps its vendor (G2). Products_Form_Images_Invalid went with the
+        // removed upload path; its existing rows are left as they are.
+        'dashboard.Products_Form_Images_Vendor_Only' => [
+            'ar' => 'يجب أن تكون كل صورة مختارة من مكتبة وسائط هذا البائع.',
+            'en' => 'Each selected image must come from this vendor\'s media library.',
+        ],
+        'dashboard.Products_Form_Images_Upload_Disabled' => [
+            'ar' => 'لا يمكن رفع الصور من هنا. اخترها من مكتبة وسائط البائع.',
+            'en' => 'Images cannot be uploaded here. Choose them from the vendor\'s media library.',
+        ],
+        'dashboard.Products_Form_Images_Max' => [
+            'ar' => 'يمكن أن يحتوي المنتج على 6 صور كحد أقصى.',
+            'en' => 'A product can have up to 6 images.',
+        ],
+        'dashboard.Products_Form_Vendor_Immutable' => [
+            'ar' => 'لا يمكن تغيير بائع منتج موجود.',
+            'en' => 'The vendor of an existing product cannot be changed.',
+        ],
+        // PRODUCT-MEDIA-01 P5-B: the ordered product gallery (reorder, main image, remove, replace, add).
+        'dashboard.Products_Form_Gallery_Invalid' => [
+            'ar' => 'تعذّرت قراءة قائمة الصور. أعد تحميل الصفحة وحاول مجددًا.',
+            'en' => 'The image list could not be read. Reload the page and try again.',
+        ],
+        'dashboard.Products_Form_Gallery_Outdated' => [
+            'ar' => 'تغيّرت صور المنتج أثناء فتح هذه الصفحة. أعد تحميل الصفحة وراجعها قبل الحفظ.',
+            'en' => 'The product images changed while this page was open. Reload the page and review them before saving.',
+        ],
+        'dashboard.Products_Form_Gallery_Not_Product' => [
+            'ar' => 'إحدى الصور في القائمة لا تخص هذا المنتج.',
+            'en' => 'An image in the list does not belong to this product.',
+        ],
+        'dashboard.Products_Form_Gallery_Duplicate' => [
+            'ar' => 'يمكن أن تظهر كل صورة مرة واحدة فقط في القائمة.',
+            'en' => 'Each image can appear only once in the list.',
         ],
         'dashboard.Products_Form_Status_Hint' => [
             'ar' => 'لا يُعرض للبيع إلا المنتج النشط. المنتج المعلّق أو المؤرشف يبقى خارج البيع أيًّا كانت حالته.',
             'en' => 'Only an active product can be on sale. A suspended or archived product stays off sale whatever its status.',
         ],
         'dashboard.Products_Form_Featured_Hint' => ['ar' => 'يمكن إبراز المنتجات المميزة في المتجر.', 'en' => 'Featured products can be highlighted in the store.'],
+        // ADMIN-PRODUCT-FORM-FIX-01: "Limited edition" (the field label the controller already used, not seeded until
+        // now) and the two tag lists of "Status and settings".
+        'dashboard.Products_Form_Field_Limited' => ['ar' => 'إصدار محدود', 'en' => 'Limited edition'],
+        'dashboard.Products_Form_Limited_Hint' => ['ar' => 'اعرض شارة الإصدار المحدود فقط عندما تنطبق.', 'en' => 'Show the limited-edition label only when it applies.'],
+        'dashboard.Products_Form_Highlight_Tags' => ['ar' => 'الوسوم البارزة', 'en' => 'Top tags'],
+        'dashboard.Products_Form_Highlight_Tag_Label' => ['ar' => 'الوسم البارز :number', 'en' => 'Top tag :number'],
+        'dashboard.Products_Form_Highlight_Tag_Placeholder' => ['ar' => 'جديد', 'en' => 'New'],
+        'dashboard.Products_Form_Craft_Tags' => ['ar' => 'وسوم الحرفة', 'en' => 'Craft tags'],
+        'dashboard.Products_Form_Craft_Tag_Label' => ['ar' => 'وسم الحرفة :number', 'en' => 'Craft tag :number'],
+        'dashboard.Products_Form_Craft_Tag_Placeholder' => ['ar' => 'مرسوم يدويًا', 'en' => 'Hand painted'],
+        'dashboard.Products_Form_Tag_Placeholder' => ['ar' => 'وسم اختياري', 'en' => 'Optional tag'],
         'dashboard.Products_Form_Save' => ['ar' => 'حفظ المنتج', 'en' => 'Save product'],
         'dashboard.Products_Form_Cancel' => ['ar' => 'إلغاء', 'en' => 'Cancel'],
 

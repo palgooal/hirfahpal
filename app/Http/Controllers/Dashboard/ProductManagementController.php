@@ -8,13 +8,16 @@ use App\Models\Product;
 use App\Models\ProductAdminAction;
 use App\Models\ProductImage;
 use App\Models\Vendor;
+use App\Support\Media\VendorMediaPath;
 use Carbon\CarbonInterface;
 use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -109,17 +112,48 @@ class ProductManagementController extends Controller
         return view('dashboard.products.form', $this->formData(new Product(['status' => 'draft'])));
     }
 
+    /**
+     * PRODUCT-MEDIA-01 P5-C: the images a new product may use, from the chosen vendor's own library (products.create).
+     * Read only: no upload, no deletion; media.view and vendors.view are not needed.
+     */
+    public function vendorMediaForCreate(Request $request): JsonResponse
+    {
+        $this->authorizeAbility($request, 'products.create');
+
+        $vendorId = (int) $request->validate(['vendor_id' => ['required', 'integer', 'exists:vendors,id']])['vendor_id'];
+
+        return $this->vendorMediaPage($request, $vendorId);
+    }
+
+    /**
+     * P5-C: the images a product may use, from its stored vendor's library (products.edit). The id is a plain number,
+     * resolved after the ability is checked, so an admin without it gets the same 403 for any id.
+     */
+    public function vendorMediaForProduct(Request $request, string $product): JsonResponse
+    {
+        $this->authorizeAbility($request, 'products.edit');
+
+        return $this->vendorMediaPage($request, (int) Product::query()->findOrFail($product)->vendor_id);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $this->authorizeAbility($request, 'products.create');
 
         $this->returningErrorsTo(route('dashboard.products.create'), function () use ($request) {
             $data = $this->validatedData($request);
-            $this->validateImageUploads($request);
+            $gallery = $this->validatedGallery($request, (int) $data['vendor_id']);
+            $mediaIds = $this->validateImageUploads($request, (int) $data['vendor_id']);
 
+            // P5-A: with images, the product and its links are written together, so a refused image leaves no
+            // product. Without images the single insert stays as it was (no transaction around it).
             try {
-                $product = Product::create($data);
-                $this->storeImageUploads($request, $product);
+                $mediaIds === [] && ($gallery['refs'] ?? []) === []
+                    ? Product::create($data)
+                    : DB::transaction(function () use ($data, $mediaIds, $gallery): void {
+                        $product = Product::create($data);
+                        $gallery === null ? $this->storeImageUploads($product, $mediaIds) : $this->syncGallery($product, $gallery['refs'], null);
+                    });
             } catch (QueryException $exception) {
                 $this->failUnlessCategoryVanished($exception, $data);
             }
@@ -197,7 +231,9 @@ class ProductManagementController extends Controller
 
         $this->returningErrorsTo(route('dashboard.products.edit', $product), function () use ($request, $product) {
             $data = $this->validatedData($request, $product);
-            $this->validateImageUploads($request, $product);
+            // P5-A: images are checked against the stored vendor, never the submitted one.
+            $gallery = $this->validatedGallery($request, (int) $product->vendor_id, $product);
+            $mediaIds = $this->validateImageUploads($request, (int) $product->vendor_id, $product);
             $basis = $this->stockBasis($request);
 
             // M0-FIX (lost update): the form sends back the stock it displayed. When the submitted stock equals it,
@@ -212,7 +248,7 @@ class ProductManagementController extends Controller
             // PRD-02 (VEN-BE-019, as in the vendor update): lock the product row first, the order checkout and
             // vendor accept use, then compare and re-read under that lock before writing.
             try {
-                DB::transaction(function () use ($request, $product, $data, $basis, $changesStock): void {
+                DB::transaction(function () use ($request, $product, $data, $basis, $changesStock, $mediaIds, $gallery): void {
                     $locked = Product::query()->whereKey($product->id)->lockForUpdate()->firstOrFail();
 
                     if ($changesStock) {
@@ -236,7 +272,12 @@ class ProductManagementController extends Controller
                     }
 
                     $locked->update($data);
-                    $this->storeImageUploads($request, $locked);
+
+                    // P5-B: a submitted gallery replaces the append-only media_image_ids path; under the product lock,
+                    // so the fingerprint comparison and the writes are one step. A refusal rolls the update back.
+                    $gallery === null
+                        ? $this->storeImageUploads($locked, $mediaIds)
+                        : $this->syncGallery($locked, $gallery['refs'], $gallery['fingerprint']);
                 });
             } catch (QueryException $exception) {
                 $this->failUnlessCategoryVanished($exception, $data);
@@ -290,7 +331,114 @@ class ProductManagementController extends Controller
             'inactiveCategoryId' => $inactiveCategory?->id,
             'statusKeys' => $this->statusKeys(),
             'fieldLabels' => $this->formAttributes(),
+            'gallery' => $this->galleryFormData($product),
         ];
+    }
+
+    /**
+     * P5-C: what the gallery editor of the form starts from. Editing: the product's images in their order, each
+     * marked when its file is not in the vendor's own library (a legacy image, which can be kept, moved or removed but
+     * not added again), and the fingerprint the P5-B sync compares. After a refused save the submitted list is shown
+     * again (media references resolved in the vendor's library only, unknown ones dropped) with the fingerprint the
+     * form was opened with, so a stale list stays refused until the page is reloaded.
+     *
+     * @return array<string, mixed>
+     */
+    private function galleryFormData(Product $product): array
+    {
+        $editing = $product->exists;
+        $vendorId = (int) ($editing ? $product->vendor_id : old('vendor_id'));
+        $images = $editing ? $product->images()->get() : collect();
+
+        // P5-C-FIX-02 (D-3): a readable name for each image: its alternative text, else the original name of the
+        // vendor library image with that exact path, else the file name. Only names are read; no path is shown.
+        $originals = $images->isEmpty() ? collect() : VendorMediaPath::scopeToVendor(Media::query()->images(), (int) $product->vendor_id)
+            ->whereIn('file_path', $images->pluck('path')->all())
+            ->pluck('file_original_name', 'file_path');
+
+        $items = $images
+            ->map(fn (ProductImage $image) => [
+                'ref' => 'existing:'.$image->id,
+                'url' => $this->safeImageUrl($image->path),
+                'name' => trim((string) $image->alt_text) !== '' ? trim($image->alt_text)
+                    : (trim((string) ($originals[$image->path] ?? '')) !== '' ? trim($originals[$image->path]) : basename($image->path)),
+                'alt' => (string) $image->alt_text,
+                'legacy' => preg_match('#^vendors/media/'.(int) $product->vendor_id.'/[^/\\\\]+$#', $image->path) !== 1,
+            ])->values();
+        $restored = (bool) old('gallery_sync');
+
+        if ($restored) {
+            $refs = collect((array) old('gallery', []))
+                ->filter(fn ($ref) => is_string($ref) && preg_match('/^(existing|media):[1-9][0-9]{0,18}$/', $ref) === 1)
+                ->unique()->take(6)->values();
+            $mediaIds = $refs->filter(fn (string $ref) => str_starts_with($ref, 'media:'))->map(fn (string $ref) => (int) substr($ref, 6))->values()->all();
+            $media = $vendorId > 0 && $mediaIds !== [] ? $this->vendorImages($vendorId, $mediaIds)->get()->keyBy('id') : collect();
+            $existing = $items->keyBy('ref');
+
+            $items = $refs->map(function (string $ref) use ($existing, $media) {
+                if (str_starts_with($ref, 'existing:')) {
+                    return $existing[$ref] ?? null;
+                }
+
+                $item = $media[(int) substr($ref, 6)] ?? null;
+
+                return $item ? $this->galleryMediaItem($item) : null;
+            })->filter()->values();
+        }
+
+        return [
+            'editing' => $editing,
+            'max' => 6,
+            'items' => $items->all(),
+            'restored' => $restored,
+            'fingerprint' => $editing ? (string) ($restored ? old('gallery_fingerprint', '') : self::galleryFingerprint($product)) : null,
+            'mediaUrl' => $editing ? route('dashboard.products.vendor-media.edit', $product) : route('dashboard.products.vendor-media.create'),
+        ];
+    }
+
+    /** @return array{ref: string, url: ?string, name: string, alt: string, legacy: bool} */
+    private function galleryMediaItem(Media $item): array
+    {
+        return [
+            'ref' => 'media:'.$item->id,
+            'url' => $item->url,
+            'name' => (string) ($item->file_original_name ?: '#'.$item->id),
+            'alt' => (string) $item->alt,
+            'legacy' => false,
+        ];
+    }
+
+    /** P5-C: one page of a vendor's own images (the canonical rule of P3), newest first, P3's fields without paths. */
+    private function vendorMediaPage(Request $request, int $vendorId): JsonResponse
+    {
+        $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer'],
+        ]);
+
+        $perPage = (int) $request->input('per_page', 24);
+        $paginator = VendorMediaPath::scopeToVendor(Media::query()->images(), $vendorId)
+            ->search($request->input('search'))
+            ->latest()
+            ->orderByDesc('id')
+            ->paginate($perPage > 0 && $perPage <= 100 ? $perPage : 24);
+
+        return response()->json([
+            'data' => array_map(fn (Media $item) => [
+                'id' => $item->id,
+                'url' => $item->url,
+                'file_original_name' => $item->file_original_name,
+                'alt' => $item->alt,
+                'title' => $item->title,
+                'width' => $item->width,
+                'height' => $item->height,
+            ], $paginator->items()),
+            'current_page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+            'per_page' => $paginator->perPage(),
+            'total' => $paginator->total(),
+        ]);
     }
 
     /**
@@ -317,6 +465,11 @@ class ProductManagementController extends Controller
             'status' => ['dashboard.Products_Form_Field_Status', 'Status'],
             'is_featured' => ['dashboard.Products_Form_Field_Featured', 'Featured product'],
             'is_limited_edition' => ['dashboard.Products_Form_Field_Limited', 'Limited edition'],
+            // P5-C: the gallery's errors (and the refused upload / old picker fields) are named after the images field.
+            'gallery' => ['dashboard.Products_Form_Images', 'Product images'],
+            'gallery_fingerprint' => ['dashboard.Products_Form_Images', 'Product images'],
+            'media_image_ids' => ['dashboard.Products_Form_Images', 'Product images'],
+            'images' => ['dashboard.Products_Form_Images', 'Product images'],
         ];
 
         return array_map(fn (array $label) => $this->untranslatedDefault(...$label), $labels);
@@ -343,7 +496,8 @@ class ProductManagementController extends Controller
         // a database error. HIRFAH-PRICE-01 (supersedes PRD-06's "compare-at above the price"): price is the
         // regular price and compare_at_price the optional sale price, so it must be lower.
         $data = $request->validate([
-            'vendor_id' => ['required', 'exists:vendors,id'],
+            // P5-A (G2): a product keeps the vendor it was created for; another vendor is refused, never ignored.
+            'vendor_id' => ['required', 'exists:vendors,id', ...($product?->exists ? [Rule::in([(string) $product->vendor_id])] : [])],
             'category_id' => ['nullable', 'exists:categories,id'],
             'name' => ['required', 'string', 'max:255'],
             // The slug rules are unchanged, except the characters that cannot be part of the storefront
@@ -363,17 +517,20 @@ class ProductManagementController extends Controller
             'is_featured' => ['nullable', 'boolean'],
             'is_limited_edition' => ['nullable', 'boolean'],
             'highlight_tags' => ['nullable', 'array', 'max:5'],
-            'highlight_tags.*' => ['string', 'max:40'],
+            // P5-C-FIX-01: an empty tag field arrives as null (ConvertEmptyStringsToNull) and is simply skipped.
+            'highlight_tags.*' => ['nullable', 'string', 'max:40'],
             'craft_tags' => ['nullable', 'array', 'max:5'],
-            'craft_tags.*' => ['string', 'max:40'],
-        ], [], $this->messageAttributes());
+            'craft_tags.*' => ['nullable', 'string', 'max:40'],
+        ], [
+            'vendor_id.in' => $this->untranslatedDefault('dashboard.Products_Form_Vendor_Immutable', 'The vendor of an existing product cannot be changed.'),
+        ], $this->messageAttributes());
 
         $data['slug'] = ($data['slug'] ?? null) ?: $this->uniqueSlug($data['name'], $product);
         $data['low_stock_threshold'] = $data['low_stock_threshold'] ?? 1;
         $data['is_featured'] = $request->boolean('is_featured');
         $data['is_limited_edition'] = $request->boolean('is_limited_edition');
-        $data['highlight_tags'] = $this->tags($data['highlight_tags'] ?? []);
-        $data['craft_tags'] = $this->tags($data['craft_tags'] ?? []);
+        $data['highlight_tags'] = $this->tags(array_filter($data['highlight_tags'] ?? [], 'is_string'));
+        $data['craft_tags'] = $this->tags(array_filter($data['craft_tags'] ?? [], 'is_string'));
         $data['weight_unit'] = ($data['weight'] ?? null) === null ? null : ($data['weight_unit'] ?? null);
         $data['published_at'] = $data['status'] === 'active' ? ($product?->published_at ?? now()) : null;
 
@@ -386,17 +543,28 @@ class ProductManagementController extends Controller
         return collect($tags)->map(fn (string $tag) => trim($tag))->filter()->unique()->values()->all();
     }
 
-    /** Store product photos only after their bytes, dimensions and filename extension agree. */
-    private function storeImageUploads(Request $request, Product $product): void
+    /**
+     * P5-A (G1): link the chosen media to the product, by path, in the order they were chosen. The ownership check
+     * is repeated here, inside the write, against the product's stored vendor. A path the product already has is
+     * skipped; existing images (legacy paths included) keep their order and main image.
+     *
+     * @param  list<int>  $mediaIds
+     */
+    private function storeImageUploads(Product $product, array $mediaIds): void
     {
-        // Images chosen from the admin media library are referenced, rather than copied. This lets the
-        // product form offer the same library as the Media dashboard and keeps uploads in one place.
-        $media = Media::query()
-            ->images()
-            ->whereIn('id', $request->input('media_image_ids', []))
-            ->get();
+        if ($mediaIds === []) {
+            return;
+        }
 
-        foreach ($media as $item) {
+        $media = $this->vendorImages((int) $product->vendor_id, $mediaIds)->get()->keyBy('id');
+
+        if ($media->count() !== count($mediaIds)) {
+            throw ValidationException::withMessages(['media_image_ids' => $this->vendorImagesOnlyMessage()]);
+        }
+
+        foreach ($mediaIds as $id) {
+            $item = $media[$id];
+
             if ($product->images()->where('path', $item->file_path)->exists()) {
                 continue;
             }
@@ -409,69 +577,210 @@ class ProductManagementController extends Controller
                 'is_primary' => ! $hasImages,
             ]);
         }
-
-        foreach ($request->file('images', []) as $image) {
-            if (! $image instanceof UploadedFile) {
-                continue;
-            }
-
-            $extension = $this->safeImageExtension($image);
-            $path = $image->storeAs('products/'.$product->id, Str::uuid().'.'.$extension, 'public');
-            $hasImages = $product->images()->exists();
-
-            $product->images()->create([
-                'path' => $path,
-                'alt_text' => $product->name,
-                'sort_order' => (int) $product->images()->max('sort_order') + 1,
-                'is_primary' => ! $hasImages,
-            ]);
-        }
     }
 
-    private function validateImageUploads(Request $request, ?Product $product = null): void
+    /**
+     * P5-A: the media ids of the request, validated before anything is written. G1: each one must be an image in the
+     * vendor's own library (VendorMediaPath::scopeToVendor, the canonical vendors/media/{vendorId}/ path); admin media,
+     * another vendor's, look-alike or non-canonical paths and missing ids are refused for every admin, super admins
+     * included (uploader_id is never read). G3: the former images[] upload is refused; images come from the vendor's
+     * library only. The six-image limit counts the product's existing images.
+     *
+     * @return list<int>
+     */
+    private function validateImageUploads(Request $request, int $vendorId, ?Product $product = null): array
     {
         $data = $request->validate([
-            'images' => ['nullable', 'array', 'max:6'],
-            'images.*' => ['file', 'max:5120'],
+            'images' => ['prohibited'],
             'media_image_ids' => ['nullable', 'array', 'max:6'],
-            'media_image_ids.*' => ['nullable', 'integer', 'distinct', 'exists:media,id'],
+            'media_image_ids.*' => ['nullable', 'integer', 'distinct'],
+        ], [
+            'images.prohibited' => $this->untranslatedDefault('dashboard.Products_Form_Images_Upload_Disabled', 'Images cannot be uploaded here. Choose them from the vendor\'s media library.'),
         ]);
 
-        $mediaIds = collect($data['media_image_ids'] ?? [])->filter()->map(fn ($id) => (int) $id);
-        if ($mediaIds->isNotEmpty() && Media::query()->images()->whereIn('id', $mediaIds)->count() !== $mediaIds->count()) {
-            throw ValidationException::withMessages([
-                'media_image_ids' => $this->untranslatedDefault('dashboard.Products_Form_Images_Invalid', 'Each selected item must be an image from the media library.'),
-            ]);
+        $mediaIds = collect($data['media_image_ids'] ?? [])->filter()->map(fn ($id) => (int) $id)->values()->all();
+
+        if ($mediaIds !== [] && $this->vendorImages($vendorId, $mediaIds)->count() !== count($mediaIds)) {
+            throw ValidationException::withMessages(['media_image_ids' => $this->vendorImagesOnlyMessage()]);
         }
 
-        $newImages = count($request->file('images', [])) + $mediaIds->count();
-        if (($product?->images()->count() ?? 0) + $newImages > 6) {
+        if (($product?->images()->count() ?? 0) + count($mediaIds) > 6) {
             throw ValidationException::withMessages([
                 'media_image_ids' => $this->untranslatedDefault('dashboard.Products_Form_Images_Max', 'A product can have up to 6 images.'),
             ]);
         }
 
-        foreach ($request->file('images', []) as $image) {
-            if ($image instanceof UploadedFile) {
-                $this->safeImageExtension($image);
+        return $mediaIds;
+    }
+
+    /** @param  list<int>  $mediaIds */
+    private function vendorImages(int $vendorId, array $mediaIds): Builder
+    {
+        return VendorMediaPath::scopeToVendor(Media::query()->images(), $vendorId)->whereIn('id', $mediaIds);
+    }
+
+    private function vendorImagesOnlyMessage(): string
+    {
+        return $this->untranslatedDefault('dashboard.Products_Form_Images_Vendor_Only', 'Each selected image must come from this vendor\'s media library.');
+    }
+
+    /**
+     * PRODUCT-MEDIA-01 P5-B: the gallery of the request, or null when none was submitted (the images are then left
+     * exactly as they are). gallery_sync=1 marks a submitted gallery, so an empty list (every image removed) is told
+     * apart from an omitted one. gallery[] is the ordered list, at most six references, each "existing:{product
+     * image id}" (an image of this product) or "media:{media id}" (an image of the product vendor's own library,
+     * checked like media_image_ids, never against a vendor named in the request). gallery_fingerprint is the
+     * galleryFingerprint() of the images the form displayed; it is required on update. The checks are repeated under
+     * the product lock in syncGallery().
+     *
+     * @return array{refs: list<array{type: string, id: int}>, fingerprint: ?string}|null
+     */
+    private function validatedGallery(Request $request, int $vendorId, ?Product $product = null): ?array
+    {
+        if (! $request->has('gallery_sync')) {
+            return null;
+        }
+
+        $invalid = $this->untranslatedDefault('dashboard.Products_Form_Gallery_Invalid', 'The image list could not be read. Reload the page and try again.');
+        $outdated = $this->galleryOutdatedMessage();
+
+        $data = $request->validate([
+            'gallery_sync' => ['required', 'in:1'],
+            'gallery' => ['nullable', 'array', 'list', 'max:6'],
+            'gallery.*' => ['required', 'string', 'distinct', 'regex:/^(existing|media):[1-9][0-9]{0,18}$/'],
+            'gallery_fingerprint' => [$product ? 'required' : 'nullable', 'string', 'size:40'],
+        ], [
+            'gallery_sync.*' => $invalid,
+            'gallery.array' => $invalid,
+            'gallery.list' => $invalid,
+            'gallery.max' => $this->untranslatedDefault('dashboard.Products_Form_Images_Max', 'A product can have up to 6 images.'),
+            'gallery.*.required' => $invalid,
+            'gallery.*.string' => $invalid,
+            'gallery.*.regex' => $invalid,
+            'gallery.*.distinct' => $this->galleryDuplicateMessage(),
+            'gallery_fingerprint.*' => $outdated,
+        ]);
+
+        // One way at a time: the gallery replaces the append-only media_image_ids path.
+        if (collect($request->input('media_image_ids', []))->filter()->isNotEmpty()) {
+            throw ValidationException::withMessages(['gallery' => $invalid]);
+        }
+
+        $refs = collect($data['gallery'] ?? [])->map(function (string $ref): array {
+            [$type, $id] = explode(':', $ref, 2);
+
+            return ['type' => $type, 'id' => (int) $id];
+        })->values()->all();
+
+        $existing = $this->galleryIds($refs, 'existing');
+        $media = $this->galleryIds($refs, 'media');
+
+        if ($existing !== [] && ($product === null || $product->images()->whereKey($existing)->count() !== count($existing))) {
+            // P5-C-FIX-02 (D-2): an image removed since the form was opened is a stale list, not a forged reference;
+            // with the fingerprint the form was opened with still current, a missing image is not this product's.
+            $stale = $product !== null && is_string($data['gallery_fingerprint'] ?? null)
+                && ! hash_equals(self::galleryFingerprint($product), $data['gallery_fingerprint']);
+
+            throw ValidationException::withMessages(['gallery' => $stale ? $this->galleryOutdatedMessage() : $this->galleryNotProductMessage()]);
+        }
+
+        if ($media !== [] && $this->vendorImages($vendorId, $media)->count() !== count($media)) {
+            throw ValidationException::withMessages(['gallery' => $this->vendorImagesOnlyMessage()]);
+        }
+
+        return ['refs' => $refs, 'fingerprint' => $data['gallery_fingerprint'] ?? null];
+    }
+
+    /**
+     * P5-B: make the product's images exactly the given list, inside the caller's transaction and under its product
+     * lock. The image rows are locked too and compared with the submitted fingerprint (a change since the page was
+     * opened is refused, nothing written). Ownership is checked again: each existing reference must still be an image
+     * of this product, each media reference an image of the product's stored vendor (read with a shared lock, so it
+     * cannot be removed or changed until the commit). The order becomes sort_order, the first image is the main one.
+     * Rows that stay are only updated when their order or main flag changes; a media reference whose path the
+     * product already has reuses that row. Rows that are no longer listed are deleted, never their files. No path
+     * may appear twice.
+     *
+     * @param  list<array{type: string, id: int}>  $refs
+     */
+    private function syncGallery(Product $product, array $refs, ?string $fingerprint): void
+    {
+        $current = $product->images()->lockForUpdate()->get();
+
+        if ($fingerprint !== null && ! hash_equals(self::galleryFingerprintOf($current), $fingerprint)) {
+            throw ValidationException::withMessages(['gallery' => $this->galleryOutdatedMessage()]);
+        }
+
+        $rows = $current->keyBy('id');
+        $mediaIds = $this->galleryIds($refs, 'media');
+        $media = $mediaIds === [] ? collect() : $this->vendorImages((int) $product->vendor_id, $mediaIds)->sharedLock()->get()->keyBy('id');
+
+        if ($media->count() !== count($mediaIds)) {
+            throw ValidationException::withMessages(['gallery' => $this->vendorImagesOnlyMessage()]);
+        }
+
+        $entries = [];
+        $paths = [];
+
+        foreach ($refs as $ref) {
+            if ($ref['type'] === 'existing') {
+                $row = $rows[$ref['id']] ?? throw ValidationException::withMessages(['gallery' => $this->galleryNotProductMessage()]);
+                $entry = ['row' => $row, 'path' => $row->path, 'media' => null];
+            } else {
+                $item = $media[$ref['id']];
+                $entry = ['row' => $current->firstWhere('path', $item->file_path), 'path' => $item->file_path, 'media' => $item];
             }
+
+            if (isset($paths[$entry['path']])) {
+                throw ValidationException::withMessages(['gallery' => $this->galleryDuplicateMessage()]);
+            }
+
+            $paths[$entry['path']] = true;
+            $entries[] = $entry;
+        }
+
+        $kept = collect($entries)->pluck('row')->filter()->pluck('id')->all();
+        $product->images()->whereKeyNot($kept)->delete();
+
+        foreach ($entries as $position => $entry) {
+            $order = ['sort_order' => $position, 'is_primary' => $position === 0];
+
+            if ($entry['row']) {
+                $entry['row']->fill($order);
+                $entry['row']->isDirty() && $entry['row']->save();
+
+                continue;
+            }
+
+            $product->images()->create($order + [
+                'path' => $entry['path'],
+                'alt_text' => $entry['media']->alt ?: ($entry['media']->file_original_name ?: $product->name),
+            ]);
         }
     }
 
-    private function safeImageExtension(UploadedFile $file): string
+    /**
+     * @param  list<array{type: string, id: int}>  $refs
+     * @return list<int>
+     */
+    private function galleryIds(array $refs, string $type): array
     {
-        $path = $file->getRealPath();
-        $mime = $path ? (new \finfo(FILEINFO_MIME_TYPE))->file($path) : false;
-        $extensions = ['image/jpeg' => ['jpg', 'jpeg'], 'image/png' => ['png'], 'image/gif' => ['gif'], 'image/webp' => ['webp']];
-        $size = $path ? @getimagesize($path) : false;
-        $extension = strtolower($file->getClientOriginalExtension());
+        return collect($refs)->where('type', $type)->pluck('id')->values()->all();
+    }
 
-        if (! is_string($mime) || ! isset($extensions[$mime]) || ! in_array($extension, $extensions[$mime], true)
-            || $size === false || ($size['mime'] ?? null) !== $mime || $size[0] < 1 || $size[1] < 1 || $size[0] * $size[1] > 25_000_000) {
-            throw ValidationException::withMessages(['images' => $this->untranslatedDefault('dashboard.Products_Form_Images_Invalid', 'Each image must be a valid JPG, PNG, GIF or WebP file, with an extension matching its content.')]);
-        }
+    private function galleryOutdatedMessage(): string
+    {
+        return $this->untranslatedDefault('dashboard.Products_Form_Gallery_Outdated', 'The product images changed while this page was open. Reload the page and review them before saving.');
+    }
 
-        return $extensions[$mime][0];
+    private function galleryNotProductMessage(): string
+    {
+        return $this->untranslatedDefault('dashboard.Products_Form_Gallery_Not_Product', 'An image in the list does not belong to this product.');
+    }
+
+    private function galleryDuplicateMessage(): string
+    {
+        return $this->untranslatedDefault('dashboard.Products_Form_Gallery_Duplicate', 'Each image can appear only once in the list.');
     }
 
     /**
@@ -541,6 +850,24 @@ class ProductManagementController extends Controller
     public static function stockVersion(Product $product): string
     {
         return (string) $product->updated_at?->format('Y-m-d H:i:s');
+    }
+
+    /**
+     * P5-B: the fingerprint of a product's images as the edit form displays them: the image ids in their order
+     * (sort_order, then id) with the main one marked. Any addition, removal, reordering or change of the main image,
+     * by an admin or by the vendor, changes it.
+     */
+    public static function galleryFingerprint(Product $product): string
+    {
+        return self::galleryFingerprintOf($product->images()->get());
+    }
+
+    /** @param  Collection<int, ProductImage>  $images */
+    private static function galleryFingerprintOf(Collection $images): string
+    {
+        return sha1($images->sortBy([['sort_order', 'asc'], ['id', 'asc']])
+            ->map(fn (ProductImage $image) => $image->id.($image->is_primary ? '*' : ''))
+            ->implode(','));
     }
 
     /**
