@@ -105,10 +105,11 @@ class ProductImageController extends Controller
     {
         $this->authorizeImage($request, $product, $productImage);
 
+        // G7-B (V1): removing an image from a product only removes the association. The file is never deleted
+        // here, whatever its stored path: a path is not trusted for filesystem operations (a ".." segment in it
+        // used to reach files outside the product's folder). Files are removed from the media library only.
         $wasPrimary = $productImage->is_primary;
-        $path = $productImage->path;
         $productImage->delete();
-        $this->deleteOwnedUpload($request, $product, $path);
 
         if ($wasPrimary) {
             $first = $product->images()->orderBy('sort_order')->first();
@@ -135,15 +136,6 @@ class ProductImageController extends Controller
         }
 
         return self::UPLOAD_MIMES[$mime];
-    }
-
-    private function deleteOwnedUpload(Request $request, Product $product, ?string $path): void
-    {
-        $prefix = 'vendors/products/'.$request->user('vendor')->id.'/'.$product->id.'/';
-
-        if (is_string($path) && str_starts_with($path, $prefix)) {
-            Storage::disk('public')->delete($path);
-        }
     }
 
     private function imageData(array $data, bool $creating = true): array
