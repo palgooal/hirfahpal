@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ProductImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Palgoal\MediaLibrary\Models\Media;
@@ -15,6 +16,9 @@ class MediaLibraryController extends Controller
 {
     /** VENDOR-MEDIA-02B: the most images one upload request may carry. */
     public const MAX_FILES_PER_UPLOAD = 10;
+
+    /** VENDOR-MEDIA-02C: a deletion that hits a deadlock is retried, as in the admin library. */
+    private const DELETE_ATTEMPTS = 3;
 
     public function index(Request $request): JsonResponse
     {
@@ -52,12 +56,32 @@ class MediaLibraryController extends Controller
         return response()->json(['images' => collect($uploaded)->map(fn (Media $item) => $this->item($item))], 201);
     }
 
+    /**
+     * VENDOR-MEDIA-02C: race-safe deletion. One transaction locks the media row FOR UPDATE first, then checks, still
+     * inside it, that the row is the vendor's and that no product image uses its path (a locking read, so it sees
+     * every committed attachment), and deletes the row. Every attachment re-reads that row with a shared lock in its
+     * own transaction (VendorLibraryImage::lockedInLibrary(), and the admin gallery's sharedLock), so the two are
+     * serialised on it: an attachment that got there first makes this a 409; one that comes later finds no row and is
+     * refused. The file is removed only after the commit, so a refused or rolled back deletion never touches it.
+     */
     public function destroy(Request $request, Media $media): JsonResponse
     {
-        abort_unless(str_starts_with((string) $media->file_path, $this->prefix($request->user('vendor')->id)), 404);
-        abort_if(ProductImage::query()->where('path', $media->file_path)->exists(), 409, 'This image is currently used by a product.');
-        Storage::disk($media->disk ?: 'public')->delete($media->file_path);
-        $media->delete();
+        $prefix = $this->prefix($request->user('vendor')->id);
+        abort_unless(str_starts_with((string) $media->file_path, $prefix), 404);
+
+        $file = DB::transaction(function () use ($media, $prefix): array {
+            $locked = Media::query()->whereKey($media->getKey())->lockForUpdate()->first();
+
+            // Deleted meanwhile (by a concurrent request): answered like any media that is not the vendor's.
+            abort_unless($locked && str_starts_with((string) $locked->file_path, $prefix), 404);
+            abort_if(ProductImage::query()->where('path', $locked->file_path)->sharedLock()->exists(), 409, 'This image is currently used by a product.');
+
+            $locked->delete();
+
+            return ['disk' => $locked->disk ?: 'public', 'path' => $locked->file_path];
+        }, self::DELETE_ATTEMPTS);
+
+        Storage::disk($file['disk'])->delete($file['path']);
 
         return response()->json(['message' => 'Media deleted.']);
     }

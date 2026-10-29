@@ -7,6 +7,7 @@ use App\Http\Requests\VendorDashboard\StoreProductRequest;
 use App\Http\Requests\VendorDashboard\UpdateProductRequest;
 use App\Models\Category;
 use App\Models\Product;
+use App\Rules\VendorLibraryImage;
 use App\Support\Products\ProductGallery;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -64,6 +65,12 @@ class ProductController extends Controller
                 // one moved first; without one, the first image is the main one.
                 $primaryId = null;
                 foreach ($images as $index => $image) {
+                    // VENDOR-MEDIA-02C: each library row read again under a shared lock inside this transaction, so a
+                    // concurrent library deletion either commits first (refused here) or waits for this commit.
+                    if (! VendorLibraryImage::lockedInLibrary((int) $vendor->id, $image['path'])) {
+                        throw ValidationException::withMessages(["images.{$index}.path" => VendorLibraryImage::MESSAGE]);
+                    }
+
                     $created = $product->images()->create([
                         'path' => $image['path'],
                         'alt_text' => $image['alt_text'] ?? $product->name,

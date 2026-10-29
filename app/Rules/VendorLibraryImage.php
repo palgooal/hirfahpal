@@ -36,15 +36,33 @@ final class VendorLibraryImage implements ValidationRule
 
     public static function inLibrary(int $vendorId, string $path): bool
     {
+        return self::find($vendorId, $path, false);
+    }
+
+    /**
+     * VENDOR-MEDIA-02C: the same check inside the transaction that attaches the image, reading the media row with a
+     * shared lock. A library deletion locks that row FOR UPDATE first, so the two are serialised on it: either the
+     * deletion commits first (the row is gone and the attachment is refused) or it waits for this transaction and
+     * then sees the new product image (and refuses with 409).
+     */
+    public static function lockedInLibrary(int $vendorId, string $path): bool
+    {
+        return self::find($vendorId, $path, true);
+    }
+
+    private static function find(int $vendorId, string $path, bool $lock): bool
+    {
         if ($vendorId < 1 || $path === '') {
             return false;
         }
 
         // The database comparison may ignore case or trailing spaces (MySQL _ci collations, PAD SPACE); the
         // candidates are compared again here, exactly.
-        return VendorMediaPath::scopeToVendor(Media::query()->images(), $vendorId)
+        $query = VendorMediaPath::scopeToVendor(Media::query()->images(), $vendorId)
             ->where('disk', 'public')
-            ->where('file_path', $path)
+            ->where('file_path', $path);
+
+        return ($lock ? $query->sharedLock() : $query)
             ->pluck('file_path')
             ->contains(fn ($stored) => $stored === $path);
     }

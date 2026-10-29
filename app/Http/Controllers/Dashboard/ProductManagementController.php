@@ -583,7 +583,9 @@ class ProductManagementController extends Controller
             return;
         }
 
-        $media = $this->vendorImages((int) $product->vendor_id, $mediaIds)->get()->keyBy('id');
+        // VENDOR-MEDIA-02C: read with a shared lock inside the saving transaction, as syncGallery() does, so a vendor's
+        // library deletion (which locks the media row FOR UPDATE) cannot remove an image while it is being linked.
+        $media = $this->vendorImages((int) $product->vendor_id, $mediaIds)->sharedLock()->get()->keyBy('id');
 
         if ($media->count() !== count($mediaIds)) {
             throw ValidationException::withMessages(['media_image_ids' => $this->vendorImagesOnlyMessage()]);

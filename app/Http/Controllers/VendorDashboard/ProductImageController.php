@@ -7,6 +7,7 @@ use App\Http\Requests\VendorDashboard\StoreProductImageRequest;
 use App\Http\Requests\VendorDashboard\UpdateProductImageRequest;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Rules\VendorLibraryImage;
 use App\Support\Products\ProductGallery;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -42,6 +43,10 @@ class ProductImageController extends Controller
             }
 
             $data = $request->validated();
+            // VENDOR-MEDIA-02C: the library row read again under a shared lock (after the product lock), so a concurrent
+            // library deletion cannot slip between the validation and this insert.
+            $this->ensureStillInLibrary($locked, $data['path'], 'path');
+
             $image = $locked->images()->create([
                 'path' => $data['path'],
                 'alt_text' => $data['alt_text'] ?? null,
@@ -70,6 +75,11 @@ class ProductImageController extends Controller
             $locked = $this->lockProduct($product);
             $image = $this->lockedImage($locked, $productImage);
             $data = $request->validated();
+
+            // VENDOR-MEDIA-02C: a new path is re-checked under the lock; the unchanged (possibly legacy) path is not.
+            if (array_key_exists('path', $data) && $data['path'] !== $image->path) {
+                $this->ensureStillInLibrary($locked, $data['path'], 'path');
+            }
 
             $image->fill(array_intersect_key($data, array_flip(['path', 'alt_text'])));
             if ($request->has('is_primary')) {
@@ -119,6 +129,18 @@ class ProductImageController extends Controller
         $this->authorizeProduct($request, $product);
 
         abort_unless((int) $productImage->product_id === (int) $product->id, 404);
+    }
+
+    /**
+     * VENDOR-MEDIA-02C: inside the attaching transaction, after the product lock. The media row is read with a shared
+     * lock (lock order: product, then media; a library deletion takes only the media row, FOR UPDATE). A row deleted
+     * meanwhile is refused with the same message as any image outside the library.
+     */
+    private function ensureStillInLibrary(Product $locked, string $path, string $field): void
+    {
+        if (! VendorLibraryImage::lockedInLibrary((int) $locked->vendor_id, $path)) {
+            throw ValidationException::withMessages([$field => VendorLibraryImage::MESSAGE]);
+        }
     }
 
     /** G7-C2-3: the product row, locked for the rest of the transaction; every image change on it waits here. */
