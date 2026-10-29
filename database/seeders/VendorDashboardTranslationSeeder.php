@@ -48,14 +48,31 @@ class VendorDashboardTranslationSeeder extends Seeder
             'ar' => 'احتفظ بصور متجرك في مكان واحد، جاهزة لإضافتها إلى منتجاتك.',
             'en' => 'Keep your store images in one place, ready to add to your products.',
         ],
-        'vendor.Media_Library_Next_Title' => [
-            'ar' => 'أدوات الوسائط قادمة قريبًا',
-            'en' => 'Media tools are on the way',
+        // VENDOR-MEDIA-04B: the read-only gallery of the media library page.
+        'vendor.Media_Library_Images' => ['ar' => 'صورك', 'en' => 'Your images'],
+        'vendor.Media_Library_Search_Label' => ['ar' => 'ابحث في الصور', 'en' => 'Search images'],
+        'vendor.Media_Library_Search_Placeholder' => ['ar' => 'الاسم أو النص البديل', 'en' => 'Name or alt text'],
+        'vendor.Media_Library_Search_Clear' => ['ar' => 'مسح البحث', 'en' => 'Clear search'],
+        'vendor.Media_Library_Count' => ['ar' => 'عدد الصور: :count', 'en' => 'Images: :count'],
+        'vendor.Media_Library_Empty' => [
+            'ar' => 'لا توجد صور في مكتبة الوسائط بعد. تظهر هنا الصور التي ترفعها من محرّر المنتج.',
+            'en' => 'There are no images in your media library yet. Images you upload from the product editor appear here.',
         ],
-        'vendor.Media_Library_Next_Text' => [
-            'ar' => 'سنضيف رفع صورك وتصفحها وإدارتها هنا في المرحلة القادمة. حتى ذلك الحين، أضف الصور من محرّر المنتج.',
-            'en' => 'Uploading, browsing and managing your images here will be added in the next phase. Until then, add images from the product editor.',
+        'vendor.Media_Library_No_Results' => ['ar' => 'لا توجد صور تطابق بحثك.', 'en' => 'No images match your search.'],
+        'vendor.Media_Library_Invalid' => [
+            'ar' => 'تعذّر تنفيذ البحث. غيّر عبارة البحث وحاول مجددًا.',
+            'en' => 'The search could not be run. Change it and try again.',
         ],
+        'vendor.Media_Library_Untitled' => ['ar' => 'صورة بلا اسم', 'en' => 'Untitled image'],
+        'vendor.Media_Library_Open' => ['ar' => 'معاينة :name', 'en' => 'Preview :name'],
+        'vendor.Media_Library_Pagination' => ['ar' => 'صفحات مكتبة الوسائط', 'en' => 'Media library pages'],
+        'vendor.Media_Library_Previous' => ['ar' => 'السابق', 'en' => 'Previous'],
+        'vendor.Media_Library_Next' => ['ar' => 'التالي', 'en' => 'Next'],
+        'vendor.Media_Library_Page_Status' => ['ar' => 'الصفحة :page من :last', 'en' => 'Page :page of :last'],
+        'vendor.Media_Library_Preview' => ['ar' => 'معاينة الصورة', 'en' => 'Image preview'],
+        'vendor.Media_Library_Field_Name' => ['ar' => 'الاسم', 'en' => 'Name'],
+        'vendor.Media_Library_Close' => ['ar' => 'إغلاق', 'en' => 'Close'],
+        'vendor.Media_Library_Open_Original' => ['ar' => 'فتح الصورة الأصلية', 'en' => 'Open the original image'],
         'vendor.Nav_Orders' => [
             'ar' => 'الطلبات',
             'en' => 'Orders',
