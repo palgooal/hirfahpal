@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\VendorDashboard;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\VendorDashboard\ListMediaLibraryRequest;
 use App\Models\ProductImage;
+use App\Support\Media\VendorMediaPath;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,15 +23,38 @@ class MediaLibraryController extends Controller
     /** VENDOR-MEDIA-02C: a deletion that hits a deadlock is retried, as in the admin library. */
     private const DELETE_ATTEMPTS = 3;
 
-    public function index(Request $request): JsonResponse
+    /** VENDOR-MEDIA-03A: the page size when a page is asked for without per_page. */
+    private const PER_PAGE = 24;
+
+    /**
+     * VENDOR-MEDIA-03A: the vendor's own images, newest first (id breaks equal timestamps, so pages never overlap or
+     * skip). Ownership is the canonical folder rule (VendorMediaPath::scopeToVendor, as attaching uses), applied
+     * before the search, which is its own where group and so can only narrow it. Without page, per_page or search the
+     * answer is the whole library as {images}, as the product editor reads it; with any of them, one page of it as
+     * {images, pagination}.
+     */
+    public function index(ListMediaLibraryRequest $request): JsonResponse
     {
-        $vendor = $request->user('vendor');
-        $prefix = $this->prefix($vendor->id);
+        $query = VendorMediaPath::scopeToVendor(Media::query()->images(), (int) $request->user('vendor')->id)
+            ->where(fn (Builder $query) => $this->search($query, $request->validated('search')))
+            ->latest()
+            ->orderByDesc('id');
 
-        $media = Media::query()->images()->where('file_path', 'like', $prefix.'%')->latest()->get()
-            ->map(fn (Media $item) => $this->item($item));
+        if (! $request->wantsPage()) {
+            return response()->json(['images' => $query->get()->map(fn (Media $item) => $this->item($item))]);
+        }
 
-        return response()->json(['images' => $media]);
+        $paginator = $query->paginate((int) $request->validated('per_page', self::PER_PAGE));
+
+        return response()->json([
+            'images' => array_map(fn (Media $item) => $this->item($item), $paginator->items()),
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ]);
     }
 
     public function store(Request $request): JsonResponse
@@ -96,6 +122,23 @@ class MediaLibraryController extends Controller
             return t($key, $default);
         } finally {
             config(['palgoals-locale.auto_create' => $autoCreate]);
+        }
+    }
+
+    /**
+     * VENDOR-MEDIA-03A: the term is matched literally (% and _ are escaped, so they are not wildcards) against the
+     * original file name, title and alt text, always as a bound value. An empty term matches everything.
+     */
+    private function search(Builder $query, ?string $term): void
+    {
+        if ($term === null || $term === '') {
+            return;
+        }
+
+        $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $term).'%';
+
+        foreach (['file_original_name', 'title', 'alt'] as $column) {
+            $query->orWhereRaw($query->getQuery()->getGrammar()->wrap($column)." like ? escape '!'", [$like]);
         }
     }
 
