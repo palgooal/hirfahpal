@@ -212,6 +212,9 @@ foreach (AccountGuard::all() as $accountType => $account) {
                             // URLs separate means API clients retain a stable JSON contract.
                             Route::view('products/manage', 'vendor-dashboard.resources', ['resource' => 'products'])
                                 ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.products.page');
+                            // VENDOR-MEDIA-04A: the media library page (informational until its tools are added).
+                            Route::view('media', 'vendor-dashboard.media')
+                                ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.media.page');
                             Route::view('orders/manage', 'vendor-dashboard.resources', ['resource' => 'orders'])
                                 ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.orders.page');
                             Route::view('reviews/manage', 'vendor-dashboard.resources', ['resource' => 'reviews'])

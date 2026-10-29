@@ -312,8 +312,8 @@ class VendorDashboardShellTest extends TestCase
         $html = $this->as('approved')->page()->getContent();
 
         $this->assertMatchesRegularExpression('/href="'.preg_quote(route('vendor.dashboard'), '/').'" class="pc-link"\s+aria-current="page"/', $html);
-        // The dashboard, store profile and six operational browser pages are navigable; only Dashboard is current here.
-        $this->assertSame(8, preg_match_all('/data-nav-state="link"/', $html));
+        // The dashboard, store profile, media library and six operational browser pages are navigable; only Dashboard is current here.
+        $this->assertSame(9, preg_match_all('/data-nav-state="link"/', $html));
         $this->assertSame(1, preg_match_all('/<li class="pc-item active"/', $html));
         $this->assertSame(2, preg_match_all('/aria-current="page"/', $html), 'Only the Dashboard nav link and its breadcrumb item are current.');
     }

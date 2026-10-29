@@ -5,6 +5,7 @@
         ['route' => 'vendor.dashboard', 'key' => 'vendor.Nav_Dashboard', 'default' => 'Dashboard', 'icon' => 'ph-squares-four'],
         ['route' => 'vendor.dashboard.my-store', 'key' => 'vendor.Nav_My_Store', 'default' => 'My Store', 'icon' => 'ph-storefront'],
         ['route' => 'vendor.dashboard.products.page', 'key' => 'vendor.Nav_Products', 'default' => 'Products', 'icon' => 'ph-package'],
+        ['route' => 'vendor.dashboard.media.page', 'key' => 'vendor.Nav_Media_Library', 'default' => 'Media Library', 'icon' => 'ph-images'],
         ['route' => 'vendor.dashboard.orders.page', 'key' => 'vendor.Nav_Orders', 'default' => 'Orders', 'icon' => 'ph-receipt'],
         ['route' => 'vendor.dashboard.reviews.page', 'key' => 'vendor.Nav_Reviews', 'default' => 'Reviews', 'icon' => 'ph-star'],
         ['route' => 'vendor.dashboard.returns.page', 'key' => 'vendor.Nav_Returns', 'default' => 'Returns', 'icon' => 'ph-arrow-u-up-left'],

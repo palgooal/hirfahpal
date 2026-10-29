@@ -39,6 +39,23 @@ class VendorDashboardTranslationSeeder extends Seeder
             'ar' => 'المنتجات',
             'en' => 'Products',
         ],
+        // VENDOR-MEDIA-04A: the media library page and its sidebar link.
+        'vendor.Nav_Media_Library' => [
+            'ar' => 'مكتبة الوسائط',
+            'en' => 'Media Library',
+        ],
+        'vendor.Media_Library_Description' => [
+            'ar' => 'احتفظ بصور متجرك في مكان واحد، جاهزة لإضافتها إلى منتجاتك.',
+            'en' => 'Keep your store images in one place, ready to add to your products.',
+        ],
+        'vendor.Media_Library_Next_Title' => [
+            'ar' => 'أدوات الوسائط قادمة قريبًا',
+            'en' => 'Media tools are on the way',
+        ],
+        'vendor.Media_Library_Next_Text' => [
+            'ar' => 'سنضيف رفع صورك وتصفحها وإدارتها هنا في المرحلة القادمة. حتى ذلك الحين، أضف الصور من محرّر المنتج.',
+            'en' => 'Uploading, browsing and managing your images here will be added in the next phase. Until then, add images from the product editor.',
+        ],
         'vendor.Nav_Orders' => [
             'ar' => 'الطلبات',
             'en' => 'Orders',
