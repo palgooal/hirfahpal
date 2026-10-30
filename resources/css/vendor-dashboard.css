@@ -68,6 +68,68 @@ html.vendor-shell .vendor-product-form .admin-cat-form-actions .btn { display: i
 html.vendor-shell .vendor-product-form [data-product-primary-image], html.vendor-shell .vendor-product-form [data-product-gallery-images] { min-height: 3.5rem; padding: .75rem; border: 1px dashed var(--color-hf-line); border-radius: .5rem; background: var(--color-hf-surface); }
 @media (max-width: 575.98px) { html.vendor-shell .vendor-product-form .admin-cat-form-section { padding: .75rem 1rem 1rem; } html.vendor-shell .vendor-product-form .admin-cat-form-actions { padding: 1rem; } html.vendor-shell .vendor-product-form .admin-cat-form-actions .btn { flex: 1 1 100%; } }
 
+/* VPM-01A: the editor's image section in the admin product gallery's look (resources/css/admin-dashboard.css,
+ * "Product gallery (PRODUCT-MEDIA-01 P5-C)"), same values, under vendor-product-* names. The vendor shell loads no
+ * Bootstrap, so this replaces the d-flex / form-text / text-danger / object-fit-cover / visually-hidden utilities the
+ * section used. Logical properties only, so RTL and LTR need no separate rules. */
+html.vendor-shell .vendor-product-form .vendor-product-hint { margin: .25rem 0 0; color: var(--color-hf-muted); font-size: .8125rem; }
+html.vendor-shell .vendor-product-form .vendor-product-error { margin: .75rem 0 0; color: #a13d2b; font-size: .875rem; font-weight: 600; }
+html.vendor-shell .vendor-product-form .vendor-product-error[hidden] { display: none; }
+html.vendor-shell .vendor-product-gallery { gap: .75rem; }
+html.vendor-shell .vendor-product-gallery > .vendor-product-hint { margin-top: 0; }
+html.vendor-shell .vendor-product-gallery [hidden] { display: none; }
+/* Duotone icons draw their second layer for left-to-right flow; each icon keeps its own direction (as in the admin). */
+html.vendor-shell .vendor-product-gallery i.ph-duotone { display: inline-block; direction: ltr; unicode-bidi: isolate; line-height: 1; }
+html.vendor-shell .vendor-product-gallery .btn { display: inline-flex; align-items: center; justify-content: center; gap: .375rem; }
+html.vendor-shell .vendor-product-gallery .btn-light-secondary { border: 1px solid var(--color-hf-line); background-color: var(--color-hf-surface); color: var(--color-hf-ink); }
+html.vendor-shell .vendor-product-gallery .btn-light-secondary:hover,
+html.vendor-shell .vendor-product-gallery .btn-light-secondary:focus-visible,
+html.vendor-shell .vendor-product-gallery .btn-light-secondary:active { border-color: var(--color-hf-sage); background-color: var(--color-hf-canvas); color: var(--color-hf-ink); }
+html.vendor-shell .vendor-product-gallery .btn:disabled { opacity: .65; cursor: not-allowed; }
+html.vendor-shell .vendor-product-gallery-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
+html.vendor-shell .vendor-product-gallery-count { margin: 0; color: var(--color-hf-muted); font-size: .8125rem; font-weight: 600; }
+html.vendor-shell .vendor-product-gallery-group { display: flex; flex-direction: column; gap: .625rem; min-width: 0; }
+html.vendor-shell .vendor-product-gallery-group-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
+html.vendor-shell .vendor-product-gallery-group-text { min-width: 0; }
+html.vendor-shell .vendor-product-gallery-label { margin: 0; color: var(--color-hf-ink); font-size: .9375rem; font-weight: 700; }
+html.vendor-shell .vendor-product-gallery-add:focus-visible,
+html.vendor-shell .vendor-product-gallery-actions .btn:focus-visible { outline: 2px solid var(--color-hf-copper); outline-offset: 2px; }
+html.vendor-shell .vendor-product-form .vendor-product-gallery-box { min-height: 0; padding: 0; border: 0; background: none; }
+html.vendor-shell .vendor-product-gallery-empty { margin: 0; padding: .75rem 1rem; border: 1px dashed var(--color-hf-line); border-radius: 12px; background-color: var(--color-hf-surface); color: var(--color-hf-muted); font-size: .875rem; }
+html.vendor-shell .vendor-product-gallery-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .75rem; margin: 0; padding: 0; list-style: none; }
+html.vendor-shell .vendor-product-gallery-item { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: .5rem .75rem; padding: .75rem; border: 1px solid var(--color-hf-line); border-radius: 12px; background-color: #fff; }
+html.vendor-shell .vendor-product-gallery-item.is-main { border-color: var(--color-hf-olive); }
+/* A fixed square; the image fills it (cover), as in the admin gallery card. */
+html.vendor-shell .vendor-product-gallery-thumb { display: flex; align-items: center; justify-content: center; aspect-ratio: 1; overflow: hidden; border: 1px solid var(--color-hf-line); border-radius: 10px; background-color: var(--color-hf-surface); color: var(--color-hf-muted); font-size: 1.75rem; }
+html.vendor-shell .vendor-product-gallery-thumb img { width: 100%; height: 100%; object-fit: cover; }
+html.vendor-shell .vendor-product-gallery-meta { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; min-width: 0; }
+html.vendor-shell .vendor-product-gallery-position { color: var(--color-hf-muted); font-size: .75rem; }
+html.vendor-shell .vendor-product-gallery-name { max-width: 100%; overflow: hidden; color: var(--color-hf-ink); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+html.vendor-shell .vendor-product-gallery-badge { display: inline-block; padding: .0625rem .5rem; border: 1px solid var(--color-hf-line); border-radius: 9999px; font-size: .75rem; font-weight: 600; white-space: nowrap; }
+html.vendor-shell .vendor-product-gallery-badge.is-main { border-color: var(--color-hf-olive); background-color: var(--color-hf-olive); color: #fff; }
+html.vendor-shell .vendor-product-gallery-actions { display: flex; flex-wrap: wrap; grid-column: 1 / -1; gap: .375rem; }
+html.vendor-shell .vendor-product-gallery-actions .btn { gap: .25rem; }
+html.vendor-shell .vendor-product-gallery-status { margin: 0; color: var(--color-hf-muted); font-size: .8125rem; }
+html.vendor-shell .vendor-product-gallery-status:empty { display: none; }
+/* The inline chooser (until VPM-01B): a bordered surface panel with its actions, the upload note and the images. */
+html.vendor-shell .vendor-product-media-panel { display: flex; flex-direction: column; gap: .625rem; padding: 1rem; border: 1px solid var(--color-hf-line); border-radius: 12px; background-color: var(--color-hf-surface); }
+html.vendor-shell .vendor-product-media-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
+html.vendor-shell .vendor-product-media-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+html.vendor-shell .vendor-product-gallery .btn-primary { border-color: var(--color-hf-olive); background-color: var(--color-hf-olive); color: #fff; }
+html.vendor-shell .vendor-product-gallery .btn-primary:hover,
+html.vendor-shell .vendor-product-gallery .btn-primary:focus-visible { border-color: var(--color-hf-olive-hover); background-color: var(--color-hf-olive-hover); }
+/* Opened by the Upload button only; kept out of sight and out of the tab order. */
+html.vendor-shell .vendor-product-media-file { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+html.vendor-shell .vendor-product-media-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); gap: .5rem; color: var(--color-hf-muted); font-size: .875rem; }
+html.vendor-shell .vendor-product-media-choice { display: block; aspect-ratio: 1; padding: 0; overflow: hidden; border: 1px solid var(--color-hf-line); border-radius: 10px; background-color: #fff; cursor: pointer; }
+html.vendor-shell .vendor-product-media-choice:hover { border-color: var(--color-hf-sage); }
+html.vendor-shell .vendor-product-media-choice:focus-visible { outline: 2px solid var(--color-hf-copper); outline-offset: 2px; }
+html.vendor-shell .vendor-product-media-choice img { display: block; width: 100%; height: 100%; object-fit: contain; }
+@media (max-width: 575.98px) {
+  html.vendor-shell .vendor-product-gallery-list { grid-template-columns: minmax(0, 1fr); }
+  html.vendor-shell .vendor-product-gallery-add { width: 100%; }
+}
+
 html.vendor-shell body,
 html.vendor-shell button,
 html.vendor-shell h1,

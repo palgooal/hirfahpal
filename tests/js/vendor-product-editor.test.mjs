@@ -12,6 +12,8 @@ import {
     orderImages,
     planChoice,
     removeLocal,
+    renderImageCard,
+    saveErrorText,
     setLocalPrimary,
 } from '../../resources/js/vendor-product-editor.js';
 
@@ -98,4 +100,126 @@ test('placeholders are filled, unknown ones kept', () => {
     assert.equal(format(':count of :max images', { count: 6, max: 6 }), '6 of 6 images');
     assert.equal(format(':count من :max صور', { count: 2, max: 6 }), '2 من 6 صور');
     assert.equal(format('Hi :name'), 'Hi :name');
+});
+
+// ---- VPM-01A: the admin-style image card and the translated save errors ----
+
+class FakeElement {
+    constructor(tag) {
+        this.tagName = tag.toUpperCase();
+        this.children = [];
+        this.attributes = {};
+        this.dataset = {};
+        this.text = '';
+        this.className = '';
+    }
+
+    set textContent(value) {
+        this.children = [];
+        this.text = String(value);
+    }
+
+    get textContent() {
+        return this.text + this.children.map((child) => child.textContent).join('');
+    }
+
+    append(...nodes) {
+        this.children.push(...nodes);
+    }
+
+    setAttribute(name, value) {
+        this.attributes[name] = String(value);
+    }
+
+    getAttribute(name) {
+        return this.attributes[name] ?? null;
+    }
+
+    all() {
+        return this.children.flatMap((child) => [child, ...child.all()]);
+    }
+}
+
+const doc = { createElement: (tag) => new FakeElement(tag) };
+const cardTexts = { position: 'Image :position', mainBadge: 'Main image', imageAlt: 'Product image', change: 'Change', setMain: 'Set as main', remove: 'Remove' };
+const card = (image, index, calls = []) => renderImageCard(doc, image, {
+    index,
+    isPrimary: index === 0,
+    url: '/storage/vendors/media/1/a.png',
+    messages: cardTexts,
+    onChange: () => calls.push('change'),
+    onSetMain: () => calls.push('main'),
+    onRemove: () => calls.push('remove'),
+});
+const actions = (node) => node.children[2].children;
+
+test('the main image card has the admin layout, position 1, the main badge and no "set as main"', () => {
+    const calls = [];
+    const node = card({ id: 7, path: 'vendors/media/1/a.png', alt_text: 'Clay jug', is_primary: true }, 0, calls);
+    const [thumb, meta, bar] = node.children;
+
+    assert.equal(node.tagName, 'LI');
+    assert.equal(node.className, 'vendor-product-gallery-item is-main');
+    assert.equal(node.dataset.imageId, '7');
+    assert.deepEqual([thumb.className, meta.className, bar.className], ['vendor-product-gallery-thumb', 'vendor-product-gallery-meta', 'vendor-product-gallery-actions']);
+    assert.equal(thumb.children[0].src, '/storage/vendors/media/1/a.png');
+    assert.equal(thumb.children[0].alt, 'Clay jug');
+    assert.equal(thumb.children[0].loading, 'lazy');
+    assert.deepEqual(meta.children.map((child) => child.textContent), ['Image 1', 'Clay jug', 'Main image']);
+    assert.equal(meta.children[2].className, 'vendor-product-gallery-badge is-main');
+    assert.deepEqual(actions(node).map((button) => button.dataset.action), ['change', 'remove']);
+
+    actions(node).forEach((button) => button.onclick());
+    assert.deepEqual(calls, ['change', 'remove']);
+});
+
+test('a gallery card has its position, no badge, and change / set as main / remove described by its name', () => {
+    const calls = [];
+    const node = card({ id: 9, path: 'products/legacy.png', alt_text: '', is_primary: false }, 3, calls);
+    const meta = node.children[1];
+
+    assert.equal(node.className, 'vendor-product-gallery-item');
+    assert.deepEqual(meta.children.map((child) => child.textContent), ['Image 4', 'Product image'], 'Without alt text the name is "Product image".');
+    assert.equal(meta.children[1].id, 'vendor-product-image-3-name');
+    assert.deepEqual(actions(node).map((button) => button.dataset.action), ['change', 'main', 'remove']);
+    assert.deepEqual(actions(node).map((button) => button.textContent), ['Change', 'Set as main', 'Remove']);
+    for (const button of actions(node)) {
+        assert.equal(button.type, 'button');
+        assert.equal(button.className, 'btn btn-sm btn-light-secondary');
+        assert.equal(button.getAttribute('aria-describedby'), 'vendor-product-image-3-name');
+        assert.equal(button.children[0].getAttribute('aria-hidden'), 'true');
+    }
+
+    actions(node).forEach((button) => button.onclick());
+    assert.deepEqual(calls, ['change', 'main', 'remove']);
+});
+
+test('names stay text in a card: markup in alt text is never parsed', () => {
+    const hostile = '<img src=x onerror=alert(1)>';
+    const node = card({ id: 1, path: 'p.png', alt_text: hostile, is_primary: true }, 0);
+    const name = node.children[1].children[1];
+
+    assert.equal(name.tagName, 'BDI');
+    assert.equal(name.textContent, hostile);
+    assert.equal(name.children.length, 0);
+    assert.deepEqual(node.all().map((child) => child.tagName), ['DIV', 'IMG', 'DIV', 'SPAN', 'BDI', 'SPAN', 'DIV', 'BUTTON', 'I', 'SPAN', 'BUTTON', 'I', 'SPAN']);
+});
+
+test('a failed save reads the page texts; a 422 adds the field details, never the server message', () => {
+    const texts = { saveFailed: 'The product could not be saved.', saveInvalid: 'The product could not be saved. Check these details:' };
+    const messages = { session: 'Your session has ended.', forbidden: 'You do not have permission to do this.' };
+
+    assert.equal(saveErrorText(422, { message: 'SERVER', errors: { price: ['The price field is required.'], sku: ['Taken.'] } }, texts, messages), 'The product could not be saved. Check these details: The price field is required. Taken.');
+    assert.equal(saveErrorText(422, { message: 'SERVER' }, texts, messages), texts.saveFailed);
+    assert.equal(saveErrorText(401, null, texts, messages), messages.session);
+    assert.equal(saveErrorText(419, null, texts, messages), messages.session);
+    assert.equal(saveErrorText(403, { message: 'SERVER' }, texts, messages), messages.forbidden);
+    assert.equal(saveErrorText(500, { message: 'SQLSTATE' }, texts, messages), texts.saveFailed);
+});
+
+test('the six-image limit still refuses a seventh and allows replacing at six', () => {
+    const six = Array.from({ length: MAX_IMAGES }, (_, i) => ({ id: i + 1, path: `vendors/media/1/${i}.png`, sort_order: i, is_primary: i === 0 }));
+
+    assert.deepEqual(planChoice(six, { mode: 'gallery', target: null }), { action: 'refuse', error: 'limit' });
+    assert.deepEqual(planChoice(six, { mode: 'primary', target: six[0] }), { action: 'replace', target: six[0] });
 });

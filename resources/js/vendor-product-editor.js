@@ -92,6 +92,91 @@ export function removeLocal(images, removed) {
     return images.filter((image) => image !== removed).map((image, position) => ({ ...image, is_primary: position === 0, sort_order: position }));
 }
 
+/**
+ * VPM-01A: the text of a failed product save. A 422 leads with the page's translated sentence, then the field details
+ * the server gave; any other failure is a page text only. The server's own message is never shown.
+ */
+export function saveErrorText(status, body, texts, messages) {
+    if (status === 422) {
+        const details = Object.values(body?.errors ?? {}).flat().filter((text) => typeof text === 'string' && text !== '').join(' ');
+
+        return details ? `${texts.saveInvalid} ${details}` : texts.saveFailed;
+    }
+
+    return status === 401 || status === 419 ? messages.session : status === 403 ? messages.forbidden : texts.saveFailed;
+}
+
+const icon = (doc, name) => {
+    const node = doc.createElement('i');
+    node.className = `ph-duotone ${name}`;
+    node.setAttribute('aria-hidden', 'true');
+
+    return node;
+};
+
+/**
+ * VPM-01A: one product image, built like the admin gallery's card (thumbnail, position, name, main badge, actions).
+ * Texts go through textContent only; each action button is described by the image name.
+ */
+export function renderImageCard(doc, image, { index, isPrimary, url, messages, onChange, onSetMain, onRemove }) {
+    const nameId = `vendor-product-image-${index}-name`;
+    const label = typeof image.alt_text === 'string' && image.alt_text.trim() !== '' ? image.alt_text.trim() : messages.imageAlt;
+
+    const card = doc.createElement('li');
+    card.className = isPrimary ? 'vendor-product-gallery-item is-main' : 'vendor-product-gallery-item';
+    if (image.id !== undefined && image.id !== null) card.dataset.imageId = String(image.id);
+
+    const thumb = doc.createElement('div');
+    thumb.className = 'vendor-product-gallery-thumb';
+    const pic = doc.createElement('img');
+    pic.src = url;
+    pic.alt = label;
+    pic.loading = 'lazy';
+    thumb.append(pic);
+
+    const meta = doc.createElement('div');
+    meta.className = 'vendor-product-gallery-meta';
+    const position = doc.createElement('span');
+    position.className = 'vendor-product-gallery-position';
+    position.textContent = format(messages.position, { position: index + 1 });
+    const name = doc.createElement('bdi');
+    name.className = 'vendor-product-gallery-name';
+    name.id = nameId;
+    name.textContent = label;
+    name.title = label;
+    meta.append(position, name);
+
+    if (isPrimary) {
+        const badge = doc.createElement('span');
+        badge.className = 'vendor-product-gallery-badge is-main';
+        badge.textContent = messages.mainBadge;
+        meta.append(badge);
+    }
+
+    const actions = doc.createElement('div');
+    actions.className = 'vendor-product-gallery-actions';
+    const button = (action, text, iconName, onClick) => {
+        const node = doc.createElement('button');
+        node.type = 'button';
+        node.className = 'btn btn-sm btn-light-secondary';
+        node.dataset.action = action;
+        node.setAttribute('aria-describedby', nameId);
+        const caption = doc.createElement('span');
+        caption.textContent = text;
+        node.append(icon(doc, iconName), caption);
+        node.onclick = onClick;
+        actions.append(node);
+    };
+
+    button('change', messages.change, 'ph-swap', onChange);
+    if (!isPrimary) button('main', messages.setMain, 'ph-star', onSetMain);
+    button('remove', messages.remove, 'ph-x', onRemove);
+
+    card.append(thumb, meta, actions);
+
+    return card;
+}
+
 const fetchJson = async (url, options) => {
     try {
         const response = await fetch(url, options);
@@ -110,6 +195,7 @@ function initEditor(editor) {
     const token = form.querySelector('input[name="_token"]').value;
     const list = document.querySelector('[data-vendor-resource-list]');
     const messages = JSON.parse(editor.querySelector('[data-product-gallery-messages]')?.textContent || '{}');
+    const texts = JSON.parse(editor.querySelector('[data-product-editor-messages]')?.textContent || '{}');
     const gallery = editor.querySelector('[data-product-gallery]');
     const galleryStatus = editor.querySelector('[data-product-gallery-status]');
     const galleryError = editor.querySelector('[data-product-gallery-error]');
@@ -142,20 +228,17 @@ function initEditor(editor) {
     const render = () => {
         images = orderImages(images);
         const primary = images[0] ?? null;
-        primaryBox().replaceChildren(); galleryBox().replaceChildren();
-        const card = (image, isPrimary) => {
-            const wrap = document.createElement('article'); wrap.className = 'border rounded p-2 d-inline-flex flex-column gap-2';
-            const pic = document.createElement('img'); pic.src = imageUrl(image); pic.alt = image.alt_text || messages.imageAlt; pic.width = 112; pic.height = 112; pic.className = 'object-fit-cover rounded';
-            const actions = document.createElement('div'); actions.className = 'd-flex gap-1 flex-wrap';
-            const button = (text, className, onClick) => { const node = document.createElement('button'); node.type = 'button'; node.className = `btn btn-sm ${className}`; node.textContent = text; node.onclick = onClick; actions.append(node); };
-            button(messages.change, 'btn-light-primary', () => openMedia(isPrimary ? 'primary' : 'replace', image));
-            if (!isPrimary) button(messages.setMain, 'btn-light-secondary', () => setPrimary(image));
-            button(messages.remove, 'btn-light-danger', () => removeImage(image));
-            wrap.append(pic, actions); return wrap;
-        };
-        if (primary) primaryBox().append(card(primary, true)); else primaryBox().textContent = messages.noMain;
-        images.slice(1).forEach((image) => galleryBox().append(card(image, false)));
-        if (images.length < 2) galleryBox().textContent = messages.noGallery;
+        // VPM-01A: the admin gallery's cards in a list, or its dashed empty note. Same actions as before.
+        const card = (image, index) => renderImageCard(document, image, {
+            index, isPrimary: index === 0, url: imageUrl(image), messages,
+            onChange: () => openMedia(index === 0 ? 'primary' : 'replace', image),
+            onSetMain: () => setPrimary(image),
+            onRemove: () => removeImage(image),
+        });
+        const listOf = (cards) => { const node = document.createElement('ol'); node.className = 'vendor-product-gallery-list'; node.append(...cards); return node; };
+        const empty = (text) => { const node = document.createElement('p'); node.className = 'vendor-product-gallery-empty'; node.textContent = text; return node; };
+        primaryBox().replaceChildren(primary ? listOf([card(primary, 0)]) : empty(messages.noMain));
+        galleryBox().replaceChildren(images.length > 1 ? listOf(images.slice(1).map((image, at) => card(image, at + 1))) : empty(messages.noGallery));
         galleryCount.textContent = format(messages.count, { count: images.length, max: MAX_IMAGES });
         setBusy(busy);
     };
@@ -209,7 +292,7 @@ function initEditor(editor) {
         if (answer.status !== 200) { panelItems.textContent = answer.status === 401 || answer.status === 419 ? messages.session : answer.status === 403 ? messages.forbidden : answer.status === 0 ? messages.network : messages.libraryError; return; }
         const media = Array.isArray(answer.body?.images) ? answer.body.images : [];
         panelItems.replaceChildren();
-        media.forEach((medium) => { const button = document.createElement('button'); button.type = 'button'; button.className = 'border rounded p-1'; const pic = document.createElement('img'); pic.src = medium.url; pic.alt = medium.alt_text || messages.mediaAlt; pic.width = 96; pic.height = 96; pic.className = 'object-fit-cover rounded'; button.append(pic); button.onclick = () => choose(medium); panelItems.append(button); });
+        media.forEach((medium) => { const button = document.createElement('button'); button.type = 'button'; button.className = 'vendor-product-media-choice'; const pic = document.createElement('img'); pic.src = medium.url; pic.alt = medium.alt_text || messages.mediaAlt; pic.width = 96; pic.height = 96; pic.loading = 'lazy'; button.append(pic); button.onclick = () => choose(medium); panelItems.append(button); });
         if (!media.length) panelItems.textContent = messages.libraryEmpty;
     };
 
@@ -224,18 +307,18 @@ function initEditor(editor) {
         const media = Array.isArray(answer.body?.images) ? answer.body.images : []; if (media[0]) choose(media[0]);
     };
 
-    const close = () => { editor.hidden = true; list.hidden = false; error.hidden = true; form.reset(); field('low_stock_threshold').value = '1'; editingId = null; images = []; clearGalleryError(); status(''); panel.hidden = true; render(); title.textContent = 'Add product'; };
+    const close = () => { editor.hidden = true; list.hidden = false; error.hidden = true; form.reset(); field('low_stock_threshold').value = '1'; editingId = null; images = []; clearGalleryError(); status(''); panel.hidden = true; render(); title.textContent = texts.add; };
     const payload = () => ({ name: field('name').value.trim(), category_id: number('category_id'), price: number('price'), stock_quantity: number('stock_quantity'), sku: value('sku'), compare_at_price: number('compare_at_price'), low_stock_threshold: number('low_stock_threshold'), weight: number('weight'), short_description: value('short_description'), description: value('description'), images: editingId ? undefined : images.map(({ path, alt_text, sort_order, is_primary }) => ({ path, alt_text, sort_order, is_primary })) });
-    window.addEventListener('vendor-resource:loaded', (event) => { if (event.detail.resource !== 'products') return; const selected = field('category_id').value; field('category_id').replaceChildren(new Option('No category', '')); (event.detail.payload?.filters?.categories ?? []).forEach((category) => field('category_id').add(new Option(category.name, String(category.id)))); field('category_id').value = selected; });
-    document.addEventListener('click', async (event) => { const button = event.target.closest('[data-product-action]'); if (!button) return; const id = button.dataset.productId; if (button.dataset.productAction === 'delete') { if (!window.confirm('Delete this product? This cannot be undone.')) return; const response = await request(`${endpoint}/${id}`, 'DELETE'); if (!response.ok) { fail('The product could not be deleted.'); showEditor(); return; } window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products' } })); return; } const response = await request(`${endpoint}/${id}`); if (!response.ok) return fail('The product could not be loaded.'); const product = (await response.json()).product; form.reset(); ['name', 'category_id', 'price', 'stock_quantity', 'sku', 'compare_at_price', 'low_stock_threshold', 'weight', 'short_description', 'description'].forEach((name) => { field(name).value = product[name] ?? ''; }); editingId = id; images = product.images || []; clearGalleryError(); status(''); panel.hidden = true; render(); title.textContent = 'Edit product'; showEditor(); });
-    form.addEventListener('submit', async (event) => { event.preventDefault(); error.hidden = true; const response = await request(editingId ? `${endpoint}/${editingId}` : endpoint, editingId ? 'PUT' : 'POST', payload()); if (!response.ok) { const data = await response.json().catch(() => null); fail(Object.values(data?.errors ?? {}).flat().join(' ') || 'The product could not be saved.'); return; } close(); window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products' } })); });
+    window.addEventListener('vendor-resource:loaded', (event) => { if (event.detail.resource !== 'products') return; const selected = field('category_id').value; field('category_id').replaceChildren(new Option(texts.noCategory, '')); (event.detail.payload?.filters?.categories ?? []).forEach((category) => field('category_id').add(new Option(category.name, String(category.id)))); field('category_id').value = selected; });
+    document.addEventListener('click', async (event) => { const button = event.target.closest('[data-product-action]'); if (!button) return; const id = button.dataset.productId; if (button.dataset.productAction === 'delete') { if (!window.confirm(texts.confirmDelete)) return; const response = await request(`${endpoint}/${id}`, 'DELETE'); if (!response.ok) { fail(texts.deleteFailed); showEditor(); return; } window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products' } })); return; } const response = await request(`${endpoint}/${id}`); if (!response.ok) return fail(texts.loadFailed); const product = (await response.json()).product; form.reset(); ['name', 'category_id', 'price', 'stock_quantity', 'sku', 'compare_at_price', 'low_stock_threshold', 'weight', 'short_description', 'description'].forEach((name) => { field(name).value = product[name] ?? ''; }); editingId = id; images = product.images || []; clearGalleryError(); status(''); panel.hidden = true; render(); title.textContent = texts.edit; showEditor(); });
+    form.addEventListener('submit', async (event) => { event.preventDefault(); error.hidden = true; const response = await request(editingId ? `${endpoint}/${editingId}` : endpoint, editingId ? 'PUT' : 'POST', payload()); if (!response.ok) { const data = await response.json().catch(() => null); fail(saveErrorText(response.status, data, texts, messages)); return; } close(); window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products' } })); });
     editor.querySelectorAll('[data-product-editor-close]').forEach((button) => button.onclick = close);
     editor.querySelector('[data-product-primary-open]').onclick = () => openMedia('primary', images[0] ?? null);
     editor.querySelector('[data-product-gallery-open]').onclick = () => openMedia('gallery');
     editor.querySelector('[data-product-media-close]').onclick = () => { panel.hidden = true; };
     editor.querySelector('[data-product-media-upload]').onclick = () => editor.querySelector('[data-product-media-file]').click();
     editor.querySelector('[data-product-media-file]').onchange = upload;
-    const add = document.createElement('button'); add.type = 'button'; add.className = 'btn btn-primary'; add.textContent = 'Add product'; add.onclick = () => { close(); showEditor(); }; document.querySelector('[data-vendor-resource-list] [data-resource-retry]').before(add);
+    const add = document.createElement('button'); add.type = 'button'; add.className = 'btn btn-primary'; add.textContent = texts.add; add.onclick = () => { close(); showEditor(); }; document.querySelector('[data-vendor-resource-list] [data-resource-retry]').before(add);
     render();
 }
 

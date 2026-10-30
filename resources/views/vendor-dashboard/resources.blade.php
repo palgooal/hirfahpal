@@ -48,21 +48,21 @@
                     <form data-product-form novalidate>
                         @csrf
                         <fieldset class="admin-cat-form-section">
-                            <legend class="admin-cat-form-legend">Product details</legend>
+                            <legend class="admin-cat-form-legend">{{ t('vendor.Product_Section_Details', 'Product details') }}</legend>
                             <div class="row g-3">
                             <div class="col-md-6"><label class="form-label" for="vendor-product-name">{{ t('vendor.Product_Name', 'Name') }} *</label><input id="vendor-product-name" class="form-control" name="name" required maxlength="255"></div>
                             <div class="col-md-6"><label class="form-label" for="vendor-product-category">{{ t('vendor.Product_Category', 'Category') }}</label><select id="vendor-product-category" class="form-select" name="category_id"><option value="">{{ t('vendor.Product_No_Category', 'No category') }}</option></select></div>
-                            <div class="col-md-6"><label class="form-label" for="vendor-product-sku">SKU</label><input id="vendor-product-sku" class="form-control" name="sku" maxlength="255"></div>
+                            <div class="col-md-6"><label class="form-label" for="vendor-product-sku">{{ t('vendor.Product_Sku', 'SKU') }}</label><input id="vendor-product-sku" class="form-control" name="sku" maxlength="255" dir="ltr"></div>
                             <div class="col-md-6"><label class="form-label" for="vendor-product-stock">{{ t('vendor.Product_Stock', 'Stock') }} *</label><input id="vendor-product-stock" class="form-control" name="stock_quantity" type="number" min="0" step="1" required></div>
                             <div class="col-12"><label class="form-label" for="vendor-product-short-description">{{ t('vendor.Product_Short_Description', 'Short description') }}</label><textarea id="vendor-product-short-description" class="form-control" name="short_description" rows="2" maxlength="1000"></textarea></div>
                             <div class="col-12"><label class="form-label" for="vendor-product-description">{{ t('vendor.Product_Description', 'Description') }}</label><textarea id="vendor-product-description" class="form-control" name="description" rows="5"></textarea></div>
                             </div>
                         </fieldset>
                         <fieldset class="admin-cat-form-section">
-                            <legend class="admin-cat-form-legend">Price, stock and shipping</legend>
+                            <legend class="admin-cat-form-legend">{{ t('vendor.Product_Section_Pricing', 'Price, stock and shipping') }}</legend>
                             <div class="row g-3">
                             <div class="col-md-6"><label class="form-label" for="vendor-product-price">{{ t('vendor.Product_Price', 'Regular price') }} *</label><input id="vendor-product-price" class="form-control" name="price" type="number" min="0.01" step="0.01" required></div>
-                            <div class="col-md-6"><label class="form-label" for="vendor-product-compare-price">{{ t('vendor.Product_Compare_Price', 'Sale price (optional)') }}</label><input id="vendor-product-compare-price" class="form-control" name="compare_at_price" type="number" min="0" step="0.01"><p class="form-text mb-0">Must be lower than the regular price.</p></div>
+                            <div class="col-md-6"><label class="form-label" for="vendor-product-compare-price">{{ t('vendor.Product_Compare_Price', 'Sale price (optional)') }}</label><input id="vendor-product-compare-price" class="form-control" name="compare_at_price" type="number" min="0" step="0.01" aria-describedby="vendor-product-compare-price-hint"><p class="vendor-product-hint" id="vendor-product-compare-price-hint">{{ t('vendor.Product_Compare_Price_Hint', 'Must be lower than the regular price.') }}</p></div>
                             <div class="col-md-6"><label class="form-label" for="vendor-product-low-stock">{{ t('vendor.Product_Low_Stock', 'Low stock threshold') }}</label><input id="vendor-product-low-stock" class="form-control" name="low_stock_threshold" type="number" min="0" step="1" value="1"></div>
                             <div class="col-md-6"><label class="form-label" for="vendor-product-weight">{{ t('vendor.Product_Weight', 'Weight') }}</label><input id="vendor-product-weight" class="form-control" name="weight" type="number" min="0" step="0.01"></div>
                             </div>
@@ -111,19 +111,89 @@
                                 'uploadInvalid' => $galleryText('Upload_Invalid', 'The file must be a JPEG, PNG, GIF or WebP image of up to 10 MB.'),
                                 'imageAlt' => $galleryText('Image_Alt', 'Product image'),
                                 'mediaAlt' => $galleryText('Media_Alt', 'Media library image'),
+                                // VPM-01A: the admin gallery card's position line and main badge.
+                                'position' => $galleryText('Position', 'Image :position'),
+                                'mainBadge' => $galleryText('Main_Badge', 'Main image'),
+                            ];
+                            // VPM-01A: the editor's own texts (title, list button, product load, save and delete).
+                            $editorMessages = [
+                                'add' => t('vendor.Product_New', 'Add product'),
+                                'edit' => t('vendor.Product_Edit', 'Edit product'),
+                                'noCategory' => t('vendor.Product_No_Category', 'No category'),
+                                'confirmDelete' => t('vendor.Product_Confirm_Delete', 'Delete this product? This cannot be undone.'),
+                                'deleteFailed' => t('vendor.Product_Delete_Failed', 'The product could not be deleted.'),
+                                'loadFailed' => t('vendor.Product_Load_Failed', 'The product could not be loaded.'),
+                                'saveFailed' => t('vendor.Product_Save_Failed', 'The product could not be saved.'),
+                                'saveInvalid' => t('vendor.Product_Save_Invalid', 'The product could not be saved. Check these details:'),
                             ];
                         @endphp
-                        <fieldset class="admin-cat-form-section" data-product-gallery aria-busy="false">
-                            <legend class="admin-cat-form-legend">Product images</legend>
-                            <p class="form-text mt-0" data-product-gallery-count></p>
-                            <div class="mb-4"><div class="d-flex justify-content-between align-items-center gap-2"><div><label class="form-label mb-0">Main product image</label><p class="form-text mb-0">Shown first on the store.</p></div><button class="btn btn-light-primary" type="button" data-product-primary-open>Choose from media</button></div><div class="d-flex flex-wrap gap-2 mt-2" data-product-primary-image></div></div>
-                            <div><div class="d-flex justify-content-between align-items-center gap-2"><div><label class="form-label mb-0">Product gallery</label><p class="form-text mb-0">Choose additional images from your media library.</p></div><button class="btn btn-light-primary" type="button" data-product-gallery-open data-limited="true">Add gallery image</button></div><div class="d-flex flex-wrap gap-2 mt-2" data-product-gallery-images></div></div>
-                            <p class="form-text mb-0 mt-2" role="status" aria-live="polite" data-product-gallery-status></p>
-                            <p class="text-danger mb-0 mt-2" role="alert" data-product-gallery-error hidden></p>
+                        {{--
+                            VPM-01A: the image section in the admin product gallery's look (partials/gallery.blade.php:
+                            bar with the count, cards with thumbnail, position, name, main badge and actions), under
+                            vendor-product-gallery-* in resources/css/vendor-dashboard.css; the vendor shell has no
+                            Bootstrap, so no Bootstrap layout utilities here. Behaviour unchanged: main image box,
+                            gallery box, inline chooser with upload (VPM-01B replaces the chooser).
+                        --}}
+                        <fieldset class="admin-cat-form-section vendor-product-gallery" data-product-gallery aria-busy="false">
+                            <legend class="admin-cat-form-legend">{{ $galleryText('Section', 'Product images') }}</legend>
+                            <p class="vendor-product-hint" id="vendor-product-gallery-hint">{{ $galleryText('Hint', 'Choose up to 6 images from your media library. The main image is shown first in the store.') }}</p>
+                            <div class="vendor-product-gallery-bar">
+                                <p class="vendor-product-gallery-count" data-product-gallery-count></p>
+                            </div>
+
+                            <section class="vendor-product-gallery-group" aria-labelledby="vendor-product-main-label">
+                                <div class="vendor-product-gallery-group-head">
+                                    <div class="vendor-product-gallery-group-text">
+                                        <h3 class="vendor-product-gallery-label" id="vendor-product-main-label">{{ $galleryText('Main_Label', 'Main product image') }}</h3>
+                                        <p class="vendor-product-hint">{{ $galleryText('Main_Help', 'Shown first on the store.') }}</p>
+                                    </div>
+                                    <button class="btn btn-light-secondary vendor-product-gallery-add" type="button" data-product-primary-open>
+                                        <i class="ph-duotone ph-image" aria-hidden="true"></i>
+                                        <span>{{ $galleryText('Choose_Main', 'Choose from media') }}</span>
+                                    </button>
+                                </div>
+                                <div class="vendor-product-gallery-box" data-product-primary-image></div>
+                            </section>
+
+                            <section class="vendor-product-gallery-group" aria-labelledby="vendor-product-gallery-label">
+                                <div class="vendor-product-gallery-group-head">
+                                    <div class="vendor-product-gallery-group-text">
+                                        <h3 class="vendor-product-gallery-label" id="vendor-product-gallery-label">{{ $galleryText('Gallery_Label', 'Product gallery') }}</h3>
+                                        <p class="vendor-product-hint">{{ $galleryText('Gallery_Help', 'Choose additional images from your media library.') }}</p>
+                                    </div>
+                                    <button class="btn btn-light-secondary vendor-product-gallery-add" type="button" data-product-gallery-open data-limited="true" aria-describedby="vendor-product-gallery-hint">
+                                        <i class="ph-duotone ph-plus" aria-hidden="true"></i>
+                                        <span>{{ $galleryText('Add', 'Add gallery image') }}</span>
+                                    </button>
+                                </div>
+                                <div class="vendor-product-gallery-box" data-product-gallery-images></div>
+                            </section>
+
+                            <p class="vendor-product-gallery-status" role="status" aria-live="polite" data-product-gallery-status></p>
+                            <p class="vendor-product-error" role="alert" data-product-gallery-error hidden></p>
                             <script type="application/json" data-product-gallery-messages>@json($galleryMessages)</script>
-                            <div class="border rounded p-3 mt-3" data-product-media-library hidden><div class="d-flex justify-content-between align-items-center mb-2"><strong data-product-media-title>Choose an image from media</strong><div class="d-flex gap-2"><button class="btn btn-sm btn-primary" type="button" data-product-media-upload>Upload new image</button><button class="btn btn-sm btn-light-secondary" type="button" data-product-media-close>Close</button></div></div><input class="visually-hidden" type="file" accept="image/jpeg,image/png,image/gif,image/webp" data-product-media-file multiple><div class="d-flex flex-wrap gap-2" data-product-media-items></div></div>
+
+                            <div class="vendor-product-media-panel" data-product-media-library hidden>
+                                <div class="vendor-product-media-head">
+                                    <strong class="vendor-product-gallery-label" data-product-media-title>{{ $galleryText('Panel_Title', 'Choose an image from media') }}</strong>
+                                    <div class="vendor-product-media-actions">
+                                        <button class="btn btn-sm btn-primary" type="button" data-product-media-upload aria-describedby="vendor-product-upload-hint">
+                                            <i class="ph-duotone ph-upload-simple" aria-hidden="true"></i>
+                                            <span>{{ $galleryText('Upload', 'Upload new image') }}</span>
+                                        </button>
+                                        <button class="btn btn-sm btn-light-secondary" type="button" data-product-media-close>
+                                            <i class="ph-duotone ph-x" aria-hidden="true"></i>
+                                            <span>{{ $galleryText('Close', 'Close') }}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="vendor-product-hint" id="vendor-product-upload-hint">{{ $galleryText('Upload_Hint', 'JPEG, PNG, GIF or WebP, up to 10 MB each and up to 10 at a time. The first uploaded image is added to the product; the others stay in your media library.') }}</p>
+                                <input class="vendor-product-media-file" type="file" accept="image/jpeg,image/png,image/gif,image/webp" data-product-media-file multiple tabindex="-1" aria-hidden="true">
+                                <div class="vendor-product-media-items" data-product-media-items></div>
+                            </div>
                         </fieldset>
-                        <p class="text-danger mt-3 mb-0" role="alert" data-product-error hidden></p>
+                        <p class="vendor-product-error" role="alert" data-product-error hidden></p>
+                        <script type="application/json" data-product-editor-messages>@json($editorMessages)</script>
                         <div class="admin-cat-form-actions"><button class="btn btn-primary" type="submit" data-product-save>{{ t('vendor.Save', 'Save') }}</button><button class="btn btn-light-secondary" type="button" data-product-editor-close>{{ t('vendor.Cancel', 'Cancel') }}</button></div>
                     </form>
                 </div>
