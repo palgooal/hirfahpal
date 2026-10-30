@@ -77,8 +77,8 @@ class VendorProductEditorGalleryTest extends TestCase
             foreach ($texts as $name => $text) {
                 $this->assertSame($text, $messages[$name], "{$locale}.{$name}");
             }
-            // VPM-01A: + position and mainBadge (the admin-style card).
-            $this->assertCount(32, $messages);
+            // VPM-01A: + position and mainBadge (the admin-style card); VPM-01B: + the six picker texts.
+            $this->assertCount(38, $messages);
             $this->assertStringContainsString('data-product-gallery-status', $html);
             $this->assertMatchesRegularExpression('#role="alert" data-product-gallery-error hidden#', $html);
             $this->assertStringContainsString('data-product-gallery-open data-limited="true"', $html);
@@ -91,8 +91,9 @@ class VendorProductEditorGalleryTest extends TestCase
         $messages = $this->messages($this->editorPage('en'));
 
         preg_match_all("/\\\$galleryText\\('([A-Za-z_]+)', '((?:[^'\\\\]|\\\\.)*)'\\)/", file_get_contents(resource_path('views/vendor-dashboard/resources.blade.php')), $calls, PREG_SET_ORDER);
-        // VPM-01A: the 32 script texts and the 12 labels of the image section and its chooser.
-        $this->assertCount(44, $calls);
+        // VPM-01A: the 32 script texts and the 12 labels of the image section and its chooser; VPM-01B: the 6 picker
+        // script texts and the 11 picker dialog labels.
+        $this->assertCount(61, $calls);
 
         foreach ($calls as [, $key, $default]) {
             $values = VendorDashboardTranslationSeeder::TRANSLATIONS['vendor.Product_Gallery_'.$key] ?? null;

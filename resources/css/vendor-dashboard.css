@@ -111,20 +111,8 @@ html.vendor-shell .vendor-product-gallery-actions { display: flex; flex-wrap: wr
 html.vendor-shell .vendor-product-gallery-actions .btn { gap: .25rem; }
 html.vendor-shell .vendor-product-gallery-status { margin: 0; color: var(--color-hf-muted); font-size: .8125rem; }
 html.vendor-shell .vendor-product-gallery-status:empty { display: none; }
-/* The inline chooser (until VPM-01B): a bordered surface panel with its actions, the upload note and the images. */
-html.vendor-shell .vendor-product-media-panel { display: flex; flex-direction: column; gap: .625rem; padding: 1rem; border: 1px solid var(--color-hf-line); border-radius: 12px; background-color: var(--color-hf-surface); }
-html.vendor-shell .vendor-product-media-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
-html.vendor-shell .vendor-product-media-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
-html.vendor-shell .vendor-product-gallery .btn-primary { border-color: var(--color-hf-olive); background-color: var(--color-hf-olive); color: #fff; }
-html.vendor-shell .vendor-product-gallery .btn-primary:hover,
-html.vendor-shell .vendor-product-gallery .btn-primary:focus-visible { border-color: var(--color-hf-olive-hover); background-color: var(--color-hf-olive-hover); }
 /* Opened by the Upload button only; kept out of sight and out of the tab order. */
 html.vendor-shell .vendor-product-media-file { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-html.vendor-shell .vendor-product-media-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr)); gap: .5rem; color: var(--color-hf-muted); font-size: .875rem; }
-html.vendor-shell .vendor-product-media-choice { display: block; aspect-ratio: 1; padding: 0; overflow: hidden; border: 1px solid var(--color-hf-line); border-radius: 10px; background-color: #fff; cursor: pointer; }
-html.vendor-shell .vendor-product-media-choice:hover { border-color: var(--color-hf-sage); }
-html.vendor-shell .vendor-product-media-choice:focus-visible { outline: 2px solid var(--color-hf-copper); outline-offset: 2px; }
-html.vendor-shell .vendor-product-media-choice img { display: block; width: 100%; height: 100%; object-fit: contain; }
 @media (max-width: 575.98px) {
   html.vendor-shell .vendor-product-gallery-list { grid-template-columns: minmax(0, 1fr); }
   html.vendor-shell .vendor-product-gallery-add { width: 100%; }
@@ -1580,5 +1568,92 @@ html.vendor-shell .vendor-media-original {
 @media (prefers-reduced-motion: reduce) {
   html.vendor-shell .vendor-media-spinner {
     animation-duration: 2.4s;
+  }
+}
+
+/* ---- Product image picker (VPM-01B) ----
+ * resources/views/vendor-dashboard/resources.blade.php (the products editor) with resources/js/vendor-product-editor.js.
+ * The admin product gallery chooser's look: the media dialog, filter bar, grid, cards and states are the vendor
+ * library's vendor-media-* rules above; these add the wider chooser, its body, the upload strip and the "already in
+ * this product" note. Logical properties only, so RTL and LTR need no separate rules. */
+html.vendor-shell .vendor-product-picker {
+  width: min(56rem, calc(100vw - 2rem));
+}
+
+html.vendor-shell .vendor-product-picker i.ph-duotone {
+  display: inline-block;
+  direction: ltr;
+  unicode-bidi: isolate;
+  line-height: 1;
+}
+
+html.vendor-shell .vendor-product-picker [hidden] {
+  display: none;
+}
+
+html.vendor-shell .vendor-product-picker-body {
+  gap: 0.75rem;
+  min-height: 0;
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+}
+
+html.vendor-shell .vendor-product-picker-filters {
+  padding: 0;
+  border-bottom: 0;
+}
+
+html.vendor-shell .vendor-product-picker-upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px dashed var(--color-hf-line);
+  border-radius: 12px;
+  background-color: var(--color-hf-surface);
+}
+
+html.vendor-shell .vendor-product-picker-upload .vendor-product-hint {
+  flex: 1 1 16rem;
+  margin: 0;
+}
+
+html.vendor-shell .vendor-product-picker-status {
+  margin: 0;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+}
+
+html.vendor-shell .vendor-product-picker-status:empty {
+  display: none;
+}
+
+html.vendor-shell .vendor-product-picker .vendor-product-error {
+  margin: 0;
+}
+
+html.vendor-shell .vendor-product-picker .vendor-media-card.is-taken {
+  border-color: var(--color-hf-sage);
+}
+
+html.vendor-shell .vendor-product-picker-taken {
+  color: var(--color-hf-olive);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+html.vendor-shell .vendor-product-picker .vendor-media-open:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (max-width: 575.98px) {
+  html.vendor-shell .vendor-product-picker-body {
+    padding: 0.875rem 1rem;
+  }
+
+  html.vendor-shell .vendor-product-picker-upload .btn {
+    width: 100%;
   }
 }

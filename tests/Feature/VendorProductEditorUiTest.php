@@ -65,12 +65,8 @@ class VendorProductEditorUiTest extends TestCase
         $this->assertMatchesRegularExpression('/role="status" aria-live="polite" data-product-gallery-status/', $section);
         $this->assertMatchesRegularExpression('/class="vendor-product-error" role="alert" data-product-gallery-error hidden/', $section);
 
-        // The inline chooser keeps its hooks; the upload control is a styled button with a note, the file input hidden by a vendor class.
-        foreach (['data-product-media-library hidden', 'data-product-media-title', 'data-product-media-upload', 'data-product-media-close', 'data-product-media-items'] as $hook) {
-            $this->assertStringContainsString($hook, $section, $hook);
-        }
-        $this->assertMatchesRegularExpression('/<button class="btn btn-sm btn-primary" type="button" data-product-media-upload aria-describedby="vendor-product-upload-hint">\s*<i class="ph-duotone ph-upload-simple" aria-hidden="true"><\/i>/', $section);
-        $this->assertStringContainsString('<input class="vendor-product-media-file" type="file" accept="image/jpeg,image/png,image/gif,image/webp" data-product-media-file multiple tabindex="-1" aria-hidden="true">', $section);
+        // VPM-01B: the chooser is no longer inline; it is the picker dialog after the form (VendorProductPickerTest).
+        $this->assertStringNotContainsString('data-product-media-', $section);
     }
 
     public function test_the_image_section_and_its_script_use_no_bootstrap_only_utilities(): void
@@ -103,8 +99,12 @@ class VendorProductEditorUiTest extends TestCase
             $this->assertStringContainsString($text, $html, $text);
         }
         $this->assertStringContainsString('<legend class="admin-cat-form-legend">صور المنتج</legend>', $section);
-        foreach (['اختر حتى 6 صور من مكتبة الوسائط الخاصة بك. تظهر الصورة الرئيسية أولًا في المتجر.', 'الصورة الرئيسية للمنتج', 'تظهر أولًا في المتجر.', 'اختر من الوسائط', 'معرض المنتج', 'اختر صورًا إضافية من مكتبة الوسائط الخاصة بك.', 'أضف صورة إلى المعرض', 'اختر صورة من الوسائط', 'ارفع صورة جديدة', 'إغلاق'] as $text) {
+        foreach (['اختر حتى 6 صور من مكتبة الوسائط الخاصة بك. تظهر الصورة الرئيسية أولًا في المتجر.', 'الصورة الرئيسية للمنتج', 'تظهر أولًا في المتجر.', 'اختر من الوسائط', 'معرض المنتج', 'اختر صورًا إضافية من مكتبة الوسائط الخاصة بك.', 'أضف صورة إلى المعرض'] as $text) {
             $this->assertStringContainsString($text, $section, $text);
+        }
+        // VPM-01B: the chooser's texts are in the picker dialog, after the form.
+        foreach (['اختر صورة من الوسائط', 'ارفع صورة جديدة', 'إغلاق'] as $text) {
+            $this->assertStringContainsString($text, $html, $text);
         }
         foreach (['Product details', 'Price, stock and shipping', 'Product images', 'Main product image', 'Product gallery', 'Choose from media', 'Add gallery image', 'Upload new image', 'Must be lower than the regular price.'] as $english) {
             $this->assertStringNotContainsString($english, $html, $english);

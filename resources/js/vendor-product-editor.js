@@ -10,6 +10,9 @@
  * -messages, translated), never from the server's message.
  */
 
+import { request } from './admin-media/shared.js';
+import { cleanSearch, createGallery, listUrl, safeUrl, viewState } from './vendor-media-library.js';
+
 export const MAX_IMAGES = 6;
 
 /** Fills :name placeholders. */
@@ -177,6 +180,249 @@ export function renderImageCard(doc, image, { index, isPrimary, url, messages, o
     return card;
 }
 
+// ---------------------------------------------------------------------------------------------
+// VPM-01B: the media picker dialog (the admin product gallery's chooser, for the vendor's own library)
+// ---------------------------------------------------------------------------------------------
+
+/** VENDOR-MEDIA-02B: the most images one upload request may carry (MediaLibraryController::MAX_FILES_PER_UPLOAD). */
+export const MAX_UPLOAD_FILES = 10;
+
+const textOf = (value) => (typeof value === 'string' ? value.trim() : '');
+
+/** The dialog title of the mode: replacing an image, choosing the main image, or adding a gallery image. */
+export const pickerTitle = (messages, { mode, target }) => (target ? messages.titleReplace : mode === 'primary' ? messages.titleMain : messages.titleGallery);
+
+/** A library image is already on the product when one of the product's images has its path. */
+export const isAttached = (images, medium) => typeof medium?.path === 'string' && images.some((image) => image.path === medium.path);
+
+/** What an upload may send: nothing chosen does nothing; more than ten files is refused before anything is sent. */
+export function uploadPlan(files) {
+    const list = Array.from(files ?? []);
+
+    if (list.length === 0) {
+        return { ok: false, error: null };
+    }
+
+    return list.length > MAX_UPLOAD_FILES ? { ok: false, error: 'uploadMax' } : { ok: true, files: list };
+}
+
+/** A refused upload's error name: too many files (files.max), an invalid file, else as for the image requests. */
+export function uploadError({ status, body }) {
+    if (status === 422) {
+        return body?.errors && typeof body.errors === 'object' && 'files' in body.errors ? 'uploadMax' : 'uploadInvalid';
+    }
+
+    return interpretImageResponse({ status, body }).error;
+}
+
+/** The translated text of a listing error. */
+export const pickerErrorText = (error, messages) => ({ network: messages.network, session: messages.session, forbidden: messages.forbidden, invalid: messages.invalid })[error] || messages.libraryError;
+
+/**
+ * One library image in the picker, built like the admin chooser card (square thumbnail whose button chooses it, name
+ * below). An image already on the product says so; it stays selectable (duplicates are a later phase).
+ */
+export function renderChoice(doc, medium, { messages, base, taken, disabled = false, onChoose }) {
+    const label = textOf(medium.alt_text) || messages.mediaAlt;
+    const url = safeUrl(medium.url, base);
+    const card = doc.createElement('li');
+    card.className = taken ? 'vendor-media-card is-taken' : 'vendor-media-card';
+    card.dataset.id = String(medium.id ?? '');
+
+    const thumb = doc.createElement('div');
+    thumb.className = 'vendor-media-thumb';
+    const choose = doc.createElement('button');
+    choose.type = 'button';
+    choose.className = 'vendor-media-open';
+    choose.setAttribute('aria-label', format(messages.choose, { name: label }));
+    choose.disabled = disabled;
+    choose.onclick = () => onChoose(medium);
+
+    if (url) {
+        const image = doc.createElement('img');
+        image.src = url;
+        image.alt = '';
+        image.loading = 'lazy';
+        choose.append(image);
+    } else {
+        choose.append(icon(doc, 'ph-image'));
+    }
+
+    thumb.append(choose);
+
+    const meta = doc.createElement('div');
+    meta.className = 'vendor-media-meta';
+    const name = doc.createElement('bdi');
+    name.className = 'vendor-media-name';
+    name.textContent = label;
+    name.title = label;
+    meta.append(name);
+
+    if (taken) {
+        const note = doc.createElement('span');
+        note.className = 'vendor-product-picker-taken';
+        note.id = `vendor-product-picker-taken-${card.dataset.id}`;
+        note.textContent = messages.attached;
+        choose.setAttribute('aria-describedby', note.id);
+        meta.append(note);
+    }
+
+    card.append(thumb, meta);
+
+    return card;
+}
+
+/**
+ * The picker dialog: one page of 24 of the vendor's own images at a time (page, per_page, search; never the whole
+ * library), with search, paging, states, the "already in this product" note and the upload button. open() shows it
+ * for a mode and remembers the button that opened it; closing (button, Escape or backdrop) gives focus back to that
+ * button, or to fallback() when it is gone (a replaced card is redrawn). Choosing and uploading are the editor's.
+ */
+export function initPicker(root, { url, messages, isTaken, onChoose, onUpload }, win = window) {
+    const doc = root.ownerDocument;
+    const $ = (name) => root.querySelector(`[data-product-media-${name}]`);
+    const base = win.location.href;
+    const headers = { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
+    const ui = {
+        title: $('title'), close: $('close'), form: $('search-form'), search: $('search'), summary: $('summary'), status: $('status'), alert: $('alert'),
+        loading: $('loading'), error: $('error'), errorText: $('error-text'), retry: $('retry'), empty: $('empty'), noResults: $('no-results'),
+        grid: $('items'), pager: $('pager'), previous: $('previous'), next: $('next'), pageStatus: $('page-status'), upload: $('upload'), file: $('file'),
+    };
+    let opener = null, fallback = null, busy = false, focusSummary = false, timer = null;
+
+    const render = () => {
+        const { state } = gallery;
+        const shown = viewState(state);
+        root.dataset.state = shown;
+        ui.loading.hidden = shown !== 'loading';
+        ui.error.hidden = shown !== 'error';
+        ui.empty.hidden = shown !== 'empty';
+        ui.noResults.hidden = shown !== 'noResults';
+        ui.grid.hidden = shown !== 'images';
+        ui.grid.setAttribute('aria-busy', shown === 'loading' ? 'true' : 'false');
+
+        if (shown === 'loading') {
+            ui.previous.disabled = true;
+            ui.next.disabled = true;
+
+            return;
+        }
+
+        if (shown === 'error') {
+            ui.errorText.textContent = pickerErrorText(state.error, messages);
+            ui.retry.hidden = !(state.error === 'network' || state.error === 'failed');
+            ui.summary.textContent = '';
+            focusSummary = false;
+        } else {
+            ui.grid.replaceChildren(...state.images.map((medium) => renderChoice(doc, medium, { messages, base, taken: isTaken(medium), disabled: busy, onChoose })));
+            ui.summary.textContent = format(messages.libraryCount, { count: state.total });
+        }
+
+        ui.pager.hidden = shown !== 'images' || state.lastPage <= 1;
+        ui.previous.disabled = !gallery.hasPrevious;
+        ui.next.disabled = !gallery.hasNext;
+        ui.pageStatus.textContent = format(messages.pageStatus, { page: state.page, last: state.lastPage });
+
+        if (focusSummary) {
+            focusSummary = false;
+            ui.summary.focus();
+        }
+    };
+
+    const gallery = createGallery({
+        fetchPage: ({ page, search }, signal) => request(listUrl(url, { page, search }), { credentials: 'same-origin', headers, signal }),
+        onChange: render,
+    });
+
+    const say = (text) => { ui.status.textContent = ''; ui.status.textContent = text || ''; };
+    const alert = (text) => { ui.alert.textContent = text || ''; ui.alert.hidden = !text; };
+    const close = () => {
+        if (root.open) {
+            root.close();
+        }
+    };
+
+    root.addEventListener('close', () => {
+        clearTimeout(timer);
+        const back = opener?.isConnected && !opener.disabled ? opener : fallback?.();
+        opener = null;
+        back?.focus();
+    });
+    // A click on the backdrop (the dialog itself, outside its content) closes it, as Escape does.
+    root.addEventListener('click', (event) => {
+        if (event.target === root) {
+            close();
+        }
+    });
+    ui.close.addEventListener('click', close);
+
+    const search = () => {
+        clearTimeout(timer);
+        const term = cleanSearch(ui.search.value);
+
+        if (term !== gallery.state.search || gallery.state.error !== null || gallery.state.page === 0) {
+            gallery.load({ page: 1, search: term });
+        }
+    };
+
+    ui.form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        search();
+    });
+    ui.search.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(search, SEARCH_DELAY);
+    });
+
+    const turn = (step) => {
+        if (!gallery.state.loading) {
+            focusSummary = true;
+            gallery.load({ page: gallery.state.page + step, search: gallery.state.search });
+        }
+    };
+
+    ui.previous.addEventListener('click', () => gallery.hasPrevious && turn(-1));
+    ui.next.addEventListener('click', () => gallery.hasNext && turn(1));
+    ui.retry.addEventListener('click', () => gallery.retry());
+    ui.upload.addEventListener('click', () => !busy && ui.file.click());
+    ui.file.addEventListener('change', () => {
+        const files = Array.from(ui.file.files || []);
+        ui.file.value = '';
+        onUpload(files);
+    });
+
+    return {
+        gallery,
+        close,
+        say,
+        alert,
+        get isOpen() {
+            return Boolean(root.open);
+        },
+        open({ title, from = null, fallback: back = null }) {
+            opener = from;
+            fallback = back;
+            ui.title.textContent = title;
+            ui.search.value = '';
+            say('');
+            alert('');
+            root.showModal();
+            ui.search.focus();
+            gallery.load({ page: 1, search: '' });
+        },
+        /** After an upload: the first page again (newest first), with the current search. */
+        refresh: () => gallery.load({ page: 1, search: gallery.state.search }),
+        setBusy(state) {
+            busy = state;
+            root.setAttribute('aria-busy', state ? 'true' : 'false');
+            ui.upload.disabled = state;
+            ui.grid.querySelectorAll?.('button').forEach((button) => { button.disabled = state; });
+        },
+    };
+}
+
+const SEARCH_DELAY = 400;
+
 const fetchJson = async (url, options) => {
     try {
         const response = await fetch(url, options);
@@ -200,9 +446,9 @@ function initEditor(editor) {
     const galleryStatus = editor.querySelector('[data-product-gallery-status]');
     const galleryError = editor.querySelector('[data-product-gallery-error]');
     const galleryCount = editor.querySelector('[data-product-gallery-count]');
-    const panel = editor.querySelector('[data-product-media-library]');
-    const panelItems = editor.querySelector('[data-product-media-items]');
-    let editingId = null, images = [], mode = 'gallery', target = null, busy = false;
+    const primaryOpen = editor.querySelector('[data-product-primary-open]');
+    const galleryOpen = editor.querySelector('[data-product-gallery-open]');
+    let editingId = null, images = [], mode = 'gallery', target = null, busy = false, picker = null;
     const field = (name) => form.elements.namedItem(name);
     const value = (name) => field(name).value.trim() || null;
     const number = (name) => field(name).value === '' ? null : Number(field(name).value);
@@ -216,13 +462,15 @@ function initEditor(editor) {
     const showEditor = () => { list.hidden = true; editor.hidden = false; editor.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
 
     // ---- Gallery states: one at a time, announced; an error stays until the next action. ----
-    const status = (text) => { galleryStatus.textContent = ''; galleryStatus.textContent = text || ''; };
-    const galleryFail = (name) => { galleryError.textContent = errorMessage(name, messages); galleryError.hidden = false; status(''); };
-    const clearGalleryError = () => { galleryError.hidden = true; galleryError.textContent = ''; };
+    // VPM-01B: while the picker is open, the same texts also show inside it (the section behind it is covered).
+    const status = (text) => { galleryStatus.textContent = ''; galleryStatus.textContent = text || ''; if (picker?.isOpen) picker.say(text); };
+    const galleryFail = (name) => { galleryError.textContent = errorMessage(name, messages); galleryError.hidden = false; status(''); if (picker?.isOpen) picker.alert(galleryError.textContent); };
+    const clearGalleryError = () => { galleryError.hidden = true; galleryError.textContent = ''; picker?.alert(''); };
     const setBusy = (state) => {
         busy = state;
         gallery.setAttribute('aria-busy', state ? 'true' : 'false');
         gallery.querySelectorAll('button').forEach((button) => { button.disabled = state || (button.dataset.limited === 'true' && images.length >= MAX_IMAGES); });
+        picker?.setBusy(state);
     };
 
     const render = () => {
@@ -231,7 +479,7 @@ function initEditor(editor) {
         // VPM-01A: the admin gallery's cards in a list, or its dashed empty note. Same actions as before.
         const card = (image, index) => renderImageCard(document, image, {
             index, isPrimary: index === 0, url: imageUrl(image), messages,
-            onChange: () => openMedia(index === 0 ? 'primary' : 'replace', image),
+            onChange: (event) => openMedia(index === 0 ? 'primary' : 'replace', image, event?.currentTarget ?? null),
             onSetMain: () => setPrimary(image),
             onRemove: () => removeImage(image),
         });
@@ -265,59 +513,69 @@ function initEditor(editor) {
         await mutate(`${endpoint}/${editingId}/images/${image.id}`, 'DELETE', null, messages.removed);
     };
 
+    // Returns whether the image was added or replaced; the picker closes then (VPM-01B).
     const choose = async (medium) => {
-        if (busy) return;
+        if (busy) return false;
         const plan = planChoice(images, { mode, target });
-        if (plan.action === 'refuse') { galleryFail(plan.error); return; }
+        if (plan.action === 'refuse') { galleryFail(plan.error); return false; }
 
         if (!editingId) {
-            images = applyLocal(images, plan, medium); render(); panel.hidden = true; clearGalleryError();
-            status(plan.action === 'replace' ? messages.replaced : messages.added); return;
+            images = applyLocal(images, plan, medium); render(); picker.close(); clearGalleryError();
+            status(plan.action === 'replace' ? messages.replaced : messages.added); return true;
         }
 
         const saved = plan.action === 'replace'
             // G7-C2-5: one PATCH with the new path: the count stays, the place and the main image are kept.
             ? await mutate(`${endpoint}/${editingId}/images/${plan.target.id}`, 'PATCH', { path: medium.path, alt_text: medium.alt_text ?? null }, messages.replaced)
             : await mutate(`${endpoint}/${editingId}/images`, 'POST', { path: medium.path, alt_text: medium.alt_text ?? null, is_primary: plan.primary }, messages.added);
-        if (saved) panel.hidden = true;
+        if (saved) picker.close();
+        return saved;
     };
 
-    const openMedia = async (nextMode, image = null) => {
+    // VPM-01B: the picker opens for the mode (main image, gallery image, or replacing `image`) and remembers the
+    // button that opened it; when that button is gone after a redraw, focus goes back to the section's own button.
+    const openMedia = (nextMode, image = null, from = null) => {
         if (busy) return;
         mode = nextMode; target = image; clearGalleryError();
         if (!target && images.length >= MAX_IMAGES) { galleryFail('limit'); return; }
-        editor.querySelector('[data-product-media-title]').textContent = target ? messages.titleReplace : nextMode === 'primary' ? messages.titleMain : messages.titleGallery;
-        panel.hidden = false; panelItems.textContent = messages.loading;
-        const answer = await fetchJson(editor.dataset.mediaLibraryUrl, { credentials: 'same-origin', headers: headers(false) });
-        if (answer.status !== 200) { panelItems.textContent = answer.status === 401 || answer.status === 419 ? messages.session : answer.status === 403 ? messages.forbidden : answer.status === 0 ? messages.network : messages.libraryError; return; }
-        const media = Array.isArray(answer.body?.images) ? answer.body.images : [];
-        panelItems.replaceChildren();
-        media.forEach((medium) => { const button = document.createElement('button'); button.type = 'button'; button.className = 'vendor-product-media-choice'; const pic = document.createElement('img'); pic.src = medium.url; pic.alt = medium.alt_text || messages.mediaAlt; pic.width = 96; pic.height = 96; pic.loading = 'lazy'; button.append(pic); button.onclick = () => choose(medium); panelItems.append(button); });
-        if (!media.length) panelItems.textContent = messages.libraryEmpty;
+        picker.open({
+            title: pickerTitle(messages, { mode, target }),
+            from,
+            fallback: () => (mode === 'primary' || galleryOpen.disabled ? primaryOpen : galleryOpen),
+        });
     };
 
     // Uploads go to the vendor's media library (no product upload exists); the first new image is then chosen.
-    const upload = async () => {
-        const input = editor.querySelector('[data-product-media-file]'), files = Array.from(input.files || []); if (!files.length || busy) return;
-        const data = new FormData(); files.forEach((file) => data.append('files[]', file));
+    const upload = async (files) => {
+        if (busy) return;
+        const plan = uploadPlan(files);
+        if (!plan.ok) { if (plan.error) galleryFail(plan.error); return; }
+        const data = new FormData(); plan.files.forEach((file) => data.append('files[]', file));
         clearGalleryError(); setBusy(true); status(messages.uploading);
-        const answer = await fetchJson(editor.dataset.mediaStoreUrl, { method: 'POST', credentials: 'same-origin', headers: headers(false), body: data }); input.value = '';
+        const answer = await fetchJson(editor.dataset.mediaStoreUrl, { method: 'POST', credentials: 'same-origin', headers: headers(false), body: data });
         setBusy(false); status('');
-        if (answer.status !== 201) { galleryFail(answer.status === 422 ? 'uploadInvalid' : interpretImageResponse(answer).error); return; }
-        const media = Array.isArray(answer.body?.images) ? answer.body.images : []; if (media[0]) choose(media[0]);
+        if (answer.status !== 201) { galleryFail(uploadError(answer)); return; }
+        const media = Array.isArray(answer.body?.images) ? answer.body.images : [];
+        // The new images are in the library either way; the picker shows them, and the first one is chosen.
+        picker.refresh();
+        if (media[0] && await choose(media[0])) status(`${messages.added} ${format(messages.uploaded, { count: media.length })}`);
     };
 
-    const close = () => { editor.hidden = true; list.hidden = false; error.hidden = true; form.reset(); field('low_stock_threshold').value = '1'; editingId = null; images = []; clearGalleryError(); status(''); panel.hidden = true; render(); title.textContent = texts.add; };
+    const close = () => { editor.hidden = true; list.hidden = false; error.hidden = true; form.reset(); field('low_stock_threshold').value = '1'; editingId = null; images = []; clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.add; };
     const payload = () => ({ name: field('name').value.trim(), category_id: number('category_id'), price: number('price'), stock_quantity: number('stock_quantity'), sku: value('sku'), compare_at_price: number('compare_at_price'), low_stock_threshold: number('low_stock_threshold'), weight: number('weight'), short_description: value('short_description'), description: value('description'), images: editingId ? undefined : images.map(({ path, alt_text, sort_order, is_primary }) => ({ path, alt_text, sort_order, is_primary })) });
     window.addEventListener('vendor-resource:loaded', (event) => { if (event.detail.resource !== 'products') return; const selected = field('category_id').value; field('category_id').replaceChildren(new Option(texts.noCategory, '')); (event.detail.payload?.filters?.categories ?? []).forEach((category) => field('category_id').add(new Option(category.name, String(category.id)))); field('category_id').value = selected; });
-    document.addEventListener('click', async (event) => { const button = event.target.closest('[data-product-action]'); if (!button) return; const id = button.dataset.productId; if (button.dataset.productAction === 'delete') { if (!window.confirm(texts.confirmDelete)) return; const response = await request(`${endpoint}/${id}`, 'DELETE'); if (!response.ok) { fail(texts.deleteFailed); showEditor(); return; } window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products' } })); return; } const response = await request(`${endpoint}/${id}`); if (!response.ok) return fail(texts.loadFailed); const product = (await response.json()).product; form.reset(); ['name', 'category_id', 'price', 'stock_quantity', 'sku', 'compare_at_price', 'low_stock_threshold', 'weight', 'short_description', 'description'].forEach((name) => { field(name).value = product[name] ?? ''; }); editingId = id; images = product.images || []; clearGalleryError(); status(''); panel.hidden = true; render(); title.textContent = texts.edit; showEditor(); });
+    document.addEventListener('click', async (event) => { const button = event.target.closest('[data-product-action]'); if (!button) return; const id = button.dataset.productId; if (button.dataset.productAction === 'delete') { if (!window.confirm(texts.confirmDelete)) return; const response = await request(`${endpoint}/${id}`, 'DELETE'); if (!response.ok) { fail(texts.deleteFailed); showEditor(); return; } window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products' } })); return; } const response = await request(`${endpoint}/${id}`); if (!response.ok) return fail(texts.loadFailed); const product = (await response.json()).product; form.reset(); ['name', 'category_id', 'price', 'stock_quantity', 'sku', 'compare_at_price', 'low_stock_threshold', 'weight', 'short_description', 'description'].forEach((name) => { field(name).value = product[name] ?? ''; }); editingId = id; images = product.images || []; clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.edit; showEditor(); });
     form.addEventListener('submit', async (event) => { event.preventDefault(); error.hidden = true; const response = await request(editingId ? `${endpoint}/${editingId}` : endpoint, editingId ? 'PUT' : 'POST', payload()); if (!response.ok) { const data = await response.json().catch(() => null); fail(saveErrorText(response.status, data, texts, messages)); return; } close(); window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products' } })); });
     editor.querySelectorAll('[data-product-editor-close]').forEach((button) => button.onclick = close);
-    editor.querySelector('[data-product-primary-open]').onclick = () => openMedia('primary', images[0] ?? null);
-    editor.querySelector('[data-product-gallery-open]').onclick = () => openMedia('gallery');
-    editor.querySelector('[data-product-media-close]').onclick = () => { panel.hidden = true; };
-    editor.querySelector('[data-product-media-upload]').onclick = () => editor.querySelector('[data-product-media-file]').click();
-    editor.querySelector('[data-product-media-file]').onchange = upload;
+    picker = initPicker(editor.querySelector('[data-product-media-library]'), {
+        url: editor.dataset.mediaLibraryUrl,
+        messages,
+        isTaken: (medium) => isAttached(images, medium),
+        onChoose: choose,
+        onUpload: upload,
+    });
+    primaryOpen.onclick = () => openMedia('primary', images[0] ?? null, primaryOpen);
+    galleryOpen.onclick = () => openMedia('gallery', null, galleryOpen);
     const add = document.createElement('button'); add.type = 'button'; add.className = 'btn btn-primary'; add.textContent = texts.add; add.onclick = () => { close(); showEditor(); }; document.querySelector('[data-vendor-resource-list] [data-resource-retry]').before(add);
     render();
 }
