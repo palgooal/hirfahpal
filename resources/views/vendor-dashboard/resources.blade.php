@@ -220,7 +220,8 @@
                                 <label class="form-label sr-only" for="vendor-product-picker-search">{{ $galleryText('Search_Label', 'Search images') }}</label>
                                 <div class="vendor-media-search">
                                     <i class="ph-duotone ph-magnifying-glass" aria-hidden="true"></i>
-                                    <input type="search" class="form-control" id="vendor-product-picker-search" maxlength="100" autocomplete="off" dir="auto" placeholder="{{ $galleryText('Search_Placeholder', 'Name or alt text') }}" data-product-media-search>
+                                    {{-- VPM-01F-FIX-01 (F-2): the page direction, not dir="auto" (an empty field was LTR in Arabic). --}}
+                                    <input type="search" class="form-control" id="vendor-product-picker-search" maxlength="100" autocomplete="off" placeholder="{{ $galleryText('Search_Placeholder', 'Name or alt text') }}" data-product-media-search>
                                 </div>
                                 <p class="vendor-media-count" tabindex="-1" aria-live="polite" data-product-media-summary></p>
                             </form>
@@ -257,15 +258,17 @@
                                     <span>{{ $galleryText('Retry', 'Try again') }}</span>
                                 </button>
                             </div>
+                            {{-- VPM-01F-FIX-01 (F-1): carets along the reading direction, chosen here (Able Pro's unlayered
+                                 --tw-scale-x reset overrides the rtl:-scale-x-100 flip). --}}
                             <nav class="vendor-media-more" aria-label="{{ $galleryText('Pagination', 'Media library pages') }}" data-product-media-pager hidden>
                                 <button type="button" class="btn btn-light-secondary" data-product-media-previous disabled>
-                                    <i class="ph-duotone ph-caret-left rtl:-scale-x-100" aria-hidden="true"></i>
+                                    <i class="ph-duotone {{ $currentLanguage?->is_rtl ? 'ph-caret-right' : 'ph-caret-left' }}" aria-hidden="true"></i>
                                     <span>{{ $galleryText('Previous', 'Previous') }}</span>
                                 </button>
                                 <span class="vendor-media-page-status" data-product-media-page-status></span>
                                 <button type="button" class="btn btn-light-secondary" data-product-media-next disabled>
                                     <span>{{ $galleryText('Next', 'Next') }}</span>
-                                    <i class="ph-duotone ph-caret-right rtl:-scale-x-100" aria-hidden="true"></i>
+                                    <i class="ph-duotone {{ $currentLanguage?->is_rtl ? 'ph-caret-left' : 'ph-caret-right' }}" aria-hidden="true"></i>
                                 </button>
                             </nav>
                         </div>

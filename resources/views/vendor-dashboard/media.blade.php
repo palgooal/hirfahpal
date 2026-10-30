@@ -20,6 +20,12 @@
         'forbidden' => t('vendor.Product_Gallery_Forbidden', 'You do not have permission to do this.'),
         'network' => t('vendor.Product_Gallery_Network', 'The connection failed. Check the network and try again.'),
     ];
+
+    // VPM-01F-FIX-01 (F-1): the pager carets point along the reading direction, chosen on the server from the page
+    // language (as the layout's dir). Not a CSS flip: Able Pro's unlayered "--tw-scale-x: 1" reset on every element
+    // overrides the layered rtl:-scale-x-100 utility, so that flip never applied.
+    $pagerBack = $currentLanguage?->is_rtl ? 'ph-caret-right' : 'ph-caret-left';
+    $pagerForward = $currentLanguage?->is_rtl ? 'ph-caret-left' : 'ph-caret-right';
 @endphp
 
 <x-vendor-dashboard-layout :title="t('vendor.Nav_Media_Library', 'Media Library')">
@@ -40,7 +46,9 @@
         </div>
 
         <div class="card vendor-media-panel">
-            {{-- Filter bar: search and the count, as in the admin library. --}}
+            {{-- Filter bar: search and the count, as in the admin library. VPM-01F-FIX-01 (F-2): the search field takes the
+                 page direction (no dir="auto", which made an empty field LTR in Arabic), so its placeholder, the icon and
+                 the space kept for it are on the same side; either script can still be typed. --}}
             <form class="vendor-media-filters" role="search" data-media-search-form novalidate>
                 <label class="form-label sr-only" for="vendor-media-search">{{ t('vendor.Media_Library_Search_Label', 'Search images') }}</label>
                 <div class="vendor-media-search">
@@ -52,7 +60,6 @@
                         name="search"
                         maxlength="100"
                         autocomplete="off"
-                        dir="auto"
                         placeholder="{{ t('vendor.Media_Library_Search_Placeholder', 'Name or alt text') }}"
                         data-media-search
                     >
@@ -89,13 +96,13 @@
                 {{-- Where the admin library has "Load more": previous / next pages, approved for the vendor. --}}
                 <nav class="vendor-media-more" aria-label="{{ t('vendor.Media_Library_Pagination', 'Media library pages') }}" data-media-pager hidden>
                     <button type="button" class="btn btn-light-secondary" data-media-previous disabled>
-                        <i class="ph-duotone ph-caret-left rtl:-scale-x-100" aria-hidden="true"></i>
+                        <i class="ph-duotone {{ $pagerBack }}" aria-hidden="true"></i>
                         <span>{{ t('vendor.Media_Library_Previous', 'Previous') }}</span>
                     </button>
                     <span class="vendor-media-page-status" data-media-page-status></span>
                     <button type="button" class="btn btn-light-secondary" data-media-next disabled>
                         <span>{{ t('vendor.Media_Library_Next', 'Next') }}</span>
-                        <i class="ph-duotone ph-caret-right rtl:-scale-x-100" aria-hidden="true"></i>
+                        <i class="ph-duotone {{ $pagerForward }}" aria-hidden="true"></i>
                     </button>
                 </nav>
 

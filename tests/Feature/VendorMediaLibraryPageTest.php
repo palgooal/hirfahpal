@@ -183,11 +183,34 @@ class VendorMediaLibraryPageTest extends TestCase
 
     public function test_the_pager_arrows_mirror_in_rtl(): void
     {
+        // VPM-01F-FIX-01 (F-1): the server picks the caret for the reading direction (a CSS rtl flip never applied: Able
+        // Pro resets --tw-scale-x on every element, unlayered). Arabic: Previous points right, Next left; English: the
+        // other way round.
+        $this->actingAs($this->vendor(), 'vendor');
+        $pager = function (): array {
+            $html = $this->page()->getContent();
+            preg_match('#data-media-previous disabled>\s*<i class="ph-duotone ([a-z-]+)" aria-hidden="true"></i>#', $html, $previous);
+            preg_match('#data-media-next disabled>\s*<span>[^<]*</span>\s*<i class="ph-duotone ([a-z-]+)" aria-hidden="true"></i>#', $html, $next);
+            preg_match('#<nav class="vendor-media-more".*?</nav>#s', $html, $nav);
+            $this->assertStringNotContainsString('rtl:-scale-x-100', $nav[0] ?? '', 'No CSS flip in the pager.');
+
+            return [$previous[1] ?? null, $next[1] ?? null];
+        };
+
+        $this->assertSame(['ph-caret-right', 'ph-caret-left'], $pager(), 'Arabic (RTL).');
+        $this->get(route('vendor.dashboard.media.page').'?change-locale=en');
+        $this->assertSame(['ph-caret-left', 'ph-caret-right'], $pager(), 'English (LTR).');
+    }
+
+    public function test_the_search_field_takes_the_page_direction(): void
+    {
+        // VPM-01F-FIX-01 (F-2): no dir="auto" (an empty field was LTR in Arabic: placeholder left, icon space on the
+        // wrong side). The field inherits the page direction; either script can still be typed.
         $html = $this->actingAs($this->vendor(), 'vendor')->page()->getContent();
 
-        $this->assertStringContainsString('<i class="ph-duotone ph-caret-left rtl:-scale-x-100" aria-hidden="true"></i>', $html);
-        $this->assertStringContainsString('<i class="ph-duotone ph-caret-right rtl:-scale-x-100" aria-hidden="true"></i>', $html);
-        $this->assertStringContainsString('dir="auto"', $html, 'A search in either script is typed in its own direction.');
+        $this->assertSame(1, preg_match('#<input\s+type="search"[^>]*data-media-search\s*>#s', $html, $input));
+        $this->assertStringNotContainsString('dir=', $input[0]);
+        $this->assertStringContainsString('<html lang="ar" dir="rtl"', $html);
     }
 
     public function test_the_script_strings_are_translated_in_both_languages(): void

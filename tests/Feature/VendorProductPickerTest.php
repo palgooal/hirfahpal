@@ -77,7 +77,8 @@ class VendorProductPickerTest extends TestCase
 
         $this->assertMatchesRegularExpression('#<div class="vendor-media-dialog-header">\s*<h2 class="vendor-media-dialog-title" id="vendor-product-picker-title" data-product-media-title>Choose an image from media</h2>\s*<button type="button" class="vendor-media-icon-button" aria-label="Close" data-product-media-close>#', $dialog);
         $this->assertMatchesRegularExpression('#<form class="vendor-media-filters vendor-product-picker-filters" role="search" data-product-media-search-form novalidate>\s*<label class="form-label sr-only" for="vendor-product-picker-search">Search images</label>#', $dialog);
-        $this->assertMatchesRegularExpression('#<input type="search" class="form-control" id="vendor-product-picker-search" maxlength="100" autocomplete="off" dir="auto" placeholder="Name or alt text" data-product-media-search>#', $dialog);
+        // VPM-01F-FIX-01 (F-2): no dir="auto"; the field takes the page direction.
+        $this->assertMatchesRegularExpression('#<input type="search" class="form-control" id="vendor-product-picker-search" maxlength="100" autocomplete="off" placeholder="Name or alt text" data-product-media-search>#', $dialog);
         foreach (['summary', 'status', 'alert', 'items', 'loading', 'empty', 'no-results', 'error', 'error-text', 'retry', 'pager', 'previous', 'next', 'page-status', 'upload', 'file'] as $hook) {
             $this->assertStringContainsString("data-product-media-{$hook}", $dialog, $hook);
         }
@@ -93,14 +94,19 @@ class VendorProductPickerTest extends TestCase
         $this->assertStringContainsString('<input class="vendor-product-media-file" type="file" accept="image/jpeg,image/png,image/gif,image/webp" data-product-media-file multiple tabindex="-1" aria-hidden="true">', $dialog);
 
         // The pager arrows mirror in RTL.
-        $this->assertStringContainsString('ph-caret-left rtl:-scale-x-100', $dialog);
-        $this->assertStringContainsString('ph-caret-right rtl:-scale-x-100', $dialog);
+        // VPM-01F-FIX-01 (F-1): English (LTR): Previous points left, Next right; chosen on the server, no CSS flip.
+        $this->assertMatchesRegularExpression('#data-product-media-previous disabled>\s*<i class="ph-duotone ph-caret-left" aria-hidden="true"></i>#', $dialog);
+        $this->assertMatchesRegularExpression('#data-product-media-next disabled>\s*<span>Next</span>\s*<i class="ph-duotone ph-caret-right" aria-hidden="true"></i>#', $dialog);
+        $this->assertStringNotContainsString('rtl:-scale-x-100', $dialog);
     }
 
     public function test_the_picker_reads_in_arabic_and_english(): void
     {
         $ar = $this->page('ar');
         $this->assertMatchesRegularExpression('/<html lang="ar" dir="rtl"/', $ar);
+        // VPM-01F-FIX-01 (F-1): Arabic (RTL): Previous points right, Next left.
+        $this->assertMatchesRegularExpression('#data-product-media-previous disabled>\s*<i class="ph-duotone ph-caret-right" aria-hidden="true"></i>#', $this->dialog($ar));
+        $this->assertMatchesRegularExpression('#data-product-media-next disabled>\s*<span>[^<]+</span>\s*<i class="ph-duotone ph-caret-left" aria-hidden="true"></i>#', $this->dialog($ar));
         foreach (['اختر صورة من الوسائط', 'aria-label="إغلاق"', 'تظهر هنا صور مكتبة الوسائط الخاصة بك فقط.', 'ابحث في الصور', 'placeholder="الاسم أو النص البديل"', 'ارفع صورة جديدة', 'جارٍ تحميل الصور…', 'لا توجد صور تطابق بحثك.', 'إعادة المحاولة', 'aria-label="صفحات مكتبة الوسائط"', 'السابق', 'التالي'] as $text) {
             $this->assertStringContainsString($text, $this->dialog($ar), $text);
         }
