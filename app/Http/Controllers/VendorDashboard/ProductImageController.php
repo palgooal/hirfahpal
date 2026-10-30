@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Rules\VendorLibraryImage;
 use App\Support\Products\ProductGallery;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,6 +26,9 @@ class ProductImageController extends Controller
     public const MAX_IMAGES = 6;
 
     public const MAX_IMAGES_MESSAGE = 'A product can have up to 6 images.';
+
+    /** VPM-01C: a path the product already has (another of its images) is not attached again. */
+    public const DUPLICATE_MESSAGE = 'This image is already in this product.';
 
     public function store(StoreProductImageRequest $request, Product $product): JsonResponse
     {
@@ -46,6 +50,8 @@ class ProductImageController extends Controller
             // VENDOR-MEDIA-02C: the library row read again under a shared lock (after the product lock), so a concurrent
             // library deletion cannot slip between the validation and this insert.
             $this->ensureStillInLibrary($locked, $data['path'], 'path');
+            // VPM-01C: under the same product lock, so a concurrent attachment of this path has committed (and is seen) or waits.
+            $this->ensureNotAttached($locked, $data['path']);
 
             $image = $locked->images()->create([
                 'path' => $data['path'],
@@ -79,6 +85,8 @@ class ProductImageController extends Controller
             // VENDOR-MEDIA-02C: a new path is re-checked under the lock; the unchanged (possibly legacy) path is not.
             if (array_key_exists('path', $data) && $data['path'] !== $image->path) {
                 $this->ensureStillInLibrary($locked, $data['path'], 'path');
+                // VPM-01C: another image of the product must not have it; keeping the slot's own path skips this check.
+                $this->ensureNotAttached($locked, $data['path'], $image->id);
             }
 
             $image->fill(array_intersect_key($data, array_flip(['path', 'alt_text'])));
@@ -140,6 +148,27 @@ class ProductImageController extends Controller
     {
         if (! VendorLibraryImage::lockedInLibrary((int) $locked->vendor_id, $path)) {
             throw ValidationException::withMessages([$field => VendorLibraryImage::MESSAGE]);
+        }
+    }
+
+    /**
+     * VPM-01C: refuses (409) a path that another image of the product already has. Called inside the attaching
+     * transaction after the product lock, which every image change of the product takes first, so the check and the
+     * write cannot be interleaved with another attachment. Paths are compared exactly (the database comparison may
+     * ignore case or trailing spaces). $except is the image being replaced. Historical duplicates are left as they are:
+     * only a new duplicate is refused, nothing is removed or reordered.
+     */
+    private function ensureNotAttached(Product $locked, string $path, ?int $except = null): void
+    {
+        $taken = ProductImage::query()
+            ->where('product_id', $locked->getKey())
+            ->when($except !== null, fn ($query) => $query->whereKeyNot($except))
+            ->pluck('path')
+            ->contains(fn ($stored) => $stored === $path);
+
+        if ($taken) {
+            // Thrown inside the transaction, so it rolls back: nothing is written.
+            throw new HttpResponseException(response()->json(['message' => self::DUPLICATE_MESSAGE, 'errors' => ['path' => [self::DUPLICATE_MESSAGE]]], 409));
         }
     }
 

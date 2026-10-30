@@ -6,6 +6,8 @@ import assert from 'node:assert/strict';
 import {
     MAX_IMAGES,
     MAX_UPLOAD_FILES,
+    choiceState,
+    interpretImageResponse,
     initPicker,
     isAttached,
     pickerErrorText,
@@ -27,6 +29,7 @@ const messages = {
     pageStatus: 'Page :page of :last',
     choose: 'Choose :name',
     attached: 'Already in this product',
+    current: 'The image being replaced',
     mediaAlt: 'Media library image',
     libraryError: 'Your media library could not be loaded.',
     session: 'Your session has ended. Sign in again to continue.',
@@ -166,12 +169,12 @@ afterEach(() => {
     delete globalThis.fetch;
 });
 
-function picker({ attached = [], chosen = [], uploads = [] } = {}) {
+function picker({ attached = [], target = null, chosen = [], uploads = [] } = {}) {
     const page = fakeDialog();
     const api = initPicker(page.root, {
         url: LIST,
         messages,
-        isTaken: (item) => isAttached(attached, item),
+        stateOf: (item) => choiceState(attached, item, target),
         onChoose: (item) => chosen.push(item),
         onUpload: (files) => uploads.push(files),
     }, { location: { href: PAGE } });
@@ -255,31 +258,88 @@ test('the six-image limit: a seventh is refused, replacing at six is allowed', (
 // A choice card
 // ---------------------------------------------------------------------------------------------
 
-test('a choice card: the admin chooser layout, safe text, and the attached note', () => {
+test('a free choice card: the admin chooser layout and safe text', () => {
     const hostile = '<img src=x onerror=alert(1)>';
     const picked = [];
-    const card = renderChoice(doc, medium(4, { alt_text: hostile }), { messages, base: PAGE, taken: true, onChoose: (item) => picked.push(item) });
+    const card = renderChoice(doc, medium(4, { alt_text: hostile }), { messages, base: PAGE, state: null, onChoose: (item) => picked.push(item) });
     const [thumb, meta] = card.children;
     const button = thumb.children[0];
 
-    assert.equal(card.className, 'vendor-media-card is-taken');
+    assert.equal(card.className, 'vendor-media-card');
+    assert.equal(card.dataset.state, 'free');
     assert.deepEqual([thumb.className, button.className, meta.className], ['vendor-media-thumb', 'vendor-media-open', 'vendor-media-meta']);
     assert.equal(button.type, 'button');
     assert.equal(button.getAttribute('aria-label'), `Choose ${hostile}`);
-    assert.equal(button.getAttribute('aria-describedby'), 'vendor-product-picker-taken-4');
-    assert.equal(button.disabled, false, 'An attached image stays selectable (duplicates are a later phase).');
+    assert.equal(button.disabled, false);
     assert.equal(button.children[0].alt, '');
     assert.equal(meta.children[0].textContent, hostile);
     assert.equal(meta.children[0].children.length, 0);
-    assert.equal(meta.children[1].textContent, 'Already in this product');
-    assert.deepEqual(card.all().map((node) => node.tagName), ['DIV', 'BUTTON', 'IMG', 'DIV', 'BDI', 'SPAN']);
+    assert.deepEqual(card.all().map((node) => node.tagName), ['DIV', 'BUTTON', 'IMG', 'DIV', 'BDI']);
 
     button.onclick();
     assert.equal(picked[0].path, 'vendors/media/1/4.png', 'The chosen library image, with its path.');
 });
 
+test('an attached choice card says so and cannot be chosen', () => {
+    const card = renderChoice(doc, medium(4), { messages, base: PAGE, state: 'attached', onChoose() {} });
+    const button = card.children[0].children[0];
+    const note = card.children[1].children[1];
+
+    assert.equal(card.className, 'vendor-media-card is-taken');
+    assert.equal(card.dataset.state, 'attached');
+    assert.equal(button.disabled, true);
+    assert.equal(button.dataset.blocked, 'true');
+    assert.equal(note.className, 'vendor-product-picker-taken');
+    assert.equal(note.textContent, 'Already in this product');
+    assert.equal(button.getAttribute('aria-describedby'), note.id, 'The reason is read with the button.');
+    assert.equal(note.id, 'vendor-product-picker-attached-4');
+});
+
+test('the card of the image being replaced says so and can be chosen', () => {
+    const card = renderChoice(doc, medium(4), { messages, base: PAGE, state: 'current', onChoose() {} });
+    const button = card.children[0].children[0];
+    const note = card.children[1].children[1];
+
+    assert.equal(card.className, 'vendor-media-card is-current');
+    assert.equal(button.disabled, false);
+    assert.equal(button.dataset.blocked, 'false');
+    assert.equal(note.className, 'vendor-product-picker-current');
+    assert.equal(note.textContent, 'The image being replaced');
+    assert.equal(button.getAttribute('aria-describedby'), note.id);
+});
+
+test('a busy picker disables every card; an attached card stays disabled afterwards', () => {
+    assert.equal(renderChoice(doc, medium(1), { messages, base: PAGE, state: null, busy: true, onChoose() {} }).children[0].children[0].disabled, true);
+    assert.equal(renderChoice(doc, medium(1), { messages, base: PAGE, state: 'current', busy: true, onChoose() {} }).children[0].children[0].disabled, true);
+});
+
+test('choiceState: adding, replacing the slot itself, replacing with another slot, and historical duplicates', () => {
+    const a = { id: 1, path: 'vendors/media/1/a.png' };
+    const b = { id: 2, path: 'vendors/media/1/b.png' };
+    const aAgain = { id: 3, path: 'vendors/media/1/a.png' };
+    const images = [a, b];
+
+    // Adding: every image of the product is attached.
+    assert.equal(choiceState(images, medium('a', { path: a.path }), null), 'attached');
+    assert.equal(choiceState(images, medium('c', { path: 'vendors/media/1/c.png' }), null), null);
+    // Replacing b: its own image is current (the slot stays), a's is attached.
+    assert.equal(choiceState(images, medium('b', { path: b.path }), b), 'current');
+    assert.equal(choiceState(images, medium('a', { path: a.path }), b), 'attached');
+    // A historical duplicate (a twice): replacing one of them keeps its own path allowed.
+    assert.equal(choiceState([a, b, aAgain], medium('a', { path: a.path }), aAgain), 'current');
+    // Exact paths only.
+    assert.equal(choiceState(images, medium('A', { path: 'vendors/media/1/A.png' }), null), null);
+    assert.equal(choiceState(images, { id: 9 }, null), null);
+});
+
+test('a 409 from the server is the duplicate error', () => {
+    assert.deepEqual(interpretImageResponse({ status: 409, body: { message: 'This image is already in this product.', errors: { path: ['x'] } } }), { ok: false, error: 'duplicate' });
+    assert.deepEqual(interpretImageResponse({ status: 422, body: { errors: { path: ['x'] } } }), { ok: false, error: 'library' }, 'Not in the library stays its own error.');
+    assert.deepEqual(interpretImageResponse({ status: 422, body: { errors: { images: ['x'] } } }), { ok: false, error: 'limit' });
+});
+
 test('a choice card without a safe address shows a placeholder; one not attached has no note', () => {
-    const card = renderChoice(doc, medium(4, { url: 'javascript:alert(1)', alt_text: '' }), { messages, base: PAGE, taken: false, onChoose() {} });
+    const card = renderChoice(doc, medium(4, { url: 'javascript:alert(1)', alt_text: '' }), { messages, base: PAGE, state: null, onChoose() {} });
 
     assert.equal(card.className, 'vendor-media-card');
     assert.deepEqual(card.all().map((node) => node.tagName), ['DIV', 'BUTTON', 'I', 'DIV', 'BDI']);
@@ -420,7 +480,7 @@ test('upload: the button opens the file chooser; the chosen files go to the edit
 });
 
 test('while busy the upload and every choice are disabled; refresh asks page 1 again with the search', async () => {
-    const { api, ui } = await opened(paged([medium(1), medium(2)]));
+    const { api, ui } = await opened(paged([medium(1), medium(2)]), { attached: [{ path: 'vendors/media/1/2.png' }] });
 
     api.setBusy(true);
     assert.equal(ui.upload.disabled, true);
@@ -429,6 +489,7 @@ test('while busy the upload and every choice are disabled; refresh asks page 1 a
     assert.equal(ui.file.clicks, 0, 'No file chooser while busy.');
     api.setBusy(false);
     assert.equal(ui.upload.disabled, false);
+    assert.deepEqual(ui.items.querySelectorAll('button').map((button) => button.disabled), [false, true], 'An attached image stays disabled once the request is over.');
 
     respond(paged([medium(3), medium(1), medium(2)]));
     api.refresh();

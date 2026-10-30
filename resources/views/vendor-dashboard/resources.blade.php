@@ -121,6 +121,9 @@
                                 'attached' => $galleryText('Attached', 'Already in this product'),
                                 'uploaded' => $galleryText('Uploaded', 'Images uploaded: :count. The first one was added to the product; the others are in your media library.'),
                                 'uploadMax' => $galleryText('Upload_Max', 'You can upload up to 10 images at a time.'),
+                                // VPM-01C: duplicates.
+                                'duplicate' => $galleryText('Duplicate', 'This image is already in this product. Choose another image.'),
+                                'current' => $galleryText('Current', 'The image being replaced'),
                             ];
                             // VPM-01A: the editor's own texts (title, list button, product load, save and delete).
                             $editorMessages = [

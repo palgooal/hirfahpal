@@ -415,6 +415,9 @@ class VendorDashboardTranslationSeeder extends Seeder
             'en' => 'Images uploaded: :count. The first one was added to the product; the others are in your media library.',
         ],
         'vendor.Product_Gallery_Upload_Max' => ['ar' => 'يمكنك رفع 10 صور كحد أقصى في المرة الواحدة.', 'en' => 'You can upload up to 10 images at a time.'],
+        // VPM-01C: an image the product already has.
+        'vendor.Product_Gallery_Duplicate' => ['ar' => 'هذه الصورة مضافة إلى هذا المنتج بالفعل. اختر صورة أخرى.', 'en' => 'This image is already in this product. Choose another image.'],
+        'vendor.Product_Gallery_Current' => ['ar' => 'الصورة التي تستبدلها', 'en' => 'The image being replaced'],
         // VPM-01A: the product editor's form, title, list button and product load / save / delete texts.
         'vendor.Product_New' => ['ar' => 'إضافة منتج', 'en' => 'Add product'],
         'vendor.Product_Edit' => ['ar' => 'تعديل المنتج', 'en' => 'Edit product'],

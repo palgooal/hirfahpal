@@ -66,13 +66,15 @@ class VendorProductImageOwnershipTest extends TestCase
     public function test_surrounding_whitespace_is_trimmed_and_only_the_exact_library_path_is_stored(): void
     {
         // TrimStrings removes it (spaces, tabs, a trailing NUL) before validation; what is checked is what is stored.
-        $media = $this->libraryImage($this->vendor);
-
-        foreach (["  {$media->file_path}  ", "{$media->file_path}\0", "\t{$media->file_path}\n"] as $padded) {
-            $this->addImage($this->product, $padded)->assertCreated()->assertJsonPath('image.path', $media->file_path);
+        // VPM-01C: one library image per spelling, since a product takes each image once.
+        $paths = [];
+        foreach (['  %s  ', "%s\0", "\t%s\n"] as $padding) {
+            $media = $this->libraryImage($this->vendor);
+            $this->addImage($this->product, sprintf($padding, $media->file_path))->assertCreated()->assertJsonPath('image.path', $media->file_path);
+            $paths[] = $media->file_path;
         }
 
-        $this->assertSame(array_fill(0, 3, $media->file_path), $this->product->images()->pluck('path')->all());
+        $this->assertSame($paths, $this->product->images()->pluck('path')->all());
     }
 
     public function test_product_creation_accepts_several_own_library_images(): void
@@ -116,9 +118,11 @@ class VendorProductImageOwnershipTest extends TestCase
     {
         $own = $this->libraryImage($this->vendor);
         $theirs = $this->libraryImage($this->other);
+        // VPM-01C: two different own images, since a product takes each image once.
+        $alsoOwn = $this->libraryImage($this->vendor);
         $products = Product::query()->count();
 
-        $this->createProduct([['path' => $own->file_path], ['path' => $theirs->file_path], ['path' => $own->file_path]])
+        $this->createProduct([['path' => $own->file_path], ['path' => $theirs->file_path], ['path' => $alsoOwn->file_path]])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['images.1.path'])
             ->assertJsonMissingValidationErrors(['images.0.path', 'images.2.path']);

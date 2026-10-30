@@ -42,7 +42,8 @@ class StoreProductRequest extends FormRequest
             // G7-C2-2 (V3): at most six images per product.
             'images' => ['nullable', 'array', 'max:'.ProductImageController::MAX_IMAGES],
             // G7-C2-1 (V2): every image must be one of the vendor's own media library images.
-            'images.*.path' => ['required_with:images', 'string', 'max:2048', new VendorLibraryImage((int) $this->user('vendor')->id)],
+            // VPM-01C: and each image at most once (exact paths), checked again inside the creating transaction.
+            'images.*.path' => ['required_with:images', 'string', 'max:2048', 'distinct:strict', new VendorLibraryImage((int) $this->user('vendor')->id)],
             'images.*.alt_text' => ['nullable', 'string', 'max:255'],
             'images.*.sort_order' => ['nullable', 'integer', 'min:0'],
             'images.*.is_primary' => ['nullable', 'boolean'],
@@ -53,6 +54,7 @@ class StoreProductRequest extends FormRequest
     {
         return [
             'images.max' => ProductImageController::MAX_IMAGES_MESSAGE,
+            'images.*.path.distinct' => ProductImageController::DUPLICATE_MESSAGE,
         ];
     }
 }

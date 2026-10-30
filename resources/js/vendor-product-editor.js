@@ -42,6 +42,8 @@ export function interpretImageResponse({ status, body }) {
         : status === 401 || status === 419 ? 'session'
             : status === 403 ? 'forbidden'
                 : status === 404 ? 'gone'
+                    // VPM-01C: the product already has this image (checked on the server under the product lock).
+                    : status === 409 ? 'duplicate'
                     : status === 422 && 'images' in errors ? 'limit'
                         : status === 422 && 'path' in errors ? 'library'
                             : status === 422 ? 'invalid'
@@ -195,6 +197,23 @@ export const pickerTitle = (messages, { mode, target }) => (target ? messages.ti
 /** A library image is already on the product when one of the product's images has its path. */
 export const isAttached = (images, medium) => typeof medium?.path === 'string' && images.some((image) => image.path === medium.path);
 
+/**
+ * VPM-01C: what a library image is for the picker's mode. 'current': the image being replaced (choosing it keeps the
+ * slot as it is, allowed); 'attached': another image of the product has it (refused by the server, so not choosable);
+ * null: free. Exact paths; the target is compared by identity, so a historical duplicate of the slot stays its own.
+ */
+export function choiceState(images, medium, target = null) {
+    if (typeof medium?.path !== 'string') {
+        return null;
+    }
+
+    if (target && target.path === medium.path) {
+        return 'current';
+    }
+
+    return images.some((image) => image !== target && image.path === medium.path) ? 'attached' : null;
+}
+
 /** What an upload may send: nothing chosen does nothing; more than ten files is refused before anything is sent. */
 export function uploadPlan(files) {
     const list = Array.from(files ?? []);
@@ -220,14 +239,16 @@ export const pickerErrorText = (error, messages) => ({ network: messages.network
 
 /**
  * One library image in the picker, built like the admin chooser card (square thumbnail whose button chooses it, name
- * below). An image already on the product says so; it stays selectable (duplicates are a later phase).
+ * below). VPM-01C: an image another slot of the product has ('attached') says so and cannot be chosen; the image being
+ * replaced ('current') says so and can be chosen (the slot stays as it is).
  */
-export function renderChoice(doc, medium, { messages, base, taken, disabled = false, onChoose }) {
+export function renderChoice(doc, medium, { messages, base, state = null, busy = false, onChoose }) {
     const label = textOf(medium.alt_text) || messages.mediaAlt;
     const url = safeUrl(medium.url, base);
     const card = doc.createElement('li');
-    card.className = taken ? 'vendor-media-card is-taken' : 'vendor-media-card';
+    card.className = state === 'attached' ? 'vendor-media-card is-taken' : state === 'current' ? 'vendor-media-card is-current' : 'vendor-media-card';
     card.dataset.id = String(medium.id ?? '');
+    card.dataset.state = state ?? 'free';
 
     const thumb = doc.createElement('div');
     thumb.className = 'vendor-media-thumb';
@@ -235,7 +256,8 @@ export function renderChoice(doc, medium, { messages, base, taken, disabled = fa
     choose.type = 'button';
     choose.className = 'vendor-media-open';
     choose.setAttribute('aria-label', format(messages.choose, { name: label }));
-    choose.disabled = disabled;
+    choose.disabled = busy || state === 'attached';
+    choose.dataset.blocked = state === 'attached' ? 'true' : 'false';
     choose.onclick = () => onChoose(medium);
 
     if (url) {
@@ -258,11 +280,11 @@ export function renderChoice(doc, medium, { messages, base, taken, disabled = fa
     name.title = label;
     meta.append(name);
 
-    if (taken) {
+    if (state) {
         const note = doc.createElement('span');
-        note.className = 'vendor-product-picker-taken';
-        note.id = `vendor-product-picker-taken-${card.dataset.id}`;
-        note.textContent = messages.attached;
+        note.className = state === 'attached' ? 'vendor-product-picker-taken' : 'vendor-product-picker-current';
+        note.id = `vendor-product-picker-${state}-${card.dataset.id}`;
+        note.textContent = state === 'attached' ? messages.attached : messages.current;
         choose.setAttribute('aria-describedby', note.id);
         meta.append(note);
     }
@@ -278,7 +300,7 @@ export function renderChoice(doc, medium, { messages, base, taken, disabled = fa
  * for a mode and remembers the button that opened it; closing (button, Escape or backdrop) gives focus back to that
  * button, or to fallback() when it is gone (a replaced card is redrawn). Choosing and uploading are the editor's.
  */
-export function initPicker(root, { url, messages, isTaken, onChoose, onUpload }, win = window) {
+export function initPicker(root, { url, messages, stateOf, onChoose, onUpload }, win = window) {
     const doc = root.ownerDocument;
     const $ = (name) => root.querySelector(`[data-product-media-${name}]`);
     const base = win.location.href;
@@ -314,7 +336,7 @@ export function initPicker(root, { url, messages, isTaken, onChoose, onUpload },
             ui.summary.textContent = '';
             focusSummary = false;
         } else {
-            ui.grid.replaceChildren(...state.images.map((medium) => renderChoice(doc, medium, { messages, base, taken: isTaken(medium), disabled: busy, onChoose })));
+            ui.grid.replaceChildren(...state.images.map((medium) => renderChoice(doc, medium, { messages, base, state: stateOf(medium), busy, onChoose })));
             ui.summary.textContent = format(messages.libraryCount, { count: state.total });
         }
 
@@ -416,7 +438,7 @@ export function initPicker(root, { url, messages, isTaken, onChoose, onUpload },
             busy = state;
             root.setAttribute('aria-busy', state ? 'true' : 'false');
             ui.upload.disabled = state;
-            ui.grid.querySelectorAll?.('button').forEach((button) => { button.disabled = state; });
+            ui.grid.querySelectorAll?.('button').forEach((button) => { button.disabled = state || button.dataset.blocked === 'true'; });
         },
     };
 }
@@ -516,6 +538,8 @@ function initEditor(editor) {
     // Returns whether the image was added or replaced; the picker closes then (VPM-01B).
     const choose = async (medium) => {
         if (busy) return false;
+        // VPM-01C: an image another slot has is not chosen (the picker disables it; the server refuses it with 409).
+        if (choiceState(images, medium, target) === 'attached') { galleryFail('duplicate'); return false; }
         const plan = planChoice(images, { mode, target });
         if (plan.action === 'refuse') { galleryFail(plan.error); return false; }
 
@@ -570,7 +594,7 @@ function initEditor(editor) {
     picker = initPicker(editor.querySelector('[data-product-media-library]'), {
         url: editor.dataset.mediaLibraryUrl,
         messages,
-        isTaken: (medium) => isAttached(images, medium),
+        stateOf: (medium) => choiceState(images, medium, target),
         onChoose: choose,
         onUpload: upload,
     });

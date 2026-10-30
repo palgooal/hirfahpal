@@ -64,12 +64,18 @@ class ProductController extends Controller
                 // G7-C2-3 (V4): the sent order (sort_order, then the list order) with the first image sent as the main
                 // one moved first; without one, the first image is the main one.
                 $primaryId = null;
+                $paths = [];
                 foreach ($images as $index => $image) {
                     // VENDOR-MEDIA-02C: each library row read again under a shared lock inside this transaction, so a
                     // concurrent library deletion either commits first (refused here) or waits for this commit.
                     if (! VendorLibraryImage::lockedInLibrary((int) $vendor->id, $image['path'])) {
                         throw ValidationException::withMessages(["images.{$index}.path" => VendorLibraryImage::MESSAGE]);
                     }
+                    // VPM-01C: each path once (exactly); a repeat rolls the whole product back.
+                    if (isset($paths[$image['path']])) {
+                        throw ValidationException::withMessages(["images.{$index}.path" => ProductImageController::DUPLICATE_MESSAGE]);
+                    }
+                    $paths[$image['path']] = true;
 
                     $created = $product->images()->create([
                         'path' => $image['path'],

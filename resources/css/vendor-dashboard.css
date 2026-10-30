@@ -1643,6 +1643,18 @@ html.vendor-shell .vendor-product-picker-taken {
   font-weight: 600;
 }
 
+/* VPM-01C: the image being replaced; it can be chosen (the slot stays as it is). */
+html.vendor-shell .vendor-product-picker .vendor-media-card.is-current {
+  border-color: var(--color-hf-olive);
+}
+
+/* The admin's readable dark copper (DASH-3); the copper token is under 4.5:1 on white at this size. */
+html.vendor-shell .vendor-product-picker-current {
+  color: #8a4520;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
 html.vendor-shell .vendor-product-picker .vendor-media-open:disabled {
   cursor: not-allowed;
   opacity: 0.45;
