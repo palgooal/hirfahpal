@@ -110,6 +110,55 @@ export function moveLocal(images, moved, direction) {
     return next.map((image, position) => ({ ...image, is_primary: position === 0, sort_order: position }));
 }
 
+/**
+ * VPM-01E: the address of a product image, as the storefront shows it (HomepageMedia::url): a library image's own url,
+ * an http(s) path as it is, an "assets/" or "/" path from the public folder, else the file on the public disk. A path
+ * that is not a plain relative file path (a scheme other than http(s), a backslash, an empty, "." or ".." segment) gets
+ * no address, so the card shows its placeholder instead of asking for something else.
+ */
+export function productImageUrl(image) {
+    // http(s), or a same-site path (one leading slash: "//host/..." would be another site).
+    if (typeof image?.url === 'string' && /^(https?:\/\/|\/(?!\/))/i.test(image.url)) {
+        return image.url;
+    }
+
+    const path = typeof image?.path === 'string' ? image.path.trim() : '';
+
+    if (/^https?:\/\//i.test(path)) {
+        return path;
+    }
+
+    const relative = path.replace(/^\/+/, '');
+    const segments = relative.split('/');
+
+    if (relative === '' || relative.includes('\\') || /^[a-z][a-z0-9+.-]*:/i.test(relative) || segments.some((segment) => segment === '' || segment === '.' || segment === '..')) {
+        return '';
+    }
+
+    const encoded = segments.map(encodeURIComponent).join('/');
+
+    return path.startsWith('/') || relative.startsWith('assets/') ? `/${encoded}` : `/storage/${encoded}`;
+}
+
+/**
+ * VPM-01E: an image from before the media library: its path is not a file directly in the vendor's own library folder
+ * (vendors/media/{vendorId}/), the rule the admin gallery uses for its "not in the vendor library" mark. Only a hint:
+ * the server decides what may be attached. An unsaved image always comes from the library.
+ */
+export function isLegacyImage(image, libraryPrefix) {
+    if (!image?.id || typeof libraryPrefix !== 'string' || libraryPrefix === '') {
+        return false;
+    }
+
+    const path = typeof image.path === 'string' ? image.path : '';
+    const file = path.startsWith(libraryPrefix) ? path.slice(libraryPrefix.length) : null;
+
+    return file === null || file === '' || file === '.' || file === '..' || /[/\\]/.test(file);
+}
+
+/** VPM-01E: the one note about the limit: none below it, "full" at it, "over" above it (a gallery from before the limit). */
+export const limitNote = (count, max = MAX_IMAGES) => (count > max ? 'over' : count === max ? 'full' : null);
+
 /** The card's name: its alt text, else "Product image". */
 export const imageLabel = (image, messages) => (typeof image.alt_text === 'string' && image.alt_text.trim() !== '' ? image.alt_text.trim() : messages.imageAlt);
 
@@ -162,7 +211,7 @@ const icon = (doc, name) => {
  * VPM-01A: one product image, built like the admin gallery's card (thumbnail, position, name, main badge, actions).
  * Texts go through textContent only; each action button is described by the image name.
  */
-export function renderImageCard(doc, image, { index, count = index + 1, isPrimary, url, messages, onChange, onSetMain, onRemove, onMove = () => {} }) {
+export function renderImageCard(doc, image, { index, count = index + 1, isPrimary, url, legacy = false, messages, onChange, onSetMain, onRemove, onMove = () => {} }) {
     const nameId = `vendor-product-image-${index}-name`;
     const label = imageLabel(image, messages);
 
@@ -173,13 +222,29 @@ export function renderImageCard(doc, image, { index, count = index + 1, isPrimar
 
     const thumb = doc.createElement('div');
     thumb.className = 'vendor-product-gallery-thumb';
-    const pic = doc.createElement('img');
-    pic.src = url;
-    pic.alt = label;
-    pic.loading = 'lazy';
-    thumb.append(pic);
-
     const meta = doc.createElement('div');
+
+    // VPM-01E: an image whose file cannot be shown (no usable address, or the file is gone) is a placeholder with a
+    // note; the card and its actions stay, nothing is removed.
+    const unavailable = () => {
+        if (card.dataset.missing === 'true') return;
+        card.dataset.missing = 'true';
+        thumb.replaceChildren(icon(doc, 'ph-image'));
+        const note = doc.createElement('span');
+        note.className = 'vendor-product-gallery-badge is-missing';
+        note.textContent = messages.missing;
+        meta.append(note);
+    };
+
+    if (url) {
+        const pic = doc.createElement('img');
+        pic.src = url;
+        pic.alt = label;
+        pic.loading = 'lazy';
+        pic.onerror = unavailable;
+        thumb.append(pic);
+    }
+
     meta.className = 'vendor-product-gallery-meta';
     const position = doc.createElement('span');
     position.className = 'vendor-product-gallery-position';
@@ -196,6 +261,18 @@ export function renderImageCard(doc, image, { index, count = index + 1, isPrimar
         badge.className = 'vendor-product-gallery-badge is-main';
         badge.textContent = messages.mainBadge;
         meta.append(badge);
+    }
+
+    // VPM-01E: an image from before the media library (outside the vendor's own folder), as the admin gallery marks it.
+    if (legacy) {
+        const badge = doc.createElement('span');
+        badge.className = 'vendor-product-gallery-badge is-legacy';
+        badge.textContent = messages.legacy;
+        meta.append(badge);
+    }
+
+    if (!url) {
+        unavailable();
     }
 
     const actions = doc.createElement('div');
@@ -524,7 +601,9 @@ function initEditor(editor) {
     const request = (url, method = 'GET', body = null) => fetch(url, { method, credentials: 'same-origin', headers: headers(Boolean(body)), ...(body ? { body: JSON.stringify(body) } : {}) });
     const send = (url, method, body = null) => fetchJson(url, { method, credentials: 'same-origin', headers: headers(Boolean(body)), ...(body ? { body: JSON.stringify(body) } : {}) });
     const fail = (text) => { error.textContent = text; error.hidden = false; };
-    const imageUrl = (image) => image.url || `/storage/${image.path}`;
+    const imageUrl = productImageUrl;
+    const libraryPrefix = editor.dataset.libraryPrefix || '';
+    const galleryLimit = editor.querySelector('[data-product-gallery-limit]');
     const primaryBox = () => editor.querySelector('[data-product-primary-image]');
     const galleryBox = () => editor.querySelector('[data-product-gallery-images]');
     const showEditor = () => { list.hidden = true; editor.hidden = false; editor.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
@@ -547,7 +626,7 @@ function initEditor(editor) {
         const primary = images[0] ?? null;
         // VPM-01A: the admin gallery's cards in a list, or its dashed empty note. Same actions as before.
         const card = (image, index) => renderImageCard(document, image, {
-            index, count: images.length, isPrimary: index === 0, url: imageUrl(image), messages,
+            index, count: images.length, isPrimary: index === 0, url: imageUrl(image), legacy: isLegacyImage(image, libraryPrefix), messages,
             onChange: (event) => openMedia(index === 0 ? 'primary' : 'replace', image, event?.currentTarget ?? null),
             onSetMain: () => setPrimary(image),
             onRemove: () => removeImage(image),
@@ -558,6 +637,12 @@ function initEditor(editor) {
         primaryBox().replaceChildren(primary ? listOf([card(primary, 0)]) : empty(messages.noMain));
         galleryBox().replaceChildren(images.length > 1 ? listOf(images.slice(1).map((image, at) => card(image, at + 1))) : empty(messages.noGallery));
         galleryCount.textContent = format(messages.count, { count: images.length, max: MAX_IMAGES });
+        // VPM-01E: one note at or above the limit (a gallery from before it shows every image; nothing is removed).
+        const note = limitNote(images.length);
+        const noteText = note === 'over' ? format(messages.overMax, { count: images.length, max: MAX_IMAGES }) : note === 'full' ? format(messages.full, { max: MAX_IMAGES }) : '';
+        if (galleryLimit.textContent !== noteText) galleryLimit.textContent = noteText;
+        galleryLimit.hidden = noteText === '';
+        galleryLimit.dataset.state = note ?? 'none';
         setBusy(busy);
     };
 

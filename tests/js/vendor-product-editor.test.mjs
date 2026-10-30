@@ -10,8 +10,11 @@ import {
     format,
     interpretImageResponse,
     orderImages,
+    productImageUrl,
     planChoice,
     focusAfterMove,
+    isLegacyImage,
+    limitNote,
     moveLocal,
     removeLocal,
     renderImageCard,
@@ -125,6 +128,11 @@ class FakeElement {
         return this.text + this.children.map((child) => child.textContent).join('');
     }
 
+    replaceChildren(...nodes) {
+        this.text = '';
+        this.children = nodes;
+    }
+
     append(...nodes) {
         this.children.push(...nodes);
     }
@@ -143,7 +151,7 @@ class FakeElement {
 }
 
 const doc = { createElement: (tag) => new FakeElement(tag) };
-const cardTexts = { position: 'Image :position', mainBadge: 'Main image', imageAlt: 'Product image', change: 'Change', setMain: 'Set as main', remove: 'Remove', moveUp: 'Move up', moveDown: 'Move down' };
+const cardTexts = { position: 'Image :position', mainBadge: 'Main image', imageAlt: 'Product image', change: 'Change', setMain: 'Set as main', remove: 'Remove', moveUp: 'Move up', moveDown: 'Move down', legacy: 'Not in your media library', missing: 'Image file not found' };
 const card = (image, index, calls = [], count = 5) => renderImageCard(doc, image, {
     index,
     count,
@@ -307,4 +315,76 @@ test('after a move, focus returns to the same button of the moved image, or the 
     focused = null;
     assert.equal(focusAfterMove(three, 'id:404', 'up'), null);
     assert.equal(focused, null, 'An image that is gone takes no focus.');
+});
+
+// ---- VPM-01E: legacy images, missing files and the limit note ----
+
+const BACKSLASH = String.fromCharCode(92);
+
+test('a product image is shown at the address the storefront uses', () => {
+    assert.equal(productImageUrl({ path: 'vendors/media/1/a.png' }), '/storage/vendors/media/1/a.png');
+    assert.equal(productImageUrl({ path: 'products/2024/old jug.png' }), '/storage/products/2024/old%20jug.png', 'Encoded, per segment.');
+    assert.equal(productImageUrl({ path: 'https://cdn.example.test/jug.png' }), 'https://cdn.example.test/jug.png', 'An http(s) path as it is.');
+    assert.equal(productImageUrl({ path: 'assets/images/jug.png' }), '/assets/images/jug.png', 'A public asset path from the public folder.');
+    assert.equal(productImageUrl({ path: '/images/jug.png' }), '/images/jug.png');
+    assert.equal(productImageUrl({ path: 'x.png', url: '/storage/vendors/media/1/x.png' }), '/storage/vendors/media/1/x.png', 'A library image keeps its own url.');
+    assert.equal(productImageUrl({ path: 'x.png', url: 'javascript:alert(1)' }), '/storage/x.png', 'An unsafe url is ignored.');
+    assert.equal(productImageUrl({ path: 'x.png', url: '//other.example/x.png' }), '/storage/x.png', 'A protocol-relative url (another site) is ignored.');
+});
+
+test('a path that is not a plain file path gets no address (the card shows its placeholder)', () => {
+    for (const path of ['', '   ', 'javascript:alert(1)', 'data:image/png;base64,AAA', '../.env', 'products/../../.env', 'products//a.png', 'products/./a.png', `products${BACKSLASH}a.png`, 'products/', null, 42]) {
+        assert.equal(productImageUrl({ path }), '', String(path));
+    }
+    assert.equal(productImageUrl(null), '');
+});
+
+test('a legacy image is one outside the vendor own library folder; unsaved images never are', () => {
+    const prefix = 'vendors/media/7/';
+
+    assert.equal(isLegacyImage({ id: 1, path: 'vendors/media/7/a.png' }, prefix), false);
+    for (const path of ['products/old.png', 'vendors/products/7/a.png', 'vendors/media/8/a.png', 'vendors/media/70/a.png', 'vendors/media/7/sub/a.png', 'vendors/media/7/', `vendors/media/7/sub${BACKSLASH}a.png`, 'VENDORS/MEDIA/7/a.png', 'https://cdn.example.test/a.png']) {
+        assert.equal(isLegacyImage({ id: 1, path }, prefix), true, path);
+    }
+    assert.equal(isLegacyImage({ path: 'products/old.png' }, prefix), false, 'Unsaved: always from the library.');
+    assert.equal(isLegacyImage({ id: 1, path: 'products/old.png' }, ''), false, 'Without the prefix, no guess.');
+});
+
+test('one limit note: none below six, full at six, over above six', () => {
+    assert.deepEqual([0, 5, 6, 7, 12].map((count) => limitNote(count)), [null, null, 'full', 'over', 'over']);
+});
+
+test('a legacy card says so, and keeps every action', () => {
+    const calls = [];
+    const node = renderImageCard(doc, { id: 3, path: 'products/old.png', alt_text: 'Old jug' }, {
+        index: 1, count: 3, isPrimary: false, url: '/storage/products/old.png', legacy: true, messages: cardTexts,
+        onChange: () => calls.push('change'), onSetMain: () => calls.push('main'), onRemove: () => calls.push('remove'), onMove: (d) => calls.push(d),
+    });
+    const meta = node.children[1];
+
+    assert.deepEqual(meta.children.map((child) => child.textContent), ['Image 2', 'Old jug', 'Not in your media library']);
+    assert.equal(meta.children[2].className, 'vendor-product-gallery-badge is-legacy');
+    assert.deepEqual(enabled(node), ['up', 'down', 'change', 'main', 'remove']);
+    actions(node).forEach((button) => button.onclick());
+    assert.deepEqual(calls, ['up', 'down', 'change', 'main', 'remove']);
+    assert.equal(card({ id: 4, path: 'vendors/media/1/a.png' }, 1).children[1].children.length, 2, 'A library image has no extra badge.');
+});
+
+test('a missing file becomes a placeholder with a note; the card and its actions stay', () => {
+    const node = card({ id: 5, path: 'products/gone.png', alt_text: 'Gone' }, 0);
+    const [thumb, meta] = node.children;
+    const picture = thumb.children[0];
+
+    assert.equal(picture.tagName, 'IMG');
+    picture.onerror();
+    picture.onerror?.();
+    assert.deepEqual(thumb.children.map((child) => [child.tagName, child.className]), [['I', 'ph-duotone ph-image']]);
+    assert.equal(thumb.children[0].getAttribute('aria-hidden'), 'true');
+    assert.equal(node.dataset.missing, 'true');
+    assert.deepEqual(meta.children.map((child) => child.textContent), ['Image 1', 'Gone', 'Main image', 'Image file not found'], 'One note, even if the error fires twice.');
+    assert.equal(actions(node).length, 4, 'Every action is still there (remove or replace it).');
+
+    const noAddress = renderImageCard(doc, { id: 6, path: '../.env' }, { index: 1, count: 2, isPrimary: false, url: '', messages: cardTexts, onChange() {}, onSetMain() {}, onRemove() {} });
+    assert.deepEqual(noAddress.children[0].children.map((child) => child.tagName), ['I'], 'No request for an unusable path.');
+    assert.equal(noAddress.children[1].children.at(-1).textContent, 'Image file not found');
 });

@@ -422,6 +422,17 @@ class VendorDashboardTranslationSeeder extends Seeder
         'vendor.Product_Gallery_Move_Up' => ['ar' => 'نقل لأعلى', 'en' => 'Move up'],
         'vendor.Product_Gallery_Move_Down' => ['ar' => 'نقل لأسفل', 'en' => 'Move down'],
         'vendor.Product_Gallery_Moved' => ['ar' => 'أصبحت «:name» الصورة :position.', 'en' => ':name is now image :position.'],
+        // VPM-01E: images from before the media library, missing files, and the six-image limit.
+        'vendor.Product_Gallery_Legacy' => ['ar' => 'ليست في مكتبة الوسائط الخاصة بك', 'en' => 'Not in your media library'],
+        'vendor.Product_Gallery_Missing' => ['ar' => 'ملف الصورة غير موجود', 'en' => 'Image file not found'],
+        'vendor.Product_Gallery_Full' => [
+            'ar' => 'يحتوي هذا المنتج على الحد الأقصى وهو :max صور. أزل صورة أو استبدلها لإضافة أخرى.',
+            'en' => 'This product has the maximum of :max images. Remove or replace one to add another.',
+        ],
+        'vendor.Product_Gallery_Over_Max' => [
+            'ar' => 'يحتوي هذا المنتج على :count صور، وهذا أكثر من الحد الأقصى الحالي وهو :max. لا يمكن إضافة صور جديدة، ويمكنك إزالة الصور أو استبدالها أو ترتيبها أو تعيين الصورة الرئيسية. لا تُزال أي صورة تلقائيًا.',
+            'en' => 'This product has :count images, more than the current maximum of :max. Nothing can be added. You can still remove, replace, reorder and set the main image; no image is removed automatically.',
+        ],
         // VPM-01A: the product editor's form, title, list button and product load / save / delete texts.
         'vendor.Product_New' => ['ar' => 'إضافة منتج', 'en' => 'Add product'],
         'vendor.Product_Edit' => ['ar' => 'تعديل المنتج', 'en' => 'Edit product'],

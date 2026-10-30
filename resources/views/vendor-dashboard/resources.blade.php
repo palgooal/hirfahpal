@@ -38,7 +38,7 @@
     </div>
 
     @if ($resource === 'products')
-        <div class="col-span-12 admin-media admin-cat-form admin-product-form vendor-product-form" data-product-editor data-endpoint="{{ $page['endpoint'] }}" data-media-library-url="{{ route('vendor.dashboard.products.media.library') }}" data-media-store-url="{{ route('vendor.dashboard.products.media.store') }}" hidden>
+        <div class="col-span-12 admin-media admin-cat-form admin-product-form vendor-product-form" data-product-editor data-endpoint="{{ $page['endpoint'] }}" data-media-library-url="{{ route('vendor.dashboard.products.media.library') }}" data-media-store-url="{{ route('vendor.dashboard.products.media.store') }}" data-library-prefix="{{ \App\Support\Media\VendorMediaPath::prefix((int) auth('vendor')->id()) }}" hidden>
             <section class="card admin-media-panel admin-cat-form-card">
                 <div class="card-body">
                     <div class="admin-media-head admin-product-form-head">
@@ -128,6 +128,11 @@
                                 'moveUp' => $galleryText('Move_Up', 'Move up'),
                                 'moveDown' => $galleryText('Move_Down', 'Move down'),
                                 'moved' => $galleryText('Moved', ':name is now image :position.'),
+                                // VPM-01E: images from before the media library, missing files, and the six-image limit.
+                                'legacy' => $galleryText('Legacy', 'Not in your media library'),
+                                'missing' => $galleryText('Missing', 'Image file not found'),
+                                'full' => $galleryText('Full', 'This product has the maximum of :max images. Remove or replace one to add another.'),
+                                'overMax' => $galleryText('Over_Max', 'This product has :count images, more than the current maximum of :max. Nothing can be added. You can still remove, replace, reorder and set the main image; no image is removed automatically.'),
                             ];
                             // VPM-01A: the editor's own texts (title, list button, product load, save and delete).
                             $editorMessages = [
@@ -154,6 +159,8 @@
                             <div class="vendor-product-gallery-bar">
                                 <p class="vendor-product-gallery-count" data-product-gallery-count></p>
                             </div>
+                            {{-- VPM-01E: one note at or above the six-image limit (a gallery from before it keeps every image). --}}
+                            <p class="vendor-product-gallery-note" id="vendor-product-gallery-limit" role="status" aria-live="polite" data-product-gallery-limit hidden></p>
 
                             <section class="vendor-product-gallery-group" aria-labelledby="vendor-product-main-label">
                                 <div class="vendor-product-gallery-group-head">
@@ -175,7 +182,7 @@
                                         <h3 class="vendor-product-gallery-label" id="vendor-product-gallery-label">{{ $galleryText('Gallery_Label', 'Product gallery') }}</h3>
                                         <p class="vendor-product-hint">{{ $galleryText('Gallery_Help', 'Choose additional images from your media library.') }}</p>
                                     </div>
-                                    <button class="btn btn-light-secondary vendor-product-gallery-add" type="button" data-product-gallery-open data-limited="true" aria-describedby="vendor-product-gallery-hint">
+                                    <button class="btn btn-light-secondary vendor-product-gallery-add" type="button" data-product-gallery-open data-limited="true" aria-describedby="vendor-product-gallery-hint vendor-product-gallery-limit">
                                         <i class="ph-duotone ph-plus" aria-hidden="true"></i>
                                         <span>{{ $galleryText('Add', 'Add gallery image') }}</span>
                                     </button>
