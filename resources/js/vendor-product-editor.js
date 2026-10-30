@@ -92,6 +92,45 @@ export function setLocalPrimary(images, chosen) {
     return [chosen, ...images.filter((image) => image !== chosen)].map((image, position) => ({ ...image, is_primary: position === 0, sort_order: position }));
 }
 
+/**
+ * VPM-01D: a new product (nothing saved): the image swaps places with its neighbour, up or down; past either end nothing
+ * changes. As on the server, the order is then 0..n-1 and the first image is the main one.
+ */
+export function moveLocal(images, moved, direction) {
+    const from = images.indexOf(moved);
+    const to = from + (direction === 'up' ? -1 : 1);
+
+    if (from < 0 || to < 0 || to >= images.length) {
+        return images;
+    }
+
+    const next = [...images];
+    [next[from], next[to]] = [next[to], next[from]];
+
+    return next.map((image, position) => ({ ...image, is_primary: position === 0, sort_order: position }));
+}
+
+/** The card's name: its alt text, else "Product image". */
+export const imageLabel = (image, messages) => (typeof image.alt_text === 'string' && image.alt_text.trim() !== '' ? image.alt_text.trim() : messages.imageAlt);
+
+/** VPM-01D: what keeps a card recognisable across a redraw: its id once saved, else its library path (one per product). */
+export const imageKey = (image) => (image.id !== undefined && image.id !== null ? `id:${image.id}` : `path:${image.path}`);
+
+/**
+ * VPM-01D: after a move the cards are redrawn. Focus goes back to the same button of the same image (found by its
+ * key), or to the other direction when that one is now at an end of the list, else to its Change button.
+ */
+export function focusAfterMove(container, key, action) {
+    const card = [...container.querySelectorAll('[data-image-key]')].find((node) => node.dataset.imageKey === key);
+    const usable = (node) => (node && !node.disabled ? node : null);
+    const target = usable(card?.querySelector(`[data-action="${action}"]`))
+        ?? usable(card?.querySelector(`[data-action="${action === 'up' ? 'down' : 'up'}"]`))
+        ?? card?.querySelector('[data-action="change"]');
+    target?.focus();
+
+    return target ?? null;
+}
+
 /** A new product: removing closes the gap; the first remaining image is the main one. */
 export function removeLocal(images, removed) {
     return images.filter((image) => image !== removed).map((image, position) => ({ ...image, is_primary: position === 0, sort_order: position }));
@@ -123,13 +162,14 @@ const icon = (doc, name) => {
  * VPM-01A: one product image, built like the admin gallery's card (thumbnail, position, name, main badge, actions).
  * Texts go through textContent only; each action button is described by the image name.
  */
-export function renderImageCard(doc, image, { index, isPrimary, url, messages, onChange, onSetMain, onRemove }) {
+export function renderImageCard(doc, image, { index, count = index + 1, isPrimary, url, messages, onChange, onSetMain, onRemove, onMove = () => {} }) {
     const nameId = `vendor-product-image-${index}-name`;
-    const label = typeof image.alt_text === 'string' && image.alt_text.trim() !== '' ? image.alt_text.trim() : messages.imageAlt;
+    const label = imageLabel(image, messages);
 
     const card = doc.createElement('li');
     card.className = isPrimary ? 'vendor-product-gallery-item is-main' : 'vendor-product-gallery-item';
     if (image.id !== undefined && image.id !== null) card.dataset.imageId = String(image.id);
+    card.dataset.imageKey = imageKey(image);
 
     const thumb = doc.createElement('div');
     thumb.className = 'vendor-product-gallery-thumb';
@@ -160,12 +200,15 @@ export function renderImageCard(doc, image, { index, isPrimary, url, messages, o
 
     const actions = doc.createElement('div');
     actions.className = 'vendor-product-gallery-actions';
-    const button = (action, text, iconName, onClick) => {
+    const button = (action, text, iconName, onClick, boundary = false) => {
         const node = doc.createElement('button');
         node.type = 'button';
         node.className = 'btn btn-sm btn-light-secondary';
         node.dataset.action = action;
         node.setAttribute('aria-describedby', nameId);
+        // VPM-01D: a move past either end is unavailable; setBusy() keeps it disabled after a request.
+        node.disabled = boundary;
+        node.dataset.boundary = boundary ? 'true' : 'false';
         const caption = doc.createElement('span');
         caption.textContent = text;
         node.append(icon(doc, iconName), caption);
@@ -173,6 +216,9 @@ export function renderImageCard(doc, image, { index, isPrimary, url, messages, o
         actions.append(node);
     };
 
+    // VPM-01D: the admin gallery's order of actions: move up, move down, then the vendor's change / main / remove.
+    button('up', messages.moveUp, 'ph-arrow-up', (event) => onMove('up', event), index === 0);
+    button('down', messages.moveDown, 'ph-arrow-down', (event) => onMove('down', event), index >= count - 1);
     button('change', messages.change, 'ph-swap', onChange);
     if (!isPrimary) button('main', messages.setMain, 'ph-star', onSetMain);
     button('remove', messages.remove, 'ph-x', onRemove);
@@ -491,19 +537,21 @@ function initEditor(editor) {
     const setBusy = (state) => {
         busy = state;
         gallery.setAttribute('aria-busy', state ? 'true' : 'false');
-        gallery.querySelectorAll('button').forEach((button) => { button.disabled = state || (button.dataset.limited === 'true' && images.length >= MAX_IMAGES); });
+        gallery.querySelectorAll('button').forEach((button) => { button.disabled = state || (button.dataset.limited === 'true' && images.length >= MAX_IMAGES) || button.dataset.boundary === 'true'; });
         picker?.setBusy(state);
     };
+    const focusCard = (key, action) => focusAfterMove(gallery, key, action);
 
     const render = () => {
         images = orderImages(images);
         const primary = images[0] ?? null;
         // VPM-01A: the admin gallery's cards in a list, or its dashed empty note. Same actions as before.
         const card = (image, index) => renderImageCard(document, image, {
-            index, isPrimary: index === 0, url: imageUrl(image), messages,
+            index, count: images.length, isPrimary: index === 0, url: imageUrl(image), messages,
             onChange: (event) => openMedia(index === 0 ? 'primary' : 'replace', image, event?.currentTarget ?? null),
             onSetMain: () => setPrimary(image),
             onRemove: () => removeImage(image),
+            onMove: (direction) => moveImage(image, direction),
         });
         const listOf = (cards) => { const node = document.createElement('ol'); node.className = 'vendor-product-gallery-list'; node.append(...cards); return node; };
         const empty = (text) => { const node = document.createElement('p'); node.className = 'vendor-product-gallery-empty'; node.textContent = text; return node; };
@@ -527,6 +575,26 @@ function initEditor(editor) {
         if (busy) return;
         if (!editingId) { images = setLocalPrimary(images, image); render(); status(messages.mainChanged); return; }
         await mutate(`${endpoint}/${editingId}/images/${image.id}`, 'PATCH', { is_primary: true }, messages.mainChanged);
+    };
+
+    // VPM-01D: one step up or down. A new product reorders its local list; a saved one sends one PATCH .../move and is
+    // redrawn from the server's answer only (a refused or failed move leaves the gallery as it was).
+    const moveImage = async (image, direction) => {
+        if (busy) return;
+        const key = imageKey(image);
+        const moved = () => {
+            const position = images.findIndex((other) => imageKey(other) === key);
+            if (position >= 0) status(format(messages.moved, { name: imageLabel(images[position], messages), position: position + 1 }));
+        };
+
+        if (!editingId || !image.id) {
+            images = moveLocal(images, image, direction); clearGalleryError(); render(); moved(); focusCard(key, direction);
+            return;
+        }
+
+        const saved = await mutate(`${endpoint}/${editingId}/images/${image.id}/move`, 'PATCH', { direction }, '');
+        if (saved) moved();
+        focusCard(key, direction);
     };
 
     const removeImage = async (image) => {

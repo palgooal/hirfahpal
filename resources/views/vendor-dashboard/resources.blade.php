@@ -124,6 +124,10 @@
                                 // VPM-01C: duplicates.
                                 'duplicate' => $galleryText('Duplicate', 'This image is already in this product. Choose another image.'),
                                 'current' => $galleryText('Current', 'The image being replaced'),
+                                // VPM-01D: moving images (the first image is the main one).
+                                'moveUp' => $galleryText('Move_Up', 'Move up'),
+                                'moveDown' => $galleryText('Move_Down', 'Move down'),
+                                'moved' => $galleryText('Moved', ':name is now image :position.'),
                             ];
                             // VPM-01A: the editor's own texts (title, list button, product load, save and delete).
                             $editorMessages = [

@@ -160,6 +160,64 @@ class VendorProductImageConcurrencyMySqlTest extends TestCase
         });
     }
 
+    // ---------------------------------------------------------------- VPM-01D: reordering
+
+    /** The same image moved up twice at once: the second waits, then moves it again from where the first left it. */
+    public function test_two_concurrent_moves_of_the_same_image_are_both_applied(): void
+    {
+        $this->rounds(function () {
+            $this->galleryOf(['A', 'B', 'C', 'D']);
+            [$holder, $contender] = $this->race("move|{$this->images['D']}|up", 'before-commit', "move|{$this->images['D']}|up");
+
+            $this->assertResponse(200, $holder);
+            $this->assertResponse(200, $contender);
+            $this->assertGallery(['A', 'D', 'B', 'C'], 'No lost update: D moved two places.');
+            $this->assertSameMetadata();
+        });
+    }
+
+    /** Two different images moved at once: both moves apply, in the order they took the lock. */
+    public function test_two_concurrent_moves_of_different_images(): void
+    {
+        $this->rounds(function () {
+            $this->galleryOf(['A', 'B', 'C', 'D']);
+            [$holder, $contender] = $this->race("move|{$this->images['B']}|up", 'before-commit', "move|{$this->images['D']}|up");
+
+            $this->assertResponse(200, $holder);
+            $this->assertResponse(200, $contender);
+            $this->assertGallery(['B', 'A', 'D', 'C']);
+            $this->assertSameMetadata();
+        });
+    }
+
+    /** A move and "set as main" at once: one definition of the main image, whichever commits first. */
+    public function test_a_move_and_set_as_main_at_once(): void
+    {
+        $this->rounds(function () {
+            $this->galleryOf(['A', 'B', 'C', 'D']);
+            [$holder, $contender] = $this->race("move|{$this->images['C']}|up", 'before-commit', "main|{$this->images['D']}");
+
+            $this->assertResponse(200, $holder);
+            $this->assertResponse(200, $contender);
+            // A B C D -> move C up: A C B D -> D main: D A C B.
+            $this->assertGallery(['D', 'A', 'C', 'B']);
+            $this->assertSameMetadata();
+        });
+    }
+
+    /** A move and an attachment at once: the new image is appended after the moved order; nothing lost. */
+    public function test_a_move_and_an_attachment_at_once(): void
+    {
+        $this->rounds(function () {
+            $this->galleryOf(['A', 'B', 'C']);
+            [$holder, $contender] = $this->race("move|{$this->images['A']}|down", 'before-commit', 'add|'.$this->paths['P']);
+
+            $this->assertResponse(200, $holder);
+            $this->assertResponse(201, $contender);
+            $this->assertGallery(['B', 'A', 'C', 'P']);
+        });
+    }
+
     // ---------------------------------------------------------------- existing protections
 
     /** VENDOR-MEDIA-02C still holds: deleting the image from the library while it is being attached waits, then 409s. */
@@ -253,11 +311,11 @@ class VendorProductImageConcurrencyMySqlTest extends TestCase
      *
      * @param  list<string>  $names
      */
-    private function assertGallery(array $names): void
+    private function assertGallery(array $names, string $message = ''): void
     {
         $rows = $this->db()->table('product_images')->where('product_id', $this->product->id)->orderBy('sort_order')->orderBy('id')->get();
 
-        $this->assertSame(array_map(fn ($name) => $this->paths[$name], $names), $rows->pluck('path')->all());
+        $this->assertSame(array_map(fn ($name) => $this->paths[$name], $names), $rows->pluck('path')->all(), $message);
         $this->assertSame(range(0, count($names) - 1), $rows->pluck('sort_order')->map(fn ($v) => (int) $v)->all());
         $this->assertSame([true], $rows->filter(fn ($row) => (bool) $row->is_primary)->keys()->map(fn ($k) => $k === 0)->values()->all(), 'Exactly the first image is main.');
         $this->assertSame($rows->count(), $rows->pluck('path')->unique()->count(), 'No path twice.');
@@ -266,6 +324,43 @@ class VendorProductImageConcurrencyMySqlTest extends TestCase
     private function rowsWithPath(string $name): int
     {
         return $this->db()->table('product_images')->where('path', $this->paths[$name])->count();
+    }
+
+    /** @var array<int, array<string, mixed>> image id => id, path, alt text, as galleryOf() wrote them */
+    private array $metadata = [];
+
+    /**
+     * VPM-01D: the product's gallery becomes exactly these library images, in this order (0..n-1, the first main).
+     *
+     * @param  list<string>  $names
+     */
+    private function galleryOf(array $names): void
+    {
+        $this->db()->table('product_images')->where('product_id', $this->product->id)->delete();
+        $this->images = [];
+
+        foreach ($names as $position => $name) {
+            $this->images[$name] = (int) $this->db()->table('product_images')->insertGetId([
+                'product_id' => $this->product->id, 'path' => $this->paths[$name], 'alt_text' => "Alt {$name}",
+                'sort_order' => $position, 'is_primary' => $position === 0, 'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+
+        $this->metadata = $this->metadataNow();
+        $this->assertGallery($names);
+    }
+
+    /** Every image kept its id, path and alt text (a move changes only the order and the main flag). */
+    private function assertSameMetadata(): void
+    {
+        $this->assertSame($this->metadata, $this->metadataNow());
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function metadataNow(): array
+    {
+        return $this->db()->table('product_images')->where('product_id', $this->product->id)->orderBy('id')->get(['id', 'path', 'alt_text'])
+            ->mapWithKeys(fn ($row) => [(int) $row->id => ['id' => (int) $row->id, 'path' => $row->path, 'alt_text' => $row->alt_text]])->all();
     }
 
     /** @return list<int> */
@@ -294,7 +389,7 @@ class VendorProductImageConcurrencyMySqlTest extends TestCase
             DB::setDefaultConnection($previous);
         }
 
-        foreach (['A', 'B', 'P', 'Q'] as $name) {
+        foreach (['A', 'B', 'C', 'D', 'P', 'Q'] as $name) {
             $this->library($name, $this->vendor);
         }
         $this->library('THEIRS', $this->other);

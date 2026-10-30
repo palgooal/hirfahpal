@@ -77,6 +77,8 @@ class VendorProductDirectUploadRemovedTest extends TestCase
             'vendor.dashboard.products.destroy' => ['DELETE', 'vendor/dashboard/products/{product}'],
             'vendor.dashboard.products.images.store' => ['POST', 'vendor/dashboard/products/{product}/images'],
             'vendor.dashboard.products.images.update' => ['PATCH', 'vendor/dashboard/products/{product}/images/{productImage}'],
+            // VPM-01D: one step up or down.
+            'vendor.dashboard.products.images.move' => ['PATCH', 'vendor/dashboard/products/{product}/images/{productImage}/move'],
             'vendor.dashboard.products.images.destroy' => ['DELETE', 'vendor/dashboard/products/{product}/images/{productImage}'],
         ];
 

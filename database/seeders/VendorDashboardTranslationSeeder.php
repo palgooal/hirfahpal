@@ -418,6 +418,10 @@ class VendorDashboardTranslationSeeder extends Seeder
         // VPM-01C: an image the product already has.
         'vendor.Product_Gallery_Duplicate' => ['ar' => 'هذه الصورة مضافة إلى هذا المنتج بالفعل. اختر صورة أخرى.', 'en' => 'This image is already in this product. Choose another image.'],
         'vendor.Product_Gallery_Current' => ['ar' => 'الصورة التي تستبدلها', 'en' => 'The image being replaced'],
+        // VPM-01D: moving images.
+        'vendor.Product_Gallery_Move_Up' => ['ar' => 'نقل لأعلى', 'en' => 'Move up'],
+        'vendor.Product_Gallery_Move_Down' => ['ar' => 'نقل لأسفل', 'en' => 'Move down'],
+        'vendor.Product_Gallery_Moved' => ['ar' => 'أصبحت «:name» الصورة :position.', 'en' => ':name is now image :position.'],
         // VPM-01A: the product editor's form, title, list button and product load / save / delete texts.
         'vendor.Product_New' => ['ar' => 'إضافة منتج', 'en' => 'Add product'],
         'vendor.Product_Edit' => ['ar' => 'تعديل المنتج', 'en' => 'Edit product'],

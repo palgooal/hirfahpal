@@ -244,6 +244,8 @@ foreach (AccountGuard::all() as $accountType => $account) {
                                 ->names('dashboard.products');
                             Route::post('products/{product}/images', [VendorDashboardProductImageController::class, 'store'])->name('dashboard.products.images.store');
                             Route::patch('products/{product}/images/{productImage}', [VendorDashboardProductImageController::class, 'update'])->name('dashboard.products.images.update');
+                            // VPM-01D: one step up or down in the gallery, under the product lock.
+                            Route::patch('products/{product}/images/{productImage}/move', [VendorDashboardProductImageController::class, 'move'])->name('dashboard.products.images.move');
                             Route::delete('products/{product}/images/{productImage}', [VendorDashboardProductImageController::class, 'destroy'])->name('dashboard.products.images.destroy');
 
                             Route::get('orders', [VendorDashboardOrderController::class, 'index'])->name('dashboard.orders.index');

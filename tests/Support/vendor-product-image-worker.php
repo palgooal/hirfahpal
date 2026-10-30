@@ -8,6 +8,8 @@
  *   add|<path>                   POST   vendor.dashboard.products.images.store   {path, alt_text: null, is_primary: false}
  *   replace|<image id>|<path>    PATCH  vendor.dashboard.products.images.update  {path, alt_text: null}
  *   destroy|<media id>           DELETE vendor.dashboard.products.media.destroy
+ *   move|<image id>|up|down      PATCH  vendor.dashboard.products.images.move    {direction} (VPM-01D)
+ *   main|<image id>              PATCH  vendor.dashboard.products.images.update  {is_primary: true}
  *
  * Environment (set by the test):
  *   DB_CONNECTION=mysql, DB_DATABASE=<isolated database>, APP_ENV=testing (as the feature tests: no CSRF token)
@@ -100,6 +102,9 @@ Auth::guard('vendor')->setUser($vendor);
     'add' => ['POST', route('vendor.dashboard.products.images.store', $product), ['path' => $operation[1], 'alt_text' => null, 'is_primary' => false]],
     'replace' => ['PATCH', route('vendor.dashboard.products.images.update', [$product, (int) $operation[1]]), ['path' => $operation[2], 'alt_text' => null]],
     'destroy' => ['DELETE', route('vendor.dashboard.products.media.destroy', (int) $operation[1]), []],
+    // VPM-01D.
+    'move' => ['PATCH', route('vendor.dashboard.products.images.move', [$product, (int) $operation[1]]), ['direction' => $operation[2]]],
+    'main' => ['PATCH', route('vendor.dashboard.products.images.update', [$product, (int) $operation[1]]), ['is_primary' => true]],
     default => throw new InvalidArgumentException('Unknown operation '.$operation[0]),
 };
 

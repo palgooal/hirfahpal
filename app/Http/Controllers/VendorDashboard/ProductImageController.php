@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\VendorDashboard;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\VendorDashboard\MoveProductImageRequest;
 use App\Http\Requests\VendorDashboard\StoreProductImageRequest;
 use App\Http\Requests\VendorDashboard\UpdateProductImageRequest;
 use App\Models\Product;
@@ -101,6 +102,50 @@ class ProductImageController extends Controller
 
         return response()->json([
             'message' => 'Product image updated successfully.',
+            'image' => $productImage->fresh(),
+            'product' => $product->fresh('images'),
+        ]);
+    }
+
+    /**
+     * VPM-01D: moves one image one place up or down. Under the product lock (as every image change), the gallery is read
+     * again in its order (sort_order, then id, the main image first as ProductGallery keeps it), the image swaps places
+     * with its neighbour, and the gallery is written back in that order and normalised, so the first image is the main
+     * one (the same rule as "set as main"). The move is relative to the order at that moment, so concurrent moves apply
+     * one after the other and none is lost. A move past either end changes nothing. Nothing is added, removed, re-pathed
+     * or limited: galleries above six and historical duplicates move like any other.
+     */
+    public function move(MoveProductImageRequest $request, Product $product, ProductImage $productImage): JsonResponse
+    {
+        $this->authorizeImage($request, $product, $productImage);
+
+        $productImage = DB::transaction(function () use ($request, $product, $productImage) {
+            $locked = $this->lockProduct($product);
+            $image = $this->lockedImage($locked, $productImage);
+
+            // The order as shown and as ProductGallery::normalize() keeps it: sort_order, then id, with the main image
+            // (the first one marked main, else the first) moved first; legacy data that is not normalised yet included.
+            $rows = ProductImage::query()->where('product_id', $locked->getKey())->orderBy('sort_order')->orderBy('id')->get(['id', 'is_primary']);
+            $main = $rows->first(fn (ProductImage $row) => $row->is_primary) ?? $rows->first();
+            $order = $rows->reject(fn (ProductImage $row) => $row->is($main))->prepend($main)->pluck('id')->all();
+            $from = array_search($image->id, $order, true);
+            $to = $from + ($request->validated('direction') === 'up' ? -1 : 1);
+
+            if ($to >= 0 && $to < count($order)) {
+                [$order[$from], $order[$to]] = [$order[$to], $order[$from]];
+
+                foreach ($order as $position => $id) {
+                    ProductImage::query()->whereKey($id)->update(['sort_order' => $position, 'is_primary' => $position === 0]);
+                }
+
+                ProductGallery::normalize($locked, $order[0]);
+            }
+
+            return $image;
+        });
+
+        return response()->json([
+            'message' => 'Product image moved successfully.',
             'image' => $productImage->fresh(),
             'product' => $product->fresh('images'),
         ]);

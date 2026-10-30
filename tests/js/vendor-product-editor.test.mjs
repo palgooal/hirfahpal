@@ -11,6 +11,8 @@ import {
     interpretImageResponse,
     orderImages,
     planChoice,
+    focusAfterMove,
+    moveLocal,
     removeLocal,
     renderImageCard,
     saveErrorText,
@@ -141,17 +143,20 @@ class FakeElement {
 }
 
 const doc = { createElement: (tag) => new FakeElement(tag) };
-const cardTexts = { position: 'Image :position', mainBadge: 'Main image', imageAlt: 'Product image', change: 'Change', setMain: 'Set as main', remove: 'Remove' };
-const card = (image, index, calls = []) => renderImageCard(doc, image, {
+const cardTexts = { position: 'Image :position', mainBadge: 'Main image', imageAlt: 'Product image', change: 'Change', setMain: 'Set as main', remove: 'Remove', moveUp: 'Move up', moveDown: 'Move down' };
+const card = (image, index, calls = [], count = 5) => renderImageCard(doc, image, {
     index,
+    count,
     isPrimary: index === 0,
     url: '/storage/vendors/media/1/a.png',
     messages: cardTexts,
     onChange: () => calls.push('change'),
     onSetMain: () => calls.push('main'),
     onRemove: () => calls.push('remove'),
+    onMove: (direction) => calls.push(direction),
 });
 const actions = (node) => node.children[2].children;
+const enabled = (node) => actions(node).filter((button) => !button.disabled).map((button) => button.dataset.action);
 
 test('the main image card has the admin layout, position 1, the main badge and no "set as main"', () => {
     const calls = [];
@@ -167,10 +172,13 @@ test('the main image card has the admin layout, position 1, the main badge and n
     assert.equal(thumb.children[0].loading, 'lazy');
     assert.deepEqual(meta.children.map((child) => child.textContent), ['Image 1', 'Clay jug', 'Main image']);
     assert.equal(meta.children[2].className, 'vendor-product-gallery-badge is-main');
-    assert.deepEqual(actions(node).map((button) => button.dataset.action), ['change', 'remove']);
+    assert.deepEqual(actions(node).map((button) => button.dataset.action), ['up', 'down', 'change', 'remove']);
+    assert.deepEqual(enabled(node), ['down', 'change', 'remove'], 'The first image cannot move up.');
+    assert.equal(actions(node)[0].dataset.boundary, 'true');
+    assert.equal(node.dataset.imageKey, 'id:7');
 
-    actions(node).forEach((button) => button.onclick());
-    assert.deepEqual(calls, ['change', 'remove']);
+    actions(node).filter((button) => !button.disabled).forEach((button) => button.onclick());
+    assert.deepEqual(calls, ['down', 'change', 'remove']);
 });
 
 test('a gallery card has its position, no badge, and change / set as main / remove described by its name', () => {
@@ -181,8 +189,10 @@ test('a gallery card has its position, no badge, and change / set as main / remo
     assert.equal(node.className, 'vendor-product-gallery-item');
     assert.deepEqual(meta.children.map((child) => child.textContent), ['Image 4', 'Product image'], 'Without alt text the name is "Product image".');
     assert.equal(meta.children[1].id, 'vendor-product-image-3-name');
-    assert.deepEqual(actions(node).map((button) => button.dataset.action), ['change', 'main', 'remove']);
-    assert.deepEqual(actions(node).map((button) => button.textContent), ['Change', 'Set as main', 'Remove']);
+    assert.deepEqual(actions(node).map((button) => button.dataset.action), ['up', 'down', 'change', 'main', 'remove']);
+    assert.deepEqual(actions(node).map((button) => button.textContent), ['Move up', 'Move down', 'Change', 'Set as main', 'Remove']);
+    assert.deepEqual(actions(node).map((button) => button.children[0].className), ['ph-duotone ph-arrow-up', 'ph-duotone ph-arrow-down', 'ph-duotone ph-swap', 'ph-duotone ph-star', 'ph-duotone ph-x'], 'The admin gallery icons.');
+    assert.deepEqual(enabled(node), ['up', 'down', 'change', 'main', 'remove'], 'A middle image moves both ways.');
     for (const button of actions(node)) {
         assert.equal(button.type, 'button');
         assert.equal(button.className, 'btn btn-sm btn-light-secondary');
@@ -191,7 +201,54 @@ test('a gallery card has its position, no badge, and change / set as main / remo
     }
 
     actions(node).forEach((button) => button.onclick());
-    assert.deepEqual(calls, ['change', 'main', 'remove']);
+    assert.deepEqual(calls, ['up', 'down', 'change', 'main', 'remove']);
+});
+
+test('the last image cannot move down; a single image cannot move at all', () => {
+    const last = card({ id: 5, path: 'p5.png', alt_text: 'Last', is_primary: false }, 4);
+    assert.deepEqual(enabled(last), ['up', 'change', 'main', 'remove']);
+    assert.equal(actions(last)[1].dataset.boundary, 'true');
+
+    const only = card({ id: 1, path: 'p1.png', alt_text: 'Only', is_primary: true }, 0, [], 1);
+    assert.deepEqual(enabled(only), ['change', 'remove']);
+});
+
+test('an unsaved image is keyed by its path, a saved one by its id', () => {
+    assert.equal(card({ path: 'vendors/media/1/new.png', alt_text: 'x' }, 2).dataset.imageKey, 'path:vendors/media/1/new.png');
+    assert.equal(card({ id: 12, path: 'vendors/media/1/new.png' }, 2).dataset.imageKey, 'id:12');
+});
+
+test('a new product moves its local images one step, keeps every image, and the first is the main one', () => {
+    const local = [
+        { path: 'a.png', alt_text: 'A', sort_order: 0, is_primary: true },
+        { path: 'b.png', alt_text: 'B', sort_order: 1, is_primary: false },
+        { path: 'c.png', alt_text: 'C', sort_order: 2, is_primary: false },
+    ];
+
+    const down = moveLocal(local, local[0], 'down');
+    assert.deepEqual(down.map((image) => image.path), ['b.png', 'a.png', 'c.png']);
+    assert.deepEqual(down.map((image) => image.is_primary), [true, false, false], 'Moving the main image down hands main to the next one.');
+    assert.deepEqual(down.map((image) => image.sort_order), [0, 1, 2]);
+    assert.deepEqual(down.map((image) => image.alt_text), ['B', 'A', 'C'], 'Metadata travels with its image.');
+
+    const up = moveLocal(local, local[2], 'up');
+    assert.deepEqual(up.map((image) => image.path), ['a.png', 'c.png', 'b.png']);
+    const toMain = moveLocal(local, local[1], 'up');
+    assert.deepEqual(toMain.map((image) => [image.path, image.is_primary]), [['b.png', true], ['a.png', false], ['c.png', false]], 'Moving to first makes it the main image.');
+
+    assert.equal(moveLocal(local, local[0], 'up'), local, 'Past the start: unchanged.');
+    assert.equal(moveLocal(local, local[2], 'down'), local, 'Past the end: unchanged.');
+    assert.equal(moveLocal(local, { path: 'x.png' }, 'up'), local, 'Not in the list: unchanged.');
+    assert.equal(local[0].is_primary, true, 'The input list is not changed.');
+});
+
+test('moving matches "set as main": either way the first image is the only main one', () => {
+    const local = [
+        { path: 'a.png', sort_order: 0, is_primary: true },
+        { path: 'b.png', sort_order: 1, is_primary: false },
+    ];
+
+    assert.deepEqual(moveLocal(local, local[1], 'up').map((image) => [image.path, image.is_primary, image.sort_order]), setLocalPrimary(local, local[1]).map((image) => [image.path, image.is_primary, image.sort_order]));
 });
 
 test('names stay text in a card: markup in alt text is never parsed', () => {
@@ -202,7 +259,7 @@ test('names stay text in a card: markup in alt text is never parsed', () => {
     assert.equal(name.tagName, 'BDI');
     assert.equal(name.textContent, hostile);
     assert.equal(name.children.length, 0);
-    assert.deepEqual(node.all().map((child) => child.tagName), ['DIV', 'IMG', 'DIV', 'SPAN', 'BDI', 'SPAN', 'DIV', 'BUTTON', 'I', 'SPAN', 'BUTTON', 'I', 'SPAN']);
+    assert.deepEqual(node.all().map((child) => child.tagName), ['DIV', 'IMG', 'DIV', 'SPAN', 'BDI', 'SPAN', 'DIV', 'BUTTON', 'I', 'SPAN', 'BUTTON', 'I', 'SPAN', 'BUTTON', 'I', 'SPAN', 'BUTTON', 'I', 'SPAN']);
 });
 
 test('a failed save reads the page texts; a 422 adds the field details, never the server message', () => {
@@ -222,4 +279,32 @@ test('the six-image limit still refuses a seventh and allows replacing at six', 
 
     assert.deepEqual(planChoice(six, { mode: 'gallery', target: null }), { action: 'refuse', error: 'limit' });
     assert.deepEqual(planChoice(six, { mode: 'primary', target: six[0] }), { action: 'replace', target: six[0] });
+});
+
+test('after a move, focus returns to the same button of the moved image, or the other direction at an end', () => {
+    let focused = null;
+    const gallery = (images) => {
+        const cards = images.map((image, index) => card(image, index, [], images.length));
+        for (const node of cards) {
+            node.querySelector = (selector) => node.all().find((child) => child.tagName === 'BUTTON' && selector === `[data-action="${child.dataset.action}"]`) ?? null;
+            node.all().forEach((child) => { child.focus = () => { focused = child; }; });
+        }
+
+        return { querySelectorAll: () => cards };
+    };
+    const three = gallery([{ id: 1, path: 'a.png' }, { id: 2, path: 'b.png' }, { id: 3, path: 'c.png' }]);
+
+    focusAfterMove(three, 'id:2', 'up');
+    assert.deepEqual([focused.dataset.action, focused.getAttribute('aria-describedby')], ['up', 'vendor-product-image-1-name'], 'Same button, same image, after the redraw.');
+    focusAfterMove(three, 'id:3', 'down');
+    assert.equal(focused.dataset.action, 'up', 'Now last: the other direction.');
+    focusAfterMove(three, 'id:1', 'up');
+    assert.equal(focused.dataset.action, 'down', 'Now first (the main image): the other direction.');
+
+    focusAfterMove(gallery([{ id: 9, path: 'z.png' }]), 'id:9', 'down');
+    assert.equal(focused.dataset.action, 'change', 'Neither direction: its Change button.');
+
+    focused = null;
+    assert.equal(focusAfterMove(three, 'id:404', 'up'), null);
+    assert.equal(focused, null, 'An image that is gone takes no focus.');
 });
