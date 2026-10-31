@@ -20,6 +20,10 @@ import {
     renderImageCard,
     saveErrorText,
     setLocalPrimary,
+    setStatusField,
+    statusChoice,
+    statusPayload,
+    VENDOR_STATUSES,
 } from '../../resources/js/vendor-product-editor.js';
 
 const img = (id, sort, primary = false) => ({ id, path: `vendors/media/1/${id}.png`, sort_order: sort, is_primary: primary });
@@ -387,4 +391,97 @@ test('a missing file becomes a placeholder with a note; the card and its actions
     const noAddress = renderImageCard(doc, { id: 6, path: '../.env' }, { index: 1, count: 2, isPrimary: false, url: '', messages: cardTexts, onChange() {}, onSetMain() {}, onRemove() {} });
     assert.deepEqual(noAddress.children[0].children.map((child) => child.tagName), ['I'], 'No request for an unusable path.');
     assert.equal(noAddress.children[1].children.at(-1).textContent, 'Image file not found');
+});
+
+// ---- VENDOR-PRODUCT-PUBLISH-UI-01B: the publication status field ----
+
+/** The page's status select: its three options, and value as a browser sets it (no matching option: no value). */
+class FakeSelect {
+    constructor() {
+        this.options = VENDOR_STATUSES.map((value) => ({ value, dataset: {} }));
+        this.dataset = { keepLabel: 'Out of stock (keep current status)' };
+        this.selected = 'draft';
+        this.ownerDocument = { createElement: () => ({ value: '', dataset: {}, textContent: '' }) };
+    }
+
+    get value() {
+        return this.selected;
+    }
+
+    set value(next) {
+        this.selected = this.options.some((option) => option.value === next) ? next : '';
+    }
+
+    querySelector(selector) {
+        assert.equal(selector, 'option[data-status-keep]');
+        const keep = this.options.find((option) => option.dataset.statusKeep);
+
+        return keep ? { remove: () => { this.options = this.options.filter((option) => option !== keep); } } : null;
+    }
+
+    prepend(option) {
+        this.options.unshift(option);
+    }
+}
+
+const values = (select) => select.options.map((option) => option.value);
+
+test('the vendor chooses draft, active or inactive; out_of_stock is never a choice', () => {
+    assert.deepEqual(VENDOR_STATUSES, ['draft', 'active', 'inactive']);
+    assert.ok(!VENDOR_STATUSES.includes('out_of_stock'));
+});
+
+test('a new product is a draft; a stored vendor status is shown as it is; any other is kept', () => {
+    for (const none of [null, undefined, '']) assert.equal(statusChoice(none), 'draft');
+    for (const status of VENDOR_STATUSES) assert.equal(statusChoice(status), status);
+    assert.equal(statusChoice('out_of_stock'), '', 'Kept, never turned into a draft.');
+});
+
+test('the status sent: a vendor status as chosen; "" (keep) and anything else are left out of the JSON', () => {
+    for (const status of VENDOR_STATUSES) assert.equal(statusPayload(status), status);
+    for (const other of ['', 'out_of_stock', 'published', null, undefined]) assert.equal(statusPayload(other), undefined);
+
+    assert.equal(JSON.stringify({ name: 'Jug', status: statusPayload('') }), '{"name":"Jug"}');
+    assert.equal(JSON.stringify({ name: 'Jug', status: statusPayload('active') }), '{"name":"Jug","status":"active"}');
+});
+
+test('the field shows each stored vendor status with the three options only', () => {
+    for (const status of VENDOR_STATUSES) {
+        const select = new FakeSelect();
+        setStatusField(select, status);
+
+        assert.equal(select.value, status);
+        assert.deepEqual(values(select), VENDOR_STATUSES);
+    }
+});
+
+test('an out_of_stock product gets the keep option first and selected; its value is "", never out_of_stock', () => {
+    const select = new FakeSelect();
+    setStatusField(select, 'out_of_stock');
+
+    assert.deepEqual(values(select), ['', ...VENDOR_STATUSES]);
+    assert.equal(select.options[0].textContent, 'Out of stock (keep current status)');
+    assert.equal(select.options[0].dataset.statusKeep, 'true');
+    assert.equal(select.value, '');
+    assert.equal(statusPayload(select.value), undefined, 'Unchanged: no status sent.');
+    assert.ok(!values(select).includes('out_of_stock'));
+
+    select.value = 'active';
+    assert.equal(statusPayload(select.value), 'active', 'An explicit choice is sent.');
+});
+
+test('the keep option is removed for the next product: a new one is a draft again, a normal one has no keep option', () => {
+    const select = new FakeSelect();
+    setStatusField(select, 'out_of_stock');
+    setStatusField(select, 'out_of_stock');
+    assert.deepEqual(values(select), ['', ...VENDOR_STATUSES], 'Never added twice.');
+
+    setStatusField(select, null);
+    assert.equal(select.value, 'draft');
+    assert.deepEqual(values(select), VENDOR_STATUSES);
+
+    setStatusField(select, 'out_of_stock');
+    setStatusField(select, 'inactive');
+    assert.equal(select.value, 'inactive');
+    assert.deepEqual(values(select), VENDOR_STATUSES);
 });

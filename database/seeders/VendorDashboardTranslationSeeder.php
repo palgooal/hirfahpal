@@ -447,6 +447,16 @@ class VendorDashboardTranslationSeeder extends Seeder
         'vendor.Product_Status_Active' => ['ar' => 'نشط', 'en' => 'Active'],
         'vendor.Product_Status_Inactive' => ['ar' => 'غير نشط', 'en' => 'Inactive'],
         'vendor.Product_Status_Out_Of_Stock' => ['ar' => 'نفد من المخزون', 'en' => 'Out of stock'],
+        // VENDOR-PRODUCT-PUBLISH-UI-01B: the editor's publication status field (the three options reuse the labels above).
+        'vendor.Product_Status' => ['ar' => 'حالة النشر', 'en' => 'Publication status'],
+        'vendor.Product_Status_Hint' => [
+            'ar' => 'تظهر المنتجات النشطة في المتجر فقط عندما تستوفي شروطه القائمة. لا تظهر المنتجات المسودة وغير النشطة.',
+            'en' => 'Active products are shown in the store only when they meet its existing conditions. Draft and inactive products are not shown.',
+        ],
+        'vendor.Product_Status_Keep_Out_Of_Stock' => [
+            'ar' => 'نفد من المخزون (إبقاء الحالة الحالية)',
+            'en' => 'Out of stock (keep current status)',
+        ],
         'vendor.Product_List_Edit_Named' => ['ar' => 'تعديل المنتج: :name', 'en' => 'Edit product: :name'],
         'vendor.Product_List_Delete_Named' => ['ar' => 'حذف المنتج: :name', 'en' => 'Delete product: :name'],
         'vendor.Product_New' => ['ar' => 'إضافة منتج', 'en' => 'Add product'],

@@ -52,6 +52,40 @@ export function interpretImageResponse({ status, body }) {
     return { ok: false, error };
 }
 
+/** VENDOR-PRODUCT-PUBLISH-UI-01B (OPEN-PROD-19, 20): the statuses a vendor chooses; out_of_stock is never one of them. */
+export const VENDOR_STATUSES = ['draft', 'active', 'inactive'];
+
+/**
+ * The status field's value for a product: draft for a new one (no stored status), the stored status when it is one of
+ * the vendor's three, else "" (keep it as it is: a product stored as out_of_stock is never turned into a draft).
+ */
+export function statusChoice(stored) {
+    if (stored === null || stored === undefined || stored === '') return 'draft';
+
+    return VENDOR_STATUSES.includes(stored) ? stored : '';
+}
+
+/** The status sent on save: a chosen vendor status, or undefined for "" (left out of the JSON, so the server keeps it). */
+export const statusPayload = (value) => (VENDOR_STATUSES.includes(value) ? value : undefined);
+
+/**
+ * Shows a product's status in the field. The "keep" option (value "", its text from the field's data-keep-label) is
+ * there only while the product's stored status is not one of the vendor's three; it is removed for any other product.
+ */
+export function setStatusField(select, stored) {
+    select.querySelector('option[data-status-keep]')?.remove();
+    const value = statusChoice(stored);
+
+    if (value === '') {
+        const keep = select.ownerDocument.createElement('option');
+        keep.value = '';
+        keep.dataset.statusKeep = 'true';
+        keep.textContent = select.dataset.keepLabel || '';
+        select.prepend(keep);
+    }
+    select.value = value;
+}
+
 /** The translated text of an error name. */
 export const errorMessage = (error, messages) => messages[error] || messages.failed;
 
@@ -738,10 +772,10 @@ function initEditor(editor) {
         if (media[0] && await choose(media[0])) status(`${messages.added} ${format(messages.uploaded, { count: media.length })}`);
     };
 
-    const close = () => { editor.hidden = true; list.hidden = false; error.hidden = true; form.reset(); field('low_stock_threshold').value = '1'; editingId = null; images = []; clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.add; };
-    const payload = () => ({ name: field('name').value.trim(), category_id: number('category_id'), price: number('price'), stock_quantity: number('stock_quantity'), sku: value('sku'), compare_at_price: number('compare_at_price'), low_stock_threshold: number('low_stock_threshold'), weight: number('weight'), short_description: value('short_description'), description: value('description'), images: editingId ? undefined : images.map(({ path, alt_text, sort_order, is_primary }) => ({ path, alt_text, sort_order, is_primary })) });
+    const close = () => { editor.hidden = true; list.hidden = false; error.hidden = true; form.reset(); field('low_stock_threshold').value = '1'; setStatusField(field('status'), null); editingId = null; images = []; clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.add; };
+    const payload = () => ({ name: field('name').value.trim(), category_id: number('category_id'), price: number('price'), stock_quantity: number('stock_quantity'), sku: value('sku'), compare_at_price: number('compare_at_price'), low_stock_threshold: number('low_stock_threshold'), weight: number('weight'), short_description: value('short_description'), description: value('description'), status: statusPayload(field('status').value), images: editingId ? undefined : images.map(({ path, alt_text, sort_order, is_primary }) => ({ path, alt_text, sort_order, is_primary })) });
     window.addEventListener('vendor-resource:loaded', (event) => { if (event.detail.resource !== 'products') return; const selected = field('category_id').value; field('category_id').replaceChildren(new Option(texts.noCategory, '')); (event.detail.payload?.filters?.categories ?? []).forEach((category) => field('category_id').add(new Option(category.name, String(category.id)))); field('category_id').value = selected; });
-    document.addEventListener('click', async (event) => { const button = event.target.closest('[data-product-action]'); if (!button) return; const id = button.dataset.productId; if (button.dataset.productAction === 'delete') { if (!window.confirm(texts.confirmDelete)) return; const response = await request(`${endpoint}/${id}`, 'DELETE'); if (!response.ok) { fail(texts.deleteFailed); showEditor(); return; } window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products' } })); return; } const response = await request(`${endpoint}/${id}`); if (!response.ok) return fail(texts.loadFailed); const product = (await response.json()).product; form.reset(); ['name', 'category_id', 'price', 'stock_quantity', 'sku', 'compare_at_price', 'low_stock_threshold', 'weight', 'short_description', 'description'].forEach((name) => { field(name).value = product[name] ?? ''; }); editingId = id; images = product.images || []; clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.edit; showEditor(); });
+    document.addEventListener('click', async (event) => { const button = event.target.closest('[data-product-action]'); if (!button) return; const id = button.dataset.productId; if (button.dataset.productAction === 'delete') { if (!window.confirm(texts.confirmDelete)) return; const response = await request(`${endpoint}/${id}`, 'DELETE'); if (!response.ok) { fail(texts.deleteFailed); showEditor(); return; } window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products' } })); return; } const response = await request(`${endpoint}/${id}`); if (!response.ok) return fail(texts.loadFailed); const product = (await response.json()).product; form.reset(); ['name', 'category_id', 'price', 'stock_quantity', 'sku', 'compare_at_price', 'low_stock_threshold', 'weight', 'short_description', 'description'].forEach((name) => { field(name).value = product[name] ?? ''; }); setStatusField(field('status'), product.status); editingId = id; images = product.images || []; clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.edit; showEditor(); });
     form.addEventListener('submit', async (event) => { event.preventDefault(); error.hidden = true; const response = await request(editingId ? `${endpoint}/${editingId}` : endpoint, editingId ? 'PUT' : 'POST', payload()); if (!response.ok) { const data = await response.json().catch(() => null); fail(saveErrorText(response.status, data, texts, messages)); return; } close(); window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products' } })); });
     editor.querySelectorAll('[data-product-editor-close]').forEach((button) => button.onclick = close);
     picker = initPicker(editor.querySelector('[data-product-media-library]'), {
