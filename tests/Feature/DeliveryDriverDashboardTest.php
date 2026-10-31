@@ -47,6 +47,25 @@ class DeliveryDriverDashboardTest extends TestCase
             ->assertJsonPath('data.0.id', $assignment->id);
     }
 
+    public function test_approved_driver_can_manage_an_assigned_delivery_from_the_browser_dashboard(): void
+    {
+        $driver = $this->approvedDriver();
+        $assignment = $this->assignmentFor($driver);
+
+        $this->actingAs($driver, 'delivery_driver')
+            ->get(route('delivery-driver.dashboard'))
+            ->assertOk()
+            ->assertSee($assignment->vendorOrder->number)
+            ->assertSee('قبول المهمة');
+
+        $this->actingAs($driver, 'delivery_driver')
+            ->from(route('delivery-driver.dashboard'))
+            ->patch(route('delivery-driver.dashboard.assignments.accept', $assignment))
+            ->assertRedirect(route('delivery-driver.dashboard'));
+
+        $this->assertSame('accepted', $assignment->fresh()->status);
+    }
+
     public function test_driver_can_update_own_profile_and_availability(): void
     {
         $driver = $this->approvedDriver();

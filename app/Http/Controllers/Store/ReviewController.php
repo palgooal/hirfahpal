@@ -19,7 +19,7 @@ class ReviewController extends Controller
             'product_id' => ['nullable', 'integer', 'exists:products,id'],
             'product_rating' => ['nullable', 'integer', 'min:1', 'max:5'],
             'product_comment' => ['nullable', 'string', 'max:1000'],
-            'vendor_rating' => ['required', 'integer', 'min:1', 'max:5'],
+            'vendor_rating' => ['nullable', 'integer', 'min:1', 'max:5'],
             'vendor_comment' => ['nullable', 'string', 'max:1000'],
             'driver_rating' => ['nullable', 'integer', 'min:1', 'max:5'],
             'driver_comment' => ['nullable', 'string', 'max:1000'],
@@ -28,6 +28,12 @@ class ReviewController extends Controller
         $vendorOrder = $order->vendorOrders()->findOrFail($data['vendor_order_id']);
         abort_unless($vendorOrder->status === 'completed', 422, 'Vendor order is not ready for review.');
         $reviews = [];
+
+        abort_unless(
+            ! empty($data['product_rating']) || ! empty($data['vendor_rating']) || ! empty($data['driver_rating']),
+            422,
+            'Provide at least one rating.'
+        );
 
         if (! empty($data['product_rating']) && ! empty($data['product_id'])) {
             abort_unless(
@@ -47,15 +53,17 @@ class ReviewController extends Controller
             ]);
         }
 
-        $reviews[] = $order->reviews()->updateOrCreate([
-            'vendor_order_id' => $vendorOrder->id,
-            'vendor_id' => $vendorOrder->vendor_id,
-            'reviewable_type' => 'vendor',
-        ], [
-            'customer_id' => $order->customer_id,
-            'rating' => $data['vendor_rating'],
-            'comment' => $data['vendor_comment'] ?? null,
-        ]);
+        if (! empty($data['vendor_rating'])) {
+            $reviews[] = $order->reviews()->updateOrCreate([
+                'vendor_order_id' => $vendorOrder->id,
+                'vendor_id' => $vendorOrder->vendor_id,
+                'reviewable_type' => 'vendor',
+            ], [
+                'customer_id' => $order->customer_id,
+                'rating' => $data['vendor_rating'],
+                'comment' => $data['vendor_comment'] ?? null,
+            ]);
+        }
 
         if (! empty($data['driver_rating']) && $vendorOrder->delivery_driver_id) {
             $reviews[] = $order->reviews()->updateOrCreate([

@@ -49,6 +49,19 @@
                           <button type="submit" class="rounded-[12px] border border-olive bg-surface px-3 py-2 text-xs font-bold text-olive">إرسال التقييم</button>
                         </form>
                       @endif
+                      @foreach ($vendorOrder->items as $orderItem)
+                        @php($productReview = $latestOrder->reviews->first(fn ($review) => $review->vendor_order_id === $vendorOrder->id && $review->product_id === $orderItem->product_id && $review->reviewable_type === 'product'))
+                        @if ($productReview)
+                          <span class="text-xs font-bold text-olive">تم تقييم المنتج {{ $orderItem->product_name }}: {{ $productReview->rating }}/5</span>
+                        @else
+                          <form method="POST" action="{{ route('customer.orders.reviews.store', $latestOrder) }}" class="flex items-center gap-2">@csrf
+                            <input type="hidden" name="vendor_order_id" value="{{ $vendorOrder->id }}">
+                            <input type="hidden" name="product_id" value="{{ $orderItem->product_id }}">
+                            <label class="text-xs font-semibold text-muted">تقييم المنتج {{ $orderItem->product_name }} <select name="product_rating" required class="rounded-lg border border-line bg-canvas px-2 py-1 text-ink"><option value="">—</option>@foreach (range(1, 5) as $rating)<option value="{{ $rating }}">{{ $rating }}</option>@endforeach</select></label>
+                            <button type="submit" class="rounded-[12px] border border-olive bg-surface px-3 py-2 text-xs font-bold text-olive">إرسال تقييم المنتج</button>
+                          </form>
+                        @endif
+                      @endforeach
                     @endif
                 @endif
               </div>
