@@ -9,9 +9,12 @@ use App\Models\Product;
 use App\Models\Vendor;
 use App\Models\VendorOrder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
+use Palgoal\MediaLibrary\Models\Media;
 use Tests\TestCase;
 
 /**
@@ -317,20 +320,63 @@ class VendorApprovalEnforcementTest extends TestCase
         $this->getJson(route('vendor.approval-status'))->assertOk()->assertJsonPath('approval_status', null);
     }
 
-    public function test_every_operational_vendor_route_is_behind_the_gate_and_the_rest_are_not(): void
+    /**
+     * VENDOR-TEST-CLEANUP-01A: no fixed route count (it broke on every new, correctly gated route). Every vendor
+     * dashboard route, found by name OR by URL (so a route registered outside the vendor auth group is still checked),
+     * must have the vendor login and the approval gate in its effective middleware; the only routes open to an
+     * unapproved vendor are the approval status page and logout; and the approval-gated routes are exactly the
+     * dashboard routes. The HTTP tests below then exercise every method of every one of them.
+     */
+    public function test_every_vendor_dashboard_route_is_behind_the_login_and_the_approval_gate(): void
     {
-        $vendorRoutes = collect(Route::getRoutes()->getRoutes())
-            ->filter(fn ($route) => in_array('auth:vendor', $route->gatherMiddleware(), true));
+        $routes = collect(Route::getRoutes()->getRoutes());
+        $has = fn ($route, string $middleware) => in_array($middleware, $route->gatherMiddleware(), true);
 
-        $gated = $vendorRoutes->filter(fn ($route) => in_array('vendor.approved', $route->gatherMiddleware(), true))
-            ->map->getName()->sort()->values();
-        $open = $vendorRoutes->reject(fn ($route) => in_array('vendor.approved', $route->gatherMiddleware(), true))
-            ->map->getName()->sort()->values();
+        $dashboard = $routes->filter(fn ($route) => str_starts_with((string) $route->getName(), 'vendor.dashboard') || str_starts_with($route->uri(), 'vendor/dashboard'));
+        $this->assertNotEmpty($dashboard);
+        foreach ($dashboard as $route) {
+            $this->assertTrue($has($route, 'auth:vendor'), "{$route->uri()} needs auth:vendor");
+            $this->assertTrue($has($route, 'vendor.approved'), "{$route->uri()} needs vendor.approved");
+            $this->assertTrue($route->getName() === 'vendor.dashboard' || str_starts_with((string) $route->getName(), 'vendor.dashboard.'), "{$route->uri()} is named under vendor.dashboard");
+        }
 
-        $this->assertSame(['vendor.approval-status', 'vendor.logout'], $open->all());
-        // Browser pages (vendor.dashboard, vendor.dashboard.my-store) plus 25 JSON endpoints, including vendor.dashboard.overview.
-        $this->assertCount(27, $gated);
-        $this->assertTrue($gated->every(fn (string $name) => $name === 'vendor.dashboard' || str_starts_with($name, 'vendor.dashboard.')));
+        $vendorLogin = $routes->filter(fn ($route) => $has($route, 'auth:vendor'));
+        $open = $vendorLogin->reject(fn ($route) => $has($route, 'vendor.approved'))->map->getName()->sort()->values();
+        $this->assertSame(['vendor.approval-status', 'vendor.logout'], $open->all(), 'The only routes open to an unapproved vendor.');
+
+        $gated = $vendorLogin->filter(fn ($route) => $has($route, 'vendor.approved'))->map->getName()->sort()->values();
+        $this->assertSame($dashboard->map->getName()->sort()->values()->all(), $gated->all(), 'The approval gate covers the dashboard routes, and only those.');
+    }
+
+    /** VENDOR-TEST-CLEANUP-01A: a new gated route (or a new method on one) fails here until the HTTP checks request it. */
+    public function test_the_http_checks_request_every_method_of_every_gated_route(): void
+    {
+        $vendor = $this->vendor('approved');
+
+        $expected = collect(Route::getRoutes()->getRoutes())
+            ->filter(fn ($route) => in_array('vendor.approved', $route->gatherMiddleware(), true))
+            ->flatMap(fn ($route) => collect($route->methods())->reject(fn ($method) => $method === 'HEAD')->map(fn ($method) => "{$method} {$route->getName()}"))
+            ->unique()->sort()->values();
+
+        $requested = collect($this->operationalRequests($vendor))
+            ->map(fn (array $request) => $request[0].' '.Route::getRoutes()->match(Request::create($request[1], $request[0]))->getName())
+            ->unique()->sort()->values();
+
+        $this->assertSame($expected->all(), $requested->all());
+    }
+
+    /** VENDOR-TEST-CLEANUP-01A: without a vendor session, every gated route answers 401 (JSON) or sends to the vendor login. */
+    public function test_guests_cannot_reach_any_operational_route(): void
+    {
+        $requests = $this->operationalRequests($this->vendor('approved'));
+        $products = Product::count();
+
+        foreach ($requests as [$method, $uri]) {
+            $this->json($method, $uri)->assertUnauthorized();
+            $this->call($method, $uri)->assertRedirect(route('vendor.login'));
+        }
+
+        $this->assertSame($products, Product::count());
     }
 
     /**
@@ -345,6 +391,12 @@ class VendorApprovalEnforcementTest extends TestCase
         $product = $vendor->products()->first() ?? $this->productFor($vendor);
         $image = $product->images()->first() ?? $product->images()->create(['path' => 'products/x.jpg', 'alt_text' => 'X', 'sort_order' => 0, 'is_primary' => true]);
         $order = $this->vendorOrderFor($vendor);
+        // VENDOR-TEST-CLEANUP-01A: an image of the vendor's own media library, for the library routes.
+        Storage::fake('public');
+        $media = Media::query()->create([
+            'file_name' => 'gate.png', 'file_original_name' => 'gate.png', 'file_path' => "vendors/media/{$vendor->id}/gate.png", 'file_extension' => 'png',
+            'mime_type' => 'image/png', 'size' => 5, 'file_type' => 'image', 'disk' => 'public', 'uploader_id' => $vendor->id,
+        ]);
 
         $requests = [
             ['GET', route('vendor.dashboard')],
@@ -362,6 +414,18 @@ class VendorApprovalEnforcementTest extends TestCase
             ['DELETE', route('vendor.dashboard.products.destroy', $product)],
             ['POST', route('vendor.dashboard.products.images.store', $product)],
             ['PATCH', route('vendor.dashboard.products.images.update', [$product, $image])],
+            // VENDOR-TEST-CLEANUP-01A: the routes added after the original 27 (browser pages, media library, image moves).
+            ['PATCH', route('vendor.dashboard.products.images.move', [$product, $image])],
+            ['GET', route('vendor.dashboard.products.media.library')],
+            ['POST', route('vendor.dashboard.products.media.store')],
+            ['DELETE', route('vendor.dashboard.products.media.destroy', $media)],
+            ['GET', route('vendor.dashboard.media.page')],
+            ['GET', route('vendor.dashboard.products.page')],
+            ['GET', route('vendor.dashboard.orders.page')],
+            ['GET', route('vendor.dashboard.reviews.page')],
+            ['GET', route('vendor.dashboard.returns.page')],
+            ['GET', route('vendor.dashboard.disputes.page')],
+            ['GET', route('vendor.dashboard.commissions.page')],
             ['DELETE', route('vendor.dashboard.products.images.destroy', [$product, $image])],
             ['GET', route('vendor.dashboard.orders.index')],
             ['GET', route('vendor.dashboard.orders.show', $order)],
