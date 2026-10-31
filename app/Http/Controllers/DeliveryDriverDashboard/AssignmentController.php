@@ -7,6 +7,7 @@ use App\Models\DeliveryAssignment;
 use App\Models\OrderStatusHistory;
 use App\Support\Orders\OrderStatusLifecycle;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -50,7 +51,7 @@ class AssignmentController extends Controller
         return response()->json($assignment);
     }
 
-    public function accept(Request $request, DeliveryAssignment $assignment): JsonResponse
+    public function accept(Request $request, DeliveryAssignment $assignment): JsonResponse|RedirectResponse
     {
         $this->authorizeAssignment($request, $assignment);
 
@@ -62,10 +63,10 @@ class AssignmentController extends Controller
             $this->recordHistory($lockedAssignment, 'delivery_accepted');
         });
 
-        return $this->assignmentResponse($assignment, 'Delivery assignment accepted.');
+        return $this->assignmentResponse($request, $assignment, 'Delivery assignment accepted.');
     }
 
-    public function pickUp(Request $request, DeliveryAssignment $assignment, OrderStatusLifecycle $orders): JsonResponse
+    public function pickUp(Request $request, DeliveryAssignment $assignment, OrderStatusLifecycle $orders): JsonResponse|RedirectResponse
     {
         $this->authorizeAssignment($request, $assignment);
 
@@ -86,10 +87,10 @@ class AssignmentController extends Controller
             $orders->syncParentForVendorOrder($vendorOrder);
         });
 
-        return $this->assignmentResponse($assignment, 'Delivery picked up.');
+        return $this->assignmentResponse($request, $assignment, 'Delivery picked up.');
     }
 
-    public function markDelivered(Request $request, DeliveryAssignment $assignment, OrderStatusLifecycle $orders): JsonResponse
+    public function markDelivered(Request $request, DeliveryAssignment $assignment, OrderStatusLifecycle $orders): JsonResponse|RedirectResponse
     {
         $this->authorizeAssignment($request, $assignment);
 
@@ -114,10 +115,10 @@ class AssignmentController extends Controller
             $orders->syncParentForVendorOrder($vendorOrder);
         });
 
-        return $this->assignmentResponse($assignment, 'Delivery marked delivered. Awaiting customer receipt confirmation.');
+        return $this->assignmentResponse($request, $assignment, 'Delivery marked delivered. Awaiting customer receipt confirmation.');
     }
 
-    public function markFailed(Request $request, DeliveryAssignment $assignment): JsonResponse
+    public function markFailed(Request $request, DeliveryAssignment $assignment): JsonResponse|RedirectResponse
     {
         $this->authorizeAssignment($request, $assignment);
         $data = $request->validate(['failure_reason' => ['required', 'string', 'max:1000']]);
@@ -134,7 +135,7 @@ class AssignmentController extends Controller
             $this->recordHistory($lockedAssignment, 'delivery_failed', $data['failure_reason']);
         });
 
-        return $this->assignmentResponse($assignment, 'Delivery failure reported.');
+        return $this->assignmentResponse($request, $assignment, 'Delivery failure reported.');
     }
 
     private function authorizeAssignment(Request $request, DeliveryAssignment $assignment): void
@@ -142,8 +143,12 @@ class AssignmentController extends Controller
         abort_unless((int) $assignment->delivery_driver_id === (int) $request->user('delivery_driver')->id, 404);
     }
 
-    private function assignmentResponse(DeliveryAssignment $assignment, string $message): JsonResponse
+    private function assignmentResponse(Request $request, DeliveryAssignment $assignment, string $message): JsonResponse|RedirectResponse
     {
+        if (! $request->expectsJson()) {
+            return back()->with('success', $message);
+        }
+
         return response()->json([
             'message' => $message,
             'assignment' => $assignment->fresh([

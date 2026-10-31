@@ -13,6 +13,7 @@ use App\Http\Controllers\Customer\AddressController as CustomerAddressController
 use App\Http\Controllers\Customer\FavoriteController as CustomerFavoriteController;
 use App\Http\Controllers\Dashboard\AdminDashboardController;
 use App\Http\Controllers\DeliveryDriverDashboard\AssignmentController as DeliveryDriverAssignmentController;
+use App\Http\Controllers\DeliveryDriverDashboard\DashboardController as DeliveryDriverDashboardController;
 use App\Http\Controllers\DeliveryDriverDashboard\OverviewController as DeliveryDriverOverviewController;
 use App\Http\Controllers\DeliveryDriverDashboard\ProfileController as DeliveryDriverProfileController;
 use App\Http\Controllers\HomeController;
@@ -261,11 +262,11 @@ foreach (AccountGuard::all() as $accountType => $account) {
                         return;
                     }
 
-                    Route::get('/dashboard', AccountDashboardController::class)
-                        ->name('dashboard')
-                        ->defaults('account_type', $accountType);
-
                     if ($accountType === 'delivery_driver') {
+                        Route::get('/dashboard', DeliveryDriverDashboardController::class)
+                            ->middleware('delivery-driver.approved')
+                            ->name('dashboard');
+
                         Route::prefix('dashboard')->middleware('delivery-driver.approved')->group(function (): void {
                             Route::get('overview', DeliveryDriverOverviewController::class)
                                 ->name('dashboard.overview');
@@ -286,7 +287,13 @@ foreach (AccountGuard::all() as $accountType => $account) {
                             Route::patch('assignments/{assignment}/failed', [DeliveryDriverAssignmentController::class, 'markFailed'])
                                 ->name('dashboard.assignments.failed');
                         });
+
+                        return;
                     }
+
+                    Route::get('/dashboard', AccountDashboardController::class)
+                        ->name('dashboard')
+                        ->defaults('account_type', $accountType);
                 });
         });
 }

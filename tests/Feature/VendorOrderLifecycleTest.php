@@ -184,6 +184,43 @@ class VendorOrderLifecycleTest extends TestCase
         $this->assertSame(2, Review::count());
     }
 
+    public function test_customer_can_add_a_product_review_after_reviewing_the_store(): void
+    {
+        $vendor = Vendor::factory()->approved()->create();
+        $product = $this->product($vendor);
+        [$order, $vendorOrder] = $this->orderWithVendorOrder($vendor, status: 'completed');
+        $this->itemAndReservation($order, $vendorOrder, $product, 1);
+
+        $this->actingAs($order->customer, 'customer')
+            ->postJson(route('customer.orders.reviews.store', $order), [
+                'vendor_order_id' => $vendorOrder->id,
+                'vendor_rating' => 4,
+            ])
+            ->assertCreated();
+
+        $this->actingAs($order->customer, 'customer')
+            ->postJson(route('customer.orders.reviews.store', $order), [
+                'vendor_order_id' => $vendorOrder->id,
+                'product_id' => $product->id,
+                'product_rating' => 5,
+            ])
+            ->assertCreated();
+
+        $this->assertDatabaseHas('reviews', [
+            'vendor_order_id' => $vendorOrder->id,
+            'product_id' => $product->id,
+            'reviewable_type' => 'product',
+            'rating' => 5,
+            'status' => 'published',
+        ]);
+        $this->assertDatabaseHas('reviews', [
+            'vendor_order_id' => $vendorOrder->id,
+            'vendor_id' => $vendor->id,
+            'reviewable_type' => 'vendor',
+            'rating' => 4,
+        ]);
+    }
+
     private function product(Vendor $vendor): Product
     {
         return Product::query()->create([
