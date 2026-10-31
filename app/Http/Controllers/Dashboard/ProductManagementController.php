@@ -272,6 +272,8 @@ class ProductManagementController extends Controller
                         }
                     }
 
+                    // OPEN-PROD-23: the transition is read from the locked row, not the one bound before the lock.
+                    $data['published_at'] = $this->publishedAt($locked, $data['status']);
                     $locked->update($data);
 
                     // P5-B: a submitted gallery replaces the append-only media_image_ids path; under the product lock,
@@ -559,9 +561,27 @@ class ProductManagementController extends Controller
         $data['highlight_tags'] = $this->tags(array_filter($data['highlight_tags'] ?? [], 'is_string'));
         $data['craft_tags'] = $this->tags(array_filter($data['craft_tags'] ?? [], 'is_string'));
         $data['weight_unit'] = ($data['weight'] ?? null) === null ? null : ($data['weight_unit'] ?? null);
-        $data['published_at'] = $data['status'] === 'active' ? ($product?->published_at ?? now()) : null;
+        // A new product's date; an update works it out again from the locked row (update()).
+        $data['published_at'] = $this->publishedAt($product?->exists ? $product : null, $data['status']);
 
         return $data;
+    }
+
+    /**
+     * OPEN-PROD-22, OPEN-PROD-23 (the vendor's rule, DETAIL-04): published_at for a move from the stored row ($current,
+     * null on create) to $status. Publishing (any other status to active) sets a fresh date, so a restored draft's kept
+     * date is never reused; staying active keeps it; leaving active clears it. Between two unpublished statuses the
+     * stored value stays as it is (null, or the date a restore kept, OPEN-PROD-04B).
+     */
+    private function publishedAt(?Product $current, string $status): mixed
+    {
+        $wasActive = $current?->status === 'active';
+
+        return match (true) {
+            $status === 'active' => $wasActive ? ($current->published_at ?? now()) : now(),
+            $wasActive => null,
+            default => $current?->published_at,
+        };
     }
 
     /** @param array<int, string> $tags */
