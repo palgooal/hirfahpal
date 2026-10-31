@@ -22,7 +22,24 @@ class VendorProductListTextsTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const KEYS = ['vendor.Product_List_Actions' => ['الإجراءات', 'Actions'], 'vendor.Product_List_Edit' => ['تعديل', 'Edit'], 'vendor.Product_List_Delete' => ['حذف', 'Delete']];
+    private const KEYS = [
+        'vendor.Product_List_Actions' => ['الإجراءات', 'Actions'],
+        'vendor.Product_List_Edit' => ['تعديل', 'Edit'],
+        'vendor.Product_List_Delete' => ['حذف', 'Delete'],
+        // VENDOR-UI-CLEANUP-01B.
+        'vendor.Product_List_Product' => ['المنتج', 'Product'],
+        'vendor.Product_List_Status' => ['الحالة', 'Status'],
+        'vendor.Product_List_Price' => ['السعر', 'Price'],
+        'vendor.Product_Status_Draft' => ['مسودة', 'Draft'],
+        'vendor.Product_Status_Active' => ['نشط', 'Active'],
+        'vendor.Product_Status_Inactive' => ['غير نشط', 'Inactive'],
+        'vendor.Product_Status_Out_Of_Stock' => ['نفد من المخزون', 'Out of stock'],
+        'vendor.Product_List_Edit_Named' => ['تعديل المنتج: :name', 'Edit product: :name'],
+        'vendor.Product_List_Delete_Named' => ['حذف المنتج: :name', 'Delete product: :name'],
+        // Reused as they are (the editor's form labels).
+        'vendor.Product_Sku' => ['رمز المنتج (SKU)', 'SKU'],
+        'vendor.Product_Stock' => ['المخزون', 'Stock'],
+    ];
 
     private string $hotFile = '';
 
@@ -54,11 +71,41 @@ class VendorProductListTextsTest extends TestCase
     {
         $ar = $this->page('ar', 'products.page');
         $this->assertMatchesRegularExpression('/<html lang="ar" dir="rtl"/', $ar);
-        $this->assertSame(['actions' => 'الإجراءات', 'edit' => 'تعديل', 'delete' => 'حذف'], $this->texts($ar));
+        $this->assertSame([
+            'actions' => 'الإجراءات', 'edit' => 'تعديل', 'delete' => 'حذف',
+            'editNamed' => 'تعديل المنتج: :name', 'deleteNamed' => 'حذف المنتج: :name',
+            'columns' => ['name' => 'المنتج', 'sku' => 'رمز المنتج (SKU)', 'status' => 'الحالة', 'price' => 'السعر', 'stock_quantity' => 'المخزون'],
+            'statuses' => ['draft' => 'مسودة', 'active' => 'نشط', 'inactive' => 'غير نشط', 'out_of_stock' => 'نفد من المخزون'],
+        ], $this->texts($ar));
 
         $en = $this->page('en', 'products.page');
         $this->assertMatchesRegularExpression('/<html lang="en" dir="ltr"/', $en);
-        $this->assertSame(['actions' => 'Actions', 'edit' => 'Edit', 'delete' => 'Delete'], $this->texts($en));
+        $this->assertSame([
+            'actions' => 'Actions', 'edit' => 'Edit', 'delete' => 'Delete',
+            'editNamed' => 'Edit product: :name', 'deleteNamed' => 'Delete product: :name',
+            'columns' => ['name' => 'Product', 'sku' => 'SKU', 'status' => 'Status', 'price' => 'Price', 'stock_quantity' => 'Stock'],
+            'statuses' => ['draft' => 'Draft', 'active' => 'Active', 'inactive' => 'Inactive', 'out_of_stock' => 'Out of stock'],
+        ], $this->texts($en));
+    }
+
+    /** VENDOR-UI-CLEANUP-01B: every value the products.status column accepts has a label, and nothing else. */
+    public function test_every_stored_product_status_has_a_label(): void
+    {
+        $migration = file_get_contents(database_path('migrations/2026_09_24_130006_create_products_table.php'));
+        $this->assertSame(1, preg_match("/enum\('status', \[([^\]]+)\]\)/", $migration, $match));
+        $stored = array_map(fn ($value) => trim($value, " '"), explode(',', $match[1]));
+
+        $this->assertSame(['draft', 'active', 'inactive', 'out_of_stock'], $stored);
+        foreach (['ar', 'en'] as $locale) {
+            $this->assertSame($stored, array_keys($this->texts($this->page($locale, 'products.page'))['statuses']), $locale);
+        }
+
+        // Only the display changes: the API still answers with the stored values.
+        foreach ($stored as $status) {
+            Product::create(['vendor_id' => $this->vendor->id, 'name' => "Jug {$status}", 'slug' => "jug-{$status}-".uniqid(), 'price' => 10, 'stock_quantity' => 2, 'status' => $status]);
+        }
+        $listed = $this->actingAs($this->vendor, 'vendor')->getJson(route('vendor.dashboard.products.index'))->assertOk()->json('products.data');
+        $this->assertEqualsCanonicalizing($stored, array_column($listed, 'status'));
     }
 
     public function test_the_keys_are_seeded_once_in_both_languages_and_rendering_creates_no_rows(): void
@@ -90,8 +137,16 @@ class VendorProductListTextsTest extends TestCase
 
         $this->assertStringContainsString('const texts = listTexts(root.dataset.listTexts);', $source);
         $this->assertStringContainsString('th.textContent = texts.actions;', $source);
-        $this->assertStringContainsString("[[texts.edit, 'edit'], [texts.delete, 'delete']]", $source);
+        $this->assertStringContainsString("[[texts.edit, 'edit', texts.editNamed], [texts.delete, 'delete', texts.deleteNamed]]", $source);
         $this->assertStringNotContainsString("th.textContent = 'Actions'", $source);
+        // VENDOR-UI-CLEANUP-01B: translated headers and statuses, the SKU isolated left to right, names set as text only.
+        $this->assertStringContainsString('th.textContent = columnLabel(path, label, texts);', $source);
+        $this->assertStringContainsString('cell.dataset.status = String(value);', $source);
+        $this->assertStringContainsString('cell.textContent = text(statusLabel(value, texts));', $source);
+        $this->assertStringContainsString("const sku = document.createElement('bdi');", $source);
+        $this->assertStringContainsString("sku.dir = 'ltr';", $source);
+        $this->assertStringContainsString("if (name) button.setAttribute('aria-label', name);", $source);
+        $this->assertDoesNotMatchRegularExpression('/innerHTML|outerHTML|insertAdjacentHTML/', $source);
         $this->assertStringNotContainsString("[['Edit', 'edit'], ['Delete', 'delete']]", $source);
         // The buttons the editor listens for are unchanged (vendor-product-editor.js: [data-product-action]).
         $this->assertStringContainsString('button.dataset.productAction = action; button.dataset.productId = item.id;', $source);

@@ -11,10 +11,27 @@
     $page = $pages[$resource];
 
     // VENDOR-UI-CLEANUP-01A (F-3): the products list's action column and buttons, translated (the other lists are unchanged).
+    // VENDOR-UI-CLEANUP-01B: and its column headers (by column path), its status labels (by the stored products.status
+    // value: draft, active, inactive, out_of_stock) and the actions' accessible names.
     $listTexts = $resource === 'products' ? [
         'actions' => t('vendor.Product_List_Actions', 'Actions'),
         'edit' => t('vendor.Product_List_Edit', 'Edit'),
         'delete' => t('vendor.Product_List_Delete', 'Delete'),
+        'editNamed' => t('vendor.Product_List_Edit_Named', 'Edit product: :name'),
+        'deleteNamed' => t('vendor.Product_List_Delete_Named', 'Delete product: :name'),
+        'columns' => [
+            'name' => t('vendor.Product_List_Product', 'Product'),
+            'sku' => t('vendor.Product_Sku', 'SKU'),
+            'status' => t('vendor.Product_List_Status', 'Status'),
+            'price' => t('vendor.Product_List_Price', 'Price'),
+            'stock_quantity' => t('vendor.Product_Stock', 'Stock'),
+        ],
+        'statuses' => [
+            'draft' => t('vendor.Product_Status_Draft', 'Draft'),
+            'active' => t('vendor.Product_Status_Active', 'Active'),
+            'inactive' => t('vendor.Product_Status_Inactive', 'Inactive'),
+            'out_of_stock' => t('vendor.Product_Status_Out_Of_Stock', 'Out of stock'),
+        ],
     ] : null;
 @endphp
 

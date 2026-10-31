@@ -13,10 +13,31 @@ export function listTexts(raw) {
         given = {};
     }
 
-    const pick = (key, fallback) => (typeof given[key] === 'string' && given[key].trim() !== '' ? given[key] : fallback);
+    const filled = (value) => typeof value === 'string' && value.trim() !== '';
+    const pick = (key, fallback) => (filled(given[key]) ? given[key] : fallback);
+    // VENDOR-UI-CLEANUP-01B: column labels (by column path), status labels (by status value) and the actions' accessible
+    // names (":name"), each only when given as text.
+    const strings = (value) => Object.fromEntries(Object.entries(value && typeof value === 'object' ? value : {}).filter(([, text]) => filled(text)));
 
-    return { actions: pick('actions', 'Actions'), edit: pick('edit', 'Edit'), delete: pick('delete', 'Delete') };
+    return {
+        actions: pick('actions', 'Actions'),
+        edit: pick('edit', 'Edit'),
+        delete: pick('delete', 'Delete'),
+        editNamed: pick('editNamed', null),
+        deleteNamed: pick('deleteNamed', null),
+        columns: strings(given.columns),
+        statuses: strings(given.statuses),
+    };
 }
+
+/** VENDOR-UI-CLEANUP-01B: a column's header: the page's translation for its path, else the list's own label. */
+export const columnLabel = (path, fallback, texts) => texts.columns?.[path] ?? fallback;
+
+/** VENDOR-UI-CLEANUP-01B: a status as shown: its translated label; an unknown value is shown as it is. */
+export const statusLabel = (value, texts) => texts.statuses?.[value] ?? value;
+
+/** VENDOR-UI-CLEANUP-01B: an accessible name from a ":name" template (plain text; split/join, so "$" in a name stays). */
+export const namedLabel = (template, name) => (template ? template.split(':name').join(String(name ?? '').trim() || '—') : null);
 
 const schema = {
     products: { key: 'products', columns: [['name', 'Product'], ['sku', 'SKU'], ['status', 'Status'], ['price', 'Price'], ['stock_quantity', 'Stock']] },
@@ -50,18 +71,38 @@ function init() {
     const render = (items) => {
         head.replaceChildren(); body.replaceChildren();
         const headerRow = document.createElement('tr');
-        definition.columns.forEach(([, label]) => { const th = document.createElement('th'); th.scope = 'col'; th.textContent = label; headerRow.append(th); });
+        definition.columns.forEach(([path, label]) => { const th = document.createElement('th'); th.scope = 'col'; th.textContent = columnLabel(path, label, texts); headerRow.append(th); });
         if (['orders', 'products'].includes(root.dataset.resource)) { const th = document.createElement('th'); th.scope = 'col'; th.textContent = texts.actions; headerRow.append(th); }
         head.append(headerRow);
         items.forEach((item) => {
             const row = document.createElement('tr');
-            definition.columns.forEach(([path]) => { const cell = document.createElement('td'); cell.textContent = text(valueAt(item, path)); row.append(cell); });
+            definition.columns.forEach(([path]) => {
+                const cell = document.createElement('td');
+                const value = valueAt(item, path);
+                if (root.dataset.resource === 'products' && path === 'status') {
+                    // VENDOR-UI-CLEANUP-01B: the translated label; the stored value stays as it is, on the cell.
+                    cell.dataset.status = String(value);
+                    cell.textContent = text(statusLabel(value, texts));
+                } else if (root.dataset.resource === 'products' && path === 'sku' && text(value) !== '—') {
+                    // An SKU reads left to right in Arabic too; the cell keeps the column's alignment.
+                    const sku = document.createElement('bdi');
+                    sku.dir = 'ltr';
+                    sku.textContent = text(value);
+                    cell.append(sku);
+                } else {
+                    cell.textContent = text(value);
+                }
+                row.append(cell);
+            });
             if (root.dataset.resource === 'products') {
                 const actions = document.createElement('td');
-                [[texts.edit, 'edit'], [texts.delete, 'delete']].forEach(([label, action]) => {
+                [[texts.edit, 'edit', texts.editNamed], [texts.delete, 'delete', texts.deleteNamed]].forEach(([label, action, named]) => {
                     const button = document.createElement('button');
                     button.type = 'button'; button.className = action === 'delete' ? 'btn btn-sm btn-light-danger me-1' : 'btn btn-sm btn-light-primary me-1';
                     button.textContent = label; button.dataset.productAction = action; button.dataset.productId = item.id;
+                    // VENDOR-UI-CLEANUP-01B: the accessible name says which product ("Edit product: Clay jug"); plain text.
+                    const name = namedLabel(named, item.name);
+                    if (name) button.setAttribute('aria-label', name);
                     actions.append(button);
                 });
                 row.append(actions);
