@@ -250,6 +250,77 @@ class VendorProductImageConcurrencyMySqlTest extends TestCase
         }, 2);
     }
 
+    // ---------------------------------------------------------------- VENDOR-PRODUCT-PUBLISH-BE-01B: archiving
+
+    /**
+     * DETAIL-02 under a concurrent archive: this test's connection plays the admin (the statements of moderate():
+     * the product row FOR UPDATE, then archived_at written, the transaction still open). Each vendor image change
+     * waits on that lock, then reads the committed archive on the locked row and is refused; nothing is written.
+     */
+    public function test_an_image_change_waiting_on_an_archive_is_refused_after_it_commits(): void
+    {
+        $operations = ['add' => fn () => 'add|'.$this->paths['P'], 'replace' => fn () => "replace|{$this->images['A']}|{$this->paths['P']}",
+            'main' => fn () => "main|{$this->images['B']}", 'move' => fn () => "move|{$this->images['B']}|up", 'unlink' => fn () => "unlink|{$this->images['A']}"];
+
+        foreach ($operations as $operation) {
+            $this->rounds(function () use ($operation) {
+                $this->galleryOf(['A', 'B']);
+                $result = $this->archivedWhile($operation());
+
+                $this->assertResponse(422, $result);
+                $this->assertSame(ProductImageController::ARCHIVED_MESSAGE, $result['body']['message']);
+                $this->assertTrue($result['locked_product'], 'Refused under the product lock.');
+                $this->assertGallery(['A', 'B']);
+                $this->assertSameMetadata();
+                $this->assertSame(0, $this->rowsWithPath('P'));
+                $this->assertNotNull($this->db()->table('products')->where('id', $this->product->id)->value('archived_at'));
+            }, 3);
+        }
+    }
+
+    /** Control: on a product that is only suspended, the same waiting change goes through. */
+    public function test_an_image_change_waiting_on_a_suspension_still_applies(): void
+    {
+        $this->rounds(function () {
+            $result = $this->archivedWhile('add|'.$this->paths['P'], 'suspended_at');
+
+            $this->assertResponse(201, $result);
+            $this->assertGallery(['A', 'B', 'P']);
+            $this->assertNotNull($this->db()->table('products')->where('id', $this->product->id)->value('suspended_at'));
+        }, 3);
+    }
+
+    /** The admin side holds the product row lock with $column written; the vendor's operation must wait, then runs after COMMIT. */
+    private function archivedWhile(string $operation, string $column = 'archived_at'): array
+    {
+        $this->db()->beginTransaction();
+
+        try {
+            $this->db()->table('products')->where('id', $this->product->id)->lockForUpdate()->first();
+            $this->db()->table('products')->where('id', $this->product->id)->update([$column => now(), 'updated_at' => now()]);
+
+            [$contender, $pipes] = $this->startWorker('contender', $operation);
+            $this->waitFor(fn () => file_exists($this->signals.'/contender.connection'), 'the contender to connect', $contender, $pipes);
+            $connection = (int) file_get_contents($this->signals.'/contender.connection');
+            $waited = $this->waitFor(fn () => $this->db()->table('performance_schema.data_lock_waits as waits')
+                ->join('performance_schema.threads as threads', 'threads.THREAD_ID', '=', 'waits.REQUESTING_THREAD_ID')
+                ->where('threads.PROCESSLIST_ID', $connection)
+                ->exists(), "the contender (connection {$connection}) to wait for the archive's lock", $contender, $pipes);
+
+            $this->db()->commit();
+        } catch (\Throwable $exception) {
+            $this->db()->rollBack();
+
+            throw $exception;
+        }
+
+        $result = $this->workerResult($contender, $pipes);
+        $this->assertTrue($waited, 'The vendor change waited on the row lock the admin side held.');
+        $this->log[] = ["{$column} (admin side)", 'held until the contender waited', $operation, 'committed', $result['status'] ?? $result['outcome']];
+
+        return $result;
+    }
+
     // ---------------------------------------------------------------- the race
 
     /** @return array{0: array<string, mixed>, 1: array<string, mixed>} */

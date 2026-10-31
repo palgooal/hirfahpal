@@ -31,6 +31,9 @@ class ProductImageController extends Controller
     /** VPM-01C: a path the product already has (another of its images) is not attached again. */
     public const DUPLICATE_MESSAGE = 'This image is already in this product.';
 
+    /** DETAIL-02: the same message as an archived product's refused update (ProductController). */
+    public const ARCHIVED_MESSAGE = 'This product is archived and cannot be edited.';
+
     public function store(StoreProductImageRequest $request, Product $product): JsonResponse
     {
         $this->authorizeProduct($request, $product);
@@ -217,10 +220,18 @@ class ProductImageController extends Controller
         }
     }
 
-    /** G7-C2-3: the product row, locked for the rest of the transaction; every image change on it waits here. */
+    /**
+     * G7-C2-3: the product row, locked for the rest of the transaction; every image change on it waits here.
+     * VENDOR-PRODUCT-PUBLISH-DETAIL-02: an archived product's images are not the vendor's to change. Read on the locked
+     * row (archiving locks it too), before anything is written, so a concurrent archive is either seen or waits.
+     */
     private function lockProduct(Product $product): Product
     {
-        return Product::query()->whereKey($product->getKey())->lockForUpdate()->firstOrFail();
+        $locked = Product::query()->whereKey($product->getKey())->lockForUpdate()->firstOrFail();
+
+        abort_if($locked->isArchived(), 422, self::ARCHIVED_MESSAGE);
+
+        return $locked;
     }
 
     /** The image read again under the lock: one removed meanwhile is a 404, as an unknown one would be. */
