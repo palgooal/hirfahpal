@@ -53,6 +53,7 @@ class ProductController extends Controller
     {
         $vendor = $request->user('vendor');
         $data = $this->productData($request->validated());
+        $data = $this->publication(null, $data['status'] ?? 'draft') + $data;
 
         try {
             $product = DB::transaction(function () use ($vendor, $data) {
@@ -124,6 +125,11 @@ class ProductController extends Controller
             $product = DB::transaction(function () use ($request, $product, $data): Product {
                 $lockedProduct = Product::query()->whereKey($product->id)->lockForUpdate()->firstOrFail();
                 abort_unless((int) $lockedProduct->vendor_id === (int) $request->user('vendor')->id, 404);
+                // DETAIL-02: an archived product is not editable by its vendor; read under the lock archiving takes too.
+                abort_if($lockedProduct->isArchived(), 422, 'This product is archived and cannot be edited.');
+
+                // The status transition and published_at follow the locked row, not the one bound before the lock.
+                $data = $this->publication($lockedProduct, $data['status'] ?? $lockedProduct->status) + $data;
 
                 $reserved = $lockedProduct->reservedStockQuantity();
 
@@ -164,15 +170,38 @@ class ProductController extends Controller
     {
         $data['slug'] = ($data['slug'] ?? null) ?: $this->uniqueSlug($data['name'], $product);
         $data['low_stock_threshold'] = $data['low_stock_threshold'] ?? 1;
-        // Status and storefront settings are intentionally not controlled by vendors.
-        $data['status'] = $product?->status ?? 'draft';
+        // Storefront settings are intentionally not controlled by vendors. The status is (publication() sets it).
+        if (($data['status'] ?? null) === null) {
+            unset($data['status']);
+        }
         $data['is_featured'] = $product?->is_featured ?? false;
         $data['is_limited_edition'] = $product?->is_limited_edition ?? false;
         $data['highlight_tags'] = $product?->highlight_tags ?? [];
         $data['craft_tags'] = $product?->craft_tags ?? [];
-        $data['published_at'] = $data['status'] === 'active' ? ($product?->published_at ?? now()) : null;
 
         return $data;
+    }
+
+    /**
+     * VENDOR-PRODUCT-PUBLISH-DECISION-01 (OPEN-PROD-22, DETAIL-04): the status and published_at written for a move from
+     * the stored row ($current, null on create) to $status. Publishing (any other status to active) sets a fresh
+     * published_at, so a restored draft's kept date is never reused; staying active keeps it; leaving active clears it.
+     * Between two unpublished statuses the stored value stays as it is (null, or the date a restore kept, OPEN-PROD-04B).
+     * Suspension and archiving are separate columns and are not touched here.
+     *
+     * @return array{status: string, published_at: mixed}
+     */
+    private function publication(?Product $current, string $status): array
+    {
+        $wasActive = $current?->status === 'active';
+
+        $publishedAt = match (true) {
+            $status === 'active' => $wasActive ? ($current->published_at ?? now()) : now(),
+            $wasActive => null,
+            default => $current?->published_at,
+        };
+
+        return ['status' => $status, 'published_at' => $publishedAt];
     }
 
     /**

@@ -31,8 +31,9 @@ class StoreProductRequest extends FormRequest
             'dimensions.length' => ['nullable', 'numeric', 'min:0'],
             'dimensions.width' => ['nullable', 'numeric', 'min:0'],
             'dimensions.height' => ['nullable', 'numeric', 'min:0'],
-            // Vendors do not choose publication status. New products always start as drafts for review.
-            'status' => ['nullable', 'in:draft,active,inactive,out_of_stock'],
+            // VENDOR-PRODUCT-PUBLISH-DECISION-01 (OPEN-PROD-19, 20): the vendor chooses draft, active or inactive;
+            // omitted means draft. out_of_stock is never a manual choice.
+            'status' => ['nullable', 'in:draft,active,inactive'],
             'is_featured' => ['nullable', 'boolean'],
             'is_limited_edition' => ['nullable', 'boolean'],
             'highlight_tags' => ['nullable', 'array', 'max:5'],

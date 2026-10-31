@@ -303,11 +303,14 @@ class ProductModerationSchemaTest extends TestCase
         $this->assertNull($product->suspended_at);
         $this->assertNull($product->archived_at);
 
-        // A suspended and archived product stays so whatever the vendor's update sends.
+        // A suspended and archived product stays so whatever the vendor's update sends. Archived, the update itself is
+        // refused (VENDOR-PRODUCT-PUBLISH-DETAIL-02) and nothing in the row changes.
         $product->forceFill(['suspended_at' => now(), 'archived_at' => now()])->save();
+        $before = $product->fresh()->getAttributes();
         $this->actingAs($vendor, 'vendor')
             ->putJson(route('vendor.dashboard.products.update', $product), ['suspended_at' => null, 'archived_at' => null, 'status' => 'active'] + $input)
-            ->assertOk();
+            ->assertUnprocessable()->assertJsonPath('message', 'This product is archived and cannot be edited.');
+        $this->assertSame($before, $product->fresh()->getAttributes());
         $this->assertTrue($product->fresh()->isSuspended());
         $this->assertTrue($product->fresh()->isArchived());
     }

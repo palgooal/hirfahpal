@@ -34,8 +34,9 @@ class UpdateProductRequest extends FormRequest
             'dimensions.length' => ['nullable', 'numeric', 'min:0'],
             'dimensions.width' => ['nullable', 'numeric', 'min:0'],
             'dimensions.height' => ['nullable', 'numeric', 'min:0'],
-            // Product status is managed by the dashboard administrator, not by the vendor form.
-            'status' => ['nullable', Rule::in(['draft', 'active', 'inactive', 'out_of_stock'])],
+            // VENDOR-PRODUCT-PUBLISH-DECISION-01 (OPEN-PROD-19, 20; DETAIL-01): draft, active or inactive; omitted keeps
+            // the stored status, a historical out_of_stock included. out_of_stock is never a manual choice.
+            'status' => ['nullable', Rule::in(['draft', 'active', 'inactive'])],
             'is_featured' => ['nullable', 'boolean'],
             'is_limited_edition' => ['nullable', 'boolean'],
             'highlight_tags' => ['nullable', 'array', 'max:5'],
