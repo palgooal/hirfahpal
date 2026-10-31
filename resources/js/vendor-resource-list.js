@@ -1,4 +1,22 @@
-const root = document.querySelector('[data-vendor-resource-list]');
+const root = typeof document !== 'undefined' ? document.querySelector('[data-vendor-resource-list]') : null;
+
+/**
+ * VENDOR-UI-CLEANUP-01A (F-3): the list's action texts, translated by the page (data-list-texts, JSON). A page that
+ * gives none (or an unreadable value) keeps the former English texts.
+ */
+export function listTexts(raw) {
+    let given = {};
+
+    try {
+        given = JSON.parse(raw || '{}') ?? {};
+    } catch {
+        given = {};
+    }
+
+    const pick = (key, fallback) => (typeof given[key] === 'string' && given[key].trim() !== '' ? given[key] : fallback);
+
+    return { actions: pick('actions', 'Actions'), edit: pick('edit', 'Edit'), delete: pick('delete', 'Delete') };
+}
 
 const schema = {
     products: { key: 'products', columns: [['name', 'Product'], ['sku', 'SKU'], ['status', 'Status'], ['price', 'Price'], ['stock_quantity', 'Stock']] },
@@ -27,19 +45,20 @@ function init() {
     const head = root.querySelector('[data-resource-head]');
     const body = root.querySelector('[data-resource-body]');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const texts = listTexts(root.dataset.listTexts);
 
     const render = (items) => {
         head.replaceChildren(); body.replaceChildren();
         const headerRow = document.createElement('tr');
         definition.columns.forEach(([, label]) => { const th = document.createElement('th'); th.scope = 'col'; th.textContent = label; headerRow.append(th); });
-        if (['orders', 'products'].includes(root.dataset.resource)) { const th = document.createElement('th'); th.scope = 'col'; th.textContent = 'Actions'; headerRow.append(th); }
+        if (['orders', 'products'].includes(root.dataset.resource)) { const th = document.createElement('th'); th.scope = 'col'; th.textContent = texts.actions; headerRow.append(th); }
         head.append(headerRow);
         items.forEach((item) => {
             const row = document.createElement('tr');
             definition.columns.forEach(([path]) => { const cell = document.createElement('td'); cell.textContent = text(valueAt(item, path)); row.append(cell); });
             if (root.dataset.resource === 'products') {
                 const actions = document.createElement('td');
-                [['Edit', 'edit'], ['Delete', 'delete']].forEach(([label, action]) => {
+                [[texts.edit, 'edit'], [texts.delete, 'delete']].forEach(([label, action]) => {
                     const button = document.createElement('button');
                     button.type = 'button'; button.className = action === 'delete' ? 'btn btn-sm btn-light-danger me-1' : 'btn btn-sm btn-light-primary me-1';
                     button.textContent = label; button.dataset.productAction = action; button.dataset.productId = item.id;

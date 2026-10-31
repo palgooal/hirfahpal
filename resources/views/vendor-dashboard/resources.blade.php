@@ -9,6 +9,13 @@
     ];
     abort_unless(isset($pages[$resource]), 404);
     $page = $pages[$resource];
+
+    // VENDOR-UI-CLEANUP-01A (F-3): the products list's action column and buttons, translated (the other lists are unchanged).
+    $listTexts = $resource === 'products' ? [
+        'actions' => t('vendor.Product_List_Actions', 'Actions'),
+        'edit' => t('vendor.Product_List_Edit', 'Edit'),
+        'delete' => t('vendor.Product_List_Delete', 'Delete'),
+    ] : null;
 @endphp
 
 <x-vendor-dashboard-layout :title="$page['title']">
@@ -17,7 +24,7 @@
         <li class="breadcrumb-item" aria-current="page">{{ $page['title'] }}</li>
     </x-slot:breadcrumbs>
 
-    <div class="col-span-12" data-vendor-resource-list data-resource="{{ $page['key'] }}" data-endpoint="{{ $page['endpoint'] }}">
+    <div class="col-span-12" data-vendor-resource-list data-resource="{{ $page['key'] }}" data-endpoint="{{ $page['endpoint'] }}" @if ($listTexts) data-list-texts="{{ json_encode($listTexts, JSON_UNESCAPED_UNICODE) }}" @endif>
         <section class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center gap-3 mb-3">

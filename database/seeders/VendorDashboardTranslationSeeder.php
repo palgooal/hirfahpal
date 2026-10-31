@@ -434,6 +434,10 @@ class VendorDashboardTranslationSeeder extends Seeder
             'en' => 'This product has :count images, more than the current maximum of :max. Nothing can be added. You can still remove, replace, reorder and set the main image; no image is removed automatically.',
         ],
         // VPM-01A: the product editor's form, title, list button and product load / save / delete texts.
+        // VENDOR-UI-CLEANUP-01A (F-3): the products list's action column and buttons.
+        'vendor.Product_List_Actions' => ['ar' => 'الإجراءات', 'en' => 'Actions'],
+        'vendor.Product_List_Edit' => ['ar' => 'تعديل', 'en' => 'Edit'],
+        'vendor.Product_List_Delete' => ['ar' => 'حذف', 'en' => 'Delete'],
         'vendor.Product_New' => ['ar' => 'إضافة منتج', 'en' => 'Add product'],
         'vendor.Product_Edit' => ['ar' => 'تعديل المنتج', 'en' => 'Edit product'],
         'vendor.Product_Section_Details' => ['ar' => 'تفاصيل المنتج', 'en' => 'Product details'],
