@@ -109,7 +109,9 @@ class VendorProductEditorStatusTest extends TestCase
 
         $this->assertStringContainsString("status: statusPayload(field('status').value), images: editingId ? undefined : images.map(", $script, 'The images payload is unchanged.');
         $this->assertStringContainsString("form.reset(); field('low_stock_threshold').value = '1'; setStatusField(field('status'), null);", $script, 'Closing (and "Add product") resets to draft.');
-        $this->assertStringContainsString("setStatusField(field('status'), product.status); editingId = id;", $script, 'Editing shows the stored status.');
+        // UI-01D: opening a product (and the re-read after an archived refusal) goes through fill(), which sets the status.
+        $this->assertMatchesRegularExpression("/const fill = \(\{ product, moderation \}\) => \{.*?setStatusField\(field\('status'\), product\.status\);/s", $script, 'Editing shows the stored status.');
+        $this->assertStringContainsString('editingId = id; fill(answer.body);', $script);
         $this->assertDoesNotMatchRegularExpression('/[\'"`]out_of_stock[\'"`]/', $script, 'No status outside the three is ever written by the script.');
         $this->assertDoesNotMatchRegularExpression('/\p{Arabic}/u', $script);
         $this->assertStringNotContainsString('Publication status', $script);

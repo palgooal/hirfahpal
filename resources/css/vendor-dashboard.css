@@ -75,6 +75,17 @@ html.vendor-shell .vendor-product-form [data-product-primary-image], html.vendor
 html.vendor-shell .vendor-product-form .vendor-product-hint { margin: .25rem 0 0; color: var(--color-hf-muted); font-size: .8125rem; }
 html.vendor-shell .vendor-product-form .vendor-product-error { margin: .75rem 0 0; color: #a13d2b; font-size: .875rem; font-weight: 600; }
 html.vendor-shell .vendor-product-form .vendor-product-error[hidden] { display: none; }
+/* VENDOR-PRODUCT-PUBLISH-UI-01D: the archived / suspended notices above the form (logical properties, both directions). */
+html.vendor-shell .vendor-product-form .vendor-product-notice { display: flex; align-items: flex-start; gap: .625rem; margin: 1.25rem 1.5rem 0; padding: .75rem 1rem; border: 1px solid var(--color-hf-line); border-radius: 12px; background-color: var(--color-hf-surface); color: var(--color-hf-ink); font-size: .875rem; }
+html.vendor-shell .vendor-product-form .vendor-product-notice[hidden] { display: none; }
+html.vendor-shell .vendor-product-form .vendor-product-notice p { margin: 0; }
+html.vendor-shell .vendor-product-form .vendor-product-notice > i { flex: none; margin-top: .125rem; font-size: 1.125rem; }
+html.vendor-shell .vendor-product-form .vendor-product-notice.is-archived { border-color: #a13d2b; }
+html.vendor-shell .vendor-product-form .vendor-product-notice.is-archived > i { color: #a13d2b; }
+html.vendor-shell .vendor-product-form .vendor-product-notice.is-suspended { border-color: var(--color-hf-copper); }
+html.vendor-shell .vendor-product-form .vendor-product-notice.is-suspended > i { color: var(--color-hf-copper); }
+html.vendor-shell .vendor-product-form .vendor-product-notice:focus { outline: 2px solid var(--color-hf-olive); outline-offset: 2px; }
+@media (max-width: 575.98px) { html.vendor-shell .vendor-product-form .vendor-product-notice { margin: .75rem 1rem 0; } }
 html.vendor-shell .vendor-product-gallery { gap: .75rem; }
 html.vendor-shell .vendor-product-gallery > .vendor-product-hint { margin-top: 0; }
 html.vendor-shell .vendor-product-gallery [hidden] { display: none; }

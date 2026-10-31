@@ -71,6 +71,11 @@
                     </div>
                     <form data-product-form novalidate>
                         @csrf
+                        {{-- VENDOR-PRODUCT-PUBLISH-UI-01D (DETAIL-02, DETAIL-03): the administration's state, from the product's
+                             moderation flags (shown by the script; archived wins). data-refused is the text announced when a
+                             change is refused because the product was archived while it was open. --}}
+                        <div class="vendor-product-notice is-archived" role="note" tabindex="-1" data-product-notice="archived" data-refused="{{ t('vendor.Product_Archived_Refused', 'This product was archived and can no longer be edited.') }}" hidden><i class="ph-duotone ph-archive" aria-hidden="true"></i><p>{{ t('vendor.Product_Notice_Archived', 'This product is archived by the administration and cannot be edited. Contact the administration to restore it.') }}</p></div>
+                        <div class="vendor-product-notice is-suspended" role="note" data-product-notice="suspended" hidden><i class="ph-duotone ph-pause-circle" aria-hidden="true"></i><p>{{ t('vendor.Product_Notice_Suspended', 'This product is suspended by the administration. It is not shown in the store or available for sale until the suspension is lifted, whatever its publication status. You can still edit it.') }}</p></div>
                         <fieldset class="admin-cat-form-section">
                             <legend class="admin-cat-form-legend">{{ t('vendor.Product_Section_Details', 'Product details') }}</legend>
                             <div class="row g-3">

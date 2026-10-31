@@ -457,6 +457,20 @@ class VendorDashboardTranslationSeeder extends Seeder
             'ar' => 'نفد من المخزون (إبقاء الحالة الحالية)',
             'en' => 'Out of stock (keep current status)',
         ],
+        // VENDOR-PRODUCT-PUBLISH-UI-01D: the editor's notices for an archived or suspended product, and the refusal shown
+        // when the product was archived while it was open.
+        'vendor.Product_Notice_Archived' => [
+            'ar' => 'هذا المنتج مؤرشف من الإدارة ولا يمكن تعديله. يرجى التواصل مع الإدارة لاستعادته.',
+            'en' => 'This product is archived by the administration and cannot be edited. Contact the administration to restore it.',
+        ],
+        'vendor.Product_Notice_Suspended' => [
+            'ar' => 'هذا المنتج معلّق من الإدارة، ولن يظهر في المتجر أو يكون متاحًا للبيع حتى يُرفع التعليق، مهما كانت حالة نشره. يمكنك الاستمرار في تعديل بياناته.',
+            'en' => 'This product is suspended by the administration. It is not shown in the store or available for sale until the suspension is lifted, whatever its publication status. You can still edit it.',
+        ],
+        'vendor.Product_Archived_Refused' => [
+            'ar' => 'تمت أرشفة هذا المنتج، ولم يعد بإمكانك تعديله.',
+            'en' => 'This product was archived and can no longer be edited.',
+        ],
         'vendor.Product_List_Edit_Named' => ['ar' => 'تعديل المنتج: :name', 'en' => 'Edit product: :name'],
         'vendor.Product_List_Delete_Named' => ['ar' => 'حذف المنتج: :name', 'en' => 'Delete product: :name'],
         'vendor.Product_New' => ['ar' => 'إضافة منتج', 'en' => 'Add product'],

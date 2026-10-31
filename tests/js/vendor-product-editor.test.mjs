@@ -24,6 +24,11 @@ import {
     statusChoice,
     statusPayload,
     VENDOR_STATUSES,
+    createTickets,
+    editorMode,
+    galleryButtonDisabled,
+    mayBeArchivedRefusal,
+    refusalOutcome,
 } from '../../resources/js/vendor-product-editor.js';
 
 const img = (id, sort, primary = false) => ({ id, path: `vendors/media/1/${id}.png`, sort_order: sort, is_primary: primary });
@@ -484,4 +489,64 @@ test('the keep option is removed for the next product: a new one is a draft agai
     setStatusField(select, 'inactive');
     assert.equal(select.value, 'inactive');
     assert.deepEqual(values(select), VENDOR_STATUSES);
+});
+
+// ---- VENDOR-PRODUCT-PUBLISH-UI-01D: archived read-only mode, suspended notice, mid-edit archiving ----
+
+test('the mode comes from the flags: archived wins, suspended is editable, anything missing is editable', () => {
+    assert.equal(editorMode({ archived: false, suspended: false }), 'editable');
+    assert.equal(editorMode({ archived: false, suspended: true }), 'suspended');
+    assert.equal(editorMode({ archived: true, suspended: false }), 'archived');
+    assert.equal(editorMode({ archived: true, suspended: true }), 'archived', 'Archived takes precedence.');
+    for (const missing of [undefined, null, {}, { archived: 'true', suspended: 1 }]) assert.equal(editorMode(missing), 'editable', 'Only real booleans count.');
+});
+
+test('only a 422 that names no field may be the archived refusal; validation, limit, library and other statuses never are', () => {
+    assert.equal(mayBeArchivedRefusal(422, { message: 'This product is archived and cannot be edited.' }), true);
+    assert.equal(mayBeArchivedRefusal(422, null), true);
+    assert.equal(mayBeArchivedRefusal(422, { message: 'x', errors: {} }), true);
+    assert.equal(mayBeArchivedRefusal(422, { errors: { name: ['The name field is required.'] } }), false);
+    assert.equal(mayBeArchivedRefusal(422, { errors: { images: ['A product can have up to 6 images.'] } }), false);
+    assert.equal(mayBeArchivedRefusal(422, { errors: { path: ['Not in your library.'] } }), false);
+    for (const status of [0, 200, 401, 403, 404, 409, 419, 500]) assert.equal(mayBeArchivedRefusal(status, { message: 'x' }), false, String(status));
+});
+
+test('after such a refusal the fresh read decides: archived, other (not archived) or failed (never a success)', () => {
+    const read = (moderation, status = 200) => ({ status, body: { product: { id: 1 }, moderation } });
+    assert.equal(refusalOutcome(read({ archived: true, suspended: false })), 'archived');
+    assert.equal(refusalOutcome(read({ archived: true, suspended: true })), 'archived');
+    assert.equal(refusalOutcome(read({ archived: false, suspended: true })), 'other');
+    assert.equal(refusalOutcome(read({ archived: false, suspended: false })), 'other');
+    for (const unreadable of [null, { status: 0, body: null }, { status: 404, body: { message: 'Not found' } }, { status: 500, body: null }, { status: 200, body: {} }]) {
+        assert.equal(refusalOutcome(unreadable), 'failed', JSON.stringify(unreadable));
+    }
+});
+
+test('read-only disables every gallery button, and ending a request (busy false) cannot enable one', () => {
+    const kinds = [{}, { limited: true }, { limited: true, full: true }, { boundary: true }];
+    for (const kind of kinds) {
+        assert.equal(galleryButtonDisabled({ ...kind, readOnly: true, busy: true }), true);
+        assert.equal(galleryButtonDisabled({ ...kind, readOnly: true, busy: false }), true, `after the request: ${JSON.stringify(kind)}`);
+    }
+    // Editable: as before (busy, the limit on "add", a move past an end).
+    assert.equal(galleryButtonDisabled({}), false);
+    assert.equal(galleryButtonDisabled({ busy: true }), true);
+    assert.equal(galleryButtonDisabled({ limited: true, full: false }), false);
+    assert.equal(galleryButtonDisabled({ limited: true, full: true }), true);
+    assert.equal(galleryButtonDisabled({ full: true }), false, 'The limit only stops adding.');
+    assert.equal(galleryButtonDisabled({ boundary: true }), true);
+});
+
+test('a late answer for an earlier product is not current once another product (or none) is opened', () => {
+    const tickets = createTickets();
+    const first = tickets.next();
+    assert.equal(tickets.isCurrent(first), true);
+
+    const second = tickets.next();
+    assert.equal(tickets.isCurrent(first), false, 'Opening another product drops the first one\'s answers.');
+    assert.equal(tickets.isCurrent(second), true);
+
+    tickets.next();
+    assert.equal(tickets.isCurrent(second), false, 'Closing drops them too.');
+    assert.notEqual(createTickets().next(), undefined);
 });

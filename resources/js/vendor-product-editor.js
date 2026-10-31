@@ -86,6 +86,50 @@ export function setStatusField(select, stored) {
     select.value = value;
 }
 
+/**
+ * VENDOR-PRODUCT-PUBLISH-UI-01D (DETAIL-02, DETAIL-03): the editor's mode from the product's moderation flags (UI-01C).
+ * archived: read-only, whatever else is true; suspended: editable, with a notice; editable otherwise (flags missing too).
+ */
+export function editorMode(moderation) {
+    if (moderation?.archived === true) return 'archived';
+
+    return moderation?.suspended === true ? 'suspended' : 'editable';
+}
+
+/**
+ * A refusal that may be the archived one: a 422 that names no field (validation, the six-image limit and the library
+ * rule always name one). It is never taken as proof: the product is read again and its flags decide.
+ */
+export function mayBeArchivedRefusal(status, body) {
+    if (status !== 422) return false;
+    const errors = body && typeof body.errors === 'object' && body.errors !== null ? body.errors : {};
+
+    return Object.keys(errors).length === 0;
+}
+
+/**
+ * What a fresh read of the product, after such a refusal, decides: archived (read-only, the refusal announced), other
+ * (not archived: the operation's own error), or failed (unreadable: the operation's own failure, never a success).
+ */
+export function refusalOutcome(fresh) {
+    if (!fresh || fresh.status !== 200 || !fresh.body?.product) return 'failed';
+
+    return editorMode(fresh.body.moderation) === 'archived' ? 'archived' : 'other';
+}
+
+/** One gallery button's disabled state: always in read-only mode, else while busy, an add at the limit, or a move past an end. */
+export const galleryButtonDisabled = ({ readOnly = false, busy = false, limited = false, full = false, boundary = false }) => readOnly || busy || (limited && full) || boundary;
+
+/**
+ * Which product the editor is on: every open and close takes a new ticket, and an answer is used only while its ticket
+ * is still the current one, so a late answer about one product never changes the editor of another.
+ */
+export function createTickets() {
+    let current = 0;
+
+    return { next: () => ++current, isCurrent: (ticket) => ticket === current };
+}
+
 /** The translated text of an error name. */
 export const errorMessage = (error, messages) => messages[error] || messages.failed;
 
@@ -627,7 +671,12 @@ function initEditor(editor) {
     const galleryCount = editor.querySelector('[data-product-gallery-count]');
     const primaryOpen = editor.querySelector('[data-product-primary-open]');
     const galleryOpen = editor.querySelector('[data-product-gallery-open]');
-    let editingId = null, images = [], mode = 'gallery', target = null, busy = false, picker = null;
+    let editingId = null, images = [], mode = 'gallery', target = null, busy = false, picker = null, readOnly = false;
+    // VENDOR-PRODUCT-PUBLISH-UI-01D: the notices, the save button, and the product the editor is on (createTickets()).
+    const notices = { archived: editor.querySelector('[data-product-notice="archived"]'), suspended: editor.querySelector('[data-product-notice="suspended"]') };
+    const saveButton = editor.querySelector('[data-product-save]');
+    const tickets = createTickets();
+    let session = tickets.next();
     const field = (name) => form.elements.namedItem(name);
     const value = (name) => field(name).value.trim() || null;
     const number = (name) => field(name).value === '' ? null : Number(field(name).value);
@@ -650,9 +699,32 @@ function initEditor(editor) {
     const setBusy = (state) => {
         busy = state;
         gallery.setAttribute('aria-busy', state ? 'true' : 'false');
-        gallery.querySelectorAll('button').forEach((button) => { button.disabled = state || (button.dataset.limited === 'true' && images.length >= MAX_IMAGES) || button.dataset.boundary === 'true'; });
-        picker?.setBusy(state);
+        // UI-01D: read-only is part of every button's state, so ending a request never enables one in read-only mode.
+        gallery.querySelectorAll('button').forEach((button) => {
+            button.disabled = galleryButtonDisabled({ readOnly, busy: state, limited: button.dataset.limited === 'true', full: images.length >= MAX_IMAGES, boundary: button.dataset.boundary === 'true' });
+        });
+        picker?.setBusy(state || readOnly);
     };
+    // Nothing changes the product while a request runs or while it is read-only; every action asks this first.
+    const locked = () => busy || readOnly;
+
+    /**
+     * UI-01D: the one place the mode is set. archived: every section (its fields, the status and the gallery's buttons)
+     * is disabled, Save is hidden and the picker is closed; the notices show the mode. Cancel stays.
+     */
+    const applyMode = (next) => {
+        readOnly = next === 'archived';
+        editor.dataset.mode = next;
+        notices.archived.hidden = next !== 'archived';
+        notices.suspended.hidden = next !== 'suspended';
+        form.querySelectorAll(':scope > fieldset').forEach((section) => { section.disabled = readOnly; });
+        saveButton.hidden = readOnly;
+        saveButton.disabled = readOnly;
+        if (readOnly) picker?.close();
+        setBusy(busy);
+    };
+    // A new product, another product, or none: a new ticket, and no request of the previous one counts as running.
+    const begin = () => { session = tickets.next(); busy = false; return session; };
     const focusCard = (key, action) => focusAfterMove(gallery, key, action);
 
     const render = () => {
@@ -681,17 +753,59 @@ function initEditor(editor) {
     };
 
     // One saved-product request: busy while it runs; the gallery changes only from a successful answer.
+    // UI-01D: an answer that comes after another product was opened changes nothing; a 422 naming no field is checked.
     const mutate = async (url, method, body, done) => {
+        if (readOnly) return false;
+        const ticket = session;
         clearGalleryError(); setBusy(true); status(messages.saving);
-        const outcome = interpretImageResponse(await send(url, method, body));
+        const answer = await send(url, method, body);
+        if (!tickets.isCurrent(ticket)) return false;
         setBusy(false);
+        const outcome = interpretImageResponse(answer);
+        if (!outcome.ok && mayBeArchivedRefusal(answer.status, answer.body)) {
+            status('');
+            await recheck(ticket, () => galleryFail(outcome.error));
+            return false;
+        }
         if (!outcome.ok) { galleryFail(outcome.error); return false; }
         images = outcome.images; render(); status(done);
         return true;
     };
 
+    // UI-01D: the product as the server has it, its mode included (opening, and after an archived refusal).
+    const fill = ({ product, moderation }) => {
+        form.reset();
+        ['name', 'category_id', 'price', 'stock_quantity', 'sku', 'compare_at_price', 'low_stock_threshold', 'weight', 'short_description', 'description'].forEach((name) => { field(name).value = product[name] ?? ''; });
+        setStatusField(field('status'), product.status);
+        images = product.images || [];
+        clearGalleryError(); status(''); picker.close();
+        applyMode(editorMode(moderation));
+        render();
+    };
+    const load = (id) => fetchJson(`${endpoint}/${id}`, { credentials: 'same-origin', headers: headers(false) });
+
+    /**
+     * UI-01D: after a refused change that may be the archived refusal, the product is read again. Archived: the editor
+     * shows it read-only and announces the refusal (focus moves to the notice). Not archived: the operation's own error
+     * (and the mode the flags give now). Unreadable: the operation's own failure. Nothing is retried.
+     */
+    const recheck = async (ticket, otherwise) => {
+        const id = editingId;
+        const fresh = await load(id);
+        if (!tickets.isCurrent(ticket) || editingId !== id) return;
+        const outcome = refusalOutcome(fresh);
+        if (outcome === 'archived') {
+            fill(fresh.body);
+            fail(notices.archived.dataset.refused);
+            notices.archived.focus();
+            return;
+        }
+        if (outcome === 'other') applyMode(editorMode(fresh.body.moderation));
+        otherwise();
+    };
+
     const setPrimary = async (image) => {
-        if (busy) return;
+        if (locked()) return;
         if (!editingId) { images = setLocalPrimary(images, image); render(); status(messages.mainChanged); return; }
         await mutate(`${endpoint}/${editingId}/images/${image.id}`, 'PATCH', { is_primary: true }, messages.mainChanged);
     };
@@ -699,7 +813,7 @@ function initEditor(editor) {
     // VPM-01D: one step up or down. A new product reorders its local list; a saved one sends one PATCH .../move and is
     // redrawn from the server's answer only (a refused or failed move leaves the gallery as it was).
     const moveImage = async (image, direction) => {
-        if (busy) return;
+        if (locked()) return;
         const key = imageKey(image);
         const moved = () => {
             const position = images.findIndex((other) => imageKey(other) === key);
@@ -717,14 +831,14 @@ function initEditor(editor) {
     };
 
     const removeImage = async (image) => {
-        if (busy || !window.confirm(messages.confirmRemove)) return;
+        if (locked() || !window.confirm(messages.confirmRemove)) return;
         if (!editingId || !image.id) { images = removeLocal(images, image); render(); status(messages.removed); return; }
         await mutate(`${endpoint}/${editingId}/images/${image.id}`, 'DELETE', null, messages.removed);
     };
 
     // Returns whether the image was added or replaced; the picker closes then (VPM-01B).
     const choose = async (medium) => {
-        if (busy) return false;
+        if (locked()) return false;
         // VPM-01C: an image another slot has is not chosen (the picker disables it; the server refuses it with 409).
         if (choiceState(images, medium, target) === 'attached') { galleryFail('duplicate'); return false; }
         const plan = planChoice(images, { mode, target });
@@ -746,7 +860,7 @@ function initEditor(editor) {
     // VPM-01B: the picker opens for the mode (main image, gallery image, or replacing `image`) and remembers the
     // button that opened it; when that button is gone after a redraw, focus goes back to the section's own button.
     const openMedia = (nextMode, image = null, from = null) => {
-        if (busy) return;
+        if (locked()) return;
         mode = nextMode; target = image; clearGalleryError();
         if (!target && images.length >= MAX_IMAGES) { galleryFail('limit'); return; }
         picker.open({
@@ -758,12 +872,15 @@ function initEditor(editor) {
 
     // Uploads go to the vendor's media library (no product upload exists); the first new image is then chosen.
     const upload = async (files) => {
-        if (busy) return;
+        if (locked()) return;
         const plan = uploadPlan(files);
         if (!plan.ok) { if (plan.error) galleryFail(plan.error); return; }
         const data = new FormData(); plan.files.forEach((file) => data.append('files[]', file));
+        const ticket = session;
         clearGalleryError(); setBusy(true); status(messages.uploading);
         const answer = await fetchJson(editor.dataset.mediaStoreUrl, { method: 'POST', credentials: 'same-origin', headers: headers(false), body: data });
+        // UI-01D: the files are in the library either way; nothing is attached to a product the editor has left.
+        if (!tickets.isCurrent(ticket)) return;
         setBusy(false); status('');
         if (answer.status !== 201) { galleryFail(uploadError(answer)); return; }
         const media = Array.isArray(answer.body?.images) ? answer.body.images : [];
@@ -772,11 +889,33 @@ function initEditor(editor) {
         if (media[0] && await choose(media[0])) status(`${messages.added} ${format(messages.uploaded, { count: media.length })}`);
     };
 
-    const close = () => { editor.hidden = true; list.hidden = false; error.hidden = true; form.reset(); field('low_stock_threshold').value = '1'; setStatusField(field('status'), null); editingId = null; images = []; clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.add; };
+    const close = () => { begin(); editor.hidden = true; list.hidden = false; error.hidden = true; form.reset(); field('low_stock_threshold').value = '1'; setStatusField(field('status'), null); editingId = null; images = []; applyMode('editable'); clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.add; };
     const payload = () => ({ name: field('name').value.trim(), category_id: number('category_id'), price: number('price'), stock_quantity: number('stock_quantity'), sku: value('sku'), compare_at_price: number('compare_at_price'), low_stock_threshold: number('low_stock_threshold'), weight: number('weight'), short_description: value('short_description'), description: value('description'), status: statusPayload(field('status').value), images: editingId ? undefined : images.map(({ path, alt_text, sort_order, is_primary }) => ({ path, alt_text, sort_order, is_primary })) });
     window.addEventListener('vendor-resource:loaded', (event) => { if (event.detail.resource !== 'products') return; const selected = field('category_id').value; field('category_id').replaceChildren(new Option(texts.noCategory, '')); (event.detail.payload?.filters?.categories ?? []).forEach((category) => field('category_id').add(new Option(category.name, String(category.id)))); field('category_id').value = selected; });
-    document.addEventListener('click', async (event) => { const button = event.target.closest('[data-product-action]'); if (!button) return; const id = button.dataset.productId; if (button.dataset.productAction === 'delete') { if (!window.confirm(texts.confirmDelete)) return; const response = await request(`${endpoint}/${id}`, 'DELETE'); if (!response.ok) { fail(texts.deleteFailed); showEditor(); return; } window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products' } })); return; } const response = await request(`${endpoint}/${id}`); if (!response.ok) return fail(texts.loadFailed); const product = (await response.json()).product; form.reset(); ['name', 'category_id', 'price', 'stock_quantity', 'sku', 'compare_at_price', 'low_stock_threshold', 'weight', 'short_description', 'description'].forEach((name) => { field(name).value = product[name] ?? ''; }); setStatusField(field('status'), product.status); editingId = id; images = product.images || []; clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.edit; showEditor(); });
-    form.addEventListener('submit', async (event) => { event.preventDefault(); error.hidden = true; const response = await request(editingId ? `${endpoint}/${editingId}` : endpoint, editingId ? 'PUT' : 'POST', payload()); if (!response.ok) { const data = await response.json().catch(() => null); fail(saveErrorText(response.status, data, texts, messages)); return; } close(); window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products' } })); });
+    document.addEventListener('click', async (event) => { const button = event.target.closest('[data-product-action]'); if (!button) return; const id = button.dataset.productId; if (button.dataset.productAction === 'delete') { if (!window.confirm(texts.confirmDelete)) return; const response = await request(`${endpoint}/${id}`, 'DELETE'); if (!response.ok) { fail(texts.deleteFailed); showEditor(); return; } window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products' } })); return; }
+        // UI-01D: a new ticket while it loads (nothing can be changed meanwhile); only the latest product opened is shown.
+        const ticket = begin(); setBusy(true);
+        const answer = await load(id);
+        if (!tickets.isCurrent(ticket)) return;
+        setBusy(false);
+        if (answer.status !== 200 || !answer.body?.product) return fail(texts.loadFailed);
+        error.hidden = true; editingId = id; fill(answer.body); title.textContent = texts.edit; showEditor();
+    });
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        // UI-01D: never in read-only mode, nor while a request of this product runs; an answer after a switch is dropped.
+        if (locked()) return;
+        error.hidden = true;
+        const ticket = session;
+        const answer = await send(editingId ? `${endpoint}/${editingId}` : endpoint, editingId ? 'PUT' : 'POST', payload());
+        if (!tickets.isCurrent(ticket)) return;
+        const failed = () => fail(saveErrorText(answer.status, answer.body, texts, messages));
+        if (answer.status < 200 || answer.status >= 300) {
+            if (editingId && mayBeArchivedRefusal(answer.status, answer.body)) return recheck(ticket, failed);
+            return failed();
+        }
+        close(); window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products' } }));
+    });
     editor.querySelectorAll('[data-product-editor-close]').forEach((button) => button.onclick = close);
     picker = initPicker(editor.querySelector('[data-product-media-library]'), {
         url: editor.dataset.mediaLibraryUrl,
@@ -788,6 +927,7 @@ function initEditor(editor) {
     primaryOpen.onclick = () => openMedia('primary', images[0] ?? null, primaryOpen);
     galleryOpen.onclick = () => openMedia('gallery', null, galleryOpen);
     const add = document.createElement('button'); add.type = 'button'; add.className = 'btn btn-primary'; add.textContent = texts.add; add.onclick = () => { close(); showEditor(); }; document.querySelector('[data-vendor-resource-list] [data-resource-retry]').before(add);
+    applyMode('editable');
     render();
 }
 
