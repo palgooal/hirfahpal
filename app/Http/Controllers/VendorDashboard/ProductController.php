@@ -109,6 +109,12 @@ class ProductController extends Controller
             'product' => $product->load(['category', 'images', 'stockReservations']),
             'available_stock' => $product->availableStockQuantity(),
             'reserved_stock' => $product->reservedStockQuantity(),
+            // VENDOR-PRODUCT-PUBLISH-UI-01C (DETAIL-02, DETAIL-03): the administrative state for the editor, read-only
+            // and as two booleans; the dates stay hidden on the product (Product::$hidden), reasons stay with the admin.
+            'moderation' => [
+                'archived' => $product->isArchived(),
+                'suspended' => $product->isSuspended(),
+            ],
         ]);
     }
 
