@@ -354,6 +354,14 @@ html.vendor-shell .pc-sidebar .pc-navbar > .pc-item.vendor-nav-disabled > .pc-li
   text-align: center;
 }
 
+/* VENDOR-UI-CLEANUP-01C: the sign-out arrow points along the reading direction (left in RTL). Phosphor has no mirrored
+ * sign-out glyph, and Tailwind's rtl:-scale-x-100 never applied here: Able Pro's unlayered "--tw-scale-x: 1" reset on
+ * every element overrides the layered utility. A plain transform in this unlayered sheet, on these two icons only. */
+html.vendor-shell[dir="rtl"] .vendor-nav-logout i.ph-sign-out,
+html.vendor-shell[dir="rtl"] .vendor-dropdown-item i.ph-sign-out {
+  transform: scaleX(-1);
+}
+
 .vendor-shell .pc-sidebar .pc-menu-overlay[hidden] {
   display: none;
 }

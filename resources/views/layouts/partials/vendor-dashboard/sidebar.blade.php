@@ -51,7 +51,7 @@
                 <form method="POST" action="{{ route('vendor.logout') }}">
                     @csrf
                     <button type="submit" class="vendor-nav-logout">
-                        <i class="ph-duotone ph-sign-out rtl:-scale-x-100" aria-hidden="true"></i>
+                        <i class="ph-duotone ph-sign-out" aria-hidden="true"></i>
                         <span>{{ t('vendor.Sign_Out', 'Sign out') }}</span>
                     </button>
                 </form>
