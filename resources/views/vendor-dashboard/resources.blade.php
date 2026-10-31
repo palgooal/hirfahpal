@@ -33,6 +33,11 @@
             'out_of_stock' => t('vendor.Product_Status_Out_Of_Stock', 'Out of stock'),
         ],
     ] : null;
+    // VENDOR-PRODUCT-PUBLISH-UI-01E: the products list's moderation badges (shown next to the publication status).
+    $moderationTexts = $resource === 'products' ? [
+        'archived' => t('vendor.Product_Badge_Archived', 'Archived'),
+        'suspended' => t('vendor.Product_Badge_Suspended', 'Suspended by administration'),
+    ] : null;
 @endphp
 
 <x-vendor-dashboard-layout :title="$page['title']">
@@ -41,7 +46,7 @@
         <li class="breadcrumb-item" aria-current="page">{{ $page['title'] }}</li>
     </x-slot:breadcrumbs>
 
-    <div class="col-span-12" data-vendor-resource-list data-resource="{{ $page['key'] }}" data-endpoint="{{ $page['endpoint'] }}" @if ($listTexts) data-list-texts="{{ json_encode($listTexts, JSON_UNESCAPED_UNICODE) }}" @endif>
+    <div class="col-span-12" data-vendor-resource-list data-resource="{{ $page['key'] }}" data-endpoint="{{ $page['endpoint'] }}" @if ($listTexts) data-list-texts="{{ json_encode($listTexts, JSON_UNESCAPED_UNICODE) }}" data-moderation-texts="{{ json_encode($moderationTexts, JSON_UNESCAPED_UNICODE) }}" @endif>
         <section class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center gap-3 mb-3">

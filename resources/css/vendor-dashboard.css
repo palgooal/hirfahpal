@@ -1596,6 +1596,28 @@ html.vendor-shell .vendor-media-original {
   }
 }
 
+/* VENDOR-PRODUCT-PUBLISH-UI-01E: the products list's moderation badges, next to the publication status, in the
+   gallery badges' shape; the words carry the meaning, the colour only repeats it. */
+html.vendor-shell [data-vendor-resource-list] .vendor-moderation-badge {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.0625rem 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
+  vertical-align: middle;
+}
+
+html.vendor-shell [data-vendor-resource-list] .vendor-moderation-badge.is-archived {
+  color: #a13d2b;
+}
+
+html.vendor-shell [data-vendor-resource-list] .vendor-moderation-badge.is-suspended {
+  color: #8a4520;
+}
+
 /* ---- Product image picker (VPM-01B) ----
  * resources/views/vendor-dashboard/resources.blade.php (the products editor) with resources/js/vendor-product-editor.js.
  * The admin product gallery chooser's look: the media dialog, filter bar, grid, cards and states are the vendor

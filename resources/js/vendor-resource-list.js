@@ -36,6 +36,32 @@ export const columnLabel = (path, fallback, texts) => texts.columns?.[path] ?? f
 /** VENDOR-UI-CLEANUP-01B: a status as shown: its translated label; an unknown value is shown as it is. */
 export const statusLabel = (value, texts) => texts.statuses?.[value] ?? value;
 
+/**
+ * VENDOR-PRODUCT-PUBLISH-UI-01E: the moderation badges' texts, translated by the page (data-moderation-texts, JSON):
+ * archived and suspended, each only when given as text. There is no wording of its own here.
+ */
+export function moderationTexts(raw) {
+    let given = {};
+
+    try {
+        given = JSON.parse(raw || '{}') ?? {};
+    } catch {
+        given = {};
+    }
+
+    const filled = (value) => typeof value === 'string' && value.trim() !== '';
+
+    return Object.fromEntries(['archived', 'suspended'].filter((kind) => filled(given[kind])).map((kind) => [kind, given[kind]]));
+}
+
+/**
+ * VENDOR-PRODUCT-PUBLISH-UI-01E: a row's moderation badges, [kind, text] in a fixed order (archived, then suspended): one
+ * per flag that is exactly true, none for an ordinary product, and none for a flag the page gave no text for.
+ */
+export const moderationBadges = (moderation, texts) => ['archived', 'suspended']
+    .filter((kind) => moderation?.[kind] === true && texts?.[kind])
+    .map((kind) => [kind, texts[kind]]);
+
 /** VENDOR-UI-CLEANUP-01B: an accessible name from a ":name" template (plain text; split/join, so "$" in a name stays). */
 export const namedLabel = (template, name) => (template ? template.split(':name').join(String(name ?? '').trim() || '—') : null);
 
@@ -67,6 +93,7 @@ function init() {
     const body = root.querySelector('[data-resource-body]');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     const texts = listTexts(root.dataset.listTexts);
+    const badges = moderationTexts(root.dataset.moderationTexts);
 
     const render = (items) => {
         head.replaceChildren(); body.replaceChildren();
@@ -83,6 +110,15 @@ function init() {
                     // VENDOR-UI-CLEANUP-01B: the translated label; the stored value stays as it is, on the cell.
                     cell.dataset.status = String(value);
                     cell.textContent = text(statusLabel(value, texts));
+                    // VENDOR-PRODUCT-PUBLISH-UI-01E: the administration's state after it, as separate text badges (a word
+                    // apart, so it reads as text too); the publication status stays as it is.
+                    moderationBadges(item.moderation, badges).forEach(([kind, label]) => {
+                        const badge = document.createElement('span');
+                        badge.className = `vendor-moderation-badge is-${kind}`;
+                        badge.dataset.moderation = kind;
+                        badge.textContent = label;
+                        cell.append(' ', badge);
+                    });
                 } else if (root.dataset.resource === 'products' && path === 'sku' && text(value) !== '—') {
                     // An SKU reads left to right in Arabic too; the cell keeps the column's alignment.
                     const sku = document.createElement('bdi');

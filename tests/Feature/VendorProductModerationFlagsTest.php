@@ -100,7 +100,7 @@ class VendorProductModerationFlagsTest extends TestCase
         $this->assertSame([$product->fresh()->availableStockQuantity(), $product->fresh()->reservedStockQuantity()], [$response->json('available_stock'), $response->json('reserved_stock')]);
     }
 
-    public function test_the_list_is_unchanged(): void
+    public function test_the_list_keeps_its_shape_and_its_dates_hidden(): void
     {
         $this->moderated(['suspend', 'archive']);
 
@@ -108,9 +108,11 @@ class VendorProductModerationFlagsTest extends TestCase
 
         $this->assertSame(['products', 'filters'], array_keys($response->json()));
         foreach ($response->json('products.data') as $row) {
-            foreach (['moderation', 'archived_at', 'suspended_at'] as $key) {
+            foreach (['archived_at', 'suspended_at'] as $key) {
                 $this->assertArrayNotHasKey($key, $row, $key);
             }
+            // UI-01E: the list rows now carry the same two flags (VendorProductListModerationTest covers the list).
+            $this->assertSame(['archived' => true, 'suspended' => true], $row['moderation']);
         }
     }
 

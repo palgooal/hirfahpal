@@ -471,6 +471,9 @@ class VendorDashboardTranslationSeeder extends Seeder
             'ar' => 'تمت أرشفة هذا المنتج، ولم يعد بإمكانك تعديله.',
             'en' => 'This product was archived and can no longer be edited.',
         ],
+        // VENDOR-PRODUCT-PUBLISH-UI-01E: the products list's moderation badges.
+        'vendor.Product_Badge_Archived' => ['ar' => 'مؤرشف', 'en' => 'Archived'],
+        'vendor.Product_Badge_Suspended' => ['ar' => 'معلّق إداريًا', 'en' => 'Suspended by administration'],
         'vendor.Product_List_Edit_Named' => ['ar' => 'تعديل المنتج: :name', 'en' => 'Edit product: :name'],
         'vendor.Product_List_Delete_Named' => ['ar' => 'حذف المنتج: :name', 'en' => 'Delete product: :name'],
         'vendor.Product_New' => ['ar' => 'إضافة منتج', 'en' => 'Add product'],

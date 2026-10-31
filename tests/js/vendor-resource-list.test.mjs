@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { columnLabel, listTexts, namedLabel, statusLabel } from '../../resources/js/vendor-resource-list.js';
+import { columnLabel, listTexts, moderationBadges, moderationTexts, namedLabel, statusLabel } from '../../resources/js/vendor-resource-list.js';
 
 const ARABIC = {
     actions: 'الإجراءات',
@@ -55,4 +55,28 @@ test('accessible names name the product, as plain text, special characters inclu
 
 test('the module does not touch a document that is not there', () => {
     assert.equal(typeof document, 'undefined');
+});
+
+// ---- VENDOR-PRODUCT-PUBLISH-UI-01E: the products list's moderation badges ----
+
+const BADGES = { archived: 'مؤرشف', suspended: 'معلّق إداريًا' };
+
+test('the badge texts come from the page only; a missing or unreadable value gives no text', () => {
+    assert.deepEqual(moderationTexts(JSON.stringify(BADGES)), BADGES);
+    assert.deepEqual(moderationTexts('{"archived":"Archived","suspended":""}'), { archived: 'Archived' });
+    assert.deepEqual(moderationTexts('{"archived":7,"other":"x"}'), {});
+    for (const raw of [undefined, '', 'not json', 'null']) assert.deepEqual(moderationTexts(raw), {});
+});
+
+test('one badge per true flag, archived first; none for an ordinary product', () => {
+    assert.deepEqual(moderationBadges({ archived: false, suspended: false }, BADGES), []);
+    assert.deepEqual(moderationBadges({ archived: false, suspended: true }, BADGES), [['suspended', 'معلّق إداريًا']]);
+    assert.deepEqual(moderationBadges({ archived: true, suspended: false }, BADGES), [['archived', 'مؤرشف']]);
+    assert.deepEqual(moderationBadges({ archived: true, suspended: true }, BADGES), [['archived', 'مؤرشف'], ['suspended', 'معلّق إداريًا']]);
+});
+
+test('only real true flags count, and a flag without a text shows nothing', () => {
+    for (const moderation of [undefined, null, {}, { archived: 'true', suspended: 1 }]) assert.deepEqual(moderationBadges(moderation, BADGES), []);
+    assert.deepEqual(moderationBadges({ archived: true, suspended: true }, { suspended: 'Suspended by administration' }), [['suspended', 'Suspended by administration']]);
+    assert.deepEqual(moderationBadges({ archived: true }, undefined), []);
 });

@@ -38,7 +38,15 @@ class ProductController extends Controller
             ->when($request->filled('category_id'), fn ($query) => $query->where('category_id', $request->integer('category_id')))
             ->latest()
             ->paginate($request->integer('per_page', 15))
-            ->withQueryString();
+            ->withQueryString()
+            // VENDOR-PRODUCT-PUBLISH-UI-01E: each row's administrative state, as in show() (UI-01C): two booleans
+            // added here, after the product's own serialization; the dates stay hidden (Product::$hidden).
+            ->through(fn (Product $product) => $product->toArray() + [
+                'moderation' => [
+                    'archived' => $product->isArchived(),
+                    'suspended' => $product->isSuspended(),
+                ],
+            ]);
 
         return response()->json([
             'products' => $products,
