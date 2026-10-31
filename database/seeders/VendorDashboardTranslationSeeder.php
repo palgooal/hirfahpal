@@ -471,6 +471,9 @@ class VendorDashboardTranslationSeeder extends Seeder
             'ar' => 'تمت أرشفة هذا المنتج، ولم يعد بإمكانك تعديله.',
             'en' => 'This product was archived and can no longer be edited.',
         ],
+        // VENDOR-PRODUCT-LIST-PAGINATION-01B: the products list's pager (Previous, Next and the page status reuse the
+        // media library's texts).
+        'vendor.Product_List_Pagination' => ['ar' => 'صفحات المنتجات', 'en' => 'Product pages'],
         // VENDOR-PRODUCT-PUBLISH-UI-01E: the products list's moderation badges.
         'vendor.Product_Badge_Archived' => ['ar' => 'مؤرشف', 'en' => 'Archived'],
         'vendor.Product_Badge_Suspended' => ['ar' => 'معلّق إداريًا', 'en' => 'Suspended by administration'],

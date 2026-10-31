@@ -62,6 +62,44 @@ export const moderationBadges = (moderation, texts) => ['archived', 'suspended']
     .filter((kind) => moderation?.[kind] === true && texts?.[kind])
     .map((kind) => [kind, texts[kind]]);
 
+/** VENDOR-PRODUCT-LIST-PAGINATION-01B: a page number: a whole number of at least 1, anything else is page 1. */
+export const pageNumber = (value) => {
+    const number = typeof value === 'string' && value.trim() !== '' ? Number(value) : value;
+
+    return Number.isInteger(number) && number >= 1 ? number : 1;
+};
+
+/** The list endpoint for one page: the endpoint's own query parameters are kept and only page is set. */
+export function pageUrl(endpoint, page, base) {
+    const url = new URL(endpoint, base);
+    url.searchParams.set('page', String(pageNumber(page)));
+
+    return url.toString();
+}
+
+/** The pager's state from the API's paginator (current_page, last_page, total); missing or broken values are safe. */
+export function pagerState(collection) {
+    const page = pageNumber(collection?.current_page);
+    const last = pageNumber(collection?.last_page);
+    const total = Number.isInteger(collection?.total) && collection.total >= 0 ? collection.total : 0;
+
+    return { page, last, total, hasPrevious: page > 1, hasNext: page < last, shown: last > 1 };
+}
+
+/**
+ * A page past the end (empty, current_page above last_page: after a deletion, or a stale page number) goes back to
+ * the last page; null when the page is fine. The page always goes down, so the recovery cannot loop.
+ */
+export function recoveryPage(collection) {
+    const { page, last } = pagerState(collection);
+    const empty = !Array.isArray(collection?.data) || collection.data.length === 0;
+
+    return empty && page > last ? last : null;
+}
+
+/** The page to reload after the editor's change: a new product is on page 1 (newest first); otherwise the same page. */
+export const refreshPage = (reason, current) => (reason === 'created' ? 1 : pageNumber(current));
+
 /** VENDOR-UI-CLEANUP-01B: an accessible name from a ":name" template (plain text; split/join, so "$" in a name stays). */
 export const namedLabel = (template, name) => (template ? template.split(':name').join(String(name ?? '').trim() || '—') : null);
 
@@ -173,27 +211,74 @@ function init() {
         });
     };
 
-    const load = async () => {
+    // VENDOR-PRODUCT-LIST-PAGINATION-01B: the products list's pager (the page has it for products only); the other lists
+    // load, retry and refresh exactly as before.
+    const pager = root.dataset.resource === 'products' ? root.querySelector('[data-resource-pager]') : null;
+    const previous = pager?.querySelector('[data-resource-previous]');
+    const next = pager?.querySelector('[data-resource-next]');
+    const pageStatus = pager?.querySelector('[data-resource-page-status]');
+    const retry = root.querySelector('[data-resource-retry]');
+    let page = 1, latest = 0, busy = false, state = null;
+
+    const showPager = () => {
+        if (!pager) return;
+        pager.hidden = !state?.shown;
+        if (state) pageStatus.textContent = (pager.dataset.pageStatus || '').split(':page').join(String(state.page)).split(':last').join(String(state.last));
+        previous.disabled = busy || !state?.hasPrevious;
+        next.disabled = busy || !state?.hasNext;
+    };
+
+    // focus: after Previous / Next only (never after a background refresh), the same button, or the other one at an end.
+    const load = async (target = page, { focus = null } = {}) => {
+        const mine = ++latest;
+        // Only the latest request of the products list counts (a quick second click, a refresh meanwhile).
+        const stale = () => pager !== null && mine !== latest;
+        if (pager) { page = pageNumber(target); busy = true; showPager(); }
         loading.hidden = false; error.hidden = true; table.hidden = true; empty.hidden = true;
         try {
-            const response = await fetch(root.dataset.endpoint, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin', cache: 'no-store' });
+            const response = await fetch(pager ? pageUrl(root.dataset.endpoint, page, window.location.href) : root.dataset.endpoint, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin', cache: 'no-store' });
+            if (stale()) return;
             if (!response.ok) throw new Error('request-failed');
             const payload = await response.json();
+            if (stale()) return;
             const collection = payload[definition.key];
+            if (pager) {
+                const back = recoveryPage(collection);
+                if (back !== null && back < page) return load(back, { focus });
+                state = pagerState(collection);
+                page = state.page;
+            }
             const items = Array.isArray(collection?.data) ? collection.data : [];
             render(items);
             window.dispatchEvent(new CustomEvent('vendor-resource:loaded', { detail: { resource: root.dataset.resource, payload } }));
             table.hidden = items.length === 0;
             empty.hidden = items.length !== 0;
         } catch {
+            if (stale()) return;
             error.hidden = false;
+            state = null;
         } finally {
-            loading.hidden = true;
+            if (!stale()) {
+                loading.hidden = true;
+                if (pager) {
+                    busy = false;
+                    showPager();
+                    if (focus) {
+                        const wanted = focus === 'next' ? next : previous;
+                        const other = focus === 'next' ? previous : next;
+                        (!error.hidden ? retry : !wanted.disabled ? wanted : !other.disabled ? other : null)?.focus();
+                    }
+                }
+            }
         }
     };
-    root.querySelector('[data-resource-retry]').addEventListener('click', load);
+    retry.addEventListener('click', () => load());
+    previous?.addEventListener('click', () => { if (!busy && state?.hasPrevious) load(page - 1, { focus: 'previous' }); });
+    next?.addEventListener('click', () => { if (!busy && state?.hasNext) load(page + 1, { focus: 'next' }); });
     window.addEventListener('vendor-resource:refresh', (event) => {
-        if (event.detail?.resource === root.dataset.resource) load();
+        if (event.detail?.resource !== root.dataset.resource) return;
+        // Products: a new product is on page 1, a saved or deleted one reloads the page shown (a page left empty steps back).
+        load(pager ? refreshPage(event.detail?.reason, page) : undefined);
     });
     load();
 }

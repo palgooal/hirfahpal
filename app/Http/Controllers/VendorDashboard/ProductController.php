@@ -36,8 +36,11 @@ class ProductController extends Controller
             })
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->input('status')))
             ->when($request->filled('category_id'), fn ($query) => $query->where('category_id', $request->integer('category_id')))
+            // VENDOR-PRODUCT-LIST-PAGINATION-01B: newest first, the id breaking ties, so products created in the same
+            // second keep one order and every page holds its own slice (none twice, none missing).
             ->latest()
-            ->paginate($request->integer('per_page', 15))
+            ->latest('id')
+            ->paginate($this->perPage($request))
             ->withQueryString()
             // VENDOR-PRODUCT-PUBLISH-UI-01E: each row's administrative state, as in show() (UI-01C): two booleans
             // added here, after the product's own serialization; the dates stay hidden (Product::$hidden).
@@ -234,6 +237,22 @@ class ProductController extends Controller
         }
 
         throw $exception;
+    }
+
+    /**
+     * VENDOR-PRODUCT-LIST-PAGINATION-01B: the list's page size. Missing, not a whole number ("abc", "2.5", an array)
+     * or below 1: the default, 15. Above 50: 50. Never unbounded.
+     */
+    private function perPage(Request $request): int
+    {
+        $given = $request->query('per_page');
+        $value = is_string($given) ? filter_var($given, FILTER_VALIDATE_INT) : false;
+
+        if ($value === false || $value < 1) {
+            return 15;
+        }
+
+        return min($value, 50);
     }
 
     private function authorizeProduct(Request $request, Product $product): void

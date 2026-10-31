@@ -892,7 +892,7 @@ function initEditor(editor) {
     const close = () => { begin(); editor.hidden = true; list.hidden = false; error.hidden = true; form.reset(); field('low_stock_threshold').value = '1'; setStatusField(field('status'), null); editingId = null; images = []; applyMode('editable'); clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.add; };
     const payload = () => ({ name: field('name').value.trim(), category_id: number('category_id'), price: number('price'), stock_quantity: number('stock_quantity'), sku: value('sku'), compare_at_price: number('compare_at_price'), low_stock_threshold: number('low_stock_threshold'), weight: number('weight'), short_description: value('short_description'), description: value('description'), status: statusPayload(field('status').value), images: editingId ? undefined : images.map(({ path, alt_text, sort_order, is_primary }) => ({ path, alt_text, sort_order, is_primary })) });
     window.addEventListener('vendor-resource:loaded', (event) => { if (event.detail.resource !== 'products') return; const selected = field('category_id').value; field('category_id').replaceChildren(new Option(texts.noCategory, '')); (event.detail.payload?.filters?.categories ?? []).forEach((category) => field('category_id').add(new Option(category.name, String(category.id)))); field('category_id').value = selected; });
-    document.addEventListener('click', async (event) => { const button = event.target.closest('[data-product-action]'); if (!button) return; const id = button.dataset.productId; if (button.dataset.productAction === 'delete') { if (!window.confirm(texts.confirmDelete)) return; const response = await request(`${endpoint}/${id}`, 'DELETE'); if (!response.ok) { fail(texts.deleteFailed); showEditor(); return; } window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products' } })); return; }
+    document.addEventListener('click', async (event) => { const button = event.target.closest('[data-product-action]'); if (!button) return; const id = button.dataset.productId; if (button.dataset.productAction === 'delete') { if (!window.confirm(texts.confirmDelete)) return; const response = await request(`${endpoint}/${id}`, 'DELETE'); if (!response.ok) { fail(texts.deleteFailed); showEditor(); return; } window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products', reason: 'deleted' } })); return; }
         // UI-01D: a new ticket while it loads (nothing can be changed meanwhile); only the latest product opened is shown.
         const ticket = begin(); setBusy(true);
         const answer = await load(id);
@@ -914,7 +914,9 @@ function initEditor(editor) {
             if (editingId && mayBeArchivedRefusal(answer.status, answer.body)) return recheck(ticket, failed);
             return failed();
         }
-        close(); window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products' } }));
+        // VENDOR-PRODUCT-LIST-PAGINATION-01B: the list shows page 1 after a new product, the same page after a save.
+        const reason = editingId ? 'saved' : 'created';
+        close(); window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products', reason } }));
     });
     editor.querySelectorAll('[data-product-editor-close]').forEach((button) => button.onclick = close);
     picker = initPicker(editor.querySelector('[data-product-media-library]'), {

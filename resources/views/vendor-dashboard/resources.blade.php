@@ -33,6 +33,10 @@
             'out_of_stock' => t('vendor.Product_Status_Out_Of_Stock', 'Out of stock'),
         ],
     ] : null;
+    // VENDOR-PRODUCT-LIST-PAGINATION-01B: the products list's pager carets point along the reading direction, chosen
+    // here from the page language as on the media library page (VPM-01F-FIX-01: a CSS rtl: flip never applies here).
+    $pagerBack = $currentLanguage?->is_rtl ? 'ph-caret-right' : 'ph-caret-left';
+    $pagerForward = $currentLanguage?->is_rtl ? 'ph-caret-left' : 'ph-caret-right';
     // VENDOR-PRODUCT-PUBLISH-UI-01E: the products list's moderation badges (shown next to the publication status).
     $moderationTexts = $resource === 'products' ? [
         'archived' => t('vendor.Product_Badge_Archived', 'Archived'),
@@ -62,6 +66,21 @@
                     </table>
                 </div>
                 <p class="vendor-empty" data-resource-empty hidden>{{ t('vendor.No_records_found', 'No records found.') }}</p>
+                @if ($resource === 'products')
+                    {{-- VENDOR-PRODUCT-LIST-PAGINATION-01B: previous / next pages of the products list only (the media
+                         library's pager and texts); shown by the script when there is more than one page. --}}
+                    <nav class="vendor-media-more" aria-label="{{ t('vendor.Product_List_Pagination', 'Product pages') }}" data-resource-pager data-page-status="{{ t('vendor.Media_Library_Page_Status', 'Page :page of :last') }}" hidden>
+                        <button type="button" class="btn btn-light-secondary" data-resource-previous disabled>
+                            <i class="ph-duotone {{ $pagerBack }}" aria-hidden="true"></i>
+                            <span>{{ t('vendor.Media_Library_Previous', 'Previous') }}</span>
+                        </button>
+                        <span class="vendor-media-page-status" aria-live="polite" data-resource-page-status></span>
+                        <button type="button" class="btn btn-light-secondary" data-resource-next disabled>
+                            <span>{{ t('vendor.Media_Library_Next', 'Next') }}</span>
+                            <i class="ph-duotone {{ $pagerForward }}" aria-hidden="true"></i>
+                        </button>
+                    </nav>
+                @endif
             </div>
         </section>
     </div>
