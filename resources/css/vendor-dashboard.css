@@ -1486,6 +1486,152 @@ html.vendor-shell .vendor-media-more .btn:disabled {
   cursor: not-allowed;
 }
 
+/* ORD-01B: the orders list's search and filters, in the order of the admin list (search, status, needs attention,
+   apply / reset), with the media library's search field. The fields wrap onto their own lines on a phone; each control
+   is at least 44px high and keeps the shell's focus ring (html.vendor-shell :focus-visible). */
+html.vendor-shell .vendor-order-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+html.vendor-shell .vendor-order-filter {
+  display: flex;
+  flex: 1 1 12rem;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+html.vendor-shell .vendor-order-filter.is-search {
+  flex-basis: 18rem;
+}
+
+/* The media search box sizes itself in a row; here its column does. */
+html.vendor-shell .vendor-order-filter .vendor-media-search {
+  flex: none;
+}
+
+html.vendor-shell .vendor-order-filters .form-label {
+  margin: 0;
+  color: var(--color-hf-ink);
+  font-weight: 600;
+}
+
+html.vendor-shell .vendor-order-filters .form-control,
+html.vendor-shell .vendor-order-filters .form-select,
+html.vendor-shell .vendor-order-filters .btn {
+  min-height: 44px;
+}
+
+html.vendor-shell .vendor-order-filters .form-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+}
+
+html.vendor-shell .vendor-order-filters .form-check-input {
+  float: none;
+  margin: 0;
+}
+
+html.vendor-shell .vendor-order-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* ORD-01C: the orders list's action buttons (the table is the dashboard home's .vendor-recent-table): side by side,
+   wrapping; on a phone, where each row is a card, they sit at the end of their labelled row, at least 44px high. */
+html.vendor-shell .vendor-order-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+@media (max-width: 639.98px) {
+  html.vendor-shell .vendor-order-actions {
+    justify-content: flex-end;
+  }
+
+  html.vendor-shell .vendor-order-actions .btn {
+    min-height: 44px;
+  }
+}
+
+/* ORD-01D: an order action's outcome (My Store's status text); it takes no space while empty. */
+html.vendor-shell .vendor-order-feedback:not(:empty) {
+  margin-bottom: 1rem;
+}
+
+/* ORD-01D: the Accept and Reject dialogs: the media library's dialog with a text body and a row of buttons at the
+   end. The buttons wrap, and are at least 44px high, on a phone. */
+html.vendor-shell .vendor-order-dialog-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+html.vendor-shell .vendor-order-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+}
+
+html.vendor-shell .vendor-order-dialog-body p {
+  margin: 0;
+}
+
+html.vendor-shell .vendor-order-dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+html.vendor-shell .vendor-order-dialog-field .form-label {
+  margin: 0;
+  color: var(--color-hf-ink);
+  font-weight: 600;
+}
+
+html.vendor-shell .vendor-order-dialog-field textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+html.vendor-shell .vendor-order-dialog-field textarea[aria-invalid="true"] {
+  border-color: #a13d2b;
+}
+
+html.vendor-shell .vendor-order-dialog-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+html.vendor-shell .vendor-order-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.875rem 1.25rem;
+  border-top: 1px solid var(--color-hf-line);
+}
+
+html.vendor-shell .vendor-order-dialog-actions .btn {
+  min-height: 44px;
+}
+
 /* Details dialog: native <dialog> (focus kept inside, Escape closes), as in the admin library. */
 html.vendor-shell .vendor-media-dialog {
   width: min(36rem, calc(100vw - 2rem));

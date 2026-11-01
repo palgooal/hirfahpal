@@ -35,8 +35,74 @@
     ] : null;
     // VENDOR-PRODUCT-LIST-PAGINATION-01B: the products list's pager carets point along the reading direction, chosen
     // here from the page language as on the media library page (VPM-01F-FIX-01: a CSS rtl: flip never applies here).
+    // ORD-01A: the orders list has the same pager, with its own accessible name; the other lists have none.
+    $pagerLabel = match ($resource) {
+        'products' => t('vendor.Product_List_Pagination', 'Product pages'),
+        'orders' => t('vendor.Order_List_Pagination', 'Order pages'),
+        default => null,
+    };
     $pagerBack = $currentLanguage?->is_rtl ? 'ph-caret-right' : 'ph-caret-left';
     $pagerForward = $currentLanguage?->is_rtl ? 'ph-caret-left' : 'ph-caret-right';
+    // ORD-01B: the orders list's status filter, one option per status the orders endpoint returns (its "statuses"),
+    // with the labels of the dashboard home. Display only: this does not define or change the order lifecycle.
+    $orderStatuses = $resource === 'orders' ? [
+        'pending' => t('vendor.Order_Status_Pending', 'Pending'),
+        'accepted' => t('vendor.Order_Status_Accepted', 'Accepted'),
+        'preparing' => t('vendor.Order_Status_Preparing', 'Preparing'),
+        'ready_for_delivery' => t('vendor.Order_Status_Ready_For_Delivery', 'Ready for delivery'),
+        'assigned' => t('vendor.Order_Status_Assigned', 'Assigned to a driver'),
+        'out_for_delivery' => t('vendor.Order_Status_Out_For_Delivery', 'Out for delivery'),
+        'delivered' => t('vendor.Order_Status_Delivered', 'Delivered'),
+        'completed' => t('vendor.Order_Status_Completed', 'Completed'),
+        'rejected' => t('vendor.Order_Status_Rejected', 'Rejected'),
+        'cancelled' => t('vendor.Order_Status_Cancelled', 'Cancelled'),
+    ] : null;
+    // ORD-01C: the orders list's texts: column headers (by column path; the dashboard home's order labels where they are
+    // the same), status labels, and each action's label and accessible name (":number" is the order number). The
+    // actions shown are unchanged (the endpoint decides them; see orderActionsFor in vendor-resource-list.js).
+    if ($orderStatuses) {
+        $listTexts = [
+            'actions' => t('vendor.Product_List_Actions', 'Actions'),
+            'columns' => [
+                'number' => t('vendor.Recent_Orders_Number', 'Order number'),
+                'status' => t('vendor.Recent_Orders_Status', 'Status'),
+                'order.customer.name' => t('vendor.Order_List_Customer', 'Customer'),
+                'created_at' => t('vendor.Recent_Orders_Date', 'Date'),
+                'total' => t('vendor.Order_List_Total', 'Total'),
+            ],
+            'statuses' => $orderStatuses,
+            'orderActions' => [
+                'accept' => ['label' => t('vendor.Order_Action_Accept', 'Accept'), 'named' => t('vendor.Order_Action_Accept_Named', 'Accept order :number')],
+                'reject' => ['label' => t('vendor.Order_Action_Reject', 'Reject'), 'named' => t('vendor.Order_Action_Reject_Named', 'Reject order :number')],
+                'preparing' => ['label' => t('vendor.Order_Action_Preparing', 'Preparing'), 'named' => t('vendor.Order_Action_Preparing_Named', 'Mark order :number as preparing')],
+                'ready' => ['label' => t('vendor.Order_Action_Ready', 'Ready'), 'named' => t('vendor.Order_Action_Ready_Named', 'Mark order :number as ready for delivery')],
+            ],
+            'actionError' => t('vendor.Order_Action_Error', 'The order could not be updated. Please try again.'),
+        ];
+        // ORD-01D: the action outcomes (":number" is the order number, ":max" the reason limit). A server's own message
+        // is never shown: each outcome has its text here (vendor-order-actions.js).
+        $orderActionTexts = [
+            'success' => [
+                'accept' => t('vendor.Order_Action_Success_Accept', 'Order :number was accepted.'),
+                'reject' => t('vendor.Order_Action_Success_Reject', 'Order :number was rejected.'),
+                'preparing' => t('vendor.Order_Action_Success_Preparing', 'Order :number is now being prepared.'),
+                'ready' => t('vendor.Order_Action_Success_Ready', 'Order :number is ready for delivery.'),
+            ],
+            'errors' => [
+                'conflict' => t('vendor.Order_Action_Conflict', 'This order could not be updated because it has changed or is no longer available. The list has been refreshed.'),
+                'conflictAccept' => t('vendor.Order_Action_Conflict_Accept', 'This order could not be accepted. It may have changed, or the stock reserved for it may no longer be available. The list has been refreshed.'),
+                'session' => t('vendor.Order_Action_Session', 'Your session has ended. Sign in again, then try again.'),
+                'forbidden' => t('vendor.Order_Action_Forbidden', 'You cannot update this order.'),
+                'network' => t('vendor.Order_Action_Network', 'The connection failed. Check your connection and try again.'),
+                'failed' => t('vendor.Order_Action_Error', 'The order could not be updated. Please try again.'),
+            ],
+            'reason' => [
+                'required' => t('vendor.Order_Reject_Reason_Required', 'Enter the reason for rejecting this order.'),
+                'too_long' => t('vendor.Order_Reject_Reason_Too_Long', 'The reason must be :max characters or fewer.'),
+                'invalid' => t('vendor.Order_Reject_Reason_Invalid', 'The reason was not accepted. Check it and try again.'),
+            ],
+        ];
+    }
     // VENDOR-PRODUCT-PUBLISH-UI-01E: the products list's moderation badges (shown next to the publication status).
     $moderationTexts = $resource === 'products' ? [
         'archived' => t('vendor.Product_Badge_Archived', 'Archived'),
@@ -50,26 +116,66 @@
         <li class="breadcrumb-item" aria-current="page">{{ $page['title'] }}</li>
     </x-slot:breadcrumbs>
 
-    <div class="col-span-12" data-vendor-resource-list data-resource="{{ $page['key'] }}" data-endpoint="{{ $page['endpoint'] }}" @if ($listTexts) data-list-texts="{{ json_encode($listTexts, JSON_UNESCAPED_UNICODE) }}" data-moderation-texts="{{ json_encode($moderationTexts, JSON_UNESCAPED_UNICODE) }}" @endif>
+    <div class="col-span-12" data-vendor-resource-list data-resource="{{ $page['key'] }}" data-endpoint="{{ $page['endpoint'] }}" @if ($listTexts) data-list-texts="{{ json_encode($listTexts, JSON_UNESCAPED_UNICODE) }}" @endif @if ($moderationTexts) data-moderation-texts="{{ json_encode($moderationTexts, JSON_UNESCAPED_UNICODE) }}" @endif @if ($orderStatuses) data-timezone="{{ config('app.timezone') }}" data-order-action-texts="{{ json_encode($orderActionTexts, JSON_UNESCAPED_UNICODE) }}" @endif>
         <section class="card">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
                     <h2 class="vendor-section-title mb-0">{{ $page['title'] }}</h2>
                     <button type="button" class="btn btn-light-primary" data-resource-retry>{{ t('vendor.Dashboard_Retry', 'Refresh') }}</button>
                 </div>
+                @if ($orderStatuses)
+                    {{-- ORD-01B: search and filters of the orders list, sent as the endpoint's own search, status and
+                         needs_response parameters (Apply, or Enter in the search field); page 1 on every change. The
+                         search field takes the page direction, as in the media library (VPM-01F-FIX-01). --}}
+                    <form class="vendor-order-filters" role="search" aria-label="{{ t('vendor.Order_Filters_Label', 'Search and filter orders') }}" data-order-filters novalidate>
+                        <div class="vendor-order-filter is-search">
+                            <label class="form-label" for="vendor-order-search">{{ t('vendor.Order_Filter_Search', 'Search') }}</label>
+                            <div class="vendor-media-search">
+                                <i class="ph-duotone ph-magnifying-glass" aria-hidden="true"></i>
+                                <input type="search" class="form-control" id="vendor-order-search" name="search" autocomplete="off" placeholder="{{ t('vendor.Order_Filter_Search_Placeholder', 'Order number or customer name') }}" data-order-search>
+                            </div>
+                        </div>
+                        <div class="vendor-order-filter">
+                            <label class="form-label" for="vendor-order-status">{{ t('vendor.Order_Filter_Status', 'Status') }}</label>
+                            <select class="form-select" id="vendor-order-status" name="status" data-order-status>
+                                <option value="">{{ t('vendor.Order_Filter_All_Statuses', 'All statuses') }}</option>
+                                @foreach ($orderStatuses as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="vendor-order-needs-response" name="needs_response" value="1" data-order-needs-response>
+                            <label class="form-check-label" for="vendor-order-needs-response">{{ t('vendor.Order_Filter_Needs_Response', 'Needs your response') }}</label>
+                        </div>
+                        <div class="vendor-order-filter-actions">
+                            <button type="submit" class="btn btn-primary">{{ t('vendor.Order_Filter_Apply', 'Apply') }}</button>
+                            <button type="button" class="btn btn-light-secondary" data-order-filters-reset>{{ t('vendor.Order_Filter_Reset', 'Clear filters') }}</button>
+                        </div>
+                    </form>
+                    {{-- ORD-01D: the outcome of an order action, announced: a success politely, a failure at once. Both
+                         stay in the page (empty when there is nothing to say) so that a new text is read out. --}}
+                    <p class="vendor-form-status vendor-order-feedback" data-tone="success" role="status" data-order-success></p>
+                    <p class="vendor-form-status vendor-order-feedback" data-tone="error" role="alert" data-order-failure></p>
+                @endif
                 <p class="vendor-empty" data-resource-loading>{{ t('vendor.Dashboard_Loading', 'Loading…') }}</p>
                 <p class="vendor-home-error-text" role="alert" data-resource-error hidden>{{ t('vendor.Dashboard_Load_Error', 'Data could not be loaded.') }}</p>
                 <div class="table-responsive" data-resource-table hidden>
-                    <table class="table table-hover align-middle mb-0">
+                    {{-- ORD-01C: the orders list uses the dashboard home's orders table (cards with labelled rows on a phone). --}}
+                    <table class="{{ $orderStatuses ? 'vendor-recent-table vendor-order-table' : 'table table-hover align-middle mb-0' }}">
                         <thead data-resource-head></thead>
                         <tbody data-resource-body></tbody>
                     </table>
                 </div>
                 <p class="vendor-empty" data-resource-empty hidden>{{ t('vendor.No_records_found', 'No records found.') }}</p>
-                @if ($resource === 'products')
-                    {{-- VENDOR-PRODUCT-LIST-PAGINATION-01B: previous / next pages of the products list only (the media
-                         library's pager and texts); shown by the script when there is more than one page. --}}
-                    <nav class="vendor-media-more" aria-label="{{ t('vendor.Product_List_Pagination', 'Product pages') }}" data-resource-pager data-page-status="{{ t('vendor.Media_Library_Page_Status', 'Page :page of :last') }}" hidden>
+                @if ($orderStatuses)
+                    {{-- ORD-01B: shown instead of the empty text above when a search or filter is active. --}}
+                    <p class="vendor-empty" role="status" data-resource-empty-filtered hidden>{{ t('vendor.Order_Filter_No_Results', 'No orders match your search or filters.') }}</p>
+                @endif
+                @if ($pagerLabel)
+                    {{-- VENDOR-PRODUCT-LIST-PAGINATION-01B / ORD-01A: previous / next pages of the products and orders
+                         lists (the media library's pager and texts); shown by the script when there is more than one page. --}}
+                    <nav class="vendor-media-more" aria-label="{{ $pagerLabel }}" data-resource-pager data-page-status="{{ t('vendor.Media_Library_Page_Status', 'Page :page of :last') }}" hidden>
                         <button type="button" class="btn btn-light-secondary" data-resource-previous disabled>
                             <i class="ph-duotone {{ $pagerBack }}" aria-hidden="true"></i>
                             <span>{{ t('vendor.Media_Library_Previous', 'Previous') }}</span>
@@ -83,6 +189,51 @@
                 @endif
             </div>
         </section>
+
+        @if ($orderStatuses)
+            {{-- ORD-01D: Accept and Reject ask first, in a native modal dialog as the media library's (the rest of the
+                 page is inert while it is open; Escape and Cancel close it and focus returns to the action button).
+                 The title's ":number" becomes the order number, isolated left to right, when it opens. --}}
+            <dialog class="vendor-media-dialog vendor-order-dialog" aria-labelledby="vendor-order-accept-title" aria-describedby="vendor-order-accept-description" data-order-dialog="accept">
+                <form class="vendor-order-dialog-form" novalidate>
+                    <div class="vendor-media-dialog-header">
+                        <h2 class="vendor-media-dialog-title" id="vendor-order-accept-title" data-order-dialog-title data-template="{{ t('vendor.Order_Accept_Title', 'Accept order :number?') }}"></h2>
+                    </div>
+                    <div class="vendor-order-dialog-body">
+                        <p id="vendor-order-accept-description">{{ t('vendor.Order_Accept_Description', 'The order will be accepted and the stock reserved for it will be deducted from your stock. You cannot undo this from your dashboard.') }}</p>
+                        <p class="vendor-field-error" role="alert" data-order-dialog-error hidden></p>
+                    </div>
+                    <div class="vendor-order-dialog-actions">
+                        <button type="button" class="btn btn-light-secondary" data-order-dialog-cancel>{{ t('vendor.Cancel', 'Cancel') }}</button>
+                        <button type="submit" class="btn btn-primary" data-order-dialog-confirm>{{ t('vendor.Order_Accept_Confirm', 'Confirm acceptance') }}</button>
+                    </div>
+                </form>
+            </dialog>
+            <dialog class="vendor-media-dialog vendor-order-dialog" aria-labelledby="vendor-order-reject-title" aria-describedby="vendor-order-reject-description" data-order-dialog="reject">
+                <form class="vendor-order-dialog-form" novalidate>
+                    <div class="vendor-media-dialog-header">
+                        <h2 class="vendor-media-dialog-title" id="vendor-order-reject-title" data-order-dialog-title data-template="{{ t('vendor.Order_Reject_Title', 'Reject order :number?') }}"></h2>
+                    </div>
+                    <div class="vendor-order-dialog-body">
+                        <p id="vendor-order-reject-description">{{ t('vendor.Order_Reject_Description', 'The order will be rejected and the stock reserved for it released. The reason is saved with the order.') }}</p>
+                        <div class="vendor-order-dialog-field">
+                            <label class="form-label" for="vendor-order-reject-reason">{{ t('vendor.Order_Reject_Reason', 'Reason for rejection') }}</label>
+                            <textarea class="form-control" id="vendor-order-reject-reason" name="rejection_reason" rows="4" maxlength="1000" required aria-required="true" aria-invalid="false" aria-describedby="vendor-order-reject-hint vendor-order-reject-error" data-order-reject-reason></textarea>
+                            <div class="vendor-order-dialog-meta">
+                                <p id="vendor-order-reject-hint">{{ str_replace(':max', '1000', t('vendor.Order_Reject_Reason_Hint', 'Required. Up to :max characters.')) }}</p>
+                                <p aria-hidden="true" data-order-reject-count>0 / 1000</p>
+                            </div>
+                            <p class="vendor-field-error" id="vendor-order-reject-error" data-order-reject-error hidden></p>
+                        </div>
+                        <p class="vendor-field-error" role="alert" data-order-dialog-error hidden></p>
+                    </div>
+                    <div class="vendor-order-dialog-actions">
+                        <button type="button" class="btn btn-light-secondary" data-order-dialog-cancel>{{ t('vendor.Cancel', 'Cancel') }}</button>
+                        <button type="submit" class="btn btn-danger" data-order-dialog-confirm>{{ t('vendor.Order_Reject_Confirm', 'Reject order') }}</button>
+                    </div>
+                </form>
+            </dialog>
+        @endif
     </div>
 
     @if ($resource === 'products')

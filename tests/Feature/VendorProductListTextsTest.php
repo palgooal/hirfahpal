@@ -124,9 +124,10 @@ class VendorProductListTextsTest extends TestCase
         $this->assertSame($before, TranslationValue::count());
     }
 
-    public function test_only_the_products_list_gets_the_texts(): void
+    public function test_only_the_products_and_orders_lists_get_the_texts(): void
     {
-        foreach (['orders.page', 'reviews.page', 'returns.page', 'disputes.page', 'commissions.page'] as $page) {
+        // ORD-01C: the orders list has its own texts (VendorOrderListPresentationTest).
+        foreach (['reviews.page', 'returns.page', 'disputes.page', 'commissions.page'] as $page) {
             $this->assertStringNotContainsString('data-list-texts', $this->page('ar', $page), $page);
         }
     }

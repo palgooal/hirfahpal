@@ -474,6 +474,53 @@ class VendorDashboardTranslationSeeder extends Seeder
         // VENDOR-PRODUCT-LIST-PAGINATION-01B: the products list's pager (Previous, Next and the page status reuse the
         // media library's texts).
         'vendor.Product_List_Pagination' => ['ar' => 'صفحات المنتجات', 'en' => 'Product pages'],
+        // ORD-01A: the orders list's pager (its accessible name; the controls reuse the media library's texts).
+        'vendor.Order_List_Pagination' => ['ar' => 'صفحات الطلبات', 'en' => 'Order pages'],
+        // ORD-01B: the orders list's search and filters (the status options use the Order_Status_* labels above).
+        'vendor.Order_Filters_Label' => ['ar' => 'البحث في الطلبات وتصفيتها', 'en' => 'Search and filter orders'],
+        'vendor.Order_Filter_Search' => ['ar' => 'بحث', 'en' => 'Search'],
+        'vendor.Order_Filter_Search_Placeholder' => ['ar' => 'رقم الطلب أو اسم العميل', 'en' => 'Order number or customer name'],
+        'vendor.Order_Filter_Status' => ['ar' => 'الحالة', 'en' => 'Status'],
+        'vendor.Order_Filter_All_Statuses' => ['ar' => 'جميع الحالات', 'en' => 'All statuses'],
+        'vendor.Order_Filter_Needs_Response' => ['ar' => 'بانتظار ردّك', 'en' => 'Needs your response'],
+        'vendor.Order_Filter_Apply' => ['ar' => 'تطبيق', 'en' => 'Apply'],
+        'vendor.Order_Filter_Reset' => ['ar' => 'مسح عوامل التصفية', 'en' => 'Clear filters'],
+        'vendor.Order_Filter_No_Results' => ['ar' => 'لا توجد طلبات تطابق البحث أو التصفية.', 'en' => 'No orders match your search or filters.'],
+        // ORD-01C: the orders list's columns (with Recent_Orders_Number / _Status / _Date and Product_List_Actions), its
+        // actions (each accessible name contains the visible label) and the action error.
+        'vendor.Order_List_Customer' => ['ar' => 'العميل', 'en' => 'Customer'],
+        'vendor.Order_List_Total' => ['ar' => 'الإجمالي', 'en' => 'Total'],
+        'vendor.Order_Action_Accept' => ['ar' => 'قبول', 'en' => 'Accept'],
+        'vendor.Order_Action_Accept_Named' => ['ar' => 'قبول الطلب :number', 'en' => 'Accept order :number'],
+        'vendor.Order_Action_Reject' => ['ar' => 'رفض', 'en' => 'Reject'],
+        'vendor.Order_Action_Reject_Named' => ['ar' => 'رفض الطلب :number', 'en' => 'Reject order :number'],
+        'vendor.Order_Action_Preparing' => ['ar' => 'قيد التحضير', 'en' => 'Preparing'],
+        'vendor.Order_Action_Preparing_Named' => ['ar' => 'نقل الطلب :number إلى قيد التحضير', 'en' => 'Mark order :number as preparing'],
+        'vendor.Order_Action_Ready' => ['ar' => 'جاهز', 'en' => 'Ready'],
+        'vendor.Order_Action_Ready_Named' => ['ar' => 'تحديد الطلب :number جاهزًا للتسليم', 'en' => 'Mark order :number as ready for delivery'],
+        'vendor.Order_Action_Error' => ['ar' => 'تعذّر تحديث الطلب. حاول مرة أخرى.', 'en' => 'The order could not be updated. Please try again.'],
+        // ORD-01D: the Accept and Reject dialogs (":number" is the order number, ":max" the reason limit) and the
+        // translated outcome of every action; a server's own message is never shown.
+        'vendor.Order_Accept_Title' => ['ar' => 'قبول الطلب :number؟', 'en' => 'Accept order :number?'],
+        'vendor.Order_Accept_Description' => ['ar' => 'سيتم قبول الطلب وخصم الكمية المحجوزة له من مخزونك. لا يمكنك التراجع عن ذلك من لوحة التحكم.', 'en' => 'The order will be accepted and the stock reserved for it will be deducted from your stock. You cannot undo this from your dashboard.'],
+        'vendor.Order_Accept_Confirm' => ['ar' => 'تأكيد القبول', 'en' => 'Confirm acceptance'],
+        'vendor.Order_Reject_Title' => ['ar' => 'رفض الطلب :number؟', 'en' => 'Reject order :number?'],
+        'vendor.Order_Reject_Description' => ['ar' => 'سيتم رفض الطلب وتحرير الكمية المحجوزة له. يُحفظ السبب مع الطلب.', 'en' => 'The order will be rejected and the stock reserved for it released. The reason is saved with the order.'],
+        'vendor.Order_Reject_Reason' => ['ar' => 'سبب الرفض', 'en' => 'Reason for rejection'],
+        'vendor.Order_Reject_Reason_Hint' => ['ar' => 'مطلوب. حتى :max حرف.', 'en' => 'Required. Up to :max characters.'],
+        'vendor.Order_Reject_Confirm' => ['ar' => 'رفض الطلب', 'en' => 'Reject order'],
+        'vendor.Order_Reject_Reason_Required' => ['ar' => 'اكتب سبب رفض هذا الطلب.', 'en' => 'Enter the reason for rejecting this order.'],
+        'vendor.Order_Reject_Reason_Too_Long' => ['ar' => 'يجب ألا يزيد السبب عن :max حرف.', 'en' => 'The reason must be :max characters or fewer.'],
+        'vendor.Order_Reject_Reason_Invalid' => ['ar' => 'لم يُقبل السبب. راجعه وحاول مرة أخرى.', 'en' => 'The reason was not accepted. Check it and try again.'],
+        'vendor.Order_Action_Success_Accept' => ['ar' => 'تم قبول الطلب :number.', 'en' => 'Order :number was accepted.'],
+        'vendor.Order_Action_Success_Reject' => ['ar' => 'تم رفض الطلب :number.', 'en' => 'Order :number was rejected.'],
+        'vendor.Order_Action_Success_Preparing' => ['ar' => 'الطلب :number قيد التحضير الآن.', 'en' => 'Order :number is now being prepared.'],
+        'vendor.Order_Action_Success_Ready' => ['ar' => 'الطلب :number جاهز للتسليم.', 'en' => 'Order :number is ready for delivery.'],
+        'vendor.Order_Action_Conflict' => ['ar' => 'تعذّر تحديث الطلب لأنه تغيّر أو لم يعد متاحًا. تم تحديث القائمة.', 'en' => 'This order could not be updated because it has changed or is no longer available. The list has been refreshed.'],
+        'vendor.Order_Action_Conflict_Accept' => ['ar' => 'تعذّر قبول الطلب. ربما تغيّر، أو لم تعد الكمية المحجوزة له متاحة. تم تحديث القائمة.', 'en' => 'This order could not be accepted. It may have changed, or the stock reserved for it may no longer be available. The list has been refreshed.'],
+        'vendor.Order_Action_Session' => ['ar' => 'انتهت جلستك. سجّل الدخول مرة أخرى ثم حاول مجددًا.', 'en' => 'Your session has ended. Sign in again, then try again.'],
+        'vendor.Order_Action_Forbidden' => ['ar' => 'لا يمكنك تحديث هذا الطلب.', 'en' => 'You cannot update this order.'],
+        'vendor.Order_Action_Network' => ['ar' => 'تعذّر الاتصال. تحقّق من اتصالك وحاول مرة أخرى.', 'en' => 'The connection failed. Check your connection and try again.'],
         // VENDOR-PRODUCT-PUBLISH-UI-01E: the products list's moderation badges.
         'vendor.Product_Badge_Archived' => ['ar' => 'مؤرشف', 'en' => 'Archived'],
         'vendor.Product_Badge_Suspended' => ['ar' => 'معلّق إداريًا', 'en' => 'Suspended by administration'],

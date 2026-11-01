@@ -18,7 +18,7 @@ This document is a review log intended for handoff to the **Palgoals Backend Tea
 
 **Terminology.** In review-decision rounds, "approved" / "decided" means **approved as a review recommendation** by this review workstream. It does not mean implemented by, or accepted by, the Palgoals Backend Team unless a finding states so explicitly. Where a finding cites an "approved" VEN-BE-020 rule or lifecycle, read it as the proposed Phase 1 contract below.
 
-**Historical exceptions.** Before this ownership boundary was clarified, some Backend changes were already made in the current working tree during earlier review work. They are marked **IMPLEMENTED & VERIFIED** on their findings (VEN-BE-001, VEN-BE-002, VEN-BE-019). VEN-BE-010 is a later, limited integration exception of the same kind: the vendor dashboard route split completed by the Vendor Auth/Frontend workstream (VUI-01C) to finish the vendor auth/approval flow. Two later Backend changes were made by the customer-account workstream with the project owner's explicit approval and are committed on branch `feature/customer-auth-order-address`: **ORD-BE-001** (immutable order delivery-address snapshot, commit `3b4e0d4`), implemented and verified on SQLite and on an isolated MySQL database and marked **IMPLEMENTED & VERIFIED**; and the **customer-specific part of ADM-BE-001** (customer reset emails now link to `customer.password.reset`, CUSTOMER-AUTH-B2-01, commit `6f7048e`), implemented and verified while ADM-BE-001 itself stays **OPEN** for the admin and delivery-driver reset links. Both remain subject to Palgoals Backend Team review. Other Backend-adjacent changes in the working tree only support the approved Vendor Auth UI screens (vendor view selection in `AccountGuard` and the account auth controllers, `VendorAuthTranslationSeeder`, the `vendor-auth.css` Vite entry); they are not fixes for any finding.
+**Historical exceptions.** Before this ownership boundary was clarified, some Backend changes were already made in the current working tree during earlier review work. They are marked **IMPLEMENTED & VERIFIED** on their findings (VEN-BE-001, VEN-BE-002, VEN-BE-019). VEN-BE-010 is a later, limited integration exception of the same kind: the vendor dashboard route split completed by the Vendor Auth/Frontend workstream (VUI-01C) to finish the vendor auth/approval flow. Two later Backend changes were made by the customer-account workstream with the project owner's explicit approval and are committed on branch `feature/customer-auth-order-address`: **ORD-BE-001** (immutable order delivery-address snapshot, commit `3b4e0d4`), implemented and verified on SQLite and on an isolated MySQL database and marked **IMPLEMENTED & VERIFIED**; and the **customer-specific part of ADM-BE-001** (customer reset emails now link to `customer.password.reset`, CUSTOMER-AUTH-B2-01, commit `6f7048e`), implemented and verified while ADM-BE-001 itself stays **OPEN** for the admin and delivery-driver reset links. Both remain subject to Palgoals Backend Team review. **VEN-BE-032** (deterministic vendor orders pagination order, ORD-01A) is a later narrow exception of the same kind: the project owner explicitly approved the Vendor Dashboard frontend workstream to change only the ordering of the vendor orders index query (`->latest()->latest('id')`); it is implemented and verified in the working tree (not committed), marked **IMPLEMENTED & VERIFIED**, and remains subject to Palgoals Backend Team review. The exception covers nothing else: no lifecycle, authorization, response-contract or schema change, and not the Admin or customer order lists. Other Backend-adjacent changes in the working tree only support the approved Vendor Auth UI screens (vendor view selection in `AccountGuard` and the account auth controllers, `VendorAuthTranslationSeeder`, the `vendor-auth.css` Vite entry); they are not fixes for any finding.
 
 ### Maturity labels
 
@@ -99,6 +99,7 @@ This applies in particular to Orders, Finance, Reports, media upload, Returns, D
 | [VEN-BE-029](#ven-be-029--stock-reservation-and-checkout-lifecycle-has-no-automated-tests) | Vendor Backend | Stock, reservation and checkout lifecycle has no automated tests | HIGH | OPEN |
 | [VEN-BE-030](#ven-be-030--checkout-uses-the-carts-stale-unit-price) | Vendor Backend | Checkout uses the cart's stale unit price | MEDIUM | OPEN |
 | [VEN-BE-031](#ven-be-031--review-eligibility-incorrectly-depends-on-parent-order-completion) | Vendor Backend | Review eligibility incorrectly depends on Parent Order completion | MEDIUM | OPEN |
+| [VEN-BE-032](#ven-be-032--vendor-orders-list-has-no-deterministic-pagination-order) | Vendor Backend | Vendor orders list has no deterministic pagination order | MEDIUM | PASS |
 | [ADM-BE-001](#adm-be-001--non-vendor-password-reset-emails-use-the-general-fortify-reset-route) | Admin Backend | Non-vendor password-reset emails use the general Fortify reset route | HIGH | OPEN (customer fixed; admin and delivery driver remain) |
 | [ADM-BE-002](#adm-be-002--admin-can-create-inconsistent-vendor-accountapproval-states) | Admin Backend | Admin can create inconsistent Vendor account/approval states | HIGH | OPEN |
 | [ADM-BE-003](#adm-be-003--vendor-approvalrejection-has-no-transition-contract-or-decision-history) | Admin Backend | Vendor approval/rejection has no transition contract or decision history | MEDIUM | OPEN |
@@ -109,13 +110,13 @@ This applies in particular to Orders, Finance, Reports, media upload, Returns, D
 | [ORD-BE-001](#ord-be-001--order-delivery-address-is-a-live-reference-to-the-customers-saved-address) | Order Backend | Order delivery address is a live reference to the customer's saved address | HIGH | PASS |
 | [SRS-001](#srs-001--vendor-reports-backend-is-missing) | SRS/Implementation discrepancy | Vendor reports backend is missing | HIGH | OPEN |
 
-**Totals: 40 findings**
+**Totals: 41 findings**
 
 | Priority | Count | | Status | Count |
 |---|---|---|---|---|
 | CRITICAL | 2 | | OPEN | 34 |
-| HIGH | 18 | | PASS | 5 |
-| MEDIUM | 11 | | DEFERRED | 1 |
+| HIGH | 18 | | PASS | 6 |
+| MEDIUM | 12 | | DEFERRED | 1 |
 | LOW | 5 | | | |
 | REVIEW | 4 | | | |
 
@@ -1945,6 +1946,52 @@ Review eligibility is tied to a genuinely completed vendor experience, not to al
 
 **Resolution Notes**
 —
+
+---
+
+### VEN-BE-032 — Vendor orders list has no deterministic pagination order
+
+- **ID:** VEN-BE-032
+- **Area:** Vendor Backend
+- **Priority:** MEDIUM
+- **Status:** PASS
+- **Maturity:** IMPLEMENTED & VERIFIED — narrow Backend ownership exception explicitly approved by the project owner for ORD-01A only (Vendor Orders pagination, Vendor Dashboard frontend workstream): the vendor orders index query may be changed solely to make its pagination order deterministic. Implemented in the working tree, not committed. It is still subject to Palgoals Backend Team review.
+- **Discovered During:** ORD-01A (Vendor Orders pagination) and its Pagination Ordering Verification, 2026-11-01.
+
+**Current Behavior**
+*(Before the fix.)* `VendorDashboard\OrderController@index` sorted by `created_at` only (`->latest()`) and paginated 12 per page. `created_at` has second precision and no tie-breaker, so vendor orders of one vendor created in the same second (two checkouts with the same vendor in one second, Admin-created vendor orders, imported data) had no defined order. MySQL may return rows with equal `ORDER BY` values in any order, and differently for different `LIMIT`/`OFFSET` values, so across the separate page requests an order at a page boundary could appear twice or not at all — for example a `pending` order awaiting the vendor's response. On SQLite tied orders came back oldest first (ascending id), contradicting newest first. One checkout creates one vendor order per vendor, so its sibling vendor orders are in different vendors' lists and do not tie with each other.
+
+**Expected Behavior**
+The vendor orders list has one total order: newest first, the id breaking ties, so every vendor order is on exactly one page and repeated page requests return the same orders.
+
+**SRS / Architecture Reference**
+UC-VEN-006 — متابعة الطلبات والتوصيل (FR-VEN-014: the vendor follows its orders), HIRFAH SRS v0.5 (reviewed outside the repository). Same ordering as the vendor products list (VENDOR-PRODUCT-LIST-PAGINATION-01B) and the vendor media library.
+
+**Related Routes / Files**
+- Routes: `vendor.dashboard.orders.index` (JSON), consumed by `vendor.dashboard.orders.page`
+- `app/Http/Controllers/VendorDashboard/OrderController.php` (`index`)
+- `tests/Feature/VendorOrderListPaginationTest.php`
+
+**Backend Guidance**
+- Add `id` as the tie-breaker after `created_at`, as the vendor products list does; change nothing else in the query.
+- The Admin orders and vendor orders lists (`Dashboard\OrderManagementController@index`, `Dashboard\VendorOrderManagementController@index`) and the customer orders list (`Store\OrderController@index`) use the same `latest()`-only pagination; they are outside this finding and this exception and are left for the Palgoals Backend Team.
+
+**Acceptance Criteria**
+- Vendor orders with identical `created_at` values are ordered by id descending, on every page.
+- Across all pages every vendor order of the vendor appears exactly once; no other vendor's order appears.
+- Repeated requests for a page return the same orders.
+- Ownership scope, search, status and needs-response filters, page size (12) and the response structure (`orders`, `statuses`) are unchanged.
+
+**Required Tests**
+- More than 12 orders of one vendor with the same timestamp, paged; another vendor's tied orders excluded.
+- Mixed timestamps: creation date first, then id descending.
+
+**Resolution Notes**
+*PASS (ORD-01A, 2026-11-01) — implemented and verified in the working tree; not committed.*
+- **Correction:** `OrderController@index` now orders `->latest()->latest('id')` (`ORDER BY created_at DESC, id DESC`). Nothing else changed: the `vendor_id` scope, `search`, `status`, `needs_response`, `per_page` (default 12; its missing bound stays VEN-BE-028), the delivery-address snapshot exposure and the `orders` / `statuses` payload are as before. No lifecycle, stock, payment, delivery, authorization, migration or schema change.
+- **Tests:** `VendorOrderListPaginationTest` adds `test_twenty_six_orders_with_the_same_timestamp_are_on_three_pages_once_each_in_one_order` (26 tied orders of one vendor → pages of 12, 12 and 2, each page the matching slice of ids descending and identical when requested again, every id exactly once, another vendor's 4 tied orders never present) and `test_newest_first_then_id_with_mixed_timestamps`. Both fail without the correction (SQLite returned the tied orders in ascending id) and pass with it.
+- **Verification:** SQLite in memory, 2026-11-01 — `VendorOrderListPaginationTest` 6 passed; focused vendor dashboard, products pagination, order lifecycle, approval, stock and delivery-address suites 176 passed; `tests/js/vendor-resource-list.test.mjs` 18 passed; Pint passed on the changed PHP files. Full suite: 2108 passed, 51 skipped, 2 failed — the two failures (`AccountStatusEnforcementTest > delivery driver active blocked and pending`, `VendorProductEditorModerationTest > the two notices are hidden notes at the top of the form…`) also fail on the tree without the ORD-01A changes and are unrelated.
+- **Not verified on MySQL:** the nondeterminism is MySQL's documented behavior, not reproduced here; the deterministic order is guaranteed because `id` is the unique primary key. No MySQL-specific test was added.
 
 ---
 

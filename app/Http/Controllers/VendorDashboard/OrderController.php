@@ -32,7 +32,10 @@ class OrderController extends Controller
             })
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->input('status')))
             ->when($request->boolean('needs_response'), fn ($query) => $query->where('status', 'pending'))
+            // VEN-BE-032 (ORD-01A): newest first, the id breaking ties, so orders created in the same second keep one
+            // order and every page holds its own slice (none twice, none missing), as in the vendor products list.
             ->latest()
+            ->latest('id')
             ->paginate($request->integer('per_page', 12))
             ->withQueryString();
 

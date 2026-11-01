@@ -23,8 +23,8 @@ use Tests\TestCase;
  * VENDOR-PRODUCT-LIST-PAGINATION-01B: the vendor's products list pages through all of the vendor's products. The API
  * (unchanged in shape) orders newest first with the id breaking ties, so equal timestamps still give one order and
  * every product is on exactly one page; per_page is 1 to 50 (default 15, see ProductController::perPage()). The page
- * has a products-only pager (the media library's controls and texts, carets chosen by direction); the other five lists
- * are unchanged. The pager's logic is unit tested in tests/js/vendor-resource-list.test.mjs and checked in a browser.
+ * has a pager (the media library's controls and texts, carets chosen by direction), shared since ORD-01A with the
+ * orders list only (VendorOrderListPaginationTest); the other four lists are unchanged. The pager's logic is unit tested in tests/js/vendor-resource-list.test.mjs and checked in a browser.
  */
 class VendorProductListPaginationTest extends TestCase
 {
@@ -211,22 +211,28 @@ class VendorProductListPaginationTest extends TestCase
         $this->assertSame(['ar', 'en'], TranslationValue::query()->where('key', 'vendor.Product_List_Pagination')->orderBy('locale')->pluck('locale')->all());
     }
 
-    public function test_the_other_five_lists_get_no_pager(): void
+    public function test_the_other_four_lists_get_no_pager(): void
     {
-        foreach (['orders.page', 'reviews.page', 'returns.page', 'disputes.page', 'commissions.page'] as $page) {
+        // ORD-01A: the orders list pages too (VendorOrderListPaginationTest).
+        foreach (['reviews.page', 'returns.page', 'disputes.page', 'commissions.page'] as $page) {
             $html = $this->page('en', $page);
             $this->assertStringNotContainsString('data-resource-pager', $html, $page);
             $this->assertStringContainsString('data-vendor-resource-list', $html, $page);
         }
     }
 
-    public function test_the_script_pages_only_the_products_list_and_the_editor_says_what_changed(): void
+    public function test_the_script_pages_only_the_products_and_orders_lists_and_the_editor_says_what_changed(): void
     {
         $script = file_get_contents(base_path(self::SCRIPT));
 
-        $this->assertStringContainsString("const pager = root.dataset.resource === 'products' ? root.querySelector('[data-resource-pager]') : null;", $script);
-        $this->assertStringContainsString('fetch(pager ? pageUrl(root.dataset.endpoint, page, window.location.href) : root.dataset.endpoint,', $script, 'The other lists fetch their endpoint as before.');
-        $this->assertStringContainsString('const stale = () => pager !== null && mine !== latest;', $script, 'Stale answers are dropped for products only.');
+        // ORD-01A: products and orders page (isPaged); the products path itself is unchanged.
+        $this->assertStringContainsString("export const isPaged = (resource) => ['products', 'orders'].includes(resource);", $script);
+        $this->assertStringContainsString("const pager = isPaged(root.dataset.resource) ? root.querySelector('[data-resource-pager]') : null;", $script);
+        // ORD-01B: filters is null for every list but orders, so pageUrl sets only page for products.
+        $this->assertStringContainsString('fetch(pager ? pageUrl(root.dataset.endpoint, page, window.location.href, filters) : root.dataset.endpoint,', $script, 'The other lists fetch their endpoint as before.');
+        $this->assertStringContainsString('let filters = filterForm ? filtersFromQuery(window.location.search, statuses) : null;', $script);
+        $this->assertStringContainsString("const filterForm = root.dataset.resource === 'orders' ? root.querySelector('[data-order-filters]') : null;", $script);
+        $this->assertStringContainsString('const stale = () => pager !== null && mine !== latest;', $script, 'Stale answers are dropped for the paged lists only.');
         $this->assertStringContainsString('if (back !== null && back < page) return load(back, { focus });', $script);
         $this->assertStringContainsString('load(pager ? refreshPage(event.detail?.reason, page) : undefined);', $script);
         $this->assertStringNotContainsString('innerHTML', $script);
