@@ -1,3 +1,7 @@
+@php
+  $dimensions = collect($product->dimensions ?? [])->only(['length', 'width', 'height'])->filter(fn ($value) => $value !== null && $value !== '');
+  $weight = $product->weight === null ? null : rtrim(rtrim(number_format((float) $product->weight, 2, '.', ''), '0'), '.').' '.($product->weight_unit ?: 'kg');
+@endphp
 <main>
   <section class="border-b border-line/60 bg-canvas px-4 py-3 lg:px-8" data-node-id="223:2698">
     <div class="mx-auto flex max-w-[1216px] flex-wrap items-center justify-between gap-3 text-sm text-muted">
@@ -160,14 +164,14 @@
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4"><span
               class="text-[11px] text-[#fde68a]/80">نوع الحرفة</span><strong class="mt-1 block text-sm">{{ $product->category?->name }}</strong></div>
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4"><span
-              class="text-[11px] text-[#fde68a]/80">المادة الأساسية</span><strong class="mt-1 block text-sm">غير محدد</strong></div>
+              class="text-[11px] text-[#fde68a]/80">المادة الأساسية</span><strong class="mt-1 block text-sm">{{ $product->material ?: 'غير محدد' }}</strong></div>
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4"><span
-              class="text-[11px] text-[#fde68a]/80">مكان الصنع</span><strong class="mt-1 block text-sm">{{ $product->vendor->profile->location_name }}</strong></div>
+              class="text-[11px] text-[#fde68a]/80">مكان الصنع</span><strong class="mt-1 block text-sm">{{ $product->place_of_manufacture ?: $product->vendor->profile->location_name }}</strong></div>
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4"><span
-              class="text-[11px] text-[#fde68a]/80">زمن الإنجاز</span><strong class="mt-1 block text-sm">{{ $product->vendor->profile->preparation_days !== null ? $product->vendor->profile->preparation_days.' يوم' : 'غير محدد' }}</strong></div>
+              class="text-[11px] text-[#fde68a]/80">زمن الإنجاز</span><strong class="mt-1 block text-sm">{{ $product->preparation_days !== null ? $product->preparation_days.' يوم' : ($product->vendor->profile->preparation_days !== null ? $product->vendor->profile->preparation_days.' يوم' : 'غير محدد') }}</strong></div>
           <div class="col-span-2 rounded-2xl border border-white/15 bg-white/10 p-4"><span
               class="text-[11px] text-[#fde68a]/80">طريقة العناية الموصى بها</span><strong
-              class="mt-1 block text-sm">يرجى الرجوع لتعليمات المتجر</strong></div>
+              class="mt-1 block text-sm">{{ $product->care_instructions ?: 'يرجى الرجوع لتعليمات المتجر' }}</strong></div>
         </div>
       </div>
     </div>
@@ -204,7 +208,7 @@
           <div id="spec-measurements" aria-hidden="true"
             class="accordion-content grid grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity] duration-300 ease-out">
             <div class="min-h-0 overflow-hidden">
-              <p class="px-4 pb-5 text-sm leading-6 text-muted sm:px-6">الوزن: {{ $product->weight ?? 'غير محدد' }} — الأبعاد: {{ $product->dimensions ? json_encode($product->dimensions, JSON_UNESCAPED_UNICODE) : 'غير محدد' }}</p>
+              <p class="px-4 pb-5 text-sm leading-6 text-muted sm:px-6">الوزن: {{ $weight ?: 'غير محدد' }} — الأبعاد: {{ $dimensions->isNotEmpty() ? $dimensions->implode(' × ').' سم' : 'غير محدد' }}@if($product->material) — المادة: {{ $product->material }}@endif</p>
             </div>
           </div>
         </article>
@@ -217,7 +221,7 @@
           <div id="spec-care" aria-hidden="true"
             class="accordion-content grid grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity] duration-300 ease-out">
             <div class="min-h-0 overflow-hidden">
-              <p class="px-4 pb-5 text-sm leading-6 text-muted sm:px-6">يرجى الرجوع إلى المتجر لمعرفة تعليمات العناية الخاصة بهذا المنتج.</p>
+              <p class="px-4 pb-5 text-sm leading-6 text-muted sm:px-6">{{ $product->care_instructions ?: 'يرجى الرجوع إلى المتجر لمعرفة تعليمات العناية الخاصة بهذا المنتج.' }}</p>
             </div>
           </div>
         </article>
@@ -231,7 +235,7 @@
           <div id="spec-shipping" aria-hidden="true"
             class="accordion-content grid grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity] duration-300 ease-out">
             <div class="min-h-0 overflow-hidden">
-              <p class="px-4 pb-5 text-sm leading-6 text-muted sm:px-6">{{ $product->vendor->profile->short_description }}</p>
+              <p class="px-4 pb-5 text-sm leading-6 text-muted sm:px-6">{{ $product->shipping_details ?: $product->vendor->profile->short_description }}</p>
             </div>
           </div>
         </article>

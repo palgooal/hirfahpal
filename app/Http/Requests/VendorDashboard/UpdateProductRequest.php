@@ -30,10 +30,16 @@ class UpdateProductRequest extends FormRequest
             'stock_quantity' => ['required', 'integer', 'min:0', $this->notBelowReservedStock($product)],
             'low_stock_threshold' => ['nullable', 'integer', 'min:0'],
             'weight' => ['nullable', 'numeric', 'min:0'],
+            'weight_unit' => ['nullable', 'in:kg,g,t'],
             'dimensions' => ['nullable', 'array'],
             'dimensions.length' => ['nullable', 'numeric', 'min:0'],
             'dimensions.width' => ['nullable', 'numeric', 'min:0'],
             'dimensions.height' => ['nullable', 'numeric', 'min:0'],
+            'material' => ['nullable', 'string', 'max:255'],
+            'place_of_manufacture' => ['nullable', 'string', 'max:255'],
+            'preparation_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
+            'care_instructions' => ['nullable', 'string', 'max:5000'],
+            'shipping_details' => ['nullable', 'string', 'max:5000'],
             // VENDOR-PRODUCT-PUBLISH-DECISION-01 (OPEN-PROD-19, 20; DETAIL-01): draft, active or inactive; omitted keeps
             // the stored status, a historical out_of_stock included. out_of_stock is never a manual choice.
             'status' => ['nullable', Rule::in(['draft', 'active', 'inactive'])],

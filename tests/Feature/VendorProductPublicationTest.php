@@ -62,6 +62,27 @@ class VendorProductPublicationTest extends TestCase
         $this->assertFalse($product->isSellable());
     }
 
+    public function test_a_vendor_can_store_complete_craft_and_delivery_details(): void
+    {
+        $product = $this->create([
+            'weight' => '1.25',
+            'weight_unit' => 'kg',
+            'dimensions' => ['length' => '20', 'width' => '15.5', 'height' => '8'],
+            'material' => 'Olive wood',
+            'place_of_manufacture' => 'Nablus',
+            'preparation_days' => 4,
+            'care_instructions' => 'Wipe with a dry cloth.',
+            'shipping_details' => 'Packed securely in a protective box.',
+        ]);
+
+        $this->assertSame('1.25', $product->weight);
+        $this->assertSame('kg', $product->weight_unit);
+        $this->assertSame(['length' => '20', 'width' => '15.5', 'height' => '8'], $product->dimensions);
+        $this->assertSame([
+            'Olive wood', 'Nablus', 4, 'Wipe with a dry cloth.', 'Packed securely in a protective box.',
+        ], [$product->material, $product->place_of_manufacture, $product->preparation_days, $product->care_instructions, $product->shipping_details]);
+    }
+
     #[DataProvider('refusedStatuses')]
     public function test_out_of_stock_and_unknown_statuses_are_refused_on_create(mixed $status): void
     {

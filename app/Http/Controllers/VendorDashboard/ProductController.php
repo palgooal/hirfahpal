@@ -187,6 +187,9 @@ class ProductController extends Controller
     {
         $data['slug'] = ($data['slug'] ?? null) ?: $this->uniqueSlug($data['name'], $product);
         $data['low_stock_threshold'] = $data['low_stock_threshold'] ?? 1;
+        if (array_key_exists('weight', $data)) {
+            $data['weight_unit'] = $data['weight'] === null ? null : ($data['weight_unit'] ?? null);
+        }
         // Storefront settings are intentionally not controlled by vendors. The status is (publication() sets it).
         if (($data['status'] ?? null) === null) {
             unset($data['status']);

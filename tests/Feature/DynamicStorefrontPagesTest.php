@@ -22,7 +22,9 @@ class DynamicStorefrontPagesTest extends TestCase
         $this->get(route('browse'))->assertOk()->assertSee('Real product')->assertSee('data-price="25.00"', false)
             ->assertSee('value="real-category"', false)->assertSee('browse-cart-'.$product->id);
         $this->get(route('product', ['slug' => $product->slug]))->assertOk()->assertSee('Real product')
-            ->assertSee('25.00 ILS')->assertSee('main-cart-'.$product->id)->assertDontSee('سارة القواسمي');
+            ->assertSee('25.00 ILS')->assertSee('main-cart-'.$product->id)
+            ->assertSee('Olive wood')->assertSee('Nablus')->assertSee('Keep away from water.')
+            ->assertSee('Packed in a protective box.')->assertDontSee('سارة القواسمي');
         $this->get(route('product', ['slug' => 'missing']))->assertNotFound();
     }
 
@@ -120,6 +122,9 @@ class DynamicStorefrontPagesTest extends TestCase
         $vendor->profile()->update(['store_name' => 'Real store', 'short_description' => 'Real store description']);
 
         return Product::query()->create(['vendor_id' => $vendor->id, 'category_id' => $category->id, 'name' => 'Real product',
-            'slug' => 'real-product', 'price' => 25, 'stock_quantity' => 10, 'status' => 'active', 'description' => 'Real long description']);
+            'slug' => 'real-product', 'price' => 25, 'stock_quantity' => 10, 'status' => 'active', 'description' => 'Real long description',
+            'material' => 'Olive wood', 'place_of_manufacture' => 'Nablus', 'preparation_days' => 3,
+            'care_instructions' => 'Keep away from water.', 'shipping_details' => 'Packed in a protective box.',
+            'weight' => 1.5, 'weight_unit' => 'kg', 'dimensions' => ['length' => 20, 'width' => 10, 'height' => 5]]);
     }
 }
