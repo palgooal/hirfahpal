@@ -11,7 +11,7 @@ const CONTRACT = {
     timeline: { accepted_at: '2026-10-21T10:00:00.000000Z', rejected_at: null, ready_at: null, delivered_at: null, customer_receipt_confirmed_at: null, completed_at: null },
     rejection_reason: null, subtotal: '25.00', delivery_fee: '5.00', total: '30.00',
     items: [{ product_name: 'Clay jug', product_sku: 'JUG-1', quantity: 2, unit_price: '7.50', line_total: '15.00' }],
-    actions: ['preparing', 'ready'],
+    actions: ['preparing'],
 };
 
 test('the page reads the contract, in its own shape', () => {
@@ -20,7 +20,7 @@ test('the page reads the contract, in its own shape', () => {
         timeline: { accepted_at: '2026-10-21T10:00:00.000000Z', rejected_at: null, ready_at: null, delivered_at: null, customer_receipt_confirmed_at: null, completed_at: null },
         rejectionReason: null, subtotal: '25.00', deliveryFee: '5.00', total: '30.00',
         items: [{ productName: 'Clay jug', productSku: 'JUG-1', quantity: 2, unitPrice: '7.50', lineTotal: '15.00' }],
-        actions: ['preparing', 'ready'],
+        actions: ['preparing'],
     });
 });
 

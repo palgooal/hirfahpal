@@ -243,9 +243,9 @@ test('a missing or broken action text falls back on its own to the former Englis
     assert.deepEqual(texts.orderActions, { ...ORDER_ACTIONS_FALLBACK, ready: { label: 'جاهز', named: null } });
 });
 
-test('the actions offered per status are unchanged; Reject stands apart as the destructive one', () => {
+test('the actions offered per status follow SRS §4.5 one step at a time (VEN-BE-020); Reject stands apart as the destructive one', () => {
     assert.deepEqual(['pending', 'accepted', 'preparing', 'ready_for_delivery', 'assigned', 'out_for_delivery', 'delivered', 'completed', 'rejected', 'cancelled', undefined].map(orderActionsFor),
-        [['accept', 'reject'], ['preparing', 'ready'], ['preparing', 'ready'], ['ready'], [], [], [], [], [], [], []]);
+        [['accept', 'reject'], ['preparing'], ['ready'], [], [], [], [], [], [], [], []]);
     assert.deepEqual(ORDER_ACTION_STYLES, { accept: 'btn-light-primary', reject: 'btn-light-danger', preparing: 'btn-light-secondary', ready: 'btn-light-secondary' });
 });
 

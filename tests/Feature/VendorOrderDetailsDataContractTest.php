@@ -145,7 +145,7 @@ class VendorOrderDetailsDataContractTest extends TestCase
             ['product_name' => 'Clay jug', 'product_sku' => 'JUG-1', 'quantity' => 2, 'unit_price' => '7.50', 'line_total' => '15.00'],
             ['product_name' => 'Woven basket', 'product_sku' => null, 'quantity' => 1, 'unit_price' => '10.00', 'line_total' => '10.00'],
         ], $json['order']['items'], 'Item snapshot fields, in order, line totals from the server.');
-        $this->assertSame(['preparing', 'ready'], $json['order']['actions']);
+        $this->assertSame(['preparing'], $json['order']['actions']);
         $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/', $json['order']['created_at']);
         $this->assertNotNull($json['order']['timeline']['accepted_at']);
         $this->assertNull($json['order']['timeline']['completed_at'], 'A timestamp not reached is null.');
@@ -217,7 +217,7 @@ class VendorOrderDetailsDataContractTest extends TestCase
     public function test_the_actions_are_the_servers_allowed_actions_for_every_status(): void
     {
         $expected = [
-            'pending' => ['accept', 'reject'], 'accepted' => ['preparing', 'ready'], 'preparing' => ['preparing', 'ready'], 'ready_for_delivery' => ['ready'],
+            'pending' => ['accept', 'reject'], 'accepted' => ['preparing'], 'preparing' => ['ready'], 'ready_for_delivery' => [],
             'assigned' => [], 'out_for_delivery' => [], 'delivered' => [], 'completed' => [], 'rejected' => [], 'cancelled' => [],
         ];
 

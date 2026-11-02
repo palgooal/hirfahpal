@@ -156,7 +156,8 @@ class OrderController extends Controller
 
         DB::transaction(function () use ($vendorOrder, $orders): void {
             $lockedOrder = VendorOrder::query()->whereKey($vendorOrder->id)->lockForUpdate()->firstOrFail();
-            abort_unless(in_array($lockedOrder->status, ['accepted', 'preparing'], true), 422, 'Only accepted orders can move to preparing.');
+            // VEN-BE-020 (slice 1): SRS §4.5, Accepted → Preparing only; a repeat is refused like a repeated Accept.
+            abort_unless($lockedOrder->status === 'accepted', 422, 'Only accepted orders can move to preparing.');
 
             $lockedOrder->update([
                 'status' => 'preparing',
@@ -175,7 +176,8 @@ class OrderController extends Controller
 
         DB::transaction(function () use ($vendorOrder, $orders): void {
             $lockedOrder = VendorOrder::query()->whereKey($vendorOrder->id)->lockForUpdate()->firstOrFail();
-            abort_unless(in_array($lockedOrder->status, ['accepted', 'preparing', 'ready_for_delivery'], true), 422, 'Only accepted or preparing orders can be marked ready.');
+            // VEN-BE-020 (slice 1): SRS §4.5, Preparing → Ready for Delivery only; Preparing is never skipped or repeated.
+            abort_unless($lockedOrder->status === 'preparing', 422, 'Only preparing orders can be marked ready.');
 
             $lockedOrder->update([
                 'status' => 'ready_for_delivery',
@@ -255,8 +257,8 @@ class OrderController extends Controller
         return [
             'accept' => $vendorOrder->status === 'pending',
             'reject' => $vendorOrder->status === 'pending',
-            'mark_preparing' => in_array($vendorOrder->status, ['accepted', 'preparing'], true),
-            'mark_ready' => in_array($vendorOrder->status, ['accepted', 'preparing', 'ready_for_delivery'], true),
+            'mark_preparing' => $vendorOrder->status === 'accepted',
+            'mark_ready' => $vendorOrder->status === 'preparing',
         ];
     }
 

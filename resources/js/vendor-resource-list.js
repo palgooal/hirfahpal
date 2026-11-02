@@ -54,13 +54,14 @@ const ORDER_ACTION_LABELS = { accept: 'Accept', reject: 'Reject', preparing: 'Pr
 
 /**
  * The actions shown for an order status, in this order (each is also its endpoint: orders/{id}/{action}); the same
- * statuses the endpoint accepts them from. ORD-01C changed only how they look, not when they are offered.
+ * statuses the endpoint accepts them from. ORD-01C changed only how they look, not when they are offered. VEN-BE-020
+ * (slice 1): SRS §4.5, Accepted → Preparing → Ready for Delivery, one step at a time and never repeated.
  */
 export function orderActionsFor(status) {
     const actions = [];
     if (status === 'pending') actions.push('accept', 'reject');
-    if (['accepted', 'preparing'].includes(status)) actions.push('preparing');
-    if (['accepted', 'preparing', 'ready_for_delivery'].includes(status)) actions.push('ready');
+    if (status === 'accepted') actions.push('preparing');
+    if (status === 'preparing') actions.push('ready');
 
     return actions;
 }

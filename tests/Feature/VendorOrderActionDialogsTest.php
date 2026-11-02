@@ -181,8 +181,8 @@ class VendorOrderActionDialogsTest extends TestCase
     {
         // The same table as orderActionsFor in tests/js/vendor-resource-list.test.mjs.
         $offered = [
-            'pending' => ['accept', 'reject'], 'accepted' => ['mark_preparing', 'mark_ready'], 'preparing' => ['mark_preparing', 'mark_ready'],
-            'ready_for_delivery' => ['mark_ready'], 'assigned' => [], 'out_for_delivery' => [], 'delivered' => [], 'completed' => [], 'rejected' => [], 'cancelled' => [],
+            'pending' => ['accept', 'reject'], 'accepted' => ['mark_preparing'], 'preparing' => ['mark_ready'],
+            'ready_for_delivery' => [], 'assigned' => [], 'out_for_delivery' => [], 'delivered' => [], 'completed' => [], 'rejected' => [], 'cancelled' => [],
         ];
 
         foreach ($offered as $status => $actions) {
