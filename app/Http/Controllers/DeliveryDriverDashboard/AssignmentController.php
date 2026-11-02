@@ -5,6 +5,7 @@ namespace App\Http\Controllers\DeliveryDriverDashboard;
 use App\Http\Controllers\Controller;
 use App\Models\DeliveryAssignment;
 use App\Models\OrderStatusHistory;
+use App\Models\VendorOrder;
 use App\Support\Orders\OrderStatusLifecycle;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -55,8 +56,8 @@ class AssignmentController extends Controller
     {
         $this->authorizeAssignment($request, $assignment);
 
-        DB::transaction(function () use ($assignment): void {
-            $lockedAssignment = DeliveryAssignment::query()->whereKey($assignment->id)->lockForUpdate()->firstOrFail();
+        DB::transaction(function () use ($request, $assignment): void {
+            [, $lockedAssignment] = $this->lockForDriver($request, $assignment);
             abort_unless($lockedAssignment->status === 'assigned', 422, 'Only assigned deliveries can be accepted.');
 
             $lockedAssignment->update(['status' => 'accepted']);
@@ -70,17 +71,15 @@ class AssignmentController extends Controller
     {
         $this->authorizeAssignment($request, $assignment);
 
-        DB::transaction(function () use ($assignment, $orders): void {
-            $lockedAssignment = DeliveryAssignment::query()->whereKey($assignment->id)->lockForUpdate()->firstOrFail();
+        DB::transaction(function () use ($request, $assignment, $orders): void {
+            [$vendorOrder, $lockedAssignment] = $this->lockForDriver($request, $assignment);
             abort_unless(in_array($lockedAssignment->status, ['assigned', 'accepted', 'picked_up'], true), 422, 'Only assigned deliveries can be picked up.');
+            abort_unless(in_array($vendorOrder->status, ['assigned', 'out_for_delivery'], true), 422, 'Only assigned vendor orders can be picked up.');
 
             $lockedAssignment->update([
                 'status' => 'picked_up',
                 'picked_up_at' => $lockedAssignment->picked_up_at ?? now(),
             ]);
-
-            $vendorOrder = $lockedAssignment->vendorOrder()->lockForUpdate()->firstOrFail();
-            abort_unless(in_array($vendorOrder->status, ['assigned', 'out_for_delivery'], true), 422, 'Only assigned vendor orders can be picked up.');
 
             $vendorOrder->update(['status' => 'out_for_delivery']);
             $this->recordHistory($lockedAssignment, 'out_for_delivery');
@@ -94,17 +93,15 @@ class AssignmentController extends Controller
     {
         $this->authorizeAssignment($request, $assignment);
 
-        DB::transaction(function () use ($assignment, $orders): void {
-            $lockedAssignment = DeliveryAssignment::query()->whereKey($assignment->id)->lockForUpdate()->firstOrFail();
+        DB::transaction(function () use ($request, $assignment, $orders): void {
+            [$vendorOrder, $lockedAssignment] = $this->lockForDriver($request, $assignment);
             abort_unless(in_array($lockedAssignment->status, ['picked_up', 'out_for_delivery'], true), 422, 'Only picked up deliveries can be marked delivered.');
+            abort_unless($vendorOrder->status === 'out_for_delivery', 422, 'Only out for delivery vendor orders can be marked delivered.');
 
             $lockedAssignment->update([
                 'status' => 'delivered',
                 'delivered_at' => $lockedAssignment->delivered_at ?? now(),
             ]);
-
-            $vendorOrder = $lockedAssignment->vendorOrder()->lockForUpdate()->firstOrFail();
-            abort_unless($vendorOrder->status === 'out_for_delivery', 422, 'Only out for delivery vendor orders can be marked delivered.');
 
             $vendorOrder->update([
                 'status' => 'delivered',
@@ -123,8 +120,8 @@ class AssignmentController extends Controller
         $this->authorizeAssignment($request, $assignment);
         $data = $request->validate(['failure_reason' => ['required', 'string', 'max:1000']]);
 
-        DB::transaction(function () use ($assignment, $data): void {
-            $lockedAssignment = DeliveryAssignment::query()->whereKey($assignment->id)->lockForUpdate()->firstOrFail();
+        DB::transaction(function () use ($request, $assignment, $data): void {
+            [, $lockedAssignment] = $this->lockForDriver($request, $assignment);
             abort_unless(in_array($lockedAssignment->status, ['accepted', 'picked_up', 'out_for_delivery'], true), 422, 'Only active deliveries can be reported as failed.');
 
             $lockedAssignment->update([
@@ -141,6 +138,25 @@ class AssignmentController extends Controller
     private function authorizeAssignment(Request $request, DeliveryAssignment $assignment): void
     {
         abort_unless((int) $assignment->delivery_driver_id === (int) $request->user('delivery_driver')->id, 404);
+    }
+
+    /**
+     * VEN-BE-020 (slice 2B-1): inside the action's transaction, locks the vendor order, then the assignment (the order
+     * Admin assignment uses, so the two cannot deadlock on each other), and re-checks on the locked row that the assignment
+     * still belongs to this driver: an Admin reassignment committed after the route check makes the request 404, with
+     * nothing written.
+     *
+     * @return array{0: VendorOrder, 1: DeliveryAssignment}
+     */
+    private function lockForDriver(Request $request, DeliveryAssignment $assignment): array
+    {
+        $vendorOrder = VendorOrder::query()->whereKey($assignment->vendor_order_id)->lockForUpdate()->firstOrFail();
+        $lockedAssignment = DeliveryAssignment::query()->whereKey($assignment->id)->lockForUpdate()->firstOrFail();
+        abort_unless((int) $lockedAssignment->vendor_order_id === (int) $vendorOrder->id, 404);
+        abort_unless((int) $lockedAssignment->delivery_driver_id === (int) $request->user('delivery_driver')->id, 404);
+        $lockedAssignment->setRelation('vendorOrder', $vendorOrder);
+
+        return [$vendorOrder, $lockedAssignment];
     }
 
     private function assignmentResponse(Request $request, DeliveryAssignment $assignment, string $message): JsonResponse|RedirectResponse

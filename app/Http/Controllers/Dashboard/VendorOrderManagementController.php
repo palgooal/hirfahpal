@@ -154,6 +154,9 @@ class VendorOrderManagementController extends Controller
             // through this route are serialized per vendor order (a second request waits, then sees the first one's row).
             $lockedOrder = VendorOrder::query()->whereKey($vendorOrder->id)->lockForUpdate()->firstOrFail();
             abort_unless(in_array($lockedOrder->status, self::ASSIGNABLE_STATUSES, true), 422);
+            // VEN-BE-020 (slice 2B-1): then its assignment row, the same vendor order → assignment order the driver actions
+            // use, so a reassignment and a driver action wait for each other instead of deadlocking.
+            DeliveryAssignment::query()->where('vendor_order_id', $lockedOrder->id)->lockForUpdate()->get();
 
             DeliveryAssignment::updateOrCreate(
                 ['vendor_order_id' => $lockedOrder->id],
