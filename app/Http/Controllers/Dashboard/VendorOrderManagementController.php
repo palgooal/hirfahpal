@@ -17,6 +17,16 @@ use Illuminate\View\View;
 
 class VendorOrderManagementController extends Controller
 {
+    /**
+     * VEN-BE-020 (slice 2A): the vendor order statuses a driver can be assigned from (SRS §4.3, §4.5, FR-ADM-019): Ready
+     * for Delivery, plus the current reassignment from Assigned and Out for Delivery, kept for now as the only recovery
+     * paths (reassignment rules and assignment history are not decided yet). Every other status is refused with 422.
+     */
+    public const ASSIGNABLE_STATUSES = ['ready_for_delivery', 'assigned', 'out_for_delivery'];
+
+    /** VEN-BE-020 (slice 2A): statuses before Ready for Delivery, explained on the order page instead of the form. */
+    public const NOT_READY_STATUSES = ['pending', 'accepted', 'preparing'];
+
     public function index(Request $request): View
     {
         $this->authorizeAbility($request, 'vendor-orders.view');
@@ -139,11 +149,14 @@ class VendorOrderManagementController extends Controller
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        abort_if(in_array($vendorOrder->status, ['rejected', 'cancelled', 'completed'], true), 422);
-
         DB::transaction(function () use ($request, $vendorOrder, $data) {
+            // VEN-BE-020 (slice 2A): the vendor order is locked and its status re-read before any write, so assignments
+            // through this route are serialized per vendor order (a second request waits, then sees the first one's row).
+            $lockedOrder = VendorOrder::query()->whereKey($vendorOrder->id)->lockForUpdate()->firstOrFail();
+            abort_unless(in_array($lockedOrder->status, self::ASSIGNABLE_STATUSES, true), 422);
+
             DeliveryAssignment::updateOrCreate(
-                ['vendor_order_id' => $vendorOrder->id],
+                ['vendor_order_id' => $lockedOrder->id],
                 [
                     'delivery_driver_id' => $data['delivery_driver_id'],
                     'assigned_by' => $request->user('admin')->id,
@@ -153,9 +166,9 @@ class VendorOrderManagementController extends Controller
                 ]
             );
 
-            $vendorOrder->update([
+            $lockedOrder->update([
                 'delivery_driver_id' => $data['delivery_driver_id'],
-                'status' => $vendorOrder->status === 'ready_for_delivery' ? 'assigned' : $vendorOrder->status,
+                'status' => $lockedOrder->status === 'ready_for_delivery' ? 'assigned' : $lockedOrder->status,
             ]);
         });
 

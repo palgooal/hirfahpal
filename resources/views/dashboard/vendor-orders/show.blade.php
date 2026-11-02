@@ -9,6 +9,10 @@
         $assignment = $vendorOrder->deliveryAssignment;
         $canAssign = auth('admin')->user()?->isSuperAdmin() || auth('admin')->user()?->hasAbility('vendor-orders.assign-driver');
         $closed = in_array($vendorOrder->status, ['rejected', 'cancelled', 'completed'], true);
+        // VEN-BE-020 (slice 2A): the form only where the server accepts an assignment; orders not ready yet and
+        // delivered orders get an explanation instead.
+        $assignable = in_array($vendorOrder->status, \App\Http\Controllers\Dashboard\VendorOrderManagementController::ASSIGNABLE_STATUSES, true);
+        $notReady = in_array($vendorOrder->status, \App\Http\Controllers\Dashboard\VendorOrderManagementController::NOT_READY_STATUSES, true);
     @endphp
 
     <div class="col-span-12 xl:col-span-8">
@@ -103,7 +107,11 @@
                     </div>
                 @endif
 
-                @if ($canAssign && ! $closed)
+                @if ($notReady)
+                    <p class="text-muted mb-0">{{ t('dashboard.Vendor_Order_Assignment_Not_Ready', 'A driver can be assigned once the vendor marks this order ready for delivery.') }}</p>
+                @elseif ($vendorOrder->status === 'delivered')
+                    <p class="text-muted mb-0">{{ t('dashboard.Vendor_Order_Assignment_Delivered', 'This order has been delivered, so a driver can no longer be assigned.') }}</p>
+                @elseif ($canAssign && $assignable)
                     <form action="{{ route('dashboard.vendor-orders.assign-driver', $vendorOrder) }}" method="POST">
                         @csrf
                         @method('PATCH')
