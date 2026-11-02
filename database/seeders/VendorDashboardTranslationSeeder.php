@@ -521,6 +521,31 @@ class VendorDashboardTranslationSeeder extends Seeder
         'vendor.Order_Action_Session' => ['ar' => 'انتهت جلستك. سجّل الدخول مرة أخرى ثم حاول مجددًا.', 'en' => 'Your session has ended. Sign in again, then try again.'],
         'vendor.Order_Action_Forbidden' => ['ar' => 'لا يمكنك تحديث هذا الطلب.', 'en' => 'You cannot update this order.'],
         'vendor.Order_Action_Network' => ['ar' => 'تعذّر الاتصال. تحقّق من اتصالك وحاول مرة أخرى.', 'en' => 'The connection failed. Check your connection and try again.'],
+        // ORD-02A: the vendor order details page title (":number" is the vendor order number).
+        'vendor.Order_Details_Title' => ['ar' => 'الطلب :number', 'en' => 'Order :number'],
+        // ORD-02A (step 3): the details page's sections, labels and states (statuses, actions, outcomes and several labels
+        // reuse the orders list's keys); the two conflict texts say the order, not the list, was refreshed.
+        'vendor.Order_Details_Summary' => ['ar' => 'ملخص الطلب', 'en' => 'Order summary'],
+        'vendor.Order_Details_Placed' => ['ar' => 'تم إنشاء الطلب', 'en' => 'Order placed'],
+        'vendor.Order_Details_No_Actions' => ['ar' => 'لا توجد إجراءات متاحة لهذا الطلب في حالته الحالية.', 'en' => 'No actions are available for this order in its current status.'],
+        'vendor.Order_Details_Items' => ['ar' => 'المنتجات', 'en' => 'Items'],
+        'vendor.Order_Details_Quantity' => ['ar' => 'الكمية', 'en' => 'Quantity'],
+        'vendor.Order_Details_Unit_Price' => ['ar' => 'سعر الوحدة', 'en' => 'Unit price'],
+        'vendor.Order_Details_Line_Total' => ['ar' => 'المجموع', 'en' => 'Line total'],
+        'vendor.Order_Details_No_Items' => ['ar' => 'لا يحتوي هذا الطلب على منتجات.', 'en' => 'This order has no items.'],
+        'vendor.Order_Details_Amounts' => ['ar' => 'المبالغ', 'en' => 'Amounts'],
+        'vendor.Order_Details_Subtotal' => ['ar' => 'المجموع الفرعي', 'en' => 'Subtotal'],
+        'vendor.Order_Details_Delivery_Fee' => ['ar' => 'رسوم التوصيل', 'en' => 'Delivery fee'],
+        'vendor.Order_Details_Timeline' => ['ar' => 'مراحل الطلب', 'en' => 'Order timeline'],
+        'vendor.Order_Details_Receipt_Confirmed' => ['ar' => 'أكّد العميل الاستلام', 'en' => 'Receipt confirmed by the customer'],
+        'vendor.Order_Details_Refreshing' => ['ar' => 'جارٍ تحديث الطلب…', 'en' => 'Updating the order…'],
+        'vendor.Order_Details_Gone' => ['ar' => 'هذا الطلب لم يعد متاحًا.', 'en' => 'This order is no longer available.'],
+        'vendor.Order_Details_Back' => ['ar' => 'العودة إلى الطلبات', 'en' => 'Back to orders'],
+        'vendor.Order_Details_Conflict' => ['ar' => 'تعذّر تحديث الطلب لأنه تغيّر أو لم يعد متاحًا. تم تحديث بيانات الطلب.', 'en' => 'This order could not be updated because it has changed or is no longer available. The order has been refreshed.'],
+        // ORD-02A (step 4): the orders list's link to an order's details page.
+        'vendor.Order_List_View_Details' => ['ar' => 'عرض التفاصيل', 'en' => 'View details'],
+        'vendor.Order_List_View_Details_Named' => ['ar' => 'عرض التفاصيل للطلب :number', 'en' => 'View details of order :number'],
+        'vendor.Order_Details_Conflict_Accept' => ['ar' => 'تعذّر قبول الطلب. ربما تغيّر، أو لم تعد الكمية المحجوزة له متاحة. تم تحديث بيانات الطلب.', 'en' => 'This order could not be accepted. It may have changed, or the stock reserved for it may no longer be available. The order has been refreshed.'],
         // VENDOR-PRODUCT-PUBLISH-UI-01E: the products list's moderation badges.
         'vendor.Product_Badge_Archived' => ['ar' => 'مؤرشف', 'en' => 'Archived'],
         'vendor.Product_Badge_Suspended' => ['ar' => 'معلّق إداريًا', 'en' => 'Suspended by administration'],

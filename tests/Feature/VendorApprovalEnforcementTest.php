@@ -429,6 +429,8 @@ class VendorApprovalEnforcementTest extends TestCase
             ['DELETE', route('vendor.dashboard.products.images.destroy', [$product, $image])],
             ['GET', route('vendor.dashboard.orders.index')],
             ['GET', route('vendor.dashboard.orders.show', $order)],
+            // ORD-02A: the vendor order details page (and its JSON refresh at the same URL).
+            ['GET', route('vendor.dashboard.orders.details', $order)],
             ['PATCH', route('vendor.dashboard.orders.accept', $order)],
             ['PATCH', route('vendor.dashboard.orders.reject', $order)],
             ['PATCH', route('vendor.dashboard.orders.preparing', $order)],

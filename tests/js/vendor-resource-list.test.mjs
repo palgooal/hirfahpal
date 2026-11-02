@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { columnLabel, filterParams, filtersFromQuery, filtersQuery, formatAmount, formatOrderDate, hasFilters, isPaged, listTexts, numberedLabel, ORDER_ACTION_STYLES, orderActionsFor, orderFilters, moderationBadges, moderationTexts, namedLabel, pageNumber, pagerState, pageUrl, recoveryPage, refreshPage, statusLabel } from '../../resources/js/vendor-resource-list.js';
+import { columnLabel, detailsUrl, filterParams, filtersFromQuery, filtersQuery, formatAmount, listQuery, formatOrderDate, hasFilters, isPaged, listTexts, numberedLabel, ORDER_ACTION_STYLES, orderActionsFor, orderFilters, moderationBadges, moderationTexts, namedLabel, pageNumber, pagerState, pageUrl, recoveryPage, refreshPage, statusLabel } from '../../resources/js/vendor-resource-list.js';
 
 const ARABIC = {
     actions: 'الإجراءات',
@@ -15,10 +15,10 @@ const ARABIC = {
     statuses: { draft: 'مسودة', active: 'نشط', inactive: 'غير نشط', out_of_stock: 'نفد من المخزون' },
 };
 const ORDER_ACTIONS_FALLBACK = { accept: { label: 'Accept', named: null }, reject: { label: 'Reject', named: null }, preparing: { label: 'Preparing', named: null }, ready: { label: 'Ready', named: null } };
-const ENGLISH_FALLBACK = { actions: 'Actions', edit: 'Edit', delete: 'Delete', editNamed: null, deleteNamed: null, columns: {}, statuses: {}, orderActions: ORDER_ACTIONS_FALLBACK, actionError: 'The order could not be updated. Please try again.' };
+const ENGLISH_FALLBACK = { actions: 'Actions', edit: 'Edit', delete: 'Delete', editNamed: null, deleteNamed: null, columns: {}, statuses: {}, orderActions: ORDER_ACTIONS_FALLBACK, actionError: 'The order could not be updated. Please try again.', detailsLink: { label: 'View details', named: null } };
 
 test('the products list reads its translated texts from the page', () => {
-    assert.deepEqual(listTexts(JSON.stringify(ARABIC)), { ...ARABIC, orderActions: ORDER_ACTIONS_FALLBACK, actionError: ENGLISH_FALLBACK.actionError });
+    assert.deepEqual(listTexts(JSON.stringify(ARABIC)), { ...ARABIC, orderActions: ORDER_ACTIONS_FALLBACK, actionError: ENGLISH_FALLBACK.actionError, detailsLink: ENGLISH_FALLBACK.detailsLink });
 });
 
 test('a list without texts (orders) or with an unreadable value keeps the former English texts', () => {
@@ -276,4 +276,39 @@ test('dates follow the page language and the application timezone, with Latin di
 test('the total is shown as the admin list shows it; anything else shows nothing', () => {
     assert.deepEqual(['30.00', '1234.5', 30, 0, '0.00'].map(formatAmount), ['30.00', '1,234.50', '30.00', '0.00', '0.00']);
     for (const bad of ['abc', '', '  ', null, undefined, NaN, Infinity, '—', {}]) assert.equal(formatAmount(bad), null, String(bad));
+});
+
+// ---- ORD-02A (step 4): list-to-details navigation and the list's page in its address ----
+
+const BASE_ORIGIN = 'http://127.0.0.1:8765/vendor/dashboard/orders/manage';
+const LIST_BASE = 'http://127.0.0.1:8765/vendor/dashboard/orders/manage';
+
+test('the list address carries its filters and its page; page 1 is left out; other parameters are kept', () => {
+    assert.equal(listQuery('', NONE, 1), '');
+    assert.equal(listQuery('', NONE, 3), '?page=3');
+    assert.equal(listQuery('', { search: 'HF 1', status: 'pending', needsResponse: true }, 2), '?search=HF+1&status=pending&needs_response=1&page=2');
+    assert.equal(listQuery('?page=7&status=old&tab=x', NONE, 1), '?tab=x', 'Filters changed: page 1, old filters gone.');
+    assert.equal(listQuery('?tab=x', { ...NONE, status: 'rejected' }, 4), '?tab=x&status=rejected&page=4');
+    for (const bad of [0, -2, 'abc', 2.5, null, undefined]) assert.equal(listQuery('', NONE, bad), '', `page ${String(bad)} is page 1`);
+    assert.deepEqual(filtersFromQuery(listQuery('', { search: 'سارة', status: 'delivered', needsResponse: true }, 5), STATUSES), { search: 'سارة', status: 'delivered', needsResponse: true }, 'A reload reads the same filters back.');
+});
+
+test('a details link is {list}/{id} with only the list context: filters and page', () => {
+    assert.equal(detailsUrl(LIST_BASE, 12, NONE, 1, BASE_ORIGIN), `${LIST_BASE}/12`);
+    assert.equal(detailsUrl(`${LIST_BASE}/`, 12, NONE, 1, BASE_ORIGIN), `${LIST_BASE}/12`, 'A trailing slash on the base is tolerated.');
+    assert.equal(detailsUrl(LIST_BASE, 12, { search: 'A&B ك', status: 'pending', needsResponse: true }, 2, BASE_ORIGIN), `${LIST_BASE}/12?search=A%26B+%D9%83&status=pending&needs_response=1&page=2`);
+    const url = new URL(detailsUrl(LIST_BASE, 9, { search: 'x', status: '', needsResponse: false }, 3, BASE_ORIGIN));
+    assert.deepEqual([...url.searchParams.keys()], ['search', 'page'], 'Nothing but the context.');
+});
+
+test('no details link without a valid order id or base; the id cannot change the path', () => {
+    for (const id of [0, -1, 1.5, '12', '12/../../admin', null, undefined, NaN]) assert.equal(detailsUrl(LIST_BASE, id, NONE, 1, BASE_ORIGIN), null, String(id));
+    for (const base of ['', null, undefined, 7]) assert.equal(detailsUrl(base, 12, NONE, 1, BASE_ORIGIN), null, String(base));
+});
+
+test('the details link reads the page translation; without it, the former English label and no accessible name', () => {
+    assert.deepEqual(listTexts(JSON.stringify({ detailsLink: { label: 'عرض التفاصيل', named: 'عرض التفاصيل للطلب :number' } })).detailsLink, { label: 'عرض التفاصيل', named: 'عرض التفاصيل للطلب :number' });
+    assert.deepEqual(listTexts(undefined).detailsLink, { label: 'View details', named: null });
+    assert.deepEqual(listTexts('{"detailsLink":{"label":"","named":7}}').detailsLink, { label: 'View details', named: null });
+    assert.equal(numberedLabel('عرض التفاصيل للطلب :number', 'HF-1-V2'), 'عرض التفاصيل للطلب HF-1-V2');
 });

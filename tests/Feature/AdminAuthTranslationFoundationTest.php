@@ -190,6 +190,7 @@ class AdminAuthTranslationFoundationTest extends TestCase
             'vendor.dashboard.disputes.page',
             'vendor.dashboard.media.page',
             'vendor.dashboard.my-store',
+            'vendor.dashboard.orders.details',
             'vendor.dashboard.orders.page',
             'vendor.dashboard.products.page',
             'vendor.dashboard.returns.page',

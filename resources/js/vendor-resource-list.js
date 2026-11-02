@@ -1,4 +1,9 @@
 import { createOrderActions } from './vendor-order-actions.js';
+// ORD-02A (step 2): the order presentation helpers are shared with the order details page; re-exported here so the
+// existing imports keep working.
+import { formatAmount, formatOrderDate, numberedLabel, ORDER_ACTION_STYLES } from './vendor-order-shared.js';
+
+export { formatAmount, formatOrderDate, numberedLabel, ORDER_ACTION_STYLES };
 
 const root = typeof document !== 'undefined' ? document.querySelector('[data-vendor-resource-list]') : null;
 
@@ -36,14 +41,16 @@ export function listTexts(raw) {
             return [kind, { label: filled(action?.label) ? action.label : fallback, named: filled(action?.named) ? action.named : null }];
         })),
         actionError: pick('actionError', 'The order could not be updated. Please try again.'),
+        // ORD-02A (step 4): the orders list's link to an order's details page (label and ":number" accessible name).
+        detailsLink: {
+            label: filled(given.detailsLink?.label) ? given.detailsLink.label : 'View details',
+            named: filled(given.detailsLink?.named) ? given.detailsLink.named : null,
+        },
     };
 }
 
 /** ORD-01C: each order action's former English label, kept when the page gives none. */
 const ORDER_ACTION_LABELS = { accept: 'Accept', reject: 'Reject', preparing: 'Preparing', ready: 'Ready' };
-
-/** ORD-01C: the vendor's light button per action: Reject apart as the destructive one, the next steps secondary. */
-export const ORDER_ACTION_STYLES = { accept: 'btn-light-primary', reject: 'btn-light-danger', preparing: 'btn-light-secondary', ready: 'btn-light-secondary' };
 
 /**
  * The actions shown for an order status, in this order (each is also its endpoint: orders/{id}/{action}); the same
@@ -56,32 +63,6 @@ export function orderActionsFor(status) {
     if (['accepted', 'preparing', 'ready_for_delivery'].includes(status)) actions.push('ready');
 
     return actions;
-}
-
-/** ORD-01C: an accessible name from a ":number" template (plain text; split/join, so "$" stays as typed). */
-export const numberedLabel = (template, number) => (template ? template.split(':number').join(String(number ?? '').trim() || '—') : null);
-
-/**
- * ORD-01C: an order's creation time in the page language (its month name and word order; English "Oct 15, 2026,
- * 12:05") and the application timezone, with Latin digits and a 24-hour clock as on the dashboard home;
- * '' when there is no valid time. Display only: the stored timestamp is unchanged.
- */
-export function formatOrderDate(value, locale, timeZone) {
-    const date = typeof value === 'string' && value.trim() !== '' ? new Date(value) : null;
-    if (!date || Number.isNaN(date.getTime())) return '';
-    const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', numberingSystem: 'latn' };
-    try {
-        return new Intl.DateTimeFormat(locale || 'en', { ...options, timeZone: timeZone || 'UTC' }).format(date);
-    } catch {
-        return new Intl.DateTimeFormat('en', { ...options, timeZone: 'UTC' }).format(date);
-    }
-}
-
-/** ORD-01C: an amount as the admin list shows it (two decimals, grouped, Latin digits); null when it is not a number. */
-export function formatAmount(value) {
-    const number = typeof value === 'number' ? value : (typeof value === 'string' && value.trim() !== '' ? Number(value) : NaN);
-
-    return Number.isFinite(number) ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(number) : null;
 }
 
 /** VENDOR-UI-CLEANUP-01B: a column's header: the page's translation for its path, else the list's own label. */
@@ -178,6 +159,31 @@ export function filterParams(filters) {
 
 /** ORD-01B: whether any search or filter is in use (an empty list then says nothing matches). */
 export const hasFilters = (filters) => Object.keys(filterParams(filters)).length > 0;
+
+/**
+ * ORD-02A (step 4): the orders list's page address query: its filters and its page (page 1 left out), so a reload, the
+ * browser's Back and an order's details page can come back to the same list. Other parameters are kept: '' or '?…'.
+ */
+export function listQuery(query, filters, page) {
+    const params = new URLSearchParams(filtersQuery(query, filters).replace(/^\?/, ''));
+    params.delete('page');
+    if (pageNumber(page) > 1) params.set('page', String(pageNumber(page)));
+    const text = params.toString();
+
+    return text ? `?${text}` : '';
+}
+
+/**
+ * ORD-02A (step 4): an order's details page ({base}/{id}, base being the orders list page) carrying only the list's
+ * context: its filters and its page. null without a valid order id or base.
+ */
+export function detailsUrl(base, id, filters, page, origin) {
+    if (typeof base !== 'string' || base === '' || !Number.isInteger(id) || id < 1) return null;
+    const url = new URL(`${base.replace(/\/+$/, '')}/${id}`, origin);
+    url.search = listQuery('', filters, page);
+
+    return url.toString();
+}
 
 /** ORD-01B: the page address's query for the filters (other parameters kept), so a reload keeps them: '' or '?…'. */
 export function filtersQuery(query, filters) {
@@ -334,6 +340,19 @@ function init() {
                 actions.dataset.label = texts.actions;
                 const group = document.createElement('div');
                 group.className = 'vendor-order-actions';
+                // ORD-02A (step 4): a plain link to the order's details page (it opens in a new tab like any link),
+                // carrying the list's filters and page so the details page can lead back to this list.
+                const href = detailsUrl(root.dataset.detailsBase, item.id, filters, page, window.location.href);
+                if (href) {
+                    const link = document.createElement('a');
+                    link.className = 'btn btn-sm btn-light-secondary';
+                    link.href = href;
+                    link.dataset.orderDetailsLink = '';
+                    link.textContent = texts.detailsLink.label;
+                    const name = numberedLabel(texts.detailsLink.named, item.number);
+                    if (name) link.setAttribute('aria-label', name);
+                    group.append(link);
+                }
                 // ORD-01C: the translated label, the order number in the accessible name ("Accept order VO-1"), and
                 // the action's style; what each action sends and when it is offered are unchanged.
                 const addAction = (action) => {
@@ -374,6 +393,13 @@ function init() {
     const statuses = statusSelect ? [...statusSelect.options].map((option) => option.value).filter(Boolean) : [];
     let filters = filterForm ? filtersFromQuery(window.location.search, statuses) : null;
     if (filterForm) { searchInput.value = filters.search; statusSelect.value = filters.status; needsResponse.checked = filters.needsResponse; }
+    // ORD-02A (step 4): the orders list's page is in its address too: read on load (a bad value is page 1; a page past
+    // the end steps back as before), written after each page shown (replaceState, no new history entry).
+    if (filterForm) page = pageNumber(new URLSearchParams(window.location.search).get('page'));
+    const syncAddress = () => {
+        if (!filterForm) return;
+        try { window.history.replaceState(window.history.state, '', `${window.location.pathname}${listQuery(window.location.search, filters, page)}${window.location.hash}`); } catch { /* the address is a convenience only */ }
+    };
 
     const showPager = () => {
         if (!pager) return;
@@ -407,6 +433,7 @@ function init() {
             }
             const items = Array.isArray(collection?.data) ? collection.data : [];
             render(items);
+            syncAddress();
             window.dispatchEvent(new CustomEvent('vendor-resource:loaded', { detail: { resource: root.dataset.resource, payload } }));
             table.hidden = items.length === 0;
             // ORD-01B: with a search or filter in use, an empty list says that nothing matches.
@@ -459,7 +486,7 @@ function init() {
     // in step (replaceState, no new history entry); the pager and Refresh keep the filters.
     const applyFilters = (next) => {
         filters = next;
-        try { window.history.replaceState(window.history.state, '', `${window.location.pathname}${filtersQuery(window.location.search, filters)}${window.location.hash}`); } catch { /* the address is a convenience only */ }
+        try { window.history.replaceState(window.history.state, '', `${window.location.pathname}${listQuery(window.location.search, filters, 1)}${window.location.hash}`); } catch { /* the address is a convenience only */ }
         load(1);
     };
     filterForm?.addEventListener('submit', (event) => {

@@ -218,6 +218,11 @@ foreach (AccountGuard::all() as $accountType => $account) {
                                 ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.media.page');
                             Route::view('orders/manage', 'vendor-dashboard.resources', ['resource' => 'orders'])
                                 ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.orders.page');
+                            // ORD-02A (approved narrow exception, VEN-BE-023 for this page only): one vendor order's details
+                            // page; the controller checks ownership (404) and serves the same minimal data as HTML and JSON.
+                            Route::get('orders/manage/{vendorOrder}', [VendorDashboardOrderController::class, 'page'])
+                                ->whereNumber('vendorOrder')
+                                ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.orders.details');
                             Route::view('reviews/manage', 'vendor-dashboard.resources', ['resource' => 'reviews'])
                                 ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.reviews.page');
                             Route::view('returns/manage', 'vendor-dashboard.resources', ['resource' => 'returns'])

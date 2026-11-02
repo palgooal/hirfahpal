@@ -11,9 +11,20 @@ use App\Support\Orders\OrderStatusLifecycle;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\View\View;
 
 class OrderController extends Controller
 {
+    /**
+     * ORD-02A: the lifecycle timestamps the details page shows, each only when its column exists in the schema
+     * (customer_receipt_confirmed_at is missing from some databases, see VEN-BE-020). There is no preparing timestamp.
+     */
+    private const DETAIL_TIMESTAMPS = ['accepted_at', 'rejected_at', 'ready_at', 'delivered_at', 'customer_receipt_confirmed_at', 'completed_at'];
+
+    /** ORD-02A: allowedActions() keys and the action endpoints they open (orders/{vendorOrder}/{action}). */
+    private const DETAIL_ACTIONS = ['accept' => 'accept', 'reject' => 'reject', 'mark_preparing' => 'preparing', 'mark_ready' => 'ready'];
+
     public function index(Request $request): JsonResponse
     {
         $vendor = $request->user('vendor');
@@ -68,6 +79,21 @@ class OrderController extends Controller
             'order' => $vendorOrder,
             'allowed_actions' => $this->allowedActions($vendorOrder),
         ]);
+    }
+
+    /**
+     * ORD-02A: the vendor order details page (VEN-BE-023, this page only): the owner's order, another vendor's or an
+     * unknown one is 404. The page and its JSON refresh (a JSON request to the same URL) carry the same minimal data,
+     * built field by field in details(); no model or relation is serialized, and the other order endpoints are unchanged.
+     */
+    public function page(Request $request, VendorOrder $vendorOrder): View|JsonResponse
+    {
+        $this->authorizeOrder($request, $vendorOrder);
+        $details = $this->details($vendorOrder);
+
+        return $request->expectsJson()
+            ? response()->json(['order' => $details])
+            : view('vendor-dashboard.order-details', ['details' => $details]);
     }
 
     /**
@@ -166,6 +192,53 @@ class OrderController extends Controller
     private function authorizeOrder(Request $request, VendorOrder $vendorOrder): void
     {
         abort_unless((int) $vendorOrder->vendor_id === (int) $request->user('vendor')->id, 404);
+    }
+
+    /**
+     * ORD-02A: the details page's data, an explicit whitelist: the vendor order's own number, status, dates, rejection
+     * reason and amounts as stored, its items' snapshot fields, and the actions allowedActions() permits. Never the
+     * customer, the address, the driver, the parent order, the commission, the response deadline or stock reservations.
+     *
+     * @return array<string, mixed>
+     */
+    private function details(VendorOrder $vendorOrder): array
+    {
+        $columns = Schema::getColumnListing($vendorOrder->getTable());
+        $timeline = [];
+        foreach (self::DETAIL_TIMESTAMPS as $column) {
+            if (in_array($column, $columns, true)) {
+                $timeline[$column] = $vendorOrder->getAttribute($column)?->toJSON();
+            }
+        }
+
+        $items = $vendorOrder->items()
+            ->orderBy('id')
+            ->get(['id', 'product_name', 'product_sku', 'quantity', 'unit_price', 'line_total'])
+            ->map(fn ($item) => [
+                'product_name' => $item->product_name,
+                'product_sku' => $item->product_sku,
+                'quantity' => (int) $item->quantity,
+                'unit_price' => $item->unit_price,
+                'line_total' => $item->line_total,
+            ])
+            ->all();
+
+        return [
+            'id' => $vendorOrder->id,
+            'number' => $vendorOrder->number,
+            'status' => $vendorOrder->status,
+            'created_at' => $vendorOrder->created_at?->toJSON(),
+            'timeline' => $timeline,
+            'rejection_reason' => $vendorOrder->rejection_reason,
+            'subtotal' => $vendorOrder->subtotal,
+            'delivery_fee' => $vendorOrder->delivery_fee,
+            'total' => $vendorOrder->total,
+            'items' => $items,
+            'actions' => array_values(array_map(
+                fn (string $key) => self::DETAIL_ACTIONS[$key],
+                array_keys(array_filter($this->allowedActions($vendorOrder)))
+            )),
+        ];
     }
 
     private function orderResponse(VendorOrder $vendorOrder, string $message): JsonResponse
