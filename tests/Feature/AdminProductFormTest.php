@@ -72,6 +72,40 @@ class AdminProductFormTest extends TestCase
         $this->assertSame('g', $product->weight_unit);
     }
 
+    public function test_admin_product_form_includes_and_saves_the_vendor_craft_fields(): void
+    {
+        $admin = $this->admin(super: true);
+        $html = $this->page($admin, route('dashboard.products.create'));
+
+        foreach ([
+            'dimensions[length]', 'dimensions[width]', 'dimensions[height]', 'material', 'place_of_manufacture',
+            'preparation_days', 'care_instructions', 'shipping_details',
+        ] as $name) {
+            $this->assertStringContainsString('name="'.$name.'"', $html);
+        }
+
+        $this->actingAs($admin, 'admin')->from(route('dashboard.products.create'))->post(route('dashboard.products.store'), [
+            'vendor_id' => $this->vendor->id,
+            'category_id' => $this->active->id,
+            'name' => 'Handmade olive bowl',
+            'price' => '45.00',
+            'stock_quantity' => '3',
+            'status' => 'draft',
+            'dimensions' => ['length' => '20', 'width' => '15.5', 'height' => '8'],
+            'material' => 'Olive wood',
+            'place_of_manufacture' => 'Nablus',
+            'preparation_days' => '4',
+            'care_instructions' => 'Wipe with a dry cloth.',
+            'shipping_details' => 'Packed securely in a protective box.',
+        ])->assertRedirect(route('dashboard.products.index'))->assertSessionHasNoErrors();
+
+        $product = Product::query()->where('name', 'Handmade olive bowl')->sole();
+        $this->assertSame(['length' => '20', 'width' => '15.5', 'height' => '8'], $product->dimensions);
+        $this->assertSame([
+            'Olive wood', 'Nablus', 4, 'Wipe with a dry cloth.', 'Packed securely in a protective box.',
+        ], [$product->material, $product->place_of_manufacture, $product->preparation_days, $product->care_instructions, $product->shipping_details]);
+    }
+
     public function test_the_edit_form_submits_the_product_unchanged_with_its_stock_basis(): void
     {
         $product = $this->product(['category_id' => $this->active->id, 'sku' => 'JUG-1', 'compare_at_price' => 7.5, 'weight' => 1.25, 'is_featured' => true, 'short_description' => 'Short', 'description' => "Line 1\nLine 2"]);
@@ -157,8 +191,8 @@ class AdminProductFormTest extends TestCase
         $xpath = $this->xpath($html);
 
         $fields = $xpath->query('//form[@novalidate]//*[self::input[not(@type="hidden")] or self::select or self::textarea]');
-        // ADMIN-PRODUCT-FORM-FIX-01: the 16 fields of M7 plus the 5 + 5 tag inputs added since, each now labelled.
-        $this->assertSame(26, $fields->length);
+        // The original fields, ten tag inputs, and the eight vendor craft-detail inputs are each labelled.
+        $this->assertSame(34, $fields->length);
         foreach ($fields as $field) {
             $id = $field->getAttribute('id');
             $this->assertNotSame('', $id, $field->getAttribute('name'));

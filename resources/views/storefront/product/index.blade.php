@@ -1,6 +1,10 @@
 @php
   $dimensions = collect($product->dimensions ?? [])->only(['length', 'width', 'height'])->filter(fn ($value) => $value !== null && $value !== '');
   $weight = $product->weight === null ? null : rtrim(rtrim(number_format((float) $product->weight, 2, '.', ''), '0'), '.').' '.($product->weight_unit ?: 'kg');
+  // This section describes the product being viewed, not the vendor profile.
+  $productStoryImage = $product->primaryImage?->path ?? $product->images->first()?->path;
+  $productStoryDescription = $product->short_description ?: $product->description;
+  $productStoryLocation = $product->place_of_manufacture ?: $product->vendor->profile->location_name;
 @endphp
 <main>
   <section class="border-b border-line/60 bg-canvas px-4 py-3 lg:px-8" data-node-id="223:2698">
@@ -142,11 +146,11 @@
   <section class="relative overflow-hidden bg-olive px-4 py-16 text-white lg:px-8 lg:pb-16 lg:pt-[104px]"
     data-node-id="223:2894">
     <div class="mx-auto grid max-w-[1216px] gap-10 lg:grid-cols-2 lg:items-center">
-      <div class="relative"><img src="{{ \App\Support\Storefront\HomepageMedia::url($product->vendor->profile->cover_image) }}"
-          alt="{{ $product->vendor->profile->store_name }}"
+      <div class="relative"><img src="{{ \App\Support\Storefront\HomepageMedia::url($productStoryImage) }}"
+          alt="{{ $product->name }}"
           class="h-[340px] w-full rounded-[24px] border border-white/10 object-cover shadow-2xl sm:h-[402px]"><span
           class="absolute right-4 top-4 rounded-full border border-white/20 bg-black/60 px-4 py-2 text-xs text-[#fde68a] backdrop-blur-md"><i
-            data-lucide="map-pin" class="ms-1 inline h-3 w-3"></i>حارة الفواخير، {{ $product->vendor->profile->location_name }}</span>
+            data-lucide="map-pin" class="ms-1 inline h-3 w-3"></i>{{ $productStoryLocation }}</span>
         <div
           class="absolute -bottom-5 right-3 flex max-w-[320px] items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-ink shadow-xl sm:-right-5">
           <span
@@ -158,20 +162,20 @@
       <div class="lg:pr-6">
         <p class="text-xs font-medium text-[#fcd34d]">حكاية صانع وميراث وطن <i data-lucide="badge-help"
             class="inline h-3 w-3"></i></p>
-        <blockquote class="mt-5 text-[24px] font-bold leading-9 sm:mt-6 sm:text-[30px]">{{ $product->vendor->profile->short_description ?: $product->vendor->profile->store_name }}</blockquote>
-        <p class="mt-5 text-[13px] font-light leading-6 text-surface sm:mt-6 sm:text-sm">{{ $product->vendor->profile->description }}</p>
+        <blockquote class="mt-5 text-[24px] font-bold leading-9 sm:mt-6 sm:text-[30px]">{{ $product->name }}</blockquote>
+        <p class="mt-5 text-[13px] font-light leading-6 text-surface sm:mt-6 sm:text-sm">{{ $productStoryDescription }}</p>
         <div class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4"><span
               class="text-[11px] text-[#fde68a]/80">نوع الحرفة</span><strong class="mt-1 block text-sm">{{ $product->category?->name }}</strong></div>
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4"><span
-              class="text-[11px] text-[#fde68a]/80">المادة الأساسية</span><strong class="mt-1 block text-sm">{{ $product->material ?: 'غير محدد' }}</strong></div>
+              class="text-[11px] text-[#fde68a]/80">المادة الأساسية</span><strong class="mt-1 block text-sm">{{ $product->material ?: '—' }}</strong></div>
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4"><span
-              class="text-[11px] text-[#fde68a]/80">مكان الصنع</span><strong class="mt-1 block text-sm">{{ $product->place_of_manufacture ?: $product->vendor->profile->location_name }}</strong></div>
+              class="text-[11px] text-[#fde68a]/80">مكان الصنع</span><strong class="mt-1 block text-sm">{{ $productStoryLocation }}</strong></div>
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4"><span
-              class="text-[11px] text-[#fde68a]/80">زمن الإنجاز</span><strong class="mt-1 block text-sm">{{ $product->preparation_days !== null ? $product->preparation_days.' يوم' : ($product->vendor->profile->preparation_days !== null ? $product->vendor->profile->preparation_days.' يوم' : 'غير محدد') }}</strong></div>
+              class="text-[11px] text-[#fde68a]/80">زمن الإنجاز</span><strong class="mt-1 block text-sm">{{ $product->preparation_days !== null ? $product->preparation_days.' يوم' : ($product->vendor->profile->preparation_days !== null ? $product->vendor->profile->preparation_days.' يوم' : '—') }}</strong></div>
           <div class="col-span-2 rounded-2xl border border-white/15 bg-white/10 p-4"><span
               class="text-[11px] text-[#fde68a]/80">طريقة العناية الموصى بها</span><strong
-              class="mt-1 block text-sm">{{ $product->care_instructions ?: 'يرجى الرجوع لتعليمات المتجر' }}</strong></div>
+              class="mt-1 block text-sm">{{ $product->care_instructions ?: '—' }}</strong></div>
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\Vendor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -24,7 +25,8 @@ class DynamicStorefrontPagesTest extends TestCase
         $this->get(route('product', ['slug' => $product->slug]))->assertOk()->assertSee('Real product')
             ->assertSee('25.00 ILS')->assertSee('main-cart-'.$product->id)
             ->assertSee('Olive wood')->assertSee('Nablus')->assertSee('Keep away from water.')
-            ->assertSee('Packed in a protective box.')->assertDontSee('سارة القواسمي');
+            ->assertSee('Packed in a protective box.')->assertSee('products/real-product.jpg', false)
+            ->assertDontSee('حارة الفواخير');
         $this->get(route('product', ['slug' => 'missing']))->assertNotFound();
     }
 
@@ -121,10 +123,20 @@ class DynamicStorefrontPagesTest extends TestCase
         $vendor = Vendor::factory()->approved()->create();
         $vendor->profile()->update(['store_name' => 'Real store', 'short_description' => 'Real store description']);
 
-        return Product::query()->create(['vendor_id' => $vendor->id, 'category_id' => $category->id, 'name' => 'Real product',
+        $product = Product::query()->create(['vendor_id' => $vendor->id, 'category_id' => $category->id, 'name' => 'Real product',
             'slug' => 'real-product', 'price' => 25, 'stock_quantity' => 10, 'status' => 'active', 'description' => 'Real long description',
             'material' => 'Olive wood', 'place_of_manufacture' => 'Nablus', 'preparation_days' => 3,
             'care_instructions' => 'Keep away from water.', 'shipping_details' => 'Packed in a protective box.',
             'weight' => 1.5, 'weight_unit' => 'kg', 'dimensions' => ['length' => 20, 'width' => 10, 'height' => 5]]);
+
+        ProductImage::query()->create([
+            'product_id' => $product->id,
+            'path' => 'products/real-product.jpg',
+            'alt_text' => 'Real product image',
+            'sort_order' => 0,
+            'is_primary' => true,
+        ]);
+
+        return $product;
     }
 }

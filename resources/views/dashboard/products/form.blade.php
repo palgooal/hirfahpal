@@ -26,11 +26,13 @@
         'name' => 'product-name', 'slug' => 'product-slug', 'vendor_id' => 'product-vendor', 'category_id' => 'product-category',
         'sku' => 'product-sku', 'price' => 'product-price', 'compare_at_price' => 'product-compare-price', 'stock_quantity' => 'product-stock',
         'low_stock_threshold' => 'product-low-stock', 'weight' => 'product-weight', 'weight_unit' => 'product-weight-unit', 'short_description' => 'product-short-description',
-        'description' => 'product-description', 'images' => 'product-images', 'status' => 'product-status', 'is_featured' => 'product-featured',
+        'description' => 'product-description', 'dimensions' => 'product-dimensions', 'material' => 'product-material', 'place_of_manufacture' => 'product-place-of-manufacture',
+        'preparation_days' => 'product-preparation-days', 'care_instructions' => 'product-care-instructions', 'shipping_details' => 'product-shipping-details',
+        'images' => 'product-images', 'status' => 'product-status', 'is_featured' => 'product-featured',
         'gallery' => 'product-images', 'gallery_fingerprint' => 'product-images', 'gallery_sync' => 'product-images', 'media_image_ids' => 'product-images',
     ];
     // PRODUCT-MEDIA-01 P5-C: gallery.N and media_image_ids.N errors belong to the images field.
-    $summaryField = fn (string $field): string => preg_replace('/^(gallery|media_image_ids)\..*$/', '$1', $field);
+    $summaryField = fn (string $field): string => preg_replace('/^(gallery|media_image_ids|dimensions)\..*$/', '$1', $field);
     // aria-describedby: the hint, then the error when there is one.
     $describedBy = fn (string $field, ?string $hint = null) => trim(($hint ? $hint.' ' : '').($errors->has($field) ? $fieldIds[$field].'-error' : '')) ?: null;
 
@@ -262,6 +264,47 @@
                     @error('weight') <p class="admin-cat-form-error" id="product-weight-error">{{ $message }}</p> @enderror
                     @error('weight_unit') <p class="admin-cat-form-error" id="product-weight-unit-error">{{ $message }}</p> @enderror
                 </div>
+
+                <div class="admin-cat-form-field" id="product-dimensions">
+                    <span class="form-label">{{ $fieldLabels['dimensions'] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></span>
+                    <div class="admin-cat-form-row">
+                        @foreach (['length' => ['product-length', 'Products_Form_Length', 'Length'], 'width' => ['product-width', 'Products_Form_Width', 'Width'], 'height' => ['product-height', 'Products_Form_Height', 'Height']] as $dimension => [$id, $key, $default])
+                            <div class="admin-cat-form-field">
+                                <label class="form-label" for="{{ $id }}">{{ $prodText($key, $default) }}</label>
+                                <input type="number" @class(['form-control', 'is-invalid' => $errors->has('dimensions.'.$dimension)]) id="{{ $id }}" name="dimensions[{{ $dimension }}]" value="{{ old('dimensions.'.$dimension, $product->dimensions[$dimension] ?? '') }}" step="0.01" min="0" inputmode="decimal" dir="ltr"
+                                    @error('dimensions.'.$dimension) aria-invalid="true" aria-describedby="{{ $id }}-error" @enderror>
+                                @error('dimensions.'.$dimension) <p class="admin-cat-form-error" id="{{ $id }}-error">{{ $message }}</p> @enderror
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="admin-cat-form-row">
+                    @foreach ([
+                        'material' => ['product-material', 'text', 255],
+                        'place_of_manufacture' => ['product-place-of-manufacture', 'text', 255],
+                        'preparation_days' => ['product-preparation-days', 'number', null],
+                    ] as $field => [$id, $type, $maxLength])
+                        <div class="admin-cat-form-field">
+                            <label class="form-label" for="{{ $id }}">{{ $fieldLabels[$field] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
+                            <input type="{{ $type }}" @class(['form-control', 'is-invalid' => $errors->has($field)]) id="{{ $id }}" name="{{ $field }}" value="{{ old($field, $product->{$field}) }}" @if ($type === 'number') min="0" max="3650" step="1" inputmode="numeric" dir="ltr" @else maxlength="{{ $maxLength }}" dir="auto" @endif
+                                @error($field) aria-invalid="true" aria-describedby="{{ $id }}-error" @enderror>
+                            @error($field) <p class="admin-cat-form-error" id="{{ $id }}-error">{{ $message }}</p> @enderror
+                        </div>
+                    @endforeach
+                </div>
+
+                @foreach ([
+                    'care_instructions' => 'product-care-instructions',
+                    'shipping_details' => 'product-shipping-details',
+                ] as $field => $id)
+                    <div class="admin-cat-form-field">
+                        <label class="form-label" for="{{ $id }}">{{ $fieldLabels[$field] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
+                        <textarea @class(['form-control', 'is-invalid' => $errors->has($field)]) id="{{ $id }}" name="{{ $field }}" rows="3" maxlength="5000" dir="auto"
+                            @error($field) aria-invalid="true" aria-describedby="{{ $id }}-error" @enderror>{{ old($field, $product->{$field}) }}</textarea>
+                        @error($field) <p class="admin-cat-form-error" id="{{ $id }}-error">{{ $message }}</p> @enderror
+                    </div>
+                @endforeach
 
                 {{-- PRODUCT-MEDIA-01 P5-C: one vendor-scoped gallery editor instead of the six media pickers. --}}
                 @include('dashboard.products.partials.gallery', ['gallery' => $gallery, 'prodText' => $prodText, 'optionalMark' => $optionalMark])
