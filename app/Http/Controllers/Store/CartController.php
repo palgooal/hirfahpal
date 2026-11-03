@@ -8,6 +8,7 @@ use App\Models\CartItem;
 use App\Models\Product;
 use App\Support\Storefront\BrowserResponse;
 use App\Support\Storefront\GuestCartMerger;
+use App\Support\Storefront\PublicCart;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,9 +19,8 @@ class CartController extends Controller
 
     public function show(Request $request): JsonResponse
     {
-        return response()->json(
-            $this->activeCart($request)->load(['items.product.vendor.profile', 'items.product.primaryImage'])
-        );
+        // CART-SEC-01: every cart JSON response is the PublicCart allow-list, never the raw models.
+        return response()->json(PublicCart::cart($this->activeCart($request)));
     }
 
     /** PRODUCT-FIX-02: the Arabic messages of a browser form's refused add-to-cart (JSON keeps the default ones). */
@@ -70,7 +70,7 @@ class CartController extends Controller
             'unit_price' => $product->sellingPrice(),
         ])->save();
 
-        return BrowserResponse::saved($request, $cart->fresh(['items.product.vendor.profile', 'items.product.primaryImage']), 201,
+        return BrowserResponse::saved($request, PublicCart::cart($cart->fresh()), 201,
             $request->boolean('checkout') ? 'customer.checkout.show' : null);
     }
 
@@ -86,7 +86,7 @@ class CartController extends Controller
 
         $cartItem->update(['quantity' => $data['quantity']]);
 
-        return BrowserResponse::saved($request, $this->activeCart($request)->load(['items.product.vendor.profile', 'items.product.primaryImage']));
+        return BrowserResponse::saved($request, PublicCart::cart($this->activeCart($request)));
     }
 
     public function destroy(Request $request, CartItem $cartItem): JsonResponse|RedirectResponse
@@ -94,7 +94,7 @@ class CartController extends Controller
         $this->authorizeCartItem($request, $cartItem);
         $cartItem->delete();
 
-        return BrowserResponse::saved($request, $this->activeCart($request)->load(['items.product.vendor.profile', 'items.product.primaryImage']));
+        return BrowserResponse::saved($request, PublicCart::cart($this->activeCart($request)));
     }
 
     /** PRODUCT-FIX-02: back to the form's page with the message (shown by the storefront layout) and the quantity sent. */
