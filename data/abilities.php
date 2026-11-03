@@ -79,6 +79,11 @@ return [
         'view' => t('dashboard.View_Vendor_Orders', 'View Vendor Orders'),
         'create' => t('dashboard.Create_Vendor_Order', 'Create Vendor Order'),
         'assign-driver' => t('dashboard.Assign_Delivery_Driver', 'Assign Delivery Driver'),
+        // VEN-BE-020 (Release A): registered ahead of the delivery custody workflow (D4: recording a failed delivery or
+        // an unreachable driver; D3: the exceptional admin return confirmation). Nothing checks them yet, and they are
+        // granted to nobody automatically: only explicitly through the admins form (a super admin needs neither).
+        'record-delivery-failure' => t('dashboard.Record_Delivery_Failure', 'Record Delivery Failure'),
+        'confirm-return' => t('dashboard.Confirm_Delivery_Return', 'Confirm Returned Goods'),
     ],
     'reviews' => [
         'name' => t('dashboard.Reviews', 'Reviews'),
