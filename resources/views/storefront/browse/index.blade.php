@@ -122,7 +122,7 @@
 
         <div id="productGrid" class="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-3">
           @foreach ($products as $product)
-<article data-category="{{ $product->category?->slug }}" data-vendor="{{ $product->vendor->profile->slug }}" data-city="{{ $product->vendor->profile->city?->slug }}" data-price="{{ $product->price }}" data-rating="{{ $product->reviews_avg_rating ?? 0 }}" data-date="{{ $product->published_at?->timestamp ?? $product->created_at->timestamp }}"
+<article data-category="{{ $product->category?->slug }}" data-vendor="{{ $product->vendor->profile->slug }}" data-city="{{ $product->vendor->profile->city?->slug }}" data-price="{{ number_format($product->sellingPrice(), 2, '.', '') }}" data-rating="{{ $product->reviews_avg_rating ?? 0 }}" data-date="{{ $product->published_at?->timestamp ?? $product->created_at->timestamp }}"
             class="product-card group flex h-[473px] flex-col overflow-hidden rounded-[24px] border border-line bg-surface p-px shadow-sm"
                  >
             <div class="relative h-[284px] shrink-0 overflow-hidden"><img src="{{ \App\Support\Storefront\HomepageMedia::url($product->primaryImage?->path ?? $product->images->first()?->path) }}"
@@ -140,8 +140,7 @@
                     class="text-xs font-bold text-ink">{{ number_format($product->reviews_avg_rating ?? 0, 1) }}</bdi><bdi class="text-[#918f83]">({{ $product->reviews_count }})</bdi></span></div>
               <a href="{{ route('product', ['slug' => $product->slug]) }}"><h3 class="pb-2 text-start text-base font-bold leading-6 text-ink">{{ $product->name }}</h3></a>
               <p class="pb-3 text-start text-xs leading-4 text-[#918f83]">{{ $product->short_description }}</p>
-              <div class="mt-auto flex items-center justify-between gap-3 border-t border-line/60 pt-[13px]"><bdi
-                  class="text-lg font-bold leading-7 text-ink">{{ number_format($product->price, 2) }} {{ $currency }}</bdi><span
+              <div class="mt-auto flex items-center justify-between gap-3 border-t border-line/60 pt-[13px]">@include('storefront.partials.product-price', ['priceClass' => 'text-lg font-bold leading-7 text-ink'])<span
                   class="rounded-md bg-sage px-2 py-0.5 text-[11px] font-medium leading-[16.5px] text-surface">متوفر <bdi>{{ max(0, $product->stock_quantity - ($product->reserved_quantity ?? 0)) }}</bdi> قطع</span></div>
             </div>
           </article>

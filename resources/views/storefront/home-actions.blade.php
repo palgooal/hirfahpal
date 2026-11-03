@@ -59,7 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     const cart = await send(cartUrl, 'POST', { product_id: Number(productId), quantity: 1 });
                     renderCart(cart.items.reduce((sum, item) => sum + item.quantity, 0),
-                        cart.items.reduce((sum, item) => sum + item.quantity * Number(item.product?.price ?? item.unit_price), 0));
+                        // VQA-FIX-01: each line's own unit_price (set from the selling price when it was added), never
+                        // the product's regular price.
+                        cart.items.reduce((sum, item) => sum + item.quantity * Number(item.unit_price), 0));
                     button.title = 'تمت الإضافة إلى السلة';
                     const label = button.querySelector('span');
                     if (label) {

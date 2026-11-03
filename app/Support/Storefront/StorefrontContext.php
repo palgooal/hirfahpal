@@ -25,7 +25,9 @@ class StorefrontContext
             'siteSetting' => $setting,
             'currency' => $setting?->default_currency ?: 'ILS',
             'cartCount' => $cart?->items->sum('quantity') ?? 0,
-            'cartTotal' => $cart?->items->sum(fn ($item) => $item->quantity * ($item->product?->price ?? 0)) ?? 0,
+            // VQA-FIX-01: the header total uses the cart's pricing contract (Product::sellingPrice(), as the cart page
+            // and checkout do), so a discounted product counts at the price actually charged.
+            'cartTotal' => $cart?->items->sum(fn ($item) => $item->quantity * ($item->product?->sellingPrice() ?? 0)) ?? 0,
             'navigationCategories' => Category::query()->where('is_active', true)->whereNull('parent_id')
                 ->with(['imageMedia', 'children' => fn ($query) => $query->where('is_active', true)->orderBy('sort_order'),
                     'products' => fn ($query) => $query->sellable()->with(['primaryImage', 'vendor.profile'])->latest('id')->limit(6),

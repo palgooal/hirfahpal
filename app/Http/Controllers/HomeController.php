@@ -45,7 +45,8 @@ class HomeController extends Controller
             'artisanCount' => $vendors->count(),
             'favoriteIds' => $customer?->favorites()->pluck('id', 'product_id')->all() ?? [],
             'cartCount' => $cart?->items->sum('quantity') ?? 0,
-            'cartTotal' => $cart?->items->sum(fn ($item) => $item->quantity * ($item->product?->price ?? 0)) ?? 0,
+            // VQA-FIX-01: the header total at the cart's selling prices, as StorefrontContext computes it elsewhere.
+            'cartTotal' => $cart?->items->sum(fn ($item) => $item->quantity * ($item->product?->sellingPrice() ?? 0)) ?? 0,
         ]);
     }
 }

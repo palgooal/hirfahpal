@@ -45,10 +45,10 @@
               </div>
             </div>
             <div class="flex h-[73px] items-start justify-between border-t border-line/60 px-5 pb-5 pt-[9px]">
-              <div class="text-right"><span class="block text-xs leading-4 text-muted">{{ $homeContent['popular-products_text_4'] }}</span><bdi
-                  class="block text-lg font-bold leading-7 text-copper">{{ number_format($product->price, 2) }} {{ $currency }}</bdi></div><button
+              <div class="text-right">@if ($product->hasDiscount())@include('storefront.partials.product-regular-price', ['regularClass' => 'block leading-4'])@else<span class="block text-xs leading-4 text-muted">{{ $homeContent['popular-products_text_4'] }}</span>@endif
+                @include('storefront.partials.product-price', ['priceClass' => 'text-lg font-bold leading-7 text-copper', 'regular' => 'none'])</div><button
                 class="add-cart flex items-center gap-1.5 rounded-lg bg-sage px-3 py-2 text-xs font-semibold"
-                data-price="{{ $product->price }}" @disabled(max(0, $product->stock_quantity - ($product->reserved_quantity ?? 0)) < 1)><img src="{{ asset('assets/storefront/imgs/mcp/pitcher-cart.svg') }}" alt=""
+                data-price="{{ number_format($product->sellingPrice(), 2, '.', '') }}" @disabled(max(0, $product->stock_quantity - ($product->reserved_quantity ?? 0)) < 1)><img src="{{ asset('assets/storefront/imgs/mcp/pitcher-cart.svg') }}" alt=""
                   class="h-[13.333px] w-[13.321px]"><span>{{ $homeContent['popular-products_text_5'] }}</span></button>
             </div>
           </article>

@@ -87,7 +87,7 @@
               aria-label="إضافة {{ $product->name }} للمفضلة"><img src="{{ asset('assets/storefront/imgs/mcp/arrival-heart.svg') }}" alt=""
                 class="h-[13.323px] w-[14.625px]"></button><form hidden id="vendor-favorite-{{ $product->id }}" method="POST" action="{{ route('customer.favorites.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $product->id }}"></form><button form="vendor-cart-{{ $product->id }}" type="submit"
               class="add-cart absolute start-3 end-3 bottom-3 flex translate-y-0 items-center justify-center gap-2 rounded-[16px] bg-sage px-4 py-2.5 text-xs font-bold opacity-100 shadow-md transition-all sm:translate-y-2 sm:opacity-0 group-hover:translate-y-0 group-hover:opacity-100"
-              data-price="{{ $product->price }}" @disabled(max(0, $product->stock_quantity - ($product->reserved_quantity ?? 0)) < 1)><span>إضافة إلى السلة</span><img src="{{ asset('assets/storefront/imgs/mcp/arrival-cart.svg') }}" alt=""
+              data-price="{{ number_format($product->sellingPrice(), 2, '.', '') }}" @disabled(max(0, $product->stock_quantity - ($product->reserved_quantity ?? 0)) < 1)><span>إضافة إلى السلة</span><img src="{{ asset('assets/storefront/imgs/mcp/arrival-cart.svg') }}" alt=""
                 class="h-[13.103px] w-[12.918px]"></button><form hidden id="vendor-cart-{{ $product->id }}" method="POST" action="{{ route('customer.cart.items.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $product->id }}"><input type="hidden" name="quantity" value="1"></form></div>
           <div class="flex min-h-0 flex-1 flex-col p-4">
             <div class="flex justify-start pb-3"><span
@@ -98,8 +98,7 @@
                 class="text-[11px] leading-4 text-[#918f83]">(<bdi>{{ $product->reviews_count }}</bdi>)</span><bdi
                 class="text-xs font-bold leading-4">{{ $product->reviews_count ? number_format($product->reviews_avg_rating, 1) : '—' }}</bdi><img src="{{ asset('assets/storefront/imgs/mcp/arrival-star.svg') }}" alt=""
                 class="h-[11.083px] w-[11.667px]"></div>
-            <div class="mt-auto flex items-center justify-between border-t border-line/60 pt-[13px]"><bdi
-                class="text-lg font-bold leading-7">{{ number_format($product->price, 2) }} {{ $currency }}</bdi><span
+            <div class="mt-auto flex items-center justify-between border-t border-line/60 pt-[13px]">@include('storefront.partials.product-price', ['priceClass' => 'text-lg font-bold leading-7'])<span
                 class="rounded-md bg-sage px-2 py-0.5 text-[11px] font-medium leading-[16.5px] text-surface">متوفر
                 <bdi>{{ max(0, $product->stock_quantity - ($product->reserved_quantity ?? 0)) }}</bdi> قطع</span></div>
           </div>

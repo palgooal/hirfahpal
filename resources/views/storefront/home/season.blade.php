@@ -35,7 +35,7 @@
                 aria-label="إضافة للمفضلة" aria-pressed="{{ isset($favoriteIds[$product->id]) ? 'true' : 'false' }}" data-favorite-id="{{ $favoriteIds[$product->id] ?? '' }}"><img src="{{ asset('assets/storefront/imgs/mcp/season-heart.svg') }}" alt=""
                   class="h-[13.323px] w-[14.625px]"></button><button
                 class="add-cart absolute bottom-3 left-3 right-3 flex translate-y-0 items-center sm:translate-y-2 justify-center gap-2 rounded-[16px] bg-sage px-4 py-2.5 text-xs font-bold opacity-100 shadow-md transition-all sm:opacity-0 group-hover:translate-y-0 group-hover:opacity-100"
-                data-price="{{ $product->price }}" @disabled(max(0, $product->stock_quantity - ($product->reserved_quantity ?? 0)) < 1)><span>{{ $homeContent['season_text_6'] }}</span><img src="{{ asset('assets/storefront/imgs/mcp/season-cart.svg') }}" alt=""
+                data-price="{{ number_format($product->sellingPrice(), 2, '.', '') }}" @disabled(max(0, $product->stock_quantity - ($product->reserved_quantity ?? 0)) < 1)><span>{{ $homeContent['season_text_6'] }}</span><img src="{{ asset('assets/storefront/imgs/mcp/season-cart.svg') }}" alt=""
                   class="h-[13.103px] w-[12.918px]"></button></div>
             <div class="flex min-h-0 flex-1 flex-col p-4">
               <div class="flex justify-start pb-3"><span
@@ -48,8 +48,7 @@
                   class="h-[11.083px] w-[11.667px]"></div>
               <p class="truncate pb-3 text-right text-xs leading-4 text-[#918f83]">{{ $product->short_description }}</p>
               <div class="mt-auto flex items-center justify-between border-t border-line/60 pt-[13px]"><span
-                  class="flex items-baseline gap-1"><small class="text-xs text-[#918f83]">{{ $homeContent['season_text_7'] }}</small><bdi
-                    class="text-lg font-bold leading-7">{{ number_format($product->price, 2) }} {{ $currency }}</bdi></span><span
+                  class="flex items-baseline gap-1">@unless ($product->hasDiscount())<small class="text-xs text-[#918f83]">{{ $homeContent['season_text_7'] }}</small>@endunless @include('storefront.partials.product-price', ['priceClass' => 'text-lg font-bold leading-7', 'regular' => 'before'])</span><span
                   class="rounded-md bg-sage px-2 py-0.5 text-[11px] font-medium leading-[16.5px] text-surface">{{ max(0, $product->stock_quantity - ($product->reserved_quantity ?? 0)) }} قطعة متاحة</span></div>
             </div>
           </article>

@@ -94,7 +94,7 @@
         </div>
         <div class="mt-4 flex gap-3"><button form="main-cart-{{ $product->id }}" type="submit"
             class="add-cart flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-sage font-bold shadow-md transition-[background-color,transform,box-shadow] hover:bg-[#a7af82] hover:shadow-lg active:scale-[0.99]"
-            data-price="{{ $product->price }}" @disabled($product->availableStockQuantity() < 1)><i data-lucide="shopping-bag" class="h-4 w-4"></i>أضف إلى السلة</button><form hidden id="main-cart-{{ $product->id }}" method="POST" action="{{ route('customer.cart.items.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $product->id }}"><input class="product-cart-quantity" type="hidden" name="quantity" value="{{ $selectedQuantity }}"></form><button form="buy-now-{{ $product->id }}" @disabled($product->availableStockQuantity() < 1) type="submit"
+            data-price="{{ number_format($product->sellingPrice(), 2, '.', '') }}" @disabled($product->availableStockQuantity() < 1)><i data-lucide="shopping-bag" class="h-4 w-4"></i>أضف إلى السلة</button><form hidden id="main-cart-{{ $product->id }}" method="POST" action="{{ route('customer.cart.items.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $product->id }}"><input class="product-cart-quantity" type="hidden" name="quantity" value="{{ $selectedQuantity }}"></form><button form="buy-now-{{ $product->id }}" @disabled($product->availableStockQuantity() < 1) type="submit"
             class="h-12 shrink-0 cursor-pointer rounded-2xl border border-olive bg-surface px-4 font-bold text-olive transition-[background-color,color,transform] hover:bg-olive hover:text-white active:scale-[0.98] sm:px-7">اشتري الآن</button><form hidden id="buy-now-{{ $product->id }}" method="POST" action="{{ route('customer.cart.items.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $product->id }}"><input class="product-cart-quantity" type="hidden" name="quantity" value="{{ $selectedQuantity }}"><input type="hidden" name="checkout" value="1"></form>
         </div>
         <div class="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -319,7 +319,7 @@
               <button form="related-favorite-{{ $related->id }}" type="submit" aria-label="أضف سلة القش إلى المفضلة"
                 class="favorite absolute left-3 top-3 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-surface shadow-sm"><img
                   src="{{ asset('assets/storefront/imgs/product-page/related-heart.svg') }}" alt="" class="h-[14px] w-[15px]"></button><form hidden id="related-favorite-{{ $related->id }}" method="POST" action="{{ route('customer.favorites.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $related->id }}"></form>
-              <button form="related-cart-{{ $related->id }}" type="submit" data-price="{{ $related->price }}"
+              <button form="related-cart-{{ $related->id }}" type="submit" data-price="{{ number_format($related->sellingPrice(), 2, '.', '') }}"
                 class="add-cart absolute inset-x-3 bottom-3 flex translate-y-0 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-sage px-4 py-2.5 text-xs font-bold text-ink opacity-100 shadow-md transition-[opacity,transform] duration-300 sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 sm:group-focus-within:translate-y-0 sm:group-focus-within:opacity-100"><span>إضافة إلى السلة</span><img
                   src="{{ asset('assets/storefront/imgs/product-page/related-cart.svg') }}" alt="" class="h-[14px] w-[13px]"></button><form hidden id="related-cart-{{ $related->id }}" method="POST" action="{{ route('customer.cart.items.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $related->id }}"><input type="hidden" name="quantity" value="1"></form>
             </div>
@@ -330,7 +330,7 @@
               <a href="{{ route('product', ['slug' => $related->slug]) }}"><h3 class="pb-2 text-base font-bold leading-6 text-ink">{{ $related->name }}</h3></a>
               <p class="pb-3 text-xs leading-4 text-[#918f83]">{{ $related->short_description }}</p>
               <div class="mt-auto flex items-center justify-between border-t border-line/60 pt-[13px]"><span
-                  class="flex items-baseline gap-1"><span class="text-xs text-[#918f83]">السعر:</span><bdi class="text-lg font-bold leading-7 text-ink">{{ number_format($related->price, 2) }} {{ $currency }}</bdi></span><span
+                  class="flex items-baseline gap-1">@unless ($related->hasDiscount())<span class="text-xs text-[#918f83]">السعر:</span>@endunless @include('storefront.partials.product-price', ['product' => $related, 'priceClass' => 'text-lg font-bold leading-7 text-ink', 'regular' => 'before'])</span><span
                   class="text-[11px] text-muted">قطعة وحيدة</span></div>
             </div>
           </div>
