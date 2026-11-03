@@ -68,18 +68,20 @@ class StorefrontPageController extends Controller
 
     public function product(Request $request)
     {
-        $request->validate(['slug' => ['nullable', 'string', 'max:255'], 'quantity' => ['nullable', 'integer', 'min:1']]);
-        $product = $this->products()->when($request->filled('slug'), fn ($query) => $query->where('slug', $request->input('slug')))->latest('id')->first();
-        if (! $product && ! $request->filled('slug')) {
-            return redirect()->route('browse');
-        }
+        // PRODUCT-FIX-02: a product page needs its slug: a non-empty string of at most 255 characters (empty and
+        // whitespace-only values arrive as null), otherwise 404; it never falls back to another product.
+        $slug = $request->query('slug');
+        abort_unless(is_string($slug) && $slug !== '' && mb_strlen($slug) <= 255, 404);
+        $product = $this->products()->where('slug', $slug)->first();
         abort_unless($product, 404);
         $product->setRelation('vendor', Vendor::query()->withStorefrontSummary()->findOrFail($product->vendor_id));
         $reviews = $product->reviews()->where('status', 'published')->with('customer')->latest()->get();
 
         return view('pages.product', [
             'product' => $product,
-            'selectedQuantity' => min($request->integer('quantity', 1), max(1, $product->availableStockQuantity())),
+            // PRODUCT-FIX-02: the quantity a refused add-to-cart sent (old input), else ?quantity=; anything that is not
+            // a whole number of at least 1 counts as 1 (no redirect); never above the available stock.
+            'selectedQuantity' => min($this->requestedQuantity($request), max(1, $product->availableStockQuantity())),
             'productImages' => $product->images->isNotEmpty() ? $product->images->sortByDesc('is_primary')->values() : collect([new ProductImage(['alt_text' => $product->name])]),
             'productReviews' => $reviews,
             'reviewDistribution' => collect(range(1, 5))->mapWithKeys(fn ($rating) => [$rating => $reviews->isEmpty() ? 0 : (int) round($reviews->where('rating', $rating)->count() * 100 / $reviews->count())])->all(),
@@ -103,6 +105,14 @@ class StorefrontPageController extends Controller
             'addresses' => $request->user('customer')->addresses()->with(['city', 'governorate'])->orderByDesc('is_default')->orderBy('id')->get(),
             'governorates' => Governorate::query()->where('status', 'active')->orderBy('name')->get(),
         ]);
+    }
+
+    private function requestedQuantity(Request $request): int
+    {
+        $quantity = $request->old('quantity', $request->query('quantity'));
+        $quantity = is_int($quantity) ? (string) $quantity : $quantity;
+
+        return is_string($quantity) && ctype_digit($quantity) && (int) $quantity >= 1 ? (int) $quantity : 1;
     }
 
     private function products(): Builder

@@ -28,7 +28,8 @@
     {{-- A page that shows its own feedback (e.g. the contact form) defines the "inline_feedback" section. --}}
     @sectionMissing('inline_feedback')
         @if (session('success') || $errors->any())
-            <div class="mx-auto max-w-[1216px] px-4 py-3 text-sm text-copper" role="status">
+            {{-- PRODUCT-FIX-02: an error is announced at once (alert); a confirmation politely (status). --}}
+            <div class="mx-auto max-w-[1216px] px-4 py-3 text-sm text-copper" role="{{ $errors->any() ? 'alert' : 'status' }}">
                 {{ session('success') ?: $errors->first() }}
             </div>
         @endif

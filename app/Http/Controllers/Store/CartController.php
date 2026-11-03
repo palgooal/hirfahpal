@@ -23,15 +23,34 @@ class CartController extends Controller
         );
     }
 
+    /** PRODUCT-FIX-02: the Arabic messages of a browser form's refused add-to-cart (JSON keeps the default ones). */
+    private const FORM_MESSAGES = [
+        'product_id.*' => 'هذا المنتج غير متاح للشراء حالياً.',
+        'quantity.*' => 'يجب أن تكون الكمية رقماً صحيحاً لا يقل عن 1.',
+    ];
+
     public function store(Request $request): JsonResponse|RedirectResponse
     {
+        // PRODUCT-FIX-02: a browser form (not JSON) that cannot be added goes back to its page with an Arabic message
+        // and the quantity it sent, instead of a bare error page; JSON requests keep their status codes and messages.
+        // Every check still runs before anything is written.
         $data = $request->validate([
             'product_id' => ['required', 'integer', 'exists:products,id'],
             'quantity' => ['required', 'integer', 'min:1'],
-        ]);
+        ], $request->expectsJson() ? [] : self::FORM_MESSAGES);
 
+        if (! $request->expectsJson() && ! Product::query()->sellable()->whereKey($data['product_id'])->exists()) {
+            return $this->refuseForm($request, self::FORM_MESSAGES['product_id.*']);
+        }
         $product = Product::query()->sellable()->findOrFail($data['product_id']);
-        abort_if($product->availableStockQuantity() < $data['quantity'], 422, 'Requested quantity is not available.');
+
+        $available = $product->availableStockQuantity();
+        if ($available < $data['quantity'] && ! $request->expectsJson()) {
+            return $this->refuseForm($request, $available < 1
+                ? 'هذا المنتج غير متوفر حالياً.'
+                : 'الكمية المطلوبة غير متوفرة. المتوفر حالياً: '.$available.'.');
+        }
+        abort_if($available < $data['quantity'], 422, 'Requested quantity is not available.');
 
         $cart = $this->activeCart($request);
         $item = CartItem::query()->firstOrNew([
@@ -40,7 +59,11 @@ class CartController extends Controller
         ]);
 
         $nextQuantity = ($item->exists ? $item->quantity : 0) + $data['quantity'];
-        abort_if($product->availableStockQuantity() < $nextQuantity, 422, 'Requested quantity is not available.');
+        $available = $product->availableStockQuantity();
+        if ($available < $nextQuantity && ! $request->expectsJson()) {
+            return $this->refuseForm($request, 'لا يمكن إضافة هذه الكمية: في سلتك '.$item->quantity.' من هذا المنتج، والمتوفر حالياً: '.$available.'.');
+        }
+        abort_if($available < $nextQuantity, 422, 'Requested quantity is not available.');
 
         $item->fill([
             'quantity' => $nextQuantity,
@@ -72,6 +95,12 @@ class CartController extends Controller
         $cartItem->delete();
 
         return BrowserResponse::saved($request, $this->activeCart($request)->load(['items.product.vendor.profile', 'items.product.primaryImage']));
+    }
+
+    /** PRODUCT-FIX-02: back to the form's page with the message (shown by the storefront layout) and the quantity sent. */
+    private function refuseForm(Request $request, string $message): RedirectResponse
+    {
+        return back()->withErrors(['cart' => $message])->withInput($request->only('quantity'));
     }
 
     public function activeCart(Request $request): Cart
