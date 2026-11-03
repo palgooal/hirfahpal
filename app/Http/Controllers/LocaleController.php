@@ -36,7 +36,11 @@ class LocaleController extends Controller
             return redirect()->to($safeRedirect);
         }
 
+        // SEC-01: the previous URL comes from the Referer header first, so only a same-site one is followed.
         $previousUrl = url()->previous();
+        if (! $this->isSameSiteUrl($previousUrl)) {
+            $previousUrl = url('/');
+        }
         $parsed = parse_url($previousUrl);
         $path = $parsed['path'] ?? '/';
 
@@ -112,6 +116,11 @@ class LocaleController extends Controller
             return true;
         }
 
+        // SEC-01: never back to a language switch itself (the session's previous URL can be one), which would loop.
+        if (str_starts_with($normalizedPath, 'change-locale/')) {
+            return true;
+        }
+
         return preg_match('/\.(?:css|js|map|png|jpe?g|svg|gif|webp|ico|woff2?|ttf|eot)$/', $normalizedPath) === 1;
     }
 
@@ -123,21 +132,41 @@ class LocaleController extends Controller
             return null;
         }
 
+        // SEC-01: a same-site path has exactly one leading slash. "//host" is protocol-relative, "/\host" is read as
+        // "//host" by browsers, and browsers drop tabs and line breaks ("/\t/host"), so all of these are refused.
         if (Str::startsWith($redirect, '/')) {
+            if (preg_match('~^/[/\\\\]~', $redirect) === 1 || preg_match('/[\x00-\x1F\x7F]/', $redirect) === 1) {
+                return null;
+            }
+
             return url($redirect);
         }
 
-        if (! filter_var($redirect, FILTER_VALIDATE_URL)) {
-            return null;
+        return $this->isSameSiteUrl($redirect) ? $redirect : null;
+    }
+
+    /**
+     * SEC-01: an absolute http(s) URL on this site's host (the configured app URL's, or the current request's), with
+     * no embedded credentials, backslashes or control characters.
+     */
+    private function isSameSiteUrl(string $url): bool
+    {
+        if (! filter_var($url, FILTER_VALIDATE_URL) || preg_match('/[\x00-\x1F\x7F\\\\]/', $url) === 1) {
+            return false;
         }
 
-        $redirectHost = strtolower((string) parse_url($redirect, PHP_URL_HOST));
-        $appHost = strtolower((string) parse_url(config('app.url') ?: url('/'), PHP_URL_HOST));
+        $parts = parse_url($url);
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        $siteHosts = array_filter([
+            strtolower((string) parse_url(config('app.url') ?: url('/'), PHP_URL_HOST)),
+            strtolower(request()->getHost()),
+        ]);
 
-        if ($redirectHost === '' || $appHost === '' || $redirectHost !== $appHost) {
-            return null;
-        }
-
-        return $redirect;
+        return in_array($scheme, ['http', 'https'], true)
+            && $host !== ''
+            && in_array($host, $siteHosts, true)
+            && ! isset($parts['user'])
+            && ! isset($parts['pass']);
     }
 }

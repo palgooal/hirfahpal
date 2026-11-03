@@ -6,15 +6,26 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Vendor;
+use App\Support\Storefront\PublicCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProductCatalogController extends Controller
 {
+    /** SEC-01: the largest page a visitor may request. */
+    public const MAX_PER_PAGE = 48;
+
     public function index(Request $request): JsonResponse
     {
+        // SEC-01: a bounded page size (and a valid page), refused with 422 otherwise.
+        $paging = $request->validate([
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:'.self::MAX_PER_PAGE],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
         $products = Product::query()
-            ->with(['category', 'vendor.profile', 'primaryImage'])
+            ->with(['category', 'vendor.profile.city', 'vendor.profile.governorate', 'primaryImage'])
+            ->withSum(['stockReservations as reserved_quantity' => fn ($query) => $query->where('status', 'reserved')], 'quantity')
             ->sellable()
             ->when($request->filled('category'), function ($query) use ($request): void {
                 $query->whereHas('category', fn ($category) => $category->whereIn('slug', (array) $request->input('category')));
@@ -35,14 +46,22 @@ class ProductCatalogController extends Controller
             default => $products->latest(),
         };
 
-        return response()->json($products->paginate($request->integer('per_page', 12)));
+        // SEC-01: public fields only (PublicCatalog), in the same paginator envelope; its links keep the filters.
+        return response()->json(
+            $products->paginate((int) ($paging['per_page'] ?? 12))
+                ->withQueryString()
+                ->through(fn (Product $product) => PublicCatalog::productSummary($product))
+        );
     }
 
     public function show(Product $product): JsonResponse
     {
         abort_unless($product->isSellable(), 404);
 
-        return response()->json($product->load(['category', 'vendor.profile.city', 'images']));
+        // SEC-01: public fields only, never the raw model with its vendor account and store records.
+        return response()->json(PublicCatalog::productDetails(
+            $product->load(['category', 'vendor.profile.city', 'vendor.profile.governorate', 'primaryImage', 'images'])
+        ));
     }
 
     public function categories(): JsonResponse
@@ -58,12 +77,15 @@ class ProductCatalogController extends Controller
 
     public function vendors(): JsonResponse
     {
+        // SEC-01: each approved, active store's public identity only (no account, contact or administrative data).
         return response()->json(
             Vendor::query()
-                ->with('profile.city')
+                ->with(['profile.city', 'profile.governorate'])
                 ->where('status', 'active')
                 ->whereHas('profile', fn ($profile) => $profile->where('approval_status', 'approved'))
                 ->get()
+                ->map(fn (Vendor $vendor) => PublicCatalog::store($vendor->profile))
+                ->values()
         );
     }
 }
