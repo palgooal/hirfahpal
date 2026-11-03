@@ -28,7 +28,8 @@ class SetLocale
 
         // ── Handle ?change-locale=xx on any URL ────────────────────────────────
         if ($request->has('change-locale')) {
-            $newLocale = Str::lower($request->query('change-locale'));
+            $requested = $request->query('change-locale');
+            $newLocale = is_string($requested) ? Str::lower($requested) : null;
             $supportedLocales = $this->getSupportedLocales();
 
             if (in_array($newLocale, $supportedLocales)) {
@@ -36,8 +37,12 @@ class SetLocale
                 app()->setLocale($newLocale);
             }
 
-            // Redirect to the same URL without the query param (clean URL)
-            return redirect()->to($request->url());
+            // VQA-FIX-02: redirect to the same URL without the change-locale param only; every other query parameter
+            // (a product's slug, browse filters, search, sorting) is kept exactly as sent. Same path and host, and the
+            // switch itself is gone, so this can neither leave the site nor loop.
+            $query = implode('&', self::queryPairsWithoutSwitch($request));
+
+            return redirect()->to($request->url().($query !== '' ? '?'.$query : ''));
         }
 
         // ── Apply locale from session or default ───────────────────────────────
@@ -49,6 +54,26 @@ class SetLocale
         );
 
         return $next($request);
+    }
+
+    /**
+     * VQA-FIX-02: the request's query string as raw "key=value" pairs, without change-locale. Read from the raw
+     * QUERY_STRING rather than the parsed query, so repeated keys (category=a&category=b, which PHP's parsing would
+     * reduce to the last one), their order and their encoding are kept. Also used by the storefront language switcher
+     * (storefront.partials.locale-query-inputs) to carry the current parameters through its GET form.
+     *
+     * @return list<string>
+     */
+    public static function queryPairsWithoutSwitch(Request $request): array
+    {
+        $pairs = explode('&', (string) $request->server->get('QUERY_STRING', ''));
+
+        return array_values(array_filter($pairs, function (string $pair): bool {
+            $name = urldecode(explode('=', $pair, 2)[0]);
+
+            // change-locale and change-locale[...] alike.
+            return $pair !== '' && preg_replace('/\[.*$/s', '', $name) !== 'change-locale';
+        }));
     }
 
     /**

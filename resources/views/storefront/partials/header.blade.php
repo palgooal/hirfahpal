@@ -66,7 +66,7 @@
         <div class="flex items-center gap-1"><button type="submit" form="locale-header-0"
             class="language-toggle flex h-9 items-center gap-1 rounded-full px-2 text-xs font-bold text-olive"
             aria-label="Switch to English"><span class="language-label" lang="en">{{ strtoupper($languages->firstWhere('code', '!=', app()->getLocale())?->code ?? app()->getLocale()) }}</span><img
-              src="{{ asset('assets/storefront/imgs/mcp/header-globe.svg') }}" alt="" class="h-4 w-4"></button><form hidden id="locale-header-0" method="GET" action="{{ url()->current() }}"><input type="hidden" name="change-locale" value="{{ $languages->firstWhere('code', '!=', app()->getLocale())?->code ?? app()->getLocale() }}"></form><button id="mobileSearchButton"
+              src="{{ asset('assets/storefront/imgs/mcp/header-globe.svg') }}" alt="" class="h-4 w-4"></button><form hidden id="locale-header-0" method="GET" action="{{ url()->current() }}">@include('storefront.partials.locale-query-inputs')<input type="hidden" name="change-locale" value="{{ $languages->firstWhere('code', '!=', app()->getLocale())?->code ?? app()->getLocale() }}"></form><button id="mobileSearchButton"
             class="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-olive bg-olive"
             aria-label="بحث"><img src="{{ asset('assets/storefront/imgs/mcp/header-search-exact.svg') }}" alt=""
               class="h-[28.667px] w-[14.663px] max-w-none"></button><button id="menuButton"

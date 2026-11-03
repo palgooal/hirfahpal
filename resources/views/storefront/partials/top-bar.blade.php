@@ -23,7 +23,7 @@
               aria-label="Switch to English">
               <span class="language-label text-sm font-bold leading-[14px]" lang="en">{{ strtoupper($languages->firstWhere('code', '!=', app()->getLocale())?->code ?? app()->getLocale()) }}</span>
               <img src="{{ asset('assets/storefront/imgs/mcp/header-globe.svg') }}" alt="" class="h-[16.667px] w-[16.667px]">
-            </button><form hidden id="locale-top-bar-0" method="GET" action="{{ url()->current() }}"><input type="hidden" name="change-locale" value="{{ $languages->firstWhere('code', '!=', app()->getLocale())?->code ?? app()->getLocale() }}"></form>
+            </button><form hidden id="locale-top-bar-0" method="GET" action="{{ url()->current() }}">@include('storefront.partials.locale-query-inputs')<input type="hidden" name="change-locale" value="{{ $languages->firstWhere('code', '!=', app()->getLocale())?->code ?? app()->getLocale() }}"></form>
           </div>
         </div>
       </div>
