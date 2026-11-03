@@ -12,9 +12,10 @@
       <nav class="flex w-full min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap text-xs font-medium sm:w-auto sm:text-sm"><a href="{{ route('home') }}" class="shrink-0 hover:text-olive">الرئيسية</a><img
           src="{{ asset('assets/storefront/imgs/product-page/breadcrumb-chevron.svg') }}" alt="" class="h-[7px] w-1"><a href="{{ route('home') }}#shop"
           class="shrink-0 hover:text-olive">{{ $product->category?->name }}</a><img src="{{ asset('assets/storefront/imgs/product-page/breadcrumb-chevron.svg') }}" alt=""
-          class="h-[7px] w-1 shrink-0"><span class="min-w-0 truncate font-semibold text-olive">{{ $product->name }}</span></nav><span
+          class="h-[7px] w-1 shrink-0"><span class="min-w-0 truncate font-semibold text-olive">{{ $product->name }}</span></nav>{{-- PRODUCT-FIX-01: the
+          workshop's location only when the store has one; no unsupported "verified authentic piece" claim. --}}@if ($product->vendor->profile->city || $product->vendor->profile->governorate)<span
         class="flex w-full items-center justify-center gap-1.5 rounded-full border border-copper/20 bg-copper/10 px-[13px] py-[5px] text-center text-[11px] leading-4 text-copper sm:w-auto sm:text-xs"><img
-          src="{{ asset('assets/storefront/imgs/product-page/breadcrumb-verified.svg') }}" alt="" class="h-3 w-[13px]">قطعة أصلية موثقة - مشاغل {{ $product->vendor->profile->location_name }}</span>
+          src="{{ asset('assets/storefront/imgs/product-page/breadcrumb-verified.svg') }}" alt="" class="h-3 w-[13px]">من مشاغل {{ $product->vendor->profile->location_name }}</span>@endif
     </div>
   </section>
 
@@ -66,14 +67,10 @@
               src="{{ asset('assets/storefront/imgs/product-page/hero-store.svg') }}" alt="" class="h-[11px] w-3">{{ $product->vendor->profile->store_name }}</span>
           <h1 class="text-[26px] font-bold leading-tight sm:text-4xl">{{ $product->name }}</h1>
         </div>
-        <div class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm"><span class="flex gap-1">
-            <img src="{{ asset('assets/storefront/imgs/product-page/hero-star.svg') }}" alt="" class="h-[14px] w-[15px]"><img
-              src="{{ asset('assets/storefront/imgs/product-page/hero-star.svg') }}" alt="" class="h-[14px] w-[15px]"><img
-              src="{{ asset('assets/storefront/imgs/product-page/hero-star.svg') }}" alt="" class="h-[14px] w-[15px]"><img
-              src="{{ asset('assets/storefront/imgs/product-page/hero-star.svg') }}" alt="" class="h-[14px] w-[15px]"><img
-              src="{{ asset('assets/storefront/imgs/product-page/hero-star.svg') }}" alt="" class="h-[14px] w-[15px]"></span><strong>{{ number_format($product->reviews_avg_rating ?? 0, 1) }}</strong><span
-            class="text-muted">({{ $product->reviews_count }} تقييماً موثقاً من مشترين فعليين)</span><span class="flex items-center gap-1 text-olive"><img
-              src="{{ asset('assets/storefront/imgs/product-page/hero-authentic.svg') }}" alt="" class="h-[15px] w-[15px]">100% صناعة يدوية أصيلة</span></div>
+        {{-- PRODUCT-FIX-01: the published rating as it is (stars, average, count), or an unrated state; no fixed stars
+             and no unsupported "100% handmade" claim. --}}
+        <div class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm" data-product-rating>@if ($product->reviews_count > 0)@include('storefront.partials.rating-stars', ['rating' => $product->reviews_avg_rating, 'star' => asset('assets/storefront/imgs/product-page/hero-star.svg'), 'starClass' => 'h-[14px] w-[15px]'])<strong>{{ number_format($product->reviews_avg_rating, 1) }}</strong><span
+            class="text-muted">({{ $product->reviews_count }} تقييماً موثقاً من مشترين فعليين)</span>@else<span class="text-muted">لا توجد تقييمات بعد</span>@endif</div>
         <div class="mt-6 rounded-[24px] border border-line bg-surface p-5 shadow-sm">@if ($product->hasDiscount())<span class="mb-1 block text-sm text-muted line-through"><bdi>{{ number_format($product->price, 2) }} {{ $currency }}</bdi></span>@endif<strong
             class="block text-4xl leading-10 text-olive"><bdi>{{ number_format($product->sellingPrice(), 2) }} {{ $currency }}</bdi></strong><span
             class="text-xs text-muted">شامل الضريبة والشحن من المشغل</span>
@@ -97,7 +94,9 @@
             data-price="{{ number_format($product->sellingPrice(), 2, '.', '') }}" @disabled($product->availableStockQuantity() < 1)><i data-lucide="shopping-bag" class="h-4 w-4"></i>أضف إلى السلة</button><form hidden id="main-cart-{{ $product->id }}" method="POST" action="{{ route('customer.cart.items.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $product->id }}"><input class="product-cart-quantity" type="hidden" name="quantity" value="{{ $selectedQuantity }}"></form><button form="buy-now-{{ $product->id }}" @disabled($product->availableStockQuantity() < 1) type="submit"
             class="h-12 shrink-0 cursor-pointer rounded-2xl border border-olive bg-surface px-4 font-bold text-olive transition-[background-color,color,transform] hover:bg-olive hover:text-white active:scale-[0.98] sm:px-7">اشتري الآن</button><form hidden id="buy-now-{{ $product->id }}" method="POST" action="{{ route('customer.cart.items.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $product->id }}"><input class="product-cart-quantity" type="hidden" name="quantity" value="{{ $selectedQuantity }}"><input type="hidden" name="checkout" value="1"></form>
         </div>
-        <div class="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {{-- PRODUCT-FIX-01: only the services the platform supports (payment methods online / cod, delivery from the
+             workshop); the "serial number" and "domestic and international packaging" cards had no data behind them. --}}
+        <div class="mt-7 grid grid-cols-2 gap-3">
           <div class="flex items-center gap-2 rounded-2xl border border-line bg-surface p-3"><span
               class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-olive text-sage"><i
                 data-lucide="wallet-cards" class="h-4 w-4"></i></span>
@@ -108,18 +107,6 @@
               class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-olive text-sage"><i
                 data-lucide="truck" class="h-4 w-4"></i></span>
             <p class="text-xs"><strong class="block">شحن مباشر</strong><span class="text-[10px] text-muted">{{ $product->vendor->profile->location_name }}</span></p>
-          </div>
-          <div class="flex items-center gap-2 rounded-2xl border border-line bg-surface p-3"><span
-              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-olive text-sage"><i
-                data-lucide="badge-check" class="h-4 w-4"></i></span>
-            <p class="text-xs"><strong class="block">قطعة أصلية 100%</strong><span class="text-[10px] text-muted">برقم
-                تسلسلي من المشغل</span></p>
-          </div>
-          <div class="flex items-center gap-2 rounded-2xl border border-line bg-surface p-3"><span
-              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-olive text-sage"><i
-                data-lucide="shield" class="h-4 w-4"></i></span>
-            <p class="text-xs"><strong class="block">تغليف آمن ضد الكسر</strong><span
-                class="text-[10px] text-muted">للشحن الداخلي والخارجي</span></p>
           </div>
         </div>
         <article class="mt-6 rounded-[24px] border border-line bg-surface p-5 shadow-sm">
@@ -134,7 +121,8 @@
           <div class="mt-4 grid grid-cols-3 gap-2 border-t border-line/60 pt-3 text-center text-xs">
             <div><span class="block text-muted">التقييم</span><strong>{{ $product->vendor->published_reviews_count ? number_format($product->vendor->published_rating, 1) : '—' }} من 5</strong></div>
             <div><span class="block text-muted">الأعمال</span><strong>{{ $product->vendor->available_products_count }} منتجاً</strong></div>
-            <div><span class="block text-muted">التجهيز</span><strong>غير محدد</strong></div>
+            {{-- PRODUCT-FIX-01: the store's own preparation time (vendor_profiles.preparation_days). --}}
+            <div><span class="block text-muted">التجهيز</span><strong>{{ \App\Support\Storefront\ArabicDays::label($product->vendor->profile->preparation_days) ?? 'غير محدد' }}</strong></div>
           </div><a href="{{ route('vendors.profile', ['storeSlug' => $product->vendor->profile->slug]) }}"
             class="mt-4 flex h-10 cursor-pointer items-center justify-center rounded-2xl border border-line text-xs font-bold text-olive transition-colors hover:border-olive hover:bg-canvas">تصفح
             كافة أعمال {{ $product->vendor->profile->store_name }} <i data-lucide="chevron-left" class="me-1 h-3 w-3"></i></a>
@@ -172,7 +160,7 @@
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4"><span
               class="text-[11px] text-[#fde68a]/80">مكان الصنع</span><strong class="mt-1 block text-sm">{{ $productStoryLocation }}</strong></div>
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4"><span
-              class="text-[11px] text-[#fde68a]/80">زمن الإنجاز</span><strong class="mt-1 block text-sm">{{ $product->preparation_days !== null ? $product->preparation_days.' يوم' : ($product->vendor->profile->preparation_days !== null ? $product->vendor->profile->preparation_days.' يوم' : '—') }}</strong></div>
+              class="text-[11px] text-[#fde68a]/80">زمن الإنجاز</span><strong class="mt-1 block text-sm">{{ \App\Support\Storefront\ArabicDays::label($product->preparation_days ?? $product->vendor->profile->preparation_days) ?? '—' }}</strong></div>
           <div class="col-span-2 rounded-2xl border border-white/15 bg-white/10 p-4"><span
               class="text-[11px] text-[#fde68a]/80">طريقة العناية الموصى بها</span><strong
               class="mt-1 block text-sm">{{ $product->care_instructions ?: '—' }}</strong></div>
@@ -251,15 +239,10 @@
     <div
       class="mx-auto max-w-[1216px] rounded-[24px] border border-line bg-surface px-4 pb-8 pt-8 shadow-sm sm:px-5 sm:pb-10 sm:pt-10 lg:px-[41px] lg:pb-[41px] lg:pt-[81px]">
       <div class="grid gap-8 border-b border-line/60 pb-8 lg:grid-cols-12 lg:items-center lg:pb-[33px]">
-        <div class="lg:col-span-4"><strong class="block text-5xl font-bold leading-[48px] text-olive">{{ number_format($product->reviews_avg_rating ?? 0, 1) }}</strong>
-          <div class="mt-2 flex gap-1" aria-label="5 من 5 نجوم">
-            <img src="{{ asset('assets/storefront/imgs/product-page/review-star-large.svg') }}" alt="" class="h-4 w-[17px]">
-            <img src="{{ asset('assets/storefront/imgs/product-page/review-star-large.svg') }}" alt="" class="h-4 w-[17px]">
-            <img src="{{ asset('assets/storefront/imgs/product-page/review-star-large.svg') }}" alt="" class="h-4 w-[17px]">
-            <img src="{{ asset('assets/storefront/imgs/product-page/review-star-large.svg') }}" alt="" class="h-4 w-[17px]">
-            <img src="{{ asset('assets/storefront/imgs/product-page/review-star-large.svg') }}" alt="" class="h-4 w-[17px]">
-          </div>
-          <p class="mt-2 text-xs font-semibold leading-4 text-muted">مبني على {{ $product->reviews_count }} تقييماً موثقاً من مشترين فعليين</p>
+        {{-- PRODUCT-FIX-01: the actual published rating, or an unrated state ("—", dimmed stars). --}}
+        <div class="lg:col-span-4" data-review-summary><strong class="block text-5xl font-bold leading-[48px] text-olive">{{ $product->reviews_count > 0 ? number_format($product->reviews_avg_rating, 1) : '—' }}</strong>
+          <div class="mt-2">@include('storefront.partials.rating-stars', ['rating' => $product->reviews_count > 0 ? $product->reviews_avg_rating : null, 'star' => asset('assets/storefront/imgs/product-page/review-star-large.svg'), 'starClass' => 'h-4 w-[17px]'])</div>
+          <p class="mt-2 text-xs font-semibold leading-4 text-muted">{{ $product->reviews_count > 0 ? 'مبني على '.$product->reviews_count.' تقييماً موثقاً من مشترين فعليين' : 'لم يُقيَّم هذا المنتج بعد' }}</p>
         </div>
         <div class="space-y-2 text-xs font-medium lg:col-span-5">
           @foreach (range(5, 1) as $rating)<div class="flex items-center gap-3"><span class="w-12">{{ $rating }} نجوم</span><span
@@ -313,10 +296,11 @@
           <div class="flex w-full flex-col">
             <div class="relative h-[240px] overflow-hidden sm:h-[284px]"><img src="{{ \App\Support\Storefront\HomepageMedia::url($related->primaryImage?->path ?? $related->images->first()?->path) }}"
                 alt="{{ $related->name }}" class="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]">
-              <div class="absolute right-3 top-3 flex flex-col items-start gap-1.5"><span
-                  class="rounded-lg bg-gold px-2.5 py-0.5 text-[11px] font-bold leading-[17px] text-white shadow-sm">قطعة نادرة</span><span
+              {{-- PRODUCT-FIX-01: a badge only when the product data says so (no fixed "rare piece"). --}}
+              <div class="absolute right-3 top-3 flex flex-col items-start gap-1.5">@if ($related->is_limited_edition)<span
+                  class="rounded-lg bg-gold px-2.5 py-0.5 text-[11px] font-bold leading-[17px] text-white shadow-sm">إصدار حرفي محدود</span>@endif<span
                   class="rounded-md border border-line bg-surface/95 px-2.5 py-0.5 text-[10px] font-bold leading-[15px] text-olive backdrop-blur-sm">{{ $related->vendor->profile->store_name }}</span></div>
-              <button form="related-favorite-{{ $related->id }}" type="submit" aria-label="أضف سلة القش إلى المفضلة"
+              <button form="related-favorite-{{ $related->id }}" type="submit" aria-label="أضف {{ $related->name }} إلى المفضلة"
                 class="favorite absolute left-3 top-3 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-surface shadow-sm"><img
                   src="{{ asset('assets/storefront/imgs/product-page/related-heart.svg') }}" alt="" class="h-[14px] w-[15px]"></button><form hidden id="related-favorite-{{ $related->id }}" method="POST" action="{{ route('customer.favorites.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $related->id }}"></form>
               <button form="related-cart-{{ $related->id }}" type="submit" data-price="{{ number_format($related->sellingPrice(), 2, '.', '') }}"
@@ -331,7 +315,7 @@
               <p class="pb-3 text-xs leading-4 text-[#918f83]">{{ $related->short_description }}</p>
               <div class="mt-auto flex items-center justify-between border-t border-line/60 pt-[13px]"><span
                   class="flex items-baseline gap-1">@unless ($related->hasDiscount())<span class="text-xs text-[#918f83]">السعر:</span>@endunless @include('storefront.partials.product-price', ['product' => $related, 'priceClass' => 'text-lg font-bold leading-7 text-ink', 'regular' => 'before'])</span><span
-                  class="text-[11px] text-muted">قطعة وحيدة</span></div>
+                  class="text-[11px] text-muted">{{ max(0, $related->stock_quantity - ($related->reserved_quantity ?? 0)) > 0 ? 'متوفر' : 'غير متوفر حالياً' }}</span></div>
             </div>
           </div>
         </article>
