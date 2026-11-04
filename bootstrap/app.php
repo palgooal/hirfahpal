@@ -8,6 +8,7 @@ use App\Http\Middleware\EnsureVendorIsApproved;
 use App\Http\Middleware\SetLocale;
 use App\Support\Auth\AccountGuard;
 use App\Support\SiteAvailability\UnmatchedRequestResponse;
+use App\Support\Storefront\CartAvailability;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -16,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -86,4 +88,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // SITE-AVAILABILITY (§5.6): a request no route matched never reaches the gate; while the site is closed it gets
         // the availability response instead of the 404/405 page. Null keeps Laravel's normal rendering.
         $exceptions->render(fn (NotFoundHttpException|MethodNotAllowedHttpException $e, Request $request) => UnmatchedRequestResponse::make($request));
+        // CART-FIX-01: a browser checkout refused by the checks inside its transaction (a product's availability or
+        // stock changed after the cart was shown) goes back to the cart with an Arabic message, not a bare 422 page.
+        // The order is not created (the transaction rolled back); JSON and every other response keep Laravel's own.
+        $exceptions->render(fn (HttpException $e, Request $request) => $e->getStatusCode() === 422 && ! $request->expectsJson()
+            && $request->routeIs('customer.checkout.store')
+            ? redirect()->route('cart')->withErrors(['cart' => CartAvailability::CHANGED_DURING_CHECKOUT])
+            : null);
     })->create();

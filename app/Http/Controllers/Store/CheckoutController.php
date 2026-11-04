@@ -10,6 +10,7 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Models\VendorOrder;
 use App\Support\Orders\DeliveryAddress;
+use App\Support\Storefront\CartAvailability;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -53,6 +54,14 @@ class CheckoutController extends Controller
 
         $cart = $this->checkoutCart($request, $customer->id);
 
+        // CART-FIX-01: a browser form goes back to the cart with an Arabic message when the cart is empty or a line
+        // cannot be ordered; JSON keeps its responses. The checks below (and again under lock) stay authoritative.
+        if (! $request->expectsJson() && $cart->items->isEmpty()) {
+            return redirect()->route('cart')->withErrors(['cart' => 'السلة فارغة.']);
+        }
+        if (! $request->expectsJson() && CartAvailability::issues($cart->items) !== []) {
+            return redirect()->route('cart')->withErrors(['cart' => CartAvailability::CHECKOUT_BLOCKED]);
+        }
         abort_if($cart->items->isEmpty(), 422, 'Cart is empty.');
 
         $data['delivery_fees'] = $cart->items->pluck('product.vendor_id')->unique()

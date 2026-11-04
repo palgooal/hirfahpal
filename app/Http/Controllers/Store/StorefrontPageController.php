@@ -9,6 +9,7 @@ use App\Models\Governorate;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\Vendor;
+use App\Support\Storefront\CartAvailability;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -100,6 +101,10 @@ class StorefrontPageController extends Controller
         if ($data['cartItems']->isEmpty()) {
             return redirect()->route('cart')->withErrors(['cart' => 'السلة فارغة.']);
         }
+        // CART-FIX-01: no checkout page (and no payable total) while a cart line cannot be ordered.
+        if (! $data['checkoutReady']) {
+            return redirect()->route('cart')->withErrors(['cart' => CartAvailability::CHECKOUT_BLOCKED]);
+        }
 
         return view('pages.checkout', $data + [
             'addresses' => $request->user('customer')->addresses()->with(['city', 'governorate'])->orderByDesc('is_default')->orderBy('id')->get(),
@@ -127,10 +132,14 @@ class StorefrontPageController extends Controller
     {
         $cart = $carts->activeCart($request)->load(['items.product.vendor.profile', 'items.product.primaryImage']);
         $items = $cart->items->filter(fn ($item) => $item->product !== null);
+        // CART-FIX-01: each line that cannot be ordered as it is, and whether the cart can go to checkout.
+        $issues = CartAvailability::issues($items);
 
         return [
             'cart' => $cart,
             'cartItems' => $items,
+            'cartIssues' => $issues,
+            'checkoutReady' => $items->isNotEmpty() && $issues === [],
             'cartGroups' => $items->groupBy(fn ($item) => $item->product->vendor_id),
             'subtotal' => $items->sum(fn ($item) => $item->quantity * $item->product->sellingPrice()),
             'deliveryTotal' => $items->pluck('product.vendor_id')->unique()->count() * max(0, (float) config('marketplace.delivery_fee', 0)),

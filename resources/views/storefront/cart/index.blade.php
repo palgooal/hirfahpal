@@ -41,8 +41,9 @@
 
             <div class="divide-y divide-line/70">
               @foreach ($items as $item)
+@php($lineIssue = $cartIssues[$item->id] ?? null)
 <article class="cart-line-item grid gap-4 px-4 py-5 sm:grid-cols-[96px_minmax(0,1fr)] sm:px-5 lg:grid-cols-[104px_minmax(0,1fr)_150px]"
-                data-unit-price="{{ $item->product->sellingPrice() }}" data-max-quantity="{{ $item->product->availableStockQuantity() }}">
+                data-unit-price="{{ $item->product->sellingPrice() }}" data-max-quantity="{{ $item->product->availableStockQuantity() }}" @if ($lineIssue) data-cart-issue="{{ $lineIssue['type'] }}" @endif>
                 <a href="{{ route('product', ['slug' => $item->product->slug]) }}" class="block h-24 w-24 overflow-hidden rounded-[16px] border border-line bg-canvas sm:h-24 sm:w-24 lg:h-[104px] lg:w-[104px]">
                   <img src="{{ \App\Support\Storefront\HomepageMedia::url($item->product->primaryImage?->path) }}" alt="{{ $item->product->name }}"
                     class="h-full w-full object-cover">
@@ -50,6 +51,18 @@
                 <div class="min-w-0 text-start">
                   <h2 class="text-base font-bold leading-6 text-ink">{{ $item->product->name }}</h2>
                   <p class="mt-1 text-xs leading-5 text-muted">{{ $item->product->short_description }}</p>
+                  {{-- CART-FIX-01: why this line cannot be ordered as it is, and how to fix it (never removed for the
+                       customer). An over-stock line can be set to the available quantity in one step. --}}
+                  @if ($lineIssue)
+                    <div class="mt-3 rounded-[16px] border border-copper/20 bg-copper/10 p-3 text-xs font-semibold leading-5 text-copper" id="cart-issue-{{ $item->id }}" data-cart-issue-message>
+                      <p>{{ $lineIssue['message'] }}</p>
+                      @if ($lineIssue['type'] === \App\Support\Storefront\CartAvailability::EXCEEDS_STOCK)
+                        <button form="cart-available-{{ $item->id }}" type="submit"
+                          class="mt-2 inline-flex items-center justify-center rounded-full border border-copper/20 bg-surface px-3 py-1 text-xs font-bold text-copper transition-colors hover:bg-canvas">اعتماد الكمية المتوفرة (<bdi>{{ $lineIssue['available'] }}</bdi>)</button><form hidden id="cart-available-{{ $item->id }}" method="POST" action="{{ route('customer.cart.items.update', $item) }}">@csrf
+@method('PATCH')<input type="hidden" name="quantity" value="{{ $lineIssue['available'] }}"></form>
+                      @endif
+                    </div>
+                  @endif
                   <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:max-w-[420px]">
                     <div>
                       <span class="block text-[11px] font-semibold leading-4 text-muted">سعر القطعة</span>
@@ -58,10 +71,13 @@
                     <div>
                       <span class="block text-[11px] font-semibold leading-4 text-muted">الكمية</span>
                       <div class="mt-1 flex h-[42px] w-fit items-center overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
+                        {{-- CART-FIX-01: above the stock, "−" goes straight to the available quantity (any step in
+                             between would still be refused); an unavailable or sold-out line can only be removed. --}}
+                        @php($exceedsStock = ($lineIssue['type'] ?? null) === \App\Support\Storefront\CartAvailability::EXCEEDS_STOCK)
                         <button form="cart-minus-{{ $item->id }}" type="submit"
-                          @disabled($item->quantity <= 1) class="cart-qty-decrease flex h-full w-10 items-center justify-center text-muted transition-colors hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-40"
-                          aria-label="إنقاص الكمية"><i data-lucide="minus" class="h-4 w-4"></i></button><form hidden id="cart-minus-{{ $item->id }}" method="POST" action="{{ route('customer.cart.items.update', $item) }}">@csrf
-@method('PATCH')<input type="hidden" name="quantity" value="{{ max(1, $item->quantity - 1) }}"></form>
+                          @disabled($item->quantity <= 1 || ($lineIssue && ! $exceedsStock)) class="cart-qty-decrease flex h-full w-10 items-center justify-center text-muted transition-colors hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-40"
+                          aria-label="{{ $exceedsStock ? 'إنقاص الكمية إلى '.$lineIssue['available'] : 'إنقاص الكمية' }}" @if ($lineIssue) aria-describedby="cart-issue-{{ $item->id }}" @endif><i data-lucide="minus" class="h-4 w-4"></i></button><form hidden id="cart-minus-{{ $item->id }}" method="POST" action="{{ route('customer.cart.items.update', $item) }}">@csrf
+@method('PATCH')<input type="hidden" name="quantity" value="{{ $exceedsStock ? $lineIssue['available'] : max(1, $item->quantity - 1) }}"></form>
                         <bdi class="cart-qty flex h-full min-w-10 items-center justify-center border-s border-e border-line px-3 text-sm font-bold text-ink">{{ $item->quantity }}</bdi>
                         <button form="cart-plus-{{ $item->id }}" type="submit"
                           @disabled(!$item->product->isSellable() || $item->quantity >= $item->product->availableStockQuantity()) class="cart-qty-increase flex h-full w-10 items-center justify-center text-olive transition-colors hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-40"
@@ -109,8 +125,8 @@
 
           <div class="grid gap-3 py-5 text-sm">
             <div class="flex items-center justify-between gap-4 text-muted">
-              <span>مجموع المنتجات</span>
-              <strong class="font-bold text-ink" data-grand-total><bdi>{{ number_format($subtotal, 2) }} {{ $currency }}</bdi></strong>
+              <span>{{ $checkoutReady ? 'مجموع المنتجات' : 'مجموع السلة الحالي (يشمل منتجات تحتاج إلى معالجة)' }}</span>
+              <strong class="shrink-0 whitespace-nowrap font-bold text-ink" data-grand-total><bdi>{{ number_format($subtotal, 2) }} {{ $currency }}</bdi></strong>
             </div>
             <div class="rounded-[16px] border border-line bg-canvas p-4 text-start">
               <p class="text-xs font-semibold leading-5 text-muted">قبل تكلفة التوصيل</p>
@@ -119,6 +135,9 @@
           </div>
 
           <div class="border-t border-line pt-5">
+            {{-- CART-FIX-01: while a line cannot be ordered there is no payable total and no way to checkout, only the
+                 reason (the checkout page and the checkout itself refuse such a cart as well). --}}
+            @if ($checkoutReady)
             <div class="flex items-end justify-between gap-4">
               <span class="text-base font-bold leading-7 text-ink">المجموع الكلي</span>
               <strong class="text-2xl font-bold leading-9 text-olive" data-grand-total-display><bdi>{{ number_format($subtotal, 2) }} {{ $currency }}</bdi></strong>
@@ -128,6 +147,14 @@
               <span>متابعة إلى الدفع</span>
               <i data-lucide="credit-card" class="h-4 w-4"></i>
             </a>
+            @else
+            <p class="rounded-[16px] border border-copper/20 bg-copper/10 p-4 text-sm font-semibold leading-6 text-copper" id="cart-checkout-blocked" data-cart-checkout-blocked>{{ \App\Support\Storefront\CartAvailability::CHECKOUT_BLOCKED }}</p>
+            <button type="button" disabled aria-describedby="cart-checkout-blocked"
+              class="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-olive px-5 text-sm font-bold text-surface shadow-sm disabled:cursor-not-allowed disabled:opacity-40">
+              <span>متابعة إلى الدفع</span>
+              <i data-lucide="credit-card" class="h-4 w-4"></i>
+            </button>
+            @endif
           </div>
         </aside>
       </div>

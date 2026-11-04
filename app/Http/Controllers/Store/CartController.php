@@ -78,11 +78,24 @@ class CartController extends Controller
     {
         $data = $request->validate([
             'quantity' => ['required', 'integer', 'min:1'],
-        ]);
+        ], $request->expectsJson() ? [] : self::FORM_MESSAGES);
 
         $this->authorizeCartItem($request, $cartItem);
+
+        // CART-FIX-01: a browser form that cannot apply the change goes back to the cart with an Arabic message (as
+        // store() does since PRODUCT-FIX-02); JSON keeps its status codes and messages. Same checks, same order.
+        if (! $request->expectsJson() && ! $cartItem->product->isSellable()) {
+            return $this->refuseForm($request, self::FORM_MESSAGES['product_id.*']);
+        }
         abort_unless($cartItem->product->isSellable(), 422, 'This product is no longer available for sale.');
-        abort_if($cartItem->product->availableStockQuantity() < $data['quantity'], 422, 'Requested quantity is not available.');
+
+        $available = $cartItem->product->availableStockQuantity();
+        if ($available < $data['quantity'] && ! $request->expectsJson()) {
+            return $this->refuseForm($request, $available < 1
+                ? 'هذا المنتج غير متوفر حالياً.'
+                : 'الكمية المطلوبة غير متوفرة. المتوفر حالياً: '.$available.'.');
+        }
+        abort_if($available < $data['quantity'], 422, 'Requested quantity is not available.');
 
         $cartItem->update(['quantity' => $data['quantity']]);
 
