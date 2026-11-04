@@ -134,9 +134,11 @@ class CustomerGuestCartMergeTest extends TestCase
     {
         $customer = $this->customer();
         $guest = $this->newSession();
-        // Opening the cart page as a guest creates an empty guest cart.
-        $this->withCookie(config('session.cookie'), $guest)->getJson(route('customer.cart.show'))->assertOk();
+        // An empty guest cart: a line added, then removed (CART-FIX-02B: opening the cart no longer creates one).
+        $this->addAsGuest($guest, $this->storefrontProduct('lamp'), 1);
         $guestCartId = $this->guestCartId($guest);
+        $this->withCookie(config('session.cookie'), $guest)
+            ->deleteJson(route('customer.cart.items.destroy', Cart::find($guestCartId)->items()->sole()))->assertOk();
 
         $this->login($guest)->assertRedirect();
 

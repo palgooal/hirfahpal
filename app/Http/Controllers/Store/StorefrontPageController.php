@@ -11,6 +11,7 @@ use App\Models\ProductImage;
 use App\Models\Vendor;
 use App\Support\Storefront\CartAvailability;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -130,8 +131,10 @@ class StorefrontPageController extends Controller
 
     private function cartData(Request $request, CartController $carts): array
     {
-        $cart = $carts->activeCart($request)->load(['items.product.vendor.profile', 'items.product.primaryImage']);
-        $items = $cart->items->filter(fn ($item) => $item->product !== null);
+        // CART-FIX-02B: the cart and checkout pages only read the cart: no cart is created and no guest cart merged on
+        // a GET; without a cart they show the empty state (the checkout page sends an empty cart back to the cart).
+        $cart = $carts->findActiveCart($request)?->load(['items.product.vendor.profile', 'items.product.primaryImage']);
+        $items = ($cart?->items ?? new EloquentCollection)->filter(fn ($item) => $item->product !== null);
         // CART-FIX-01: each line that cannot be ordered as it is, and whether the cart can go to checkout.
         $issues = CartAvailability::issues($items);
 

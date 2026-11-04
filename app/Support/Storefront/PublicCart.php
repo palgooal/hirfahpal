@@ -21,9 +21,18 @@ class PublicCart
         'items.product.primaryImage',
     ];
 
-    /** @return array<string, mixed> */
-    public static function cart(Cart $cart): array
+    /**
+     * CART-FIX-02B: with no cart (nothing created on a read), the same keys: a null id, the requester's customer id
+     * (null for a guest), the active status and no items.
+     *
+     * @return array<string, mixed>
+     */
+    public static function cart(?Cart $cart, ?int $customerId = null): array
     {
+        if ($cart === null) {
+            return ['id' => null, 'customer_id' => $customerId, 'status' => 'active', 'items' => []];
+        }
+
         $cart->loadMissing(self::RELATIONS);
 
         return [

@@ -20,7 +20,8 @@ class CartController extends Controller
     public function show(Request $request): JsonResponse
     {
         // CART-SEC-01: every cart JSON response is the PublicCart allow-list, never the raw models.
-        return response()->json(PublicCart::cart($this->activeCart($request)));
+        // CART-FIX-02B: reading the cart creates and merges nothing; with no cart yet, an empty one with a null id.
+        return response()->json(PublicCart::cart($this->findActiveCart($request), $request->user('customer')?->id));
     }
 
     /** PRODUCT-FIX-02: the Arabic messages of a browser form's refused add-to-cart (JSON keeps the default ones). */
@@ -114,6 +115,20 @@ class CartController extends Controller
     private function refuseForm(Request $request, string $message): RedirectResponse
     {
         return back()->withErrors(['cart' => $message])->withInput($request->only('quantity'));
+    }
+
+    /**
+     * CART-FIX-02B: the active cart of this customer or guest session, if there is one, for requests that only read
+     * it (the cart and checkout pages, the cart JSON): the same match as activeCart(), but nothing is created and no
+     * guest cart is merged. Writes (add, update, remove), login and registration still use activeCart() / the merger.
+     */
+    public function findActiveCart(Request $request): ?Cart
+    {
+        if ($customer = $request->user('customer')) {
+            return Cart::query()->where('customer_id', $customer->id)->where('status', 'active')->first();
+        }
+
+        return Cart::query()->where('session_id', $request->session()->getId())->where('status', 'active')->first();
     }
 
     public function activeCart(Request $request): Cart
