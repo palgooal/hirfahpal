@@ -34,6 +34,8 @@ class GuestCartMerger
      * locked FOR UPDATE and must still be an active guest cart, so a second call (a repeated request, a parallel
      * login of the same session) finds it abandoned and changes nothing. An empty guest cart creates no customer
      * cart. The guest cart is marked abandoned, never deleted, in the same transaction as the merged lines.
+     * CART-FIX-02C: its callers hold the cart locks (CartController::activeCart() under CartLock::forRequest(),
+     * mergeAfterAuthentication() under CartLock::forMerge()), so it never interleaves with a write to either cart.
      *
      * @return bool whether anything was merged
      */
@@ -92,7 +94,11 @@ class GuestCartMerger
         }
 
         try {
-            $this->merge($guestCartId, $customer);
+            // CART-FIX-02C: holding the customer's cart lock, then the lock of the guest cart's (pre-login) session, so
+            // the merge never interleaves with an add to either cart. A lock not obtained in time is reported like any
+            // failed merge: the guest cart stays as it is and is merged by the customer's next cart write.
+            CartLock::forMerge($customer, Cart::query()->whereKey($guestCartId)->value('session_id'),
+                fn () => $this->merge($guestCartId, $customer));
         } catch (Throwable $exception) {
             report($exception);
         }
