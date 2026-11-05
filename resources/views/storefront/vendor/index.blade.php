@@ -39,9 +39,10 @@
               <bdi class="block text-lg font-bold leading-7 text-olive">{{ $vendor->available_products_count }}</bdi>
               <span class="text-[11px] leading-4 text-muted">منتج معتمد</span>
             </div>
+            {{-- VP-DATA-02B: the store's own preparation time (vendor_profiles.preparation_days), never a product's. --}}
             <div class="border-s border-e border-line/70">
-              <bdi class="block text-lg font-bold leading-7 text-olive">—</bdi>
-              <span class="text-[11px] leading-4 text-muted">أيام تجهيز</span>
+              <bdi class="block text-lg font-bold leading-7 text-olive">{{ \App\Support\Storefront\ArabicDays::label($vendor->profile->preparation_days) ?? 'غير محددة' }}</bdi>
+              <span class="text-[11px] leading-4 text-muted">مدة التجهيز</span>
             </div>
             <div>
               <bdi class="block text-lg font-bold leading-7 text-olive">{{ $vendor->published_reviews_count }}</bdi>
