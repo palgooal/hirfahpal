@@ -1,4 +1,6 @@
-    <section class="bg-canvas px-4 py-12 sm:py-16 lg:h-[689.5px] lg:px-8" data-node-id="223:409">
+    {{-- VP-FIDELITY-02A: the approved section and card heights are minimums, so a longer title or a wrapped price
+         row grows the card (and the section with it) instead of being cut off or running into the next section. --}}
+    <section class="bg-canvas px-4 py-12 sm:py-16 lg:min-h-[689.5px] lg:px-8" data-node-id="223:409">
       <div
         class="reveal opacity-100 translate-y-0 transition-[opacity,transform] duration-[650ms] ease-out sm:translate-y-[22px] sm:opacity-0 motion-reduce:sm:translate-y-0 motion-reduce:sm:opacity-100 mx-auto flex max-w-[1216px] flex-col gap-8">
         <div class="flex items-end justify-between border-b border-line pb-[17px]" data-node-id="223:410">
@@ -15,7 +17,7 @@
           data-node-id="223:422">
           @forelse ($newProducts as $product)
           <article data-product-id="{{ $product->id }}"
-            class="product-card [&_img]:transition-transform [&_img]:duration-500 [&_img]:ease-out hover:[&_img]:scale-[1.045] group flex h-[451px] flex-col overflow-hidden rounded-[24px] border border-line bg-surface p-px"
+            class="product-card [&_img]:transition-transform [&_img]:duration-500 [&_img]:ease-out hover:[&_img]:scale-[1.045] group flex min-h-[451px] flex-col overflow-hidden rounded-[24px] border border-line bg-surface p-px"
             data-node-id="223:543">
             <div class="relative h-[284px] shrink-0 overflow-hidden"><img src="{{ \App\Support\Storefront\HomepageMedia::url($product->primaryImage?->path ?? $product->images->first()?->path) }}"
                 alt="{{ $product->primaryImage?->alt_text ?: $product->name }}" class="h-full w-full object-cover"><span
@@ -30,12 +32,12 @@
               <div class="flex justify-start pb-3"><span
                   class="flex items-center gap-1 rounded-lg bg-line/50 px-2 py-0.5 text-xs font-bold leading-4 text-olive">{{ $product->vendor->profile->store_name }}<img src="{{ asset('assets/storefront/imgs/mcp/arrival-shop.svg') }}" alt=""
                     class="h-[10.354px] w-[11.584px]"></span></div>
-              <a href="{{ route('product', ['slug' => $product->slug]) }}"><h3 class="pb-2 text-right text-base font-bold leading-6">{{ $product->name }}</h3></a>
+              <a href="{{ route('product', ['slug' => $product->slug]) }}"><h3 class="pb-2 text-right text-base font-bold leading-6 wrap-anywhere">{{ $product->name }}</h3></a>
               <div class="flex items-center justify-end gap-1 pb-3"><span
                   class="text-[11px] leading-4 text-[#918f83]">({{ $product->reviews_count }})</span><bdi
                   class="text-xs font-bold leading-4">{{ number_format($product->reviews_avg_rating ?? 0, 1) }}</bdi><img src="{{ asset('assets/storefront/imgs/mcp/arrival-star.svg') }}" alt=""
                   class="h-[11.083px] w-[11.667px]"></div>
-              <div class="mt-auto flex items-center justify-between border-t border-line/60 pt-[13px]">@include('storefront.partials.product-price', ['priceClass' => 'text-lg font-bold leading-7'])<span
+              <div class="mt-auto flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-t border-line/60 pt-[13px]">@include('storefront.partials.product-price', ['priceClass' => 'text-lg font-bold leading-7'])<span
                   class="rounded-md bg-sage px-2 py-0.5 text-[11px] font-medium leading-[16.5px] text-surface">{{ $homeContent['new-arrivals_text_6'] }}</span></div>
             </div>
           </article>
