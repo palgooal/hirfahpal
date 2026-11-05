@@ -11,6 +11,8 @@
     $vendor = auth('vendor')->user();
     $storeName = filled($vendor->profile?->store_name) ? $vendor->profile->store_name : $vendor->name;
     $initial = mb_strtoupper(mb_substr(trim($storeName), 0, 1));
+    // MYSTORE-UX-01C: the stored logo, shown at once in the identity card (as the dashboard shell shows it).
+    $logoUrl = filled($vendor->profile?->logo) ? \Illuminate\Support\Facades\Storage::disk('public')->url($vendor->profile->logo) : null;
 
     $i18n = [
         'saving' => t('vendor.My_Store_Saving', 'Saving…'),
@@ -23,6 +25,8 @@
         'required' => t('vendor.My_Store_Error_Required', 'This field is required.'),
         'tooLong' => t('vendor.My_Store_Error_Too_Long', 'This text is longer than allowed.'),
         'invalid' => t('vendor.My_Store_Error_Invalid', 'Please check this value.'),
+        // MYSTORE-UX-01D: shown in the save bar while profile changes are unsaved.
+        'unsaved' => t('vendor.My_Store_Unsaved', 'You have unsaved changes'),
         // MYSTORE-UI-01C: the logo section's messages ("Uploading…" and "Saving…" are the product gallery's).
         'logoUploading' => t('vendor.Product_Gallery_Uploading', 'Uploading…'),
         'logoSaving' => t('vendor.Product_Gallery_Saving', 'Saving…'),
@@ -70,18 +74,6 @@
         <li class="breadcrumb-item" aria-current="page">{{ t('vendor.Nav_My_Store', 'My Store') }}</li>
     </x-slot:breadcrumbs>
 
-    <div class="col-span-12">
-        <section class="card vendor-welcome-card vendor-store-identity" aria-labelledby="vendor-store-identity-title">
-            <div class="card-body">
-                <span class="vendor-monogram vendor-monogram-lg" aria-hidden="true">{{ $initial }}</span>
-                <div class="vendor-store-identity-text">
-                    <p id="vendor-store-identity-title" class="vendor-welcome-eyebrow">{{ t('vendor.My_Store_Identity', 'Store identity') }}</p>
-                    <p class="vendor-welcome-name"><bdi>{{ $storeName }}</bdi></p>
-                </div>
-            </div>
-        </section>
-    </div>
-
     <div
         class="col-span-12 vendor-store"
         data-vendor-my-store
@@ -106,109 +98,134 @@
         <form class="vendor-store-form" data-store-form novalidate aria-busy="true">
             @csrf
 
-            <section class="card vendor-form-card" aria-labelledby="vendor-store-info-title">
-                <div class="card-body">
-                    <h2 id="vendor-store-info-title" class="vendor-section-title">{{ t('vendor.My_Store_Info', 'Store information') }}</h2>
+            {{-- MYSTORE-UX-01E: what the asterisk means (the required inputs also carry "required" for assistive tech). --}}
+            <p class="vendor-required-legend">{{ t('vendor.My_Store_Required_Legend', 'Fields marked * are required.') }}</p>
 
-                    <div class="vendor-field">
-                        <label class="vendor-label" for="vendor-field-store-name">{{ t('vendor.Store_Name', 'Store name') }} <span class="vendor-required" aria-hidden="true">*</span></label>
-                        <input class="vendor-input" id="vendor-field-store-name" name="store_name" type="text" maxlength="255" required dir="auto" autocomplete="organization" disabled aria-describedby="vendor-error-store_name">
-                        <p class="vendor-field-error" id="vendor-error-store_name" data-error-for="store_name" hidden></p>
-                    </div>
+            {{-- MYSTORE-UX-01B: two columns from 1024px (the main column first, on the start side in RTL), one
+                 column below. Main: store information and location; supporting: the logo and the account. --}}
+            <div class="vendor-store-layout">
+                <div class="vendor-store-main">
+                    <section class="card vendor-form-card" aria-labelledby="vendor-store-info-title">
+                        <div class="card-body">
+                            <h2 id="vendor-store-info-title" class="vendor-section-title">{{ t('vendor.My_Store_Info', 'Store information') }}</h2>
 
-                    <div class="vendor-field">
-                        <div class="vendor-label-row">
-                            <label class="vendor-label" for="vendor-field-short-description">{{ t('vendor.My_Store_Short_Description', 'Short description') }}</label>
-                            <span class="vendor-counter" data-counter-for="short_description" aria-hidden="true"><bdi>0 / 255</bdi></span>
+                            <div class="vendor-field">
+                                <label class="vendor-label" for="vendor-field-store-name">{{ t('vendor.Store_Name', 'Store name') }} <span class="vendor-required" aria-hidden="true">*</span></label>
+                                <input class="vendor-input" id="vendor-field-store-name" name="store_name" type="text" maxlength="255" required dir="auto" autocomplete="organization" disabled aria-describedby="vendor-error-store_name">
+                                <p class="vendor-field-error" id="vendor-error-store_name" data-error-for="store_name" hidden></p>
+                            </div>
+
+                            <div class="vendor-field">
+                                <div class="vendor-label-row">
+                                    <label class="vendor-label" for="vendor-field-short-description">{{ t('vendor.My_Store_Short_Description', 'Short description') }}</label>
+                                    <span class="vendor-counter" data-counter-for="short_description" aria-hidden="true"><bdi>0 / 255</bdi></span>
+                                </div>
+                                {{-- maxlength 255 guards the column length (VEN-BE-016); the backend stays authoritative. --}}
+                                <input class="vendor-input" id="vendor-field-short-description" name="short_description" type="text" maxlength="255" dir="auto" disabled aria-describedby="vendor-error-short_description">
+                                <p class="vendor-field-error" id="vendor-error-short_description" data-error-for="short_description" hidden></p>
+                            </div>
+
+                            <div class="vendor-field">
+                                <label class="vendor-label" for="vendor-field-description">{{ t('vendor.My_Store_Description', 'Description') }}</label>
+                                <textarea class="vendor-input vendor-textarea" id="vendor-field-description" name="description" rows="5" dir="auto" disabled aria-describedby="vendor-error-description"></textarea>
+                                <p class="vendor-field-error" id="vendor-error-description" data-error-for="description" hidden></p>
+                            </div>
+
+                            <div class="vendor-field vendor-field-narrow">
+                                <label class="vendor-label" for="vendor-field-preparation-days">{{ t('vendor.My_Store_Preparation_Days', 'Preparation days') }}</label>
+                                <p class="vendor-field-hint" id="vendor-hint-preparation_days">{{ t('vendor.My_Store_Preparation_Days_Hint', 'Your usual time to prepare an order before shipping, in days (0 to 365).') }}</p>
+                                <input class="vendor-input" id="vendor-field-preparation-days" name="preparation_days" type="number" min="0" max="365" inputmode="numeric" disabled aria-describedby="vendor-hint-preparation_days vendor-error-preparation_days">
+                                <p class="vendor-field-error" id="vendor-error-preparation_days" data-error-for="preparation_days" hidden></p>
+                            </div>
                         </div>
-                        {{-- maxlength 255 guards the column length (VEN-BE-016); the backend stays authoritative. --}}
-                        <input class="vendor-input" id="vendor-field-short-description" name="short_description" type="text" maxlength="255" dir="auto" disabled aria-describedby="vendor-error-short_description">
-                        <p class="vendor-field-error" id="vendor-error-short_description" data-error-for="short_description" hidden></p>
-                    </div>
+                    </section>
 
-                    <div class="vendor-field">
-                        <label class="vendor-label" for="vendor-field-description">{{ t('vendor.My_Store_Description', 'Description') }}</label>
-                        <textarea class="vendor-input vendor-textarea" id="vendor-field-description" name="description" rows="5" dir="auto" disabled aria-describedby="vendor-error-description"></textarea>
-                        <p class="vendor-field-error" id="vendor-error-description" data-error-for="description" hidden></p>
-                    </div>
+                    <section class="card vendor-form-card" aria-labelledby="vendor-store-location-title">
+                        <div class="card-body">
+                            <h2 id="vendor-store-location-title" class="vendor-section-title">{{ t('vendor.My_Store_Location', 'Location') }}</h2>
+
+                            {{-- Display only (VEN-BE-024). --}}
+                            <dl class="vendor-readonly vendor-readonly-pair">
+                                <div class="vendor-readonly-row">
+                                    <dt>{{ t('vendor.My_Store_Governorate', 'Governorate') }}</dt>
+                                    <dd data-readonly="governorate"><span class="vendor-skeleton vendor-skeleton-meta"></span></dd>
+                                </div>
+                                <div class="vendor-readonly-row">
+                                    <dt>{{ t('vendor.My_Store_City', 'City') }}</dt>
+                                    <dd data-readonly="city"><span class="vendor-skeleton vendor-skeleton-meta"></span></dd>
+                                </div>
+                            </dl>
+                            {{-- MYSTORE-UX-01E: once per read-only block (location here, account below: separate cards). --}}
+                            <p class="vendor-readonly-hint"><i class="ph-duotone ph-lock-simple" aria-hidden="true"></i><span>{{ t('vendor.My_Store_Readonly_Hint', 'These details cannot be edited on this page.') }}</span></p>
+
+                            <div class="vendor-field">
+                                <label class="vendor-label" for="vendor-field-address-line">{{ t('vendor.My_Store_Address', 'Address') }}</label>
+                                <input class="vendor-input" id="vendor-field-address-line" name="address_line" type="text" maxlength="255" dir="auto" autocomplete="street-address" disabled aria-describedby="vendor-error-address_line">
+                                <p class="vendor-field-error" id="vendor-error-address_line" data-error-for="address_line" hidden></p>
+                            </div>
+                        </div>
+                    </section>
                 </div>
-            </section>
+                <div class="vendor-store-side">
+                    {{-- MYSTORE-UX-01C: the store identity and its logo in one card (the copper start accent of the
+                         dashboard's welcome card). The stored logo, or the store name's first letter when there is none;
+                         the logo is chosen (or uploaded) in the shared media library picker below the form. --}}
+                    <section class="card vendor-form-card vendor-store-identity-card" aria-labelledby="vendor-store-identity-title">
+                        <div class="card-body">
+                            <h2 id="vendor-store-identity-title" class="vendor-section-title">{{ t('vendor.My_Store_Identity', 'Store identity') }}</h2>
+                            <div class="vendor-store-identity-head">
+                                <span class="vendor-store-logo-frame">
+                                    <img class="vendor-store-logo-preview" data-store-logo @if ($logoUrl) src="{{ $logoUrl }}" @else hidden @endif alt="{{ t('vendor.My_Store_Logo', 'Store logo') }}" width="96" height="96">
+                                    <span class="vendor-store-logo-fallback" data-store-logo-fallback aria-hidden="true" @if ($logoUrl) hidden @endif>{{ $initial }}</span>
+                                </span>
+                                <p class="vendor-store-identity-name"><bdi>{{ $storeName }}</bdi></p>
+                            </div>
+                            <p class="vendor-field-hint" id="vendor-store-logo-hint">{{ t('vendor.My_Store_Logo_Hint', 'Choose an image from your media library to appear next to your store name in the vendor dashboard. Removing the logo does not delete the image from the library.') }}</p>
+                            <div class="vendor-store-logo-row">
+                                <button class="btn vendor-store-logo-button" type="button" data-store-logo-pick aria-describedby="vendor-store-logo-hint" aria-haspopup="dialog" disabled>
+                                    <i class="ph-duotone ph-images" aria-hidden="true"></i>
+                                    <span>{{ t('vendor.My_Store_Logo_Choose', 'Choose from media library') }}</span>
+                                </button>
+                                <button class="btn vendor-store-logo-button vendor-store-logo-delete" type="button" data-store-logo-delete hidden>
+                                    <i class="ph-duotone ph-x-circle" aria-hidden="true"></i>
+                                    <span>{{ t('vendor.My_Store_Logo_Remove', 'Remove logo') }}</span>
+                                </button>
+                            </div>
+                            <p class="vendor-form-status" data-store-logo-status role="status" aria-live="polite"></p>
+                        </div>
+                    </section>
 
-            <section class="card vendor-form-card" aria-labelledby="vendor-store-logo-title">
-                <div class="card-body">
-                    <h2 id="vendor-store-logo-title" class="vendor-section-title">{{ t('vendor.My_Store_Logo', 'Store logo') }}</h2>
-                    <p class="vendor-field-hint" id="vendor-store-logo-hint">{{ t('vendor.My_Store_Logo_Hint', 'Choose an image from your media library to appear next to your store name in the vendor dashboard. Removing the logo does not delete the image from the library.') }}</p>
-                    {{-- MYSTORE-UI-01C: the logo is chosen (or uploaded) in the shared media library picker below the form. --}}
-                    <div class="vendor-store-logo-row">
-                        <img class="vendor-store-logo-preview" data-store-logo hidden alt="" width="72" height="72">
-                        <button class="btn vendor-store-logo-button" type="button" data-store-logo-pick aria-describedby="vendor-store-logo-hint" aria-haspopup="dialog" disabled>
-                            <i class="ph-duotone ph-images" aria-hidden="true"></i>
-                            <span>{{ t('vendor.My_Store_Logo_Choose', 'Choose from media library') }}</span>
-                        </button>
-                        <button class="btn vendor-store-logo-button vendor-store-logo-delete" type="button" data-store-logo-delete hidden>
-                            <i class="ph-duotone ph-x-circle" aria-hidden="true"></i>
-                            <span>{{ t('vendor.My_Store_Logo_Remove', 'Remove logo') }}</span>
-                        </button>
-                    </div>
-                    <p class="vendor-form-status" data-store-logo-status role="status" aria-live="polite"></p>
+                    <section class="card vendor-form-card" aria-labelledby="vendor-store-account-title">
+                        <div class="card-body">
+                            <h2 id="vendor-store-account-title" class="vendor-section-title">{{ t('vendor.My_Store_Account', 'Account information') }}</h2>
+
+                            <div class="vendor-field">
+                                <label class="vendor-label" for="vendor-field-name">{{ t('vendor.My_Store_Full_Name', 'Full name') }} <span class="vendor-required" aria-hidden="true">*</span></label>
+                                <input class="vendor-input" id="vendor-field-name" name="name" type="text" maxlength="255" required dir="auto" autocomplete="name" disabled aria-describedby="vendor-error-name">
+                                <p class="vendor-field-error" id="vendor-error-name" data-error-for="name" hidden></p>
+                            </div>
+
+                            {{-- Display only (VEN-BE-016). --}}
+                            <dl class="vendor-readonly">
+                                <div class="vendor-readonly-row">
+                                    <dt>{{ t('vendor.My_Store_Email', 'Email') }}</dt>
+                                    <dd data-readonly="email"><span class="vendor-skeleton vendor-skeleton-meta"></span></dd>
+                                </div>
+                                <div class="vendor-readonly-row">
+                                    <dt>{{ t('vendor.My_Store_Phone', 'Phone') }}</dt>
+                                    <dd data-readonly="phone"><span class="vendor-skeleton vendor-skeleton-meta"></span></dd>
+                                </div>
+                            </dl>
+                            <p class="vendor-readonly-hint"><i class="ph-duotone ph-lock-simple" aria-hidden="true"></i><span>{{ t('vendor.My_Store_Readonly_Hint', 'These details cannot be edited on this page.') }}</span></p>
+                        </div>
+                    </section>
                 </div>
-            </section>
+            </div>
 
-            <section class="card vendor-form-card" aria-labelledby="vendor-store-location-title">
-                <div class="card-body">
-                    <h2 id="vendor-store-location-title" class="vendor-section-title">{{ t('vendor.My_Store_Location', 'Location') }}</h2>
-
-                    {{-- Display only (VEN-BE-024). --}}
-                    <dl class="vendor-readonly">
-                        <div class="vendor-readonly-row">
-                            <dt>{{ t('vendor.My_Store_Governorate', 'Governorate') }}</dt>
-                            <dd data-readonly="governorate"><span class="vendor-skeleton vendor-skeleton-meta"></span></dd>
-                        </div>
-                        <div class="vendor-readonly-row">
-                            <dt>{{ t('vendor.My_Store_City', 'City') }}</dt>
-                            <dd data-readonly="city"><span class="vendor-skeleton vendor-skeleton-meta"></span></dd>
-                        </div>
-                    </dl>
-
-                    <div class="vendor-field">
-                        <label class="vendor-label" for="vendor-field-address-line">{{ t('vendor.My_Store_Address', 'Address') }}</label>
-                        <input class="vendor-input" id="vendor-field-address-line" name="address_line" type="text" maxlength="255" dir="auto" autocomplete="street-address" disabled aria-describedby="vendor-error-address_line">
-                        <p class="vendor-field-error" id="vendor-error-address_line" data-error-for="address_line" hidden></p>
-                    </div>
-                    <div class="vendor-field">
-                        <label class="vendor-label" for="vendor-field-preparation-days">{{ t('vendor.My_Store_Preparation_Days', 'Preparation days') }}</label>
-                        <p class="vendor-field-hint" id="vendor-hint-preparation_days">{{ t('vendor.My_Store_Preparation_Days_Hint', 'Your usual time to prepare an order before shipping, in days (0 to 365).') }}</p>
-                        <input class="vendor-input" id="vendor-field-preparation-days" name="preparation_days" type="number" min="0" max="365" inputmode="numeric" disabled aria-describedby="vendor-hint-preparation_days vendor-error-preparation_days">
-                        <p class="vendor-field-error" id="vendor-error-preparation_days" data-error-for="preparation_days" hidden></p>
-                    </div>
-                </div>
-            </section>
-
-            <section class="card vendor-form-card" aria-labelledby="vendor-store-account-title">
-                <div class="card-body">
-                    <h2 id="vendor-store-account-title" class="vendor-section-title">{{ t('vendor.My_Store_Account', 'Account information') }}</h2>
-
-                    <div class="vendor-field">
-                        <label class="vendor-label" for="vendor-field-name">{{ t('vendor.My_Store_Full_Name', 'Full name') }} <span class="vendor-required" aria-hidden="true">*</span></label>
-                        <input class="vendor-input" id="vendor-field-name" name="name" type="text" maxlength="255" required dir="auto" autocomplete="name" disabled aria-describedby="vendor-error-name">
-                        <p class="vendor-field-error" id="vendor-error-name" data-error-for="name" hidden></p>
-                    </div>
-
-                    {{-- Display only (VEN-BE-016). --}}
-                    <dl class="vendor-readonly">
-                        <div class="vendor-readonly-row">
-                            <dt>{{ t('vendor.My_Store_Email', 'Email') }}</dt>
-                            <dd data-readonly="email"><span class="vendor-skeleton vendor-skeleton-meta"></span></dd>
-                        </div>
-                        <div class="vendor-readonly-row">
-                            <dt>{{ t('vendor.My_Store_Phone', 'Phone') }}</dt>
-                            <dd data-readonly="phone"><span class="vendor-skeleton vendor-skeleton-meta"></span></dd>
-                        </div>
-                    </dl>
-                </div>
-            </section>
-
+            {{-- MYSTORE-UX-01D: the save bar stays in view (sticky at the bottom of the viewport while the form is on
+                 screen); the unsaved-changes line is filled only while profile changes are unsaved. --}}
             <div class="vendor-form-actions">
+                <p class="vendor-unsaved" data-store-unsaved role="status" aria-live="polite"></p>
                 <p class="vendor-form-status" data-store-status role="status" aria-live="polite"></p>
                 <button type="submit" class="vendor-save-button" data-store-save disabled>
                     <span data-save-label>{{ t('vendor.My_Store_Save', 'Save changes') }}</span>

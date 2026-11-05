@@ -346,6 +346,11 @@ class VendorDashboardTranslationSeeder extends Seeder
         // MYSTORE-UI-01D: the My Store logo section's Remove button (the logo is cleared; the image stays).
         'vendor.My_Store_Logo_Remove' => ['ar' => 'إزالة الشعار', 'en' => 'Remove logo'],
         'vendor.Delete' => ['ar' => 'حذف', 'en' => 'Delete'],
+        // MYSTORE-UX-01D: the save bar's unsaved-changes line.
+        'vendor.My_Store_Unsaved' => ['ar' => 'لديك تغييرات غير محفوظة', 'en' => 'You have unsaved changes'],
+        // MYSTORE-UX-01E: the hint under the read-only blocks and the required-fields legend.
+        'vendor.My_Store_Readonly_Hint' => ['ar' => 'هذه البيانات غير قابلة للتعديل من هذه الصفحة.', 'en' => 'These details cannot be edited on this page.'],
+        'vendor.My_Store_Required_Legend' => ['ar' => 'الحقول المعلَّمة بـ * مطلوبة.', 'en' => 'Fields marked * are required.'],
         'vendor.My_Store_Preparation_Days' => ['ar' => 'مدة التجهيز (بالأيام)', 'en' => 'Preparation days'],
         'vendor.My_Store_Preparation_Days_Hint' => [
             'ar' => 'المدة المعتادة لتجهيز الطلب قبل شحنه، بالأيام (من 0 إلى 365).',

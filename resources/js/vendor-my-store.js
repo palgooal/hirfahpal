@@ -110,6 +110,7 @@ function initMyStore() {
     const token = form.querySelector('input[name="_token"]').value;
     const defaultSaveLabel = saveLabel.textContent;
     const logo = root.querySelector('[data-store-logo]');
+    const logoFallback = root.querySelector('[data-store-logo-fallback]');
     const logoPick = root.querySelector('[data-store-logo-pick]');
     const logoDelete = root.querySelector('[data-store-logo-delete]');
     const logoStatus = root.querySelector('[data-store-logo-status]');
@@ -123,6 +124,22 @@ function initMyStore() {
     let logoBusy = false;
     // The stored path of the current logo (from the profile read), to mark it in the picker.
     let logoPath = null;
+
+    // MYSTORE-UX-01D: unsaved changes are the editable profile fields that differ from the values read (or last
+    // saved). The logo (its own endpoint) and the media picker are not form fields and never count. The indicator is
+    // a polite status whose text changes only when the state flips, so it is announced once, not on every keystroke.
+    const unsaved = root.querySelector('[data-store-unsaved]');
+    let loaded = null;
+    let shownDirty = false;
+    const currentValues = () => Object.fromEntries(Object.keys(EDITABLE).map((name) => [name, field(name).value]));
+    const isDirty = () => loaded !== null && Object.keys(EDITABLE).some((name) => field(name).value !== loaded[name]);
+    const updateUnsaved = () => {
+        const dirty = isDirty();
+        if (dirty !== shownDirty) {
+            shownDirty = dirty;
+            unsaved.textContent = dirty ? i18n.unsaved : '';
+        }
+    };
 
     const setStatus = (message, tone = '') => {
         status.textContent = message;
@@ -190,8 +207,10 @@ function initMyStore() {
         target.replaceChildren(text);
     };
 
+    // MYSTORE-UX-01C: the identity card shows the logo, or the store name's letter when there is none.
     const showLogo = (url) => {
         if (isString(url) && url !== '') { logo.src = url; logo.hidden = false; logoDelete.hidden = false; } else { logo.removeAttribute('src'); logo.hidden = true; logoDelete.hidden = true; }
+        logoFallback.hidden = !logo.hidden;
     };
 
     const showLoading = () => {
@@ -206,6 +225,8 @@ function initMyStore() {
     const showLoadError = () => {
         root.dataset.state = 'load-error';
         preserved = null;
+        loaded = null; // nothing can be saved: nothing is unsaved
+        updateUnsaved();
         form.hidden = true;
         loadError.hidden = false;
         setFieldsEnabled(false);
@@ -239,6 +260,8 @@ function initMyStore() {
             showLogo(responsePayload?.media?.logo_url ?? null);
             logoPath = isString(responsePayload?.vendor?.profile?.logo) ? responsePayload.vendor.profile.logo : null;
             updateCounter();
+            loaded = currentValues();
+            updateUnsaved();
 
             preserved = profile.preserved;
             root.dataset.state = 'ready';
@@ -332,7 +355,10 @@ function initMyStore() {
         }
 
         if (response.ok) {
-            // Confirmed by the server: reload so the page and the shell show the saved values.
+            // Confirmed by the server: reload so the page and the shell show the saved values. The saved values are
+            // the new reference first, so the reload is never held by the unsaved-changes warning.
+            loaded = currentValues();
+            updateUnsaved();
             setStatus(i18n.saved, 'success');
             window.setTimeout(() => window.location.reload(), 900);
 
@@ -390,6 +416,16 @@ function initMyStore() {
 
         if (name === 'short_description') {
             updateCounter();
+        }
+
+        updateUnsaved();
+    });
+
+    // MYSTORE-UX-01D: the browser's own leave-page warning, only while profile changes are unsaved.
+    window.addEventListener('beforeunload', (event) => {
+        if (isDirty()) {
+            event.preventDefault();
+            event.returnValue = '';
         }
     });
 

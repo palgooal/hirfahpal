@@ -11,6 +11,7 @@ use Database\Seeders\VendorAuthTranslationSeeder;
 use Database\Seeders\VendorDashboardTranslationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
@@ -217,7 +218,7 @@ class VendorMyStorePageTest extends TestCase
 
         $this->assertSame([
             'saving', 'saved', 'notSpecified', 'fixErrors', 'saveError', 'sessionError', 'accessError', 'required', 'tooLong', 'invalid',
-            'logoUploading', 'logoSaving', 'logoUploaded', 'logoUploadFailed', 'logoConfirmDelete', 'logoDeleted', 'logoDeleteFailed',
+            'unsaved', 'logoUploading', 'logoSaving', 'logoUploaded', 'logoUploadFailed', 'logoConfirmDelete', 'logoDeleted', 'logoDeleteFailed',
         ], array_keys($i18n));
         $this->assertSame('غير محدد', $i18n['notSpecified']);
         $this->assertSame('تم حفظ التغييرات بنجاح.', $i18n['saved']);
@@ -278,9 +279,9 @@ class VendorMyStorePageTest extends TestCase
         // Choose: opens the picker dialog, described by the hint, disabled until the profile is loaded.
         $this->assertMatchesRegularExpression('/<button\b[^>]*data-store-logo-pick[^>]*aria-describedby="vendor-store-logo-hint"[^>]*aria-haspopup="dialog"[^>]*disabled>/', $html);
         $this->assertStringContainsString('id="vendor-store-logo-hint"', $html);
-        // Remove is hidden until a logo is shown; the preview starts hidden too.
+        // Remove is hidden until a logo is shown; without a logo the preview is hidden too (the letter shows).
         $this->assertMatchesRegularExpression('/<button\b[^>]*data-store-logo-delete hidden>/', $html);
-        $this->assertMatchesRegularExpression('/<img\b[^>]*data-store-logo hidden\b/', $html);
+        $this->assertMatchesRegularExpression('/<img\b[^>]*data-store-logo\s+hidden\b/', $html);
         // The shared picker (one dialog, outside the profile form) with the library's endpoints; one file per upload.
         $this->assertSame(1, substr_count($html, '<dialog class="vendor-media-dialog vendor-product-picker"'));
         $this->assertMatchesRegularExpression('/<\/form>\s*<dialog class="vendor-media-dialog vendor-product-picker"/', $html);
@@ -294,8 +295,8 @@ class VendorMyStorePageTest extends TestCase
         // The hint is described by the preparation days field, before its error.
         $this->assertStringContainsString('aria-describedby="vendor-hint-preparation_days vendor-error-preparation_days"', $html);
 
-        // No Bootstrap utilities (the vendor shell does not load them) and no inline styles in the logo section.
-        preg_match('/<section[^>]*aria-labelledby="vendor-store-logo-title".*?<\/section>/s', $html, $section);
+        // No Bootstrap utilities (the vendor shell does not load them) and no inline styles in the identity/logo card.
+        preg_match('/<section[^>]*aria-labelledby="vendor-store-identity-title".*?<\/section>/s', $html, $section);
         foreach (['d-flex', 'align-items-center', 'rounded-circle', 'object-fit-cover', 'form-control', 'btn-light-danger', 'style=', 'type="file"'] as $absent) {
             $this->assertStringNotContainsString($absent, $section[0], $absent);
         }
@@ -333,6 +334,153 @@ class VendorMyStorePageTest extends TestCase
         foreach (["'Uploading…'", "'Logo saved.'", "'Logo deleted.'", 'Delete the store logo?', 'could not be'] as $english) {
             $this->assertStringNotContainsString($english, $script, $english);
         }
+    }
+
+    public function test_the_layout_groups_the_sections_into_a_main_and_a_supporting_column(): void
+    {
+        $html = $this->actingAs($this->vendor(), 'vendor')->page()->getContent();
+
+        // MYSTORE-UX-01B: main column (store information with preparation days, then location), then the supporting
+        // column (logo, then account), inside the form; the identity card above it and the save bar below it.
+        preg_match('/<div class="vendor-store-main">(.*?)<div class="vendor-store-side">(.*?)<div class="vendor-form-actions">/s', $html, $columns);
+        $this->assertCount(3, $columns);
+        [, $main, $side] = $columns;
+        $this->assertMatchesRegularExpression('/aria-labelledby="vendor-store-info-title".*aria-labelledby="vendor-store-location-title"/s', $main);
+        $this->assertMatchesRegularExpression('/aria-labelledby="vendor-store-identity-title".*aria-labelledby="vendor-store-account-title"/s', $side);
+        $this->assertStringNotContainsString('vendor-store-identity-title', $main);
+        $this->assertStringNotContainsString('vendor-store-info-title', $side);
+        // MYSTORE-UX-01C: the identity is one card in the supporting column (no full-width identity strip above).
+        $this->assertMatchesRegularExpression('/<form class="vendor-store-form".*<div class="vendor-store-layout">/s', $html);
+        $this->assertSame(1, substr_count($html, 'id="vendor-store-identity-title"'));
+        $this->assertStringNotContainsString('vendor-welcome-card', $html);
+
+        // Preparation days: inside Store information, after the description, as a narrow field; location keeps the
+        // read-only governorate and city together, then the address.
+        preg_match('/aria-labelledby="vendor-store-info-title".*?<\/section>/s', $main, $info);
+        $this->assertMatchesRegularExpression('/name="description".*<div class="vendor-field vendor-field-narrow">.*name="preparation_days"/s', $info[0]);
+        preg_match('/aria-labelledby="vendor-store-location-title".*?<\/section>/s', $main, $location);
+        $this->assertMatchesRegularExpression('/<dl class="vendor-readonly vendor-readonly-pair">.*data-readonly="governorate".*data-readonly="city".*<\/dl>.*name="address_line"/s', $location[0]);
+        $this->assertStringNotContainsString('preparation_days', $location[0]);
+
+        $css = file_get_contents(resource_path('css/vendor-dashboard.css'));
+        $this->assertMatchesRegularExpression('/@media \(min-width: 1024px\) \{\s*\.vendor-shell \.vendor-store-layout \{\s*grid-template-columns: minmax\(0, 2fr\) minmax\(16rem, 1fr\);/', $css);
+        $this->assertMatchesRegularExpression('/\.vendor-field-narrow \.vendor-input \{\s*max-width: 12rem;/', $css);
+        $this->assertDoesNotMatchRegularExpression('/\.vendor-(field|readonly|field-hint) \{[^}]*max-width: 800px/', $css);
+    }
+
+    public function test_the_identity_card_shows_the_stored_logo(): void
+    {
+        $vendor = $this->vendor();
+        $vendor->profile()->update(['store_name' => 'Olive Workshop', 'logo' => 'vendors/media/'.$vendor->id.'/logo.png']);
+
+        $html = $this->actingAs($vendor, 'vendor')->page()->getContent();
+        preg_match('/<section[^>]*aria-labelledby="vendor-store-identity-title".*?<\/section>/s', $html, $card);
+
+        // MYSTORE-UX-01C: the stored logo at once (96px, named «شعار المتجر»), the letter hidden, the store name shown.
+        $url = Storage::disk('public')->url('vendors/media/'.$vendor->id.'/logo.png');
+        $this->assertMatchesRegularExpression('/<img class="vendor-store-logo-preview" data-store-logo\s+src="'.preg_quote($url, '/').'"\s+alt="شعار المتجر" width="96" height="96">/u', $card[0]);
+        $this->assertMatchesRegularExpression('/<span class="vendor-store-logo-fallback" data-store-logo-fallback aria-hidden="true"\s+hidden\s*>O<\/span>/', $card[0]);
+        $this->assertStringContainsString('<p class="vendor-store-identity-name"><bdi>Olive Workshop</bdi></p>', $card[0]);
+        // The heading, then the logo and name, then the hint and the two controls (Remove hidden until loaded).
+        $this->assertMatchesRegularExpression('/هوية المتجر.*data-store-logo.*vendor-store-identity-name.*vendor-store-logo-hint.*data-store-logo-pick.*data-store-logo-delete hidden/su', $card[0]);
+    }
+
+    public function test_without_a_logo_the_identity_card_shows_the_store_names_letter(): void
+    {
+        $vendor = $this->vendor();
+        $vendor->profile()->update(['store_name' => 'متجر الزيتون', 'logo' => null]);
+
+        $html = $this->actingAs($vendor, 'vendor')->page()->getContent();
+        preg_match('/<section[^>]*aria-labelledby="vendor-store-identity-title".*?<\/section>/s', $html, $card);
+
+        $this->assertMatchesRegularExpression('/<img class="vendor-store-logo-preview" data-store-logo\s+hidden\s+alt="شعار المتجر"/u', $card[0]);
+        $this->assertMatchesRegularExpression('/<span class="vendor-store-logo-fallback" data-store-logo-fallback aria-hidden="true"\s*>م<\/span>/u', $card[0]);
+        $this->assertStringContainsString('<bdi>متجر الزيتون</bdi>', $card[0]);
+    }
+
+    public function test_the_identity_card_preview_follows_the_logo_requests(): void
+    {
+        $script = file_get_contents(resource_path('js/vendor-my-store.js'));
+        $css = file_get_contents(resource_path('css/vendor-dashboard.css'));
+
+        // The preview and the letter swap only through showLogo(), which runs after a confirmed answer only.
+        $this->assertStringContainsString("const logoFallback = root.querySelector('[data-store-logo-fallback]');", $script);
+        $this->assertStringContainsString('logoFallback.hidden = !logo.hidden;', $script);
+        $this->assertMatchesRegularExpression('/if \(answer\.status !== 200 \|\| !isString\(answer\.body\?\.logo\?\.url\)\) \{.*?return false;\s*\}\s*showLogo\(answer\.body\.logo\.url\);/s', $script);
+        $this->assertMatchesRegularExpression('/if \(answer\.status !== 200\) \{\s*logoFail\(logoErrorText\(answer\.status, i18n\.logoDeleteFailed\)\);\s*return;\s*\}\s*showLogo\(null\);/s', $script);
+
+        // 96px circle, cropped; the copper start accent of the dashboard's welcome card.
+        $this->assertMatchesRegularExpression('/\.vendor-store-logo-preview \{[^}]*width: 96px;[^}]*height: 96px;[^}]*border-radius: 50%;[^}]*object-fit: cover;/', $css);
+        $this->assertMatchesRegularExpression('/\.vendor-form-card\.vendor-store-identity-card \{[^}]*border-inline-start: 4px solid var\(--color-hf-copper\);/', $css);
+        $this->assertMatchesRegularExpression('/\.vendor-store-logo-frame \[hidden\] \{\s*display: none;/', $css);
+        $this->assertStringNotContainsString('.vendor-monogram-lg', $css);
+    }
+
+    public function test_the_save_bar_shows_unsaved_changes_and_guards_leaving(): void
+    {
+        $response = $this->actingAs($this->vendor(), 'vendor')->page();
+        $html = $response->getContent();
+
+        // MYSTORE-UX-01D: the unsaved-changes line is a polite status in the save bar, empty until there are changes.
+        $this->assertMatchesRegularExpression('/<div class="vendor-form-actions">\s*<p class="vendor-unsaved" data-store-unsaved role="status" aria-live="polite"><\/p>\s*<p class="vendor-form-status" data-store-status role="status" aria-live="polite"><\/p>\s*<button type="submit" class="vendor-save-button" data-store-save disabled>/', $html);
+        $this->assertSame('لديك تغييرات غير محفوظة', $this->i18n($response)['unsaved']);
+        $this->assertSame(['ar' => 'لديك تغييرات غير محفوظة', 'en' => 'You have unsaved changes'], VendorDashboardTranslationSeeder::TRANSLATIONS['vendor.My_Store_Unsaved']);
+
+        $script = file_get_contents(resource_path('js/vendor-my-store.js'));
+        // Dirty = an editable field differs from the values read (or last saved); only the form's input events count.
+        $this->assertStringContainsString('const isDirty = () => loaded !== null && Object.keys(EDITABLE).some((name) => field(name).value !== loaded[name]);', $script);
+        $this->assertMatchesRegularExpression('/if \(dirty !== shownDirty\) \{\s*shownDirty = dirty;\s*unsaved\.textContent = dirty \? i18n\.unsaved : \'\';/', $script);
+        $this->assertMatchesRegularExpression("/form\.addEventListener\('input', \(event\) => \{.*?updateUnsaved\(\);\s*\}\);/s", $script);
+        // The values read are the reference; a confirmed save makes the saved values the reference before the reload.
+        $this->assertMatchesRegularExpression('/updateCounter\(\);\s*loaded = currentValues\(\);\s*updateUnsaved\(\);/', $script);
+        $this->assertMatchesRegularExpression('/loaded = currentValues\(\);\s*updateUnsaved\(\);\s*setStatus\(i18n\.saved, \'success\'\);\s*window\.setTimeout\(\(\) => window\.location\.reload\(\), 900\);/', $script);
+        // The browser's own warning, only while dirty (no custom text); Save stays enabled when nothing changed.
+        $this->assertMatchesRegularExpression("/window\.addEventListener\('beforeunload', \(event\) => \{\s*if \(isDirty\(\)\) \{\s*event\.preventDefault\(\);\s*event\.returnValue = '';\s*\}\s*\}\);/", $script);
+        $this->assertStringContainsString('saveButton.disabled = !enabled || preserved === null;', $script);
+        $this->assertDoesNotMatchRegularExpression('/saveButton\.disabled = [^;]*isDirty/', $script);
+        // The logo and the picker never touch the form's reference values.
+        preg_match('/\/\/ ---- Logo \(MYSTORE-UI-01C\).*$/s', $script, $logoPart);
+        $this->assertDoesNotMatchRegularExpression('/\bloaded\b/', $logoPart[0]);
+        $this->assertDoesNotMatchRegularExpression('/\bupdateUnsaved\b/', $logoPart[0]);
+
+        $css = file_get_contents(resource_path('css/vendor-dashboard.css'));
+        $this->assertMatchesRegularExpression('/\.vendor-store-form > \.vendor-form-actions \{\s*position: sticky;\s*bottom: 0;\s*z-index: 2;\s*padding-bottom: calc\(0\.875rem \+ env\(safe-area-inset-bottom, 0px\)\);/', $css);
+        $this->assertMatchesRegularExpression('/html\.vendor-shell:has\(\.vendor-store-form\) \{\s*scroll-padding-bottom: 7\.5rem;/', $css);
+    }
+
+    public function test_the_required_legend_and_read_only_hints(): void
+    {
+        $html = $this->actingAs($this->vendor(), 'vendor')->page()->getContent();
+
+        // MYSTORE-UX-01E: the legend opens the form; an asterisk marks exactly the two required editable fields.
+        $this->assertMatchesRegularExpression('/<form class="vendor-store-form"[^>]*>\s*<input type="hidden" name="_token"[^>]*>\s*<p class="vendor-required-legend">الحقول المعلَّمة بـ \* مطلوبة\.<\/p>/u', $html);
+        preg_match_all('/<label class="vendor-label" for="([a-z-]+)">[^<]*<span class="vendor-required" aria-hidden="true">\*<\/span><\/label>/u', $html, $marked);
+        $this->assertSame(['vendor-field-store-name', 'vendor-field-name'], $marked[1]);
+        foreach (['store_name', 'name'] as $required) {
+            $this->assertMatchesRegularExpression('/<input\b[^>]*name="'.$required.'"[^>]*\brequired\b/', $html);
+        }
+        $this->assertSame(2, preg_match_all('/<input\b[^>]*\brequired\b/', $html));
+
+        // The read-only hint once under each read-only block (location, account), never with a support instruction.
+        $hint = '<p class="vendor-readonly-hint"><i class="ph-duotone ph-lock-simple" aria-hidden="true"></i><span>هذه البيانات غير قابلة للتعديل من هذه الصفحة.</span></p>';
+        $this->assertSame(2, substr_count($html, $hint));
+        $this->assertMatchesRegularExpression('/data-readonly="city".*?<\/dl>\s*'.preg_quote($hint, '/').'/su', $html);
+        $this->assertMatchesRegularExpression('/data-readonly="phone".*?<\/dl>\s*'.preg_quote($hint, '/').'/su', $html);
+        $this->assertStringNotContainsString('الدعم', $html);
+
+        $this->assertSame(['ar' => 'هذه البيانات غير قابلة للتعديل من هذه الصفحة.', 'en' => 'These details cannot be edited on this page.'], VendorDashboardTranslationSeeder::TRANSLATIONS['vendor.My_Store_Readonly_Hint']);
+        $this->assertSame(['ar' => 'الحقول المعلَّمة بـ * مطلوبة.', 'en' => 'Fields marked * are required.'], VendorDashboardTranslationSeeder::TRANSLATIONS['vendor.My_Store_Required_Legend']);
+    }
+
+    public function test_the_required_legend_and_read_only_hints_in_english(): void
+    {
+        $this->actingAs($this->vendor(), 'vendor');
+        $this->get(route('vendor.dashboard.my-store').'?change-locale=en');
+
+        $this->page()
+            ->assertSee('Fields marked * are required.')
+            ->assertSeeInOrder(['Location', 'Governorate', 'City', 'These details cannot be edited on this page.', 'Address'])
+            ->assertSeeInOrder(['Account information', 'Email', 'Phone', 'These details cannot be edited on this page.']);
     }
 
     public function test_the_remove_button_has_its_own_key_and_delete_stays_generic(): void

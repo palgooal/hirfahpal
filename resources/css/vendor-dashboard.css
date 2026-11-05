@@ -966,30 +966,102 @@ html.vendor-shell .vendor-home-error .card-body {
 
 /* ---- My Store (VUI-03B) ---- */
 
-/* The identity card reuses the welcome card (copper start accent) with the monogram beside the name. */
-/* Compact identity header: slimmer padding than the dashboard welcome strip. */
-html.vendor-shell .vendor-store-identity .card-body {
-  flex-direction: row;
+/* MYSTORE-UX-01C: the store identity card (logo or letter, store name, logo controls) keeps the dashboard welcome
+   card's copper start accent (same values: html.vendor-shell .vendor-page-grid > * > .vendor-welcome-card). */
+html.vendor-shell .vendor-form-card.vendor-store-identity-card {
+  overflow: hidden;
+  border-inline-start: 4px solid var(--color-hf-copper);
+}
+
+.vendor-shell .vendor-store-identity-head {
+  display: flex;
   align-items: center;
-  justify-content: flex-start;
   gap: 0.875rem;
-  padding-block: 0.875rem;
-}
-
-.vendor-shell .vendor-monogram-lg {
-  width: 44px;
-  height: 44px;
-  font-size: 1.125rem;
-}
-
-.vendor-shell .vendor-store-identity-text {
   min-width: 0;
+}
+
+/* A fixed 96px circle: the logo (cropped, never stretched) or, without one, the store name's letter. */
+.vendor-shell .vendor-store-logo-frame {
+  display: inline-flex;
+  flex: none;
+  width: 96px;
+  height: 96px;
+}
+
+.vendor-shell .vendor-store-logo-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: var(--color-hf-olive);
+  color: var(--color-hf-surface);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.vendor-shell .vendor-store-logo-frame [hidden] {
+  display: none;
+}
+
+/* The welcome card's store name style (vendor-welcome-name). */
+.vendor-shell .vendor-store-identity-name {
+  min-width: 0;
+  margin: 0;
+  color: var(--color-hf-olive);
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .vendor-shell .vendor-store-form {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+/* MYSTORE-UX-01B: one column below 1024px; from 1024px the main column (store information, location) and the
+   supporting column (logo, account), 2fr and 1fr, the main one first (the start side: right in RTL). The supporting
+   column keeps at least 16rem so its buttons and read-only rows never squeeze at the narrowest desktop width. */
+.vendor-shell .vendor-store-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.vendor-shell .vendor-store-main,
+.vendor-shell .vendor-store-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .vendor-shell .vendor-store-layout {
+    grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+    align-items: start;
+  }
+}
+
+/* Governorate and city: one read-only block, side by side where there is room (one row each when narrow). */
+@media (min-width: 640px) {
+  .vendor-shell .vendor-readonly-pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vendor-shell .vendor-readonly-pair .vendor-readonly-row {
+    padding-inline: 0 0.875rem;
+  }
+
+  .vendor-shell .vendor-readonly-pair .vendor-readonly-row + .vendor-readonly-row {
+    padding-inline: 0.875rem 0;
+    border-top: 0;
+    border-inline-start: 1px solid var(--color-hf-line);
+  }
 }
 
 html.vendor-shell .vendor-form-card {
@@ -1009,12 +1081,16 @@ html.vendor-shell .vendor-form-card .vendor-section-title {
   margin-bottom: 0;
 }
 
-/* Readable form column: wider than before, still well short of the full card, aligned to the start. */
+/* MYSTORE-UX-01B: fields fill their card; the two-column layout (below) keeps the main column at a readable width. */
 .vendor-shell .vendor-field {
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
-  max-width: 800px;
+}
+
+/* A short value (preparation days: up to three digits) gets a short input; its label and hint keep the full width. */
+.vendor-shell .vendor-field-narrow .vendor-input {
+  max-width: 12rem;
 }
 
 /* The counter sits right after its label, as secondary text in the same header row (RTL and LTR). */
@@ -1086,7 +1162,6 @@ html.vendor-shell .vendor-form-card .vendor-section-title {
 
 /* Read-only information rows (not disabled inputs). */
 .vendor-shell .vendor-readonly {
-  max-width: 800px;
   margin: 0;
   padding: 0 0.875rem;
   border: 1px solid var(--color-hf-line);
@@ -1141,8 +1216,44 @@ html.vendor-shell .vendor-form-card .vendor-section-title {
   background-color: #fff;
 }
 
+/* MYSTORE-UX-01D: the save bar stays at the bottom of the viewport while the form is on screen (sticky inside the
+   form, so it settles back under the last card at the end), above the cards, under the shell header and any dialog
+   (the picker is a modal dialog in the top layer). The phone's home indicator area is kept clear. */
+.vendor-shell .vendor-store-form > .vendor-form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding-bottom: calc(0.875rem + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -6px 16px rgb(43 43 38 / 8%);
+}
+
+/* A focused field or error scrolled into view always clears the bar (WCAG 2.4.11). */
+html.vendor-shell:has(.vendor-store-form) {
+  scroll-padding-bottom: 7.5rem;
+}
+
 .vendor-shell .vendor-form-actions .vendor-save-button {
   order: -1;
+}
+
+/* The unsaved-changes line: a copper dot and the text, shown only while it has text. */
+.vendor-shell .vendor-unsaved {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--color-hf-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.vendor-shell .vendor-unsaved:not(:empty)::before {
+  content: "";
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background-color: var(--color-hf-copper);
 }
 
 .vendor-shell .vendor-form-status {
@@ -1184,9 +1295,30 @@ html.vendor-shell .vendor-form-card .vendor-section-title {
   opacity: 0.55;
 }
 
+/* MYSTORE-UX-01E: the required-fields legend (form start) and the read-only hint under each read-only block. */
+.vendor-shell .vendor-required-legend {
+  margin: 0;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+}
+
+.vendor-shell .vendor-readonly-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: -0.375rem 0 0;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.vendor-shell .vendor-readonly-hint i {
+  flex: none;
+  font-size: 0.875rem;
+}
+
 /* A short helper line under a label or section title (start-aligned, as the product editor's hints). */
 .vendor-shell .vendor-field-hint {
-  max-width: 800px;
   margin: 0;
   color: var(--color-hf-muted);
   font-size: 0.8125rem;
@@ -1209,8 +1341,8 @@ html.vendor-shell .vendor-form-card .vendor-section-title {
 
 .vendor-shell .vendor-store-logo-preview {
   flex: none;
-  width: 72px;
-  height: 72px;
+  width: 96px;
+  height: 96px;
   border: 1px solid var(--color-hf-line);
   border-radius: 50%;
   background-color: var(--color-hf-surface);
@@ -1256,6 +1388,10 @@ html.vendor-shell .vendor-store-logo-button:disabled {
   html.vendor-shell .vendor-form-card .card-body,
   .vendor-shell .vendor-form-actions {
     padding: 1rem;
+  }
+
+  .vendor-shell .vendor-store-form > .vendor-form-actions {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   }
 
   .vendor-shell .vendor-save-button {
