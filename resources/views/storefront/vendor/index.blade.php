@@ -85,8 +85,11 @@
 
       <div data-vendor-product-grid class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
         @foreach ($products as $product)
+        {{-- VP-FIDELITY-02: the approved 451px is the card's minimum, not a fixed height, so a longer title (or a
+             wrapped badge) grows the card instead of pushing the price row out of it; the grid stretches every card
+             in a row to the tallest, and the price row stays at the bottom (mt-auto). --}}
         <article
-          class="product-card [&_img]:transition-transform [&_img]:duration-500 [&_img]:ease-out hover:[&_img]:scale-[1.045] group flex h-[451px] flex-col overflow-hidden rounded-[24px] border border-line bg-surface p-px shadow-sm"
+          class="product-card [&_img]:transition-transform [&_img]:duration-500 [&_img]:ease-out hover:[&_img]:scale-[1.045] group flex min-h-[451px] flex-col overflow-hidden rounded-[24px] border border-line bg-surface p-px shadow-sm"
           data-category="{{ $product->category?->slug }}" data-name="{{ $product->name }}">
           <div class="relative h-[284px] shrink-0 overflow-hidden bg-canvas"><img src="{{ \App\Support\Storefront\HomepageMedia::url($product->primaryImage?->path ?? $product->images->first()?->path) }}"
               alt="{{ $product->primaryImage?->alt_text ?: $product->name }}"
@@ -102,12 +105,14 @@
             <div class="flex justify-start pb-3"><span
                 class="flex items-center gap-1 rounded-lg bg-line/50 px-2 py-0.5 text-xs font-bold leading-4 text-olive">{{ $vendor->profile->store_name }} • {{ $vendor->profile->location_name }}<img src="{{ asset('assets/storefront/imgs/mcp/arrival-shop.svg') }}" alt=""
                   class="h-[10.354px] w-[11.584px]"></span></div>
-            <a href="{{ route('product', ['slug' => $product->slug]) }}"><h3 class="pb-2 text-start text-base font-bold leading-6">{{ $product->name }}</h3></a>
+            <a href="{{ route('product', ['slug' => $product->slug]) }}"><h3 class="pb-2 text-start text-base font-bold leading-6 wrap-anywhere">{{ $product->name }}</h3></a>
             <div class="flex items-center justify-end gap-1 pb-3"><span
                 class="text-[11px] leading-4 text-[#918f83]">(<bdi>{{ $product->reviews_count }}</bdi>)</span><bdi
                 class="text-xs font-bold leading-4">{{ $product->reviews_count ? number_format($product->reviews_avg_rating, 1) : '—' }}</bdi><img src="{{ asset('assets/storefront/imgs/mcp/arrival-star.svg') }}" alt=""
                 class="h-[11.083px] w-[11.667px]"></div>
-            <div class="mt-auto flex items-center justify-between border-t border-line/60 pt-[13px]">@include('storefront.partials.product-price', ['priceClass' => 'text-lg font-bold leading-7'])<span
+            {{-- VP-FIDELITY-02: when the price and the badge do not fit side by side, the badge moves to its own line
+                 instead of overlapping the price or cutting the struck regular price. --}}
+            <div class="mt-auto flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-t border-line/60 pt-[13px]">@include('storefront.partials.product-price', ['priceClass' => 'text-lg font-bold leading-7'])<span
                 class="rounded-md bg-sage px-2 py-0.5 text-[11px] font-medium leading-[16.5px] text-surface">متوفر
                 <bdi>{{ max(0, $product->stock_quantity - ($product->reserved_quantity ?? 0)) }}</bdi> قطع</span></div>
           </div>
