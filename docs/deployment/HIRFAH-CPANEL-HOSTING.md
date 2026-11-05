@@ -26,7 +26,8 @@
 | Deployment log | `/home/hirfahpal/hirfah-app/storage/deploy/preflight.log` |
 
 - The document root is **not** `hirfah-app/public`. `public_html` holds its own `index.php` and `.htaccess` (required by `deploy/cpanel-deploy.sh` step 1; these two files are not in the repository and their contents are not described here). The Vite build is installed in both `hirfah-app/public/build` and `public_html/build` by `deploy/vite-package-install.php`.
-- Uploads (media library, product images, vendor profile media, settings logo and favicon) are stored on the `public` disk: `storage/app/public/media/{year}/{month}/{generated name}` for the media library. The admin shows the original file name (for example `055.png`) from the `media` table, not from the disk.
+- Uploads (media library, product images, settings logo and favicon) are stored on the `public` disk: `storage/app/public/media/{year}/{month}/{generated name}` for the admin media library, and `storage/app/public/vendors/media/{vendor id}/{generated name}` for each vendor's own media library. The admin shows the original file name (for example `055.png`) from the `media` table, not from the disk.
+- A vendor's store logo is an image chosen from that vendor's own media library (My Store): `vendor_profiles.logo` holds the path of that library file, and removing the logo only clears the field (the file stays in the library). There is no separate profile image upload; a logo or cover path stored before (`vendors/profile/...`) is still served as it is.
 - Public URLs are built as `APP_URL` + `/storage/` + the stored path (`config/filesystems.php`, disk `public`).
 - Static files, `/storage/*` included, are served directly by Apache, which runs as the user **`nobody`** (confirmed). Laravel is not involved unless Apache cannot find the file. In that case the front-controller rule (`RewriteCond %{REQUEST_FILENAME} !-f` in the repository's `public/.htaccess`) passes the request to `index.php`, and Laravel answers with a normal 404 (`config/site-availability.php` → `unmatched_static`).
 - `storage/app/public/*` is ignored by Git. A deployment never adds, removes or changes uploaded files, and files uploaded locally never reach production through Git.
@@ -182,7 +183,7 @@ curl -sI "https://<domain>/storage/<file_path>"
 
 Expected: `HTTP/... 200` and `Content-Type: image/...`. A `404` with `Content-Type: text/html` means the request reached Laravel: Apache could not serve the file (§6). `-I` sends a `HEAD` request and prints headers only.
 
-Uploads outside the media library (product images, vendor profile media, settings logo and favicon) are not in `media`. Their path is stored on the owning record and is tested the same way.
+Uploads outside the media library (product images, settings logo and favicon) are not in `media`. Their path is stored on the owning record and is tested the same way. A vendor's store logo is a file of that vendor's media library whose path is also stored on `vendor_profiles.logo`; it is tested the same way.
 
 ### 4.5 Deployment log
 

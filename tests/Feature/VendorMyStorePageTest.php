@@ -288,8 +288,8 @@ class VendorMyStorePageTest extends TestCase
         $this->assertStringContainsString('data-logo-url="'.route('vendor.dashboard.profile.logo.update').'"', $html);
         $this->assertStringContainsString('data-media-library-url="'.route('vendor.dashboard.products.media.library').'"', $html);
         $this->assertStringContainsString('data-media-store-url="'.route('vendor.dashboard.products.media.store').'"', $html);
-        // The legacy direct upload is no longer used by the page.
-        $this->assertStringNotContainsString(route('vendor.dashboard.profile.media.store', 'logo'), $html);
+        // The retired direct upload (MYSTORE-SEC-02B) is not referenced by the page.
+        $this->assertStringNotContainsString('/vendor/dashboard/profile/media/', $html);
         $this->assertStringNotContainsString('data-store-logo-input', $html);
         // The hint is described by the preparation days field, before its error.
         $this->assertStringContainsString('aria-describedby="vendor-hint-preparation_days vendor-error-preparation_days"', $html);

@@ -5,140 +5,135 @@ namespace Tests\Feature;
 use App\Models\Vendor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use Palgoal\MediaLibrary\Models\Media;
 use Tests\TestCase;
 
+/**
+ * MYSTORE-SEC-02B: the direct profile logo/cover upload (POST / DELETE vendor/dashboard/profile/media/{type}) is
+ * retired. The store logo is chosen from the vendor's own media library (VendorStoreLogoMediaTest); image paths
+ * stored before (vendors/profile/...) keep working: they are shown, kept by profile updates, and the logo can be
+ * cleared without deleting any file.
+ */
 class VendorProfileMediaTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_vendor_can_upload_a_logo(): void
+    private Vendor $vendor;
+
+    protected function setUp(): void
     {
+        parent::setUp();
+
         Storage::fake('public');
-        $vendor = Vendor::factory()->approved()->create();
-
-        $response = $this->actingAs($vendor, 'vendor')
-            ->postJson(route('vendor.dashboard.profile.media.store', 'logo'), [
-                'file' => UploadedFile::fake()->create('logo.png', 128, 'image/png'),
-            ])
-            ->assertOk()
-            ->assertJsonPath('type', 'logo');
-
-        $path = $response->json('path');
-        $this->assertStringStartsWith('vendors/profile/logos/'.$vendor->id.'/', $path);
-        $this->assertSame($path, $vendor->fresh('profile')->profile->logo);
-        Storage::disk('public')->assertExists($path);
+        $this->vendor = Vendor::factory()->approved()->create();
     }
 
-    public function test_vendor_can_upload_a_cover(): void
+    public function test_the_direct_profile_media_routes_no_longer_exist(): void
     {
-        Storage::fake('public');
-        $vendor = Vendor::factory()->approved()->create();
-
-        $response = $this->actingAs($vendor, 'vendor')
-            ->postJson(route('vendor.dashboard.profile.media.store', 'cover'), [
-                'file' => UploadedFile::fake()->create('cover.webp', 256, 'image/webp'),
-            ])
-            ->assertOk()
-            ->assertJsonPath('type', 'cover');
-
-        $path = $response->json('path');
-        $this->assertStringStartsWith('vendors/profile/covers/'.$vendor->id.'/', $path);
-        $this->assertSame($path, $vendor->fresh('profile')->profile->cover_image);
-        Storage::disk('public')->assertExists($path);
+        $this->assertFalse(Route::has('vendor.dashboard.profile.media.store'));
+        $this->assertFalse(Route::has('vendor.dashboard.profile.media.destroy'));
+        $this->assertFileDoesNotExist(app_path('Http/Controllers/VendorDashboard/ProfileMediaController.php'));
     }
 
-    public function test_replacing_media_deletes_the_previous_owned_file(): void
+    public function test_uploading_or_deleting_through_the_old_urls_does_nothing(): void
     {
-        Storage::fake('public');
-        $vendor = Vendor::factory()->approved()->create();
-        $oldPath = 'vendors/profile/logos/'.$vendor->id.'/old-logo.png';
-        Storage::disk('public')->put($oldPath, 'old');
-        $vendor->profile()->update(['logo' => $oldPath]);
+        $legacy = $this->legacyImages();
 
-        $response = $this->actingAs($vendor, 'vendor')
-            ->postJson(route('vendor.dashboard.profile.media.store', 'logo'), [
-                'file' => UploadedFile::fake()->create('new-logo.png', 128, 'image/png'),
-            ])
-            ->assertOk();
+        foreach (['logo', 'cover', 'avatar'] as $type) {
+            $status = $this->actingAs($this->vendor, 'vendor')
+                ->post('/vendor/dashboard/profile/media/'.$type, ['file' => UploadedFile::fake()->image('new.png', 64, 64)], ['Accept' => 'application/json'])
+                ->getStatusCode();
+            $this->assertContains($status, [404, 405], "POST {$type}");
 
-        Storage::disk('public')->assertMissing($oldPath);
-        Storage::disk('public')->assertExists($response->json('path'));
-    }
-
-    public function test_deleting_media_clears_the_profile_and_removes_the_owned_file(): void
-    {
-        Storage::fake('public');
-        $vendor = Vendor::factory()->approved()->create();
-        $path = 'vendors/profile/covers/'.$vendor->id.'/cover.jpg';
-        Storage::disk('public')->put($path, 'cover');
-        $vendor->profile()->update(['cover_image' => $path]);
-
-        $this->actingAs($vendor, 'vendor')
-            ->deleteJson(route('vendor.dashboard.profile.media.destroy', 'cover'))
-            ->assertOk()
-            ->assertJsonPath('path', null)
-            ->assertJsonPath('url', null);
-
-        $this->assertNull($vendor->fresh('profile')->profile->cover_image);
-        Storage::disk('public')->assertMissing($path);
-    }
-
-    public function test_replacing_legacy_or_foreign_paths_does_not_delete_them(): void
-    {
-        Storage::fake('public');
-        $vendor = Vendor::factory()->approved()->create();
-        $legacyPath = 'logos/olive.png';
-        $foreignPath = 'vendors/profile/logos/'.($vendor->id + 100).'/foreign.png';
-        Storage::disk('public')->put($legacyPath, 'legacy');
-        Storage::disk('public')->put($foreignPath, 'foreign');
-
-        foreach ([$legacyPath, $foreignPath] as $path) {
-            $vendor->profile()->update(['logo' => $path]);
-
-            $this->actingAs($vendor, 'vendor')
-                ->postJson(route('vendor.dashboard.profile.media.store', 'logo'), [
-                    'file' => UploadedFile::fake()->create('new-logo.png', 128, 'image/png'),
-                ])
-                ->assertOk();
-
-            Storage::disk('public')->assertExists($path);
+            $status = $this->actingAs($this->vendor, 'vendor')
+                ->deleteJson('/vendor/dashboard/profile/media/'.$type)
+                ->getStatusCode();
+            $this->assertContains($status, [404, 405], "DELETE {$type}");
         }
+
+        $profile = $this->vendor->profile()->first();
+        $this->assertSame($legacy['logo'], $profile->logo);
+        $this->assertSame($legacy['cover'], $profile->cover_image);
+        Storage::disk('public')->assertExists([$legacy['logo'], $legacy['cover']]);
+        // Nothing new was stored anywhere on the disk.
+        $this->assertSame([$legacy['cover'], $legacy['logo']], $this->allFiles());
     }
 
-    public function test_media_upload_validates_file_type_and_size(): void
+    public function test_stored_legacy_paths_are_still_shown(): void
     {
-        Storage::fake('public');
-        $vendor = Vendor::factory()->approved()->create();
+        $legacy = $this->legacyImages();
 
-        $this->actingAs($vendor, 'vendor')
-            ->postJson(route('vendor.dashboard.profile.media.store', 'logo'), [
-                'file' => UploadedFile::fake()->create('logo.pdf', 128, 'application/pdf'),
-            ])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['file']);
+        $this->actingAs($this->vendor, 'vendor')->getJson(route('vendor.dashboard.profile.show'))
+            ->assertOk()
+            ->assertJsonPath('media.logo_url', Storage::disk('public')->url($legacy['logo']))
+            ->assertJsonPath('media.cover_url', Storage::disk('public')->url($legacy['cover']));
 
-        $this->actingAs($vendor, 'vendor')
-            ->postJson(route('vendor.dashboard.profile.media.store', 'cover'), [
-                'file' => UploadedFile::fake()->create('cover.png', 4097, 'image/png'),
-            ])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['file']);
+        // The dashboard shell (sidebar and header) shows the stored logo.
+        $this->actingAs($this->vendor, 'vendor')->get(route('vendor.dashboard.my-store'))
+            ->assertOk()
+            ->assertSee('src="'.Storage::disk('public')->url($legacy['logo']).'"', false);
     }
 
-    public function test_unapproved_vendor_cannot_mutate_profile_media(): void
+    public function test_a_profile_update_keeps_the_stored_logo_and_cover(): void
     {
-        Storage::fake('public');
-        $vendor = Vendor::factory()->withProfile('pending')->create();
+        $legacy = $this->legacyImages();
 
-        $this->actingAs($vendor, 'vendor')
-            ->postJson(route('vendor.dashboard.profile.media.store', 'logo'), [
-                'file' => UploadedFile::fake()->create('logo.png', 128, 'image/png'),
-            ])
-            ->assertForbidden();
+        $this->actingAs($this->vendor, 'vendor')->putJson(route('vendor.dashboard.profile.update'), [
+            'name' => 'Renamed Owner',
+            'store_name' => 'Renamed Store',
+            'phone' => $this->vendor->phone,
+        ])->assertOk();
 
-        $this->actingAs($vendor, 'vendor')
-            ->deleteJson(route('vendor.dashboard.profile.media.destroy', 'logo'))
-            ->assertForbidden();
+        $profile = $this->vendor->profile()->first();
+        $this->assertSame('Renamed Store', $profile->store_name);
+        $this->assertSame($legacy['logo'], $profile->logo);
+        $this->assertSame($legacy['cover'], $profile->cover_image);
+    }
+
+    public function test_a_legacy_logo_can_be_cleared_or_replaced_from_the_library_without_deleting_files(): void
+    {
+        $legacy = $this->legacyImages();
+
+        $this->actingAs($this->vendor, 'vendor')->deleteJson(route('vendor.dashboard.profile.logo.destroy'))->assertOk();
+        $this->assertNull($this->vendor->profile()->value('logo'));
+        Storage::disk('public')->assertExists($legacy['logo']);
+
+        $path = "vendors/media/{$this->vendor->id}/chosen.png";
+        Storage::disk('public')->put($path, 'image');
+        $media = Media::create([
+            'file_name' => 'chosen.png', 'file_original_name' => 'chosen.png', 'file_path' => $path, 'file_extension' => 'png',
+            'mime_type' => 'image/png', 'size' => 5, 'file_type' => 'image', 'disk' => 'public', 'uploader_id' => $this->vendor->id,
+        ]);
+        $this->actingAs($this->vendor, 'vendor')->putJson(route('vendor.dashboard.profile.logo.update'), ['media_id' => $media->id])->assertOk();
+
+        $profile = $this->vendor->profile()->first();
+        $this->assertSame($path, $profile->logo);
+        $this->assertSame($legacy['cover'], $profile->cover_image);
+        Storage::disk('public')->assertExists([$legacy['logo'], $legacy['cover'], $path]);
+    }
+
+    /** @return array{logo: string, cover: string} paths stored by the retired upload, with their files */
+    private function legacyImages(): array
+    {
+        $legacy = [
+            'logo' => "vendors/profile/logos/{$this->vendor->id}/old-logo.png",
+            'cover' => "vendors/profile/covers/{$this->vendor->id}/old-cover.jpg",
+        ];
+        Storage::disk('public')->put($legacy['logo'], 'logo');
+        Storage::disk('public')->put($legacy['cover'], 'cover');
+        $this->vendor->profile()->update(['logo' => $legacy['logo'], 'cover_image' => $legacy['cover']]);
+
+        return $legacy;
+    }
+
+    /** @return list<string> */
+    private function allFiles(): array
+    {
+        $files = Storage::disk('public')->allFiles();
+        sort($files);
+
+        return $files;
     }
 }

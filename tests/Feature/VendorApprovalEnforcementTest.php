@@ -404,9 +404,7 @@ class VendorApprovalEnforcementTest extends TestCase
             ['GET', route('vendor.dashboard.my-store')],
             ['GET', route('vendor.dashboard.profile.show')],
             ['PUT', route('vendor.dashboard.profile.update')],
-            ['POST', route('vendor.dashboard.profile.media.store', 'logo')],
-            ['DELETE', route('vendor.dashboard.profile.media.destroy', 'logo')],
-            // MYSTORE-MEDIA-01.
+            // MYSTORE-MEDIA-01 (the direct profile media upload was retired in MYSTORE-SEC-02B).
             ['PUT', route('vendor.dashboard.profile.logo.update')],
             ['DELETE', route('vendor.dashboard.profile.logo.destroy')],
             ['GET', route('vendor.dashboard.products.index')],

@@ -28,10 +28,10 @@ class UpdateProfileRequest extends FormRequest
             'email' => ['sometimes', 'nullable', 'email', 'max:255', $this->uniqueAcrossAccountTables('email', $vendor?->id)],
             'phone' => ['sometimes', 'required', 'string', 'max:30', $this->uniqueAcrossAccountTables('phone', $vendor?->id)],
             // MYSTORE-MEDIA-01B: image paths are never taken from this request. The store logo is chosen from the
-            // vendor's own media library (vendor.dashboard.profile.logo.update), the cover through its upload endpoint,
-            // and the avatar by an admin (vendor management). "missing" refuses the key with any value, null and ""
-            // included, so a saved image is never replaced or cleared here (the controller keeps the current values
-            // of omitted keys).
+            // vendor's own media library (vendor.dashboard.profile.logo.update); the cover has no vendor endpoint (its
+            // upload was retired in MYSTORE-SEC-02B; a stored value is kept), and the avatar is set by an admin
+            // (vendor management). "missing" refuses the key with any value, null and "" included, so a saved image is
+            // never replaced or cleared here (the controller keeps the current values of omitted keys).
             'avatar' => ['missing'],
             'store_name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('vendor_profiles', 'slug')->ignore($profile)],
