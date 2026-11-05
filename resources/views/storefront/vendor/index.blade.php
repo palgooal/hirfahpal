@@ -15,8 +15,10 @@
         <div class="absolute start-0 top-0 h-full w-2 bg-copper/70" aria-hidden="true"></div>
         <div class="grid gap-6 lg:grid-cols-[auto_1fr_auto] lg:items-center">
           <div class="flex items-start justify-start gap-4 sm:gap-5">
-            <span
-              class="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-copper/20 bg-copper/10 text-2xl font-bold leading-8 text-copper shadow-sm sm:h-24 sm:w-24 sm:text-[30px]">{{ $vendor->profile->store_initials }}</span>
+            {{-- VP-DATA-01: the same logo and fallback as the directory card; decorative next to the store name (h1). --}}
+            @php($storeLogoUrl = $vendor->profile->publicLogoUrl())
+            <span aria-hidden="true"
+              class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-copper/20 bg-copper/10 text-2xl font-bold leading-8 text-copper shadow-sm sm:h-24 sm:w-24 sm:text-[30px]">@if ($storeLogoUrl)<img src="{{ $storeLogoUrl }}" alt="" width="96" height="96" class="h-full w-full object-cover">@else{{ $vendor->profile->publicInitial() }}@endif</span>
             <div class="min-w-0 flex-1 text-start">
               <p class="flex items-center gap-1.5 text-xs font-bold uppercase leading-4 tracking-[.6px] text-copper">
                 <span class="h-1.5 w-1.5 rounded-full bg-copper"></span>{{ $vendor->profile->short_description ?: $vendor->profile->store_name }}

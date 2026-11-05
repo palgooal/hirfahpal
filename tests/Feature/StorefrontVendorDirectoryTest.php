@@ -10,6 +10,8 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\Vendor;
+use DOMDocument;
+use DOMXPath;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -44,10 +46,16 @@ class StorefrontVendorDirectoryTest extends TestCase
         $vendor = $this->vendor('مشغل أصالة', 'asala');
         $vendor->profile()->update(['city_id' => $city->id, 'governorate_id' => $governorate->id, 'short_description' => 'وصف المشغل من قاعدة البيانات']);
 
-        $this->get(route('vendors'))->assertOk()->assertSee('data-name="مشغل أصالة"', false)
+        $html = $this->get(route('vendors'))->assertOk()->assertSee('data-name="مشغل أصالة"', false)
             ->assertSee('data-city="دورا"', false)->assertSee('وصف المشغل من قاعدة البيانات')
-            ->assertSee('م.أ')->assertSee('id="vendorSearch"', false)
-            ->assertSee('storefront-vendors', false);
+            ->assertSee('id="vendorSearch"', false)
+            ->assertSee('storefront-vendors', false)->getContent();
+
+        // VP-DATA-01: without a logo, the card's avatar shows only the store name's first character, and no image.
+        $avatar = $this->xpath($html)->query('//article[@data-name="مشغل أصالة"]/div[1]/span[@aria-hidden="true"]');
+        $this->assertSame(1, $avatar->length);
+        $this->assertSame('م', trim($avatar->item(0)->textContent));
+        $this->assertSame(0, $avatar->item(0)->getElementsByTagName('img')->length);
 
         $vendor->profile()->update(['city_id' => null]);
         $this->get(route('vendors'))->assertOk()->assertSee('data-city="الخليل"', false);
@@ -129,6 +137,16 @@ class StorefrontVendorDirectoryTest extends TestCase
             ->assertViewHas('vendor', fn ($store) => $store->id === $vendor->id)
             ->assertViewHas('products', fn ($products) => $products->isEmpty());
         $this->assertMatchesRegularExpression('/data-vendor-empty-state\s+class="rounded-/', $response->getContent());
+    }
+
+    private function xpath(string $html): DOMXPath
+    {
+        $document = new DOMDocument;
+        libxml_use_internal_errors(true);
+        $document->loadHTML('<?xml encoding="utf-8"?>'.$html);
+        libxml_clear_errors();
+
+        return new DOMXPath($document);
     }
 
     private function vendor(string $storeName, string $slug, string $approval = 'approved', string $accountStatus = 'active'): Vendor

@@ -40,8 +40,11 @@
           class="vendor-card flex min-h-[260px] flex-col rounded-[20px] border border-line bg-surface p-5 shadow-card transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:border-copper/40 hover:shadow-soft sm:rounded-[24px] sm:p-[25px]"
           data-name="{{ $vendor->profile->store_name }}" data-city="{{ $vendor->profile->location_name }}">
           <div class="flex items-center justify-start gap-4 pb-4">
-            <span
-              class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 {{ $loop->iteration % 2 ? 'border-copper/20 bg-copper/10 text-copper' : 'border-sage/40 bg-sage/20 text-olive' }} p-0.5 text-xl font-bold leading-7">{{ $vendor->profile->store_initials }}</span>
+            {{-- VP-DATA-01: the stored logo (cropped to the circle), else the store name's initial; decorative next to
+                 the store name, which is the card's heading. --}}
+            @php($storeLogoUrl = $vendor->profile->publicLogoUrl())
+            <span aria-hidden="true"
+              class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 {{ $loop->iteration % 2 ? 'border-copper/20 bg-copper/10 text-copper' : 'border-sage/40 bg-sage/20 text-olive' }} p-0.5 text-xl font-bold leading-7">@if ($storeLogoUrl)<img src="{{ $storeLogoUrl }}" alt="" width="52" height="52" loading="lazy" class="h-full w-full rounded-full object-cover">@else{{ $vendor->profile->publicInitial() }}@endif</span>
             <div class="min-w-0 flex-1 text-start">
               <h3 class="truncate text-base font-bold leading-6">{{ $vendor->profile->store_name }}</h3>
               <p class="flex items-center justify-start gap-1 text-xs font-medium leading-4 text-copper"><img
