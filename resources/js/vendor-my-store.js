@@ -10,7 +10,16 @@
  * avatar/logo/cover_image are never sent: the backend keeps them when omitted.
  * Save stays disabled until that read succeeded. Nothing is stored, logged or
  * written into DOM attributes, and values are set with value/textContent only.
+ *
+ * MYSTORE-UI-01C: the logo is chosen in the product editor's media picker (shared
+ * dialog partial, the same initPicker()): an existing image of the vendor's own
+ * library, or one uploaded there (the library endpoint). Only its media id is sent
+ * (PUT vendor.dashboard.profile.logo.update); removing the logo only clears it
+ * (DELETE, same URL): the library image is never deleted from here.
  */
+
+import { request } from './admin-media/shared.js';
+import { initPicker, uploadError, uploadPlan } from './vendor-product-editor.js';
 
 const root = document.querySelector('[data-vendor-my-store]');
 
@@ -101,7 +110,7 @@ function initMyStore() {
     const token = form.querySelector('input[name="_token"]').value;
     const defaultSaveLabel = saveLabel.textContent;
     const logo = root.querySelector('[data-store-logo]');
-    const logoInput = root.querySelector('[data-store-logo-input]');
+    const logoPick = root.querySelector('[data-store-logo-pick]');
     const logoDelete = root.querySelector('[data-store-logo-delete]');
     const logoStatus = root.querySelector('[data-store-logo-status]');
 
@@ -111,6 +120,9 @@ function initMyStore() {
     // Preservation state: in memory only, set once by a successful read.
     let preserved = null;
     let saving = false;
+    let logoBusy = false;
+    // The stored path of the current logo (from the profile read), to mark it in the picker.
+    let logoPath = null;
 
     const setStatus = (message, tone = '') => {
         status.textContent = message;
@@ -122,7 +134,15 @@ function initMyStore() {
             field(name).disabled = !enabled;
         });
         saveButton.disabled = !enabled || preserved === null;
+        setLogoEnabled(enabled);
     };
+
+    // MYSTORE-UI-01: the logo controls follow the form (usable once the profile is loaded, not while saving)
+    // and are also locked while a logo upload or deletion is in progress.
+    function setLogoEnabled(enabled) {
+        logoPick.disabled = !enabled || preserved === null || logoBusy;
+        logoDelete.disabled = logoPick.disabled;
+    }
 
     const clearErrors = () => {
         Object.keys(EDITABLE).forEach((name) => {
@@ -217,6 +237,7 @@ function initMyStore() {
             });
             Object.entries(profile.display).forEach(([key, value]) => setReadonly(key, value));
             showLogo(responsePayload?.media?.logo_url ?? null);
+            logoPath = isString(responsePayload?.vendor?.profile?.logo) ? responsePayload.vendor.profile.logo : null;
             updateCounter();
 
             preserved = profile.preserved;
@@ -374,26 +395,106 @@ function initMyStore() {
 
     root.querySelector('[data-store-retry]').addEventListener('click', load);
 
-    logoInput.addEventListener('change', async () => {
-        const file = logoInput.files?.[0];
-        if (!file) return;
-        logoStatus.textContent = 'Uploading…';
-        const body = new FormData(); body.append('file', file);
-        try {
-            const response = await fetch(root.dataset.logoUploadUrl, { method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': token }, body });
-            if (!response.ok) throw new Error('upload-failed');
-            const payload = await response.json(); showLogo(payload.url); logoStatus.textContent = 'Logo saved.';
-        } catch { logoStatus.textContent = 'The logo could not be uploaded. Please use a JPEG, PNG or WebP image.'; }
-        logoInput.value = '';
+    // ---- Logo (MYSTORE-UI-01C): the shared media picker ----
+
+    const pickerText = JSON.parse(root.querySelector('[data-store-picker-i18n]').textContent);
+    const jsonHeaders = { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': token };
+    let picker = null;
+
+    // The message is shown under the logo and, while the picker is open, inside it too (the page behind is covered).
+    const logoSay = (text) => {
+        logoStatus.textContent = text || '';
+        if (picker?.isOpen) picker.say(text);
+    };
+    const logoFail = (text) => {
+        logoStatus.textContent = text;
+        if (picker?.isOpen) { picker.say(''); picker.alert(text); }
+    };
+    /** A refused logo request's text: never the server's own message. */
+    const logoErrorText = (status, fallback) => (status === 0 ? pickerText.network
+        : status === 401 || status === 419 ? pickerText.session
+            : status === 403 ? pickerText.forbidden
+                : fallback);
+
+    const setLogoBusy = (busy) => {
+        logoBusy = busy;
+        setLogoEnabled(!saving);
+        picker?.setBusy(busy);
+    };
+
+    /** Sets the chosen library image as the logo (its media id only); true when the server confirmed it. */
+    const chooseLogo = async (medium) => {
+        if (logoBusy || !Number.isInteger(medium?.id)) return false;
+        setLogoBusy(true);
+        picker?.alert('');
+        logoSay(i18n.logoSaving);
+        const answer = await request(root.dataset.logoUrl, { method: 'PUT', credentials: 'same-origin', headers: { ...jsonHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ media_id: medium.id }) });
+        setLogoBusy(false);
+
+        if (answer.status !== 200 || !isString(answer.body?.logo?.url)) {
+            logoFail(logoErrorText(answer.status, i18n.logoUploadFailed));
+            return false;
+        }
+
+        showLogo(answer.body.logo.url);
+        logoPath = isString(medium.path) ? medium.path : null;
+        picker.close(); // focus goes back to the choose button
+        logoSay(i18n.logoUploaded);
+        return true;
+    };
+
+    // An upload goes to the vendor's media library (its endpoint and checks); the uploaded image is then chosen.
+    const uploadLogo = async (files) => {
+        if (logoBusy) return;
+        const plan = uploadPlan(files);
+        if (!plan.ok) { if (plan.error) logoFail(pickerText[plan.error]); return; }
+        const data = new FormData();
+        plan.files.forEach((file) => data.append('files[]', file));
+        setLogoBusy(true);
+        picker.alert('');
+        logoSay(i18n.logoUploading);
+        const answer = await request(root.dataset.mediaStoreUrl, { method: 'POST', credentials: 'same-origin', headers: jsonHeaders, body: data });
+        setLogoBusy(false);
+
+        if (answer.status !== 201) {
+            logoFail(logoErrorText(answer.status, pickerText[uploadError(answer)] || pickerText.failed));
+            return;
+        }
+
+        picker.refresh();
+        const media = Array.isArray(answer.body?.images) ? answer.body.images : [];
+        if (media[0]) await chooseLogo(media[0]);
+    };
+
+    picker = initPicker(root.querySelector('[data-product-media-library]'), {
+        url: root.dataset.mediaLibraryUrl,
+        messages: pickerText,
+        stateOf: (medium) => (logoPath !== null && medium?.path === logoPath ? 'current' : null),
+        onChoose: chooseLogo,
+        onUpload: uploadLogo,
+    });
+
+    logoPick.addEventListener('click', () => {
+        if (logoBusy || logoPick.disabled) return;
+        logoSay('');
+        picker.open({ title: pickerText.title, from: logoPick, fallback: () => logoPick });
     });
 
     logoDelete.addEventListener('click', async () => {
-        if (!window.confirm('Delete the store logo?')) return;
-        try {
-            const response = await fetch(root.dataset.logoDeleteUrl, { method: 'DELETE', credentials: 'same-origin', headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': token } });
-            if (!response.ok) throw new Error('delete-failed');
-            showLogo(null); logoStatus.textContent = 'Logo deleted.';
-        } catch { logoStatus.textContent = 'The logo could not be deleted.'; }
+        if (logoBusy || !window.confirm(i18n.logoConfirmDelete)) return;
+        setLogoBusy(true);
+        const answer = await request(root.dataset.logoUrl, { method: 'DELETE', credentials: 'same-origin', headers: jsonHeaders });
+        setLogoBusy(false);
+
+        if (answer.status !== 200) {
+            logoFail(logoErrorText(answer.status, i18n.logoDeleteFailed));
+            return;
+        }
+
+        showLogo(null);
+        logoPath = null;
+        logoSay(i18n.logoDeleted);
+        logoPick.focus(); // the focused Remove button is now hidden; focus once the button is enabled again
     });
 
     load();

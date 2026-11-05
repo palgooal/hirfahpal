@@ -36,6 +36,7 @@ use App\Http\Controllers\VendorDashboard\OverviewController as VendorDashboardOv
 use App\Http\Controllers\VendorDashboard\ProductController as VendorDashboardProductController;
 use App\Http\Controllers\VendorDashboard\ProductImageController as VendorDashboardProductImageController;
 use App\Http\Controllers\VendorDashboard\ProfileController as VendorDashboardProfileController;
+use App\Http\Controllers\VendorDashboard\ProfileLogoController as VendorDashboardProfileLogoController;
 use App\Http\Controllers\VendorDashboard\ProfileMediaController as VendorDashboardProfileMediaController;
 use App\Http\Controllers\VendorDashboard\ReturnRequestController as VendorReturnRequestController;
 use App\Http\Controllers\VendorDashboard\ReviewController as VendorDashboardReviewController;
@@ -240,6 +241,9 @@ foreach (AccountGuard::all() as $accountType => $account) {
                             Route::delete('profile/media/{type}', [VendorDashboardProfileMediaController::class, 'destroy'])
                                 ->whereIn('type', ['logo', 'cover'])
                                 ->name('dashboard.profile.media.destroy');
+                            // MYSTORE-MEDIA-01: the store logo chosen from the vendor's own media library (media_id only).
+                            Route::put('profile/logo', [VendorDashboardProfileLogoController::class, 'update'])->name('dashboard.profile.logo.update');
+                            Route::delete('profile/logo', [VendorDashboardProfileLogoController::class, 'destroy'])->name('dashboard.profile.logo.destroy');
 
                             Route::get('products/media/library', [VendorDashboardMediaLibraryController::class, 'index'])->name('dashboard.products.media.library');
                             // VENDOR-MEDIA-02A: the admin library's content checks on every uploaded file.

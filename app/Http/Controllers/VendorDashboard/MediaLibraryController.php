@@ -5,6 +5,7 @@ namespace App\Http\Controllers\VendorDashboard;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\VendorDashboard\ListMediaLibraryRequest;
 use App\Models\ProductImage;
+use App\Models\VendorProfile;
 use App\Support\Media\VendorMediaPath;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +20,9 @@ class MediaLibraryController extends Controller
 {
     /** VENDOR-MEDIA-02B: the most images one upload request may carry. */
     public const MAX_FILES_PER_UPLOAD = 10;
+
+    /** MYSTORE-MEDIA-01: the refusal of deleting an image that is a store logo. */
+    public const USED_AS_LOGO = 'This image is currently used as the store logo.';
 
     /** VENDOR-MEDIA-02C: a deletion that hits a deadlock is retried, as in the admin library. */
     private const DELETE_ATTEMPTS = 3;
@@ -84,8 +88,8 @@ class MediaLibraryController extends Controller
 
     /**
      * VENDOR-MEDIA-02C: race-safe deletion. One transaction locks the media row FOR UPDATE first, then checks, still
-     * inside it, that the row is the vendor's and that no product image uses its path (a locking read, so it sees
-     * every committed attachment), and deletes the row. Every attachment re-reads that row with a shared lock in its
+     * inside it, that the row is the vendor's and that no product image and no store logo (MYSTORE-MEDIA-01) uses its
+     * path (locking reads, so they see every committed attachment), and deletes the row. Every attachment re-reads that row with a shared lock in its
      * own transaction (VendorLibraryImage::lockedInLibrary(), and the admin gallery's sharedLock), so the two are
      * serialised on it: an attachment that got there first makes this a 409; one that comes later finds no row and is
      * refused. The file is removed only after the commit, so a refused or rolled back deletion never touches it.
@@ -101,6 +105,8 @@ class MediaLibraryController extends Controller
             // Deleted meanwhile (by a concurrent request): answered like any media that is not the vendor's.
             abort_unless($locked && str_starts_with((string) $locked->file_path, $prefix), 404);
             abort_if(ProductImage::query()->where('path', $locked->file_path)->sharedLock()->exists(), 409, 'This image is currently used by a product.');
+            // MYSTORE-MEDIA-01: nor a store logo (ProfileLogoController sets it under a shared lock on this same row).
+            abort_if(VendorProfile::query()->where('logo', $locked->file_path)->sharedLock()->exists(), 409, self::USED_AS_LOGO);
 
             $locked->delete();
 

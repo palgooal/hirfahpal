@@ -320,6 +320,37 @@ class VendorDashboardTranslationSeeder extends Seeder
             'ar' => 'يرجى مراجعة هذه القيمة.',
             'en' => 'Please check this value.',
         ],
+        // MYSTORE-UI-01, MYSTORE-UI-01C: the My Store logo section (chosen from the media library; removing it keeps
+        // the image) and preparation days. The picker's own texts are the product gallery's (Product_Gallery_*).
+        'vendor.My_Store_Logo' => ['ar' => 'شعار المتجر', 'en' => 'Store logo'],
+        'vendor.My_Store_Logo_Hint' => [
+            'ar' => 'اختر صورة من مكتبة الوسائط لتظهر بجانب اسم متجرك في لوحة البائع. إزالة الشعار لا تحذف الصورة من المكتبة.',
+            'en' => 'Choose an image from your media library to appear next to your store name in the vendor dashboard. Removing the logo does not delete the image from the library.',
+        ],
+        'vendor.My_Store_Logo_Choose' => ['ar' => 'اختيار من مكتبة الوسائط', 'en' => 'Choose from media library'],
+        'vendor.My_Store_Logo_Current' => ['ar' => 'الشعار الحالي', 'en' => 'Current logo'],
+        'vendor.My_Store_Logo_Uploaded' => ['ar' => 'تم تعيين الشعار.', 'en' => 'Logo updated.'],
+        'vendor.My_Store_Logo_Upload_Failed' => [
+            'ar' => 'تعذّر تعيين هذه الصورة شعارًا. اختر صورة أخرى من مكتبة الوسائط.',
+            'en' => 'This image could not be set as the logo. Choose another image from your media library.',
+        ],
+        'vendor.My_Store_Logo_Confirm_Delete' => [
+            'ar' => 'هل تريد إزالة الشعار من متجرك؟ تبقى الصورة في مكتبة الوسائط.',
+            'en' => 'Remove the logo from your store? The image stays in your media library.',
+        ],
+        'vendor.My_Store_Logo_Deleted' => [
+            'ar' => 'تمت إزالة الشعار. تبقى الصورة في مكتبة الوسائط.',
+            'en' => 'Logo removed. The image stays in your media library.',
+        ],
+        'vendor.My_Store_Logo_Delete_Failed' => ['ar' => 'تعذّرت إزالة الشعار. حاول مرة أخرى.', 'en' => 'The logo could not be removed. Try again.'],
+        // MYSTORE-UI-01D: the My Store logo section's Remove button (the logo is cleared; the image stays).
+        'vendor.My_Store_Logo_Remove' => ['ar' => 'إزالة الشعار', 'en' => 'Remove logo'],
+        'vendor.Delete' => ['ar' => 'حذف', 'en' => 'Delete'],
+        'vendor.My_Store_Preparation_Days' => ['ar' => 'مدة التجهيز (بالأيام)', 'en' => 'Preparation days'],
+        'vendor.My_Store_Preparation_Days_Hint' => [
+            'ar' => 'المدة المعتادة لتجهيز الطلب قبل شحنه، بالأيام (من 0 إلى 365).',
+            'en' => 'Your usual time to prepare an order before shipping, in days (0 to 365).',
+        ],
         // G7-C2-5: the product image gallery of the vendor product editor (resources/js/vendor-product-editor.js).
         'vendor.Product_Gallery_Change' => ['ar' => 'تغيير', 'en' => 'Change'],
         'vendor.Product_Gallery_Set_Main' => ['ar' => 'تعيين كصورة رئيسية', 'en' => 'Set as main'],

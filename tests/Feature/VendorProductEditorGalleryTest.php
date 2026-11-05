@@ -90,7 +90,10 @@ class VendorProductEditorGalleryTest extends TestCase
         $this->seed(VendorDashboardTranslationSeeder::class);
         $messages = $this->messages($this->editorPage('en'));
 
-        preg_match_all("/\\\$galleryText\\('([A-Za-z_]+)', '((?:[^'\\\\]|\\\\.)*)'\\)/", file_get_contents(resource_path('views/vendor-dashboard/resources.blade.php')), $calls, PREG_SET_ORDER);
+        // MYSTORE-UI-01C: the picker dialog's labels live in the shared partial the editor includes.
+        $views = file_get_contents(resource_path('views/vendor-dashboard/resources.blade.php'))
+            .file_get_contents(resource_path('views/vendor-dashboard/partials/media-picker.blade.php'));
+        preg_match_all("/\\\$galleryText\\('([A-Za-z_]+)', '((?:[^'\\\\]|\\\\.)*)'\\)/", $views, $calls, PREG_SET_ORDER);
         // VPM-01A: the 32 script texts and the 12 labels of the image section and its chooser; VPM-01B: the 6 picker
         // script texts and the 11 picker dialog labels; VPM-01C: the 2 duplicate texts; VPM-01D: the 3 move texts; VPM-01E: the 4 legacy and limit texts.
         $this->assertCount(70, $calls);

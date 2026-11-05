@@ -11,6 +11,7 @@
  *   move|<image id>|up|down      PATCH  vendor.dashboard.products.images.move    {direction} (VPM-01D)
  *   main|<image id>              PATCH  vendor.dashboard.products.images.update  {is_primary: true}
  *   unlink|<image id>            DELETE vendor.dashboard.products.images.destroy (VENDOR-PRODUCT-PUBLISH-BE-01B)
+ *   logo|<media id>              PUT    vendor.dashboard.profile.logo.update     {media_id} (MYSTORE-MEDIA-01)
  *
  * Environment (set by the test):
  *   DB_CONNECTION=mysql, DB_DATABASE=<isolated database>, APP_ENV=testing (as the feature tests: no CSRF token)
@@ -108,6 +109,8 @@ Auth::guard('vendor')->setUser($vendor);
     'main' => ['PATCH', route('vendor.dashboard.products.images.update', [$product, (int) $operation[1]]), ['is_primary' => true]],
     // VENDOR-PRODUCT-PUBLISH-BE-01B.
     'unlink' => ['DELETE', route('vendor.dashboard.products.images.destroy', [$product, (int) $operation[1]]), []],
+    // MYSTORE-MEDIA-01.
+    'logo' => ['PUT', route('vendor.dashboard.profile.logo.update'), ['media_id' => (int) $operation[1]]],
     default => throw new InvalidArgumentException('Unknown operation '.$operation[0]),
 };
 

@@ -406,6 +406,9 @@ class VendorApprovalEnforcementTest extends TestCase
             ['PUT', route('vendor.dashboard.profile.update')],
             ['POST', route('vendor.dashboard.profile.media.store', 'logo')],
             ['DELETE', route('vendor.dashboard.profile.media.destroy', 'logo')],
+            // MYSTORE-MEDIA-01.
+            ['PUT', route('vendor.dashboard.profile.logo.update')],
+            ['DELETE', route('vendor.dashboard.profile.logo.destroy')],
             ['GET', route('vendor.dashboard.products.index')],
             ['POST', route('vendor.dashboard.products.store')],
             ['GET', route('vendor.dashboard.products.show', $product)],

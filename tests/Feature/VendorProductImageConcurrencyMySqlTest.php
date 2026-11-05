@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\VendorDashboard\MediaLibraryController;
 use App\Http\Controllers\VendorDashboard\ProductImageController;
+use App\Http\Controllers\VendorDashboard\ProfileLogoController;
 use App\Models\Product;
 use App\Models\Vendor;
 use App\Rules\VendorLibraryImage;
@@ -235,6 +237,43 @@ class VendorProductImageConcurrencyMySqlTest extends TestCase
         });
     }
 
+    /**
+     * MYSTORE-MEDIA-01: the logo is being set (media row read with a shared lock, profile written, paused before
+     * COMMIT) when the library deletion of the same image arrives: it waits on the media row, then sees the committed
+     * logo and refuses with 409. The logo, the row and the file are all kept.
+     */
+    public function test_deleting_the_library_image_while_it_is_being_set_as_the_store_logo(): void
+    {
+        $this->rounds(function () {
+            [$holder, $contender] = $this->race('logo|'.$this->media['P'], 'before-commit', 'destroy|'.$this->media['P']);
+
+            $this->assertResponse(200, $holder);
+            $this->assertResponse(409, $contender);
+            $this->assertSame(MediaLibraryController::USED_AS_LOGO, $contender['body']['message']);
+            $this->assertSame($this->paths['P'], $this->storeLogo());
+            $this->assertTrue($this->db()->table('media')->where('id', $this->media['P'])->exists(), 'The library row is kept.');
+            $this->assertFileExists($this->disk.DIRECTORY_SEPARATOR.$this->paths['P'], 'The file is kept.');
+        });
+    }
+
+    /**
+     * MYSTORE-MEDIA-01: the library deletion holds the media row (FOR UPDATE, row deleted, paused before COMMIT) when
+     * the logo is set to the same image: it waits on the media row, then finds no row and is refused (422). No logo
+     * points at the deleted file.
+     */
+    public function test_setting_the_store_logo_while_its_image_is_being_deleted(): void
+    {
+        $this->rounds(function () {
+            [$holder, $contender] = $this->race('destroy|'.$this->media['Q'], 'before-commit', 'logo|'.$this->media['Q']);
+
+            $this->assertResponse(200, $holder);
+            $this->assertResponse(422, $contender);
+            $this->assertSame(['media_id' => [ProfileLogoController::NOT_IN_LIBRARY]], $contender['body']['errors']);
+            $this->assertNull($this->storeLogo());
+            $this->assertFalse($this->db()->table('media')->where('id', $this->media['Q'])->exists(), 'The library row is deleted.');
+        });
+    }
+
     /** Ownership on MySQL: another vendor's image is refused before any lock, with the library error, not a 409. */
     public function test_another_vendors_image_is_refused_as_not_in_the_library(): void
     {
@@ -347,11 +386,18 @@ class VendorProductImageConcurrencyMySqlTest extends TestCase
         $this->assertTrue($waited, 'The contender waited on an InnoDB lock held by the holder.');
         $this->assertNotSame($holderResult['connection'], $contenderResult['connection'], 'Two distinct MySQL connections.');
         $this->assertLessThan($holderResult['end'], $contenderResult['start'], 'The operations overlapped.');
-        $this->assertTrue($holderResult['locked_product'] || str_starts_with($contenderOperation, 'destroy'), 'The holder took the product lock.');
+        // A library deletion or a store logo change (MYSTORE-MEDIA-01) takes no product lock.
+        $withoutProduct = fn (string $operation) => str_starts_with($operation, 'destroy') || str_starts_with($operation, 'logo');
+        $this->assertTrue($holderResult['locked_product'] || $withoutProduct($contenderOperation) || $withoutProduct($holderOperation), 'The holder took the product lock.');
 
         $this->log[] = [$holderOperation, $pause, $contenderOperation, $holderResult['status'] ?? $holderResult['outcome'], $contenderResult['status'] ?? $contenderResult['outcome']];
 
         return [$holderResult, $contenderResult];
+    }
+
+    private function storeLogo(): ?string
+    {
+        return $this->db()->table('vendor_profiles')->where('vendor_id', $this->vendor->id)->value('logo');
     }
 
     private function rounds(callable $scenario, int $rounds = self::ROUNDS): void

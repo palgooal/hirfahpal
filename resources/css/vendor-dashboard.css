@@ -266,6 +266,13 @@ html.vendor-shell .pc-sidebar .vendor-navbar-content {
   font-size: 0.875rem;
 }
 
+/* MYSTORE-UI-01C: the store logo in the monogram's circle (header and sidebar) is cropped, never stretched (the
+   object-fit-cover utility on those images is Bootstrap's, which the vendor shell does not load). */
+.vendor-shell img.vendor-monogram {
+  object-fit: cover;
+  background-color: var(--color-hf-surface);
+}
+
 /* Navigation rows: compact, icon and text on one aligned line. */
 html.vendor-shell .pc-sidebar .pc-navbar {
   display: flex;
@@ -1177,6 +1184,74 @@ html.vendor-shell .vendor-form-card .vendor-section-title {
   opacity: 0.55;
 }
 
+/* A short helper line under a label or section title (start-aligned, as the product editor's hints). */
+.vendor-shell .vendor-field-hint {
+  max-width: 800px;
+  margin: 0;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+/* MYSTORE-UI-01: the logo row (preview, choose, remove) in the form's own control language: 42px controls,
+   10px radius, hairline border. The vendor shell loads no Bootstrap utilities, so the row is laid out here. */
+.vendor-shell .vendor-store-logo-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* .btn sets display, which would otherwise override the hidden attribute (Delete without a logo). */
+.vendor-shell .vendor-store-logo-row [hidden] {
+  display: none;
+}
+
+.vendor-shell .vendor-store-logo-preview {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 50%;
+  background-color: var(--color-hf-surface);
+  object-fit: cover;
+}
+
+html.vendor-shell .vendor-store-logo-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  min-height: 42px;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 10px;
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+html.vendor-shell .vendor-store-logo-button:hover:not(:disabled) {
+  border-color: var(--color-hf-sage);
+  background-color: var(--color-hf-canvas);
+}
+
+/* Error red text on the light surface: about 6:1. */
+html.vendor-shell .vendor-store-logo-delete {
+  color: #a13d2b;
+}
+
+html.vendor-shell .vendor-store-logo-delete:hover:not(:disabled) {
+  border-color: #a13d2b;
+  background-color: #fff;
+}
+
+html.vendor-shell .vendor-store-logo-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 @media (max-width: 639.98px) {
   html.vendor-shell .vendor-form-card .card-body,
   .vendor-shell .vendor-form-actions {
@@ -2003,6 +2078,27 @@ html.vendor-shell .vendor-product-picker-status:empty {
 
 html.vendor-shell .vendor-product-picker .vendor-product-error {
   margin: 0;
+}
+
+/* MYSTORE-UI-01C: the shared picker (partials/media-picker.blade.php) is also used outside the product editor's
+   .vendor-product-form wrapper (My Store); these restate that wrapper's values for the picker's own contents. */
+html.vendor-shell .vendor-product-picker .form-control {
+  min-height: 44px;
+}
+
+html.vendor-shell .vendor-product-picker .vendor-product-hint {
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+}
+
+html.vendor-shell .vendor-product-picker .vendor-product-error {
+  color: #a13d2b;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+html.vendor-shell .vendor-product-picker .vendor-product-error[hidden] {
+  display: none;
 }
 
 html.vendor-shell .vendor-product-picker .vendor-media-card.is-taken {

@@ -50,6 +50,26 @@ final class VendorLibraryImage implements ValidationRule
         return self::find($vendorId, $path, true);
     }
 
+    /**
+     * MYSTORE-MEDIA-01: the stored file_path of one image of the vendor's own library, chosen by its media id, read
+     * with a shared lock inside the caller's transaction (the same rule and lock as lockedInLibrary()), or null when
+     * there is no such image (another vendor's, an admin's, not an image, not on the public disk, or deleted).
+     */
+    public static function lockedPathOf(int $vendorId, int $mediaId): ?string
+    {
+        if ($vendorId < 1 || $mediaId < 1) {
+            return null;
+        }
+
+        $path = VendorMediaPath::scopeToVendor(Media::query()->images(), $vendorId)
+            ->where('disk', 'public')
+            ->whereKey($mediaId)
+            ->sharedLock()
+            ->value('file_path');
+
+        return is_string($path) && $path !== '' && VendorMediaPath::isVendorOwned($path) ? $path : null;
+    }
+
     private static function find(int $vendorId, string $path, bool $lock): bool
     {
         if ($vendorId < 1 || $path === '') {

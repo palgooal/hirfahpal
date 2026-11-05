@@ -27,7 +27,12 @@ class UpdateProfileRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['sometimes', 'nullable', 'email', 'max:255', $this->uniqueAcrossAccountTables('email', $vendor?->id)],
             'phone' => ['sometimes', 'required', 'string', 'max:30', $this->uniqueAcrossAccountTables('phone', $vendor?->id)],
-            'avatar' => ['nullable', 'string', 'max:2048'],
+            // MYSTORE-MEDIA-01B: image paths are never taken from this request. The store logo is chosen from the
+            // vendor's own media library (vendor.dashboard.profile.logo.update), the cover through its upload endpoint,
+            // and the avatar by an admin (vendor management). "missing" refuses the key with any value, null and ""
+            // included, so a saved image is never replaced or cleared here (the controller keeps the current values
+            // of omitted keys).
+            'avatar' => ['missing'],
             'store_name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('vendor_profiles', 'slug')->ignore($profile)],
             'governorate_id' => ['nullable', 'required_with:city_id', 'integer', 'exists:governorates,id'],
@@ -40,8 +45,8 @@ class UpdateProfileRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'address_line' => ['nullable', 'string', 'max:255'],
             'preparation_days' => ['nullable', 'integer', 'min:0', 'max:365'],
-            'logo' => ['nullable', 'string', 'max:2048'],
-            'cover_image' => ['nullable', 'string', 'max:2048'],
+            'logo' => ['missing'],
+            'cover_image' => ['missing'],
         ];
     }
 

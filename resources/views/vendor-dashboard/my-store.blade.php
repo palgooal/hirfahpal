@@ -3,7 +3,9 @@
     placeholders only. resources/js/vendor-my-store.js reads the existing profile
     endpoint (vendor.dashboard.profile.show), fills the approved fields, keeps the
     values the replacement-style update needs in memory, and saves through the
-    existing update endpoint (vendor.dashboard.profile.update). Backend unchanged.
+    existing update endpoint (vendor.dashboard.profile.update). MYSTORE-UI-01C: the
+    logo is chosen from the vendor's media library (shared picker) by media id
+    (vendor.dashboard.profile.logo.update / .destroy).
 --}}
 @php
     $vendor = auth('vendor')->user();
@@ -21,6 +23,44 @@
         'required' => t('vendor.My_Store_Error_Required', 'This field is required.'),
         'tooLong' => t('vendor.My_Store_Error_Too_Long', 'This text is longer than allowed.'),
         'invalid' => t('vendor.My_Store_Error_Invalid', 'Please check this value.'),
+        // MYSTORE-UI-01C: the logo section's messages ("Uploading…" and "Saving…" are the product gallery's).
+        'logoUploading' => t('vendor.Product_Gallery_Uploading', 'Uploading…'),
+        'logoSaving' => t('vendor.Product_Gallery_Saving', 'Saving…'),
+        'logoUploaded' => t('vendor.My_Store_Logo_Uploaded', 'Logo updated.'),
+        'logoUploadFailed' => t('vendor.My_Store_Logo_Upload_Failed', 'This image could not be set as the logo. Choose another image from your media library.'),
+        'logoConfirmDelete' => t('vendor.My_Store_Logo_Confirm_Delete', 'Remove the logo from your store? The image stays in your media library.'),
+        'logoDeleted' => t('vendor.My_Store_Logo_Deleted', 'Logo removed. The image stays in your media library.'),
+        'logoDeleteFailed' => t('vendor.My_Store_Logo_Delete_Failed', 'The logo could not be removed. Try again.'),
+    ];
+
+    // MYSTORE-UI-01C: the shared media picker (partials/media-picker.blade.php) with the product gallery's texts, read
+    // without creating translation rows, as the product editor reads them; the current logo has its own marker.
+    $galleryText = function (string $key, string $default): string {
+        $autoCreate = config('palgoals-locale.auto_create');
+        config(['palgoals-locale.auto_create' => false]);
+
+        try {
+            return t('vendor.Product_Gallery_'.$key, $default);
+        } finally {
+            config(['palgoals-locale.auto_create' => $autoCreate]);
+        }
+    };
+    $pickerMessages = [
+        'title' => $galleryText('Panel_Title', 'Choose an image from media'),
+        'libraryCount' => $galleryText('Library_Count', 'Images: :count'),
+        'pageStatus' => $galleryText('Page_Status', 'Page :page of :last'),
+        'choose' => $galleryText('Choose', 'Choose :name'),
+        'mediaAlt' => $galleryText('Media_Alt', 'Media library image'),
+        'attached' => $galleryText('Attached', 'Already in this product'),
+        'current' => t('vendor.My_Store_Logo_Current', 'Current logo'),
+        'libraryError' => $galleryText('Library_Error', 'Your media library could not be loaded.'),
+        'uploadInvalid' => $galleryText('Upload_Invalid', 'The file must be a JPEG, PNG, GIF or WebP image of up to 10 MB.'),
+        'uploadMax' => $galleryText('Upload_Max', 'You can upload up to 10 images at a time.'),
+        'session' => $galleryText('Session', 'Your session has ended. Sign in again to continue.'),
+        'forbidden' => $galleryText('Forbidden', 'You do not have permission to do this.'),
+        'invalid' => $galleryText('Invalid', 'The request could not be processed. Reload the page and try again.'),
+        'network' => $galleryText('Network', 'The connection failed. Check the network and try again.'),
+        'failed' => $galleryText('Failed', 'Something went wrong. Try again.'),
     ];
 @endphp
 
@@ -48,8 +88,9 @@
         data-state="loading"
         data-profile-url="{{ route('vendor.dashboard.profile.show') }}"
         data-update-url="{{ route('vendor.dashboard.profile.update') }}"
-        data-logo-upload-url="{{ route('vendor.dashboard.profile.media.store', 'logo') }}"
-        data-logo-delete-url="{{ route('vendor.dashboard.profile.media.destroy', 'logo') }}"
+        data-logo-url="{{ route('vendor.dashboard.profile.logo.update') }}"
+        data-media-library-url="{{ route('vendor.dashboard.products.media.library') }}"
+        data-media-store-url="{{ route('vendor.dashboard.products.media.store') }}"
     >
         <div class="card vendor-home-error" data-store-load-error hidden>
             <div class="card-body">
@@ -96,11 +137,18 @@
             <section class="card vendor-form-card" aria-labelledby="vendor-store-logo-title">
                 <div class="card-body">
                     <h2 id="vendor-store-logo-title" class="vendor-section-title">{{ t('vendor.My_Store_Logo', 'Store logo') }}</h2>
-                    <p class="vendor-empty mb-3">{{ t('vendor.My_Store_Logo_Hint', 'Upload an image to appear next to your store name in the vendor dashboard.') }}</p>
-                    <div class="d-flex align-items-center gap-3 flex-wrap">
-                        <img data-store-logo hidden alt="" width="72" height="72" class="rounded-circle object-fit-cover border">
-                        <input class="form-control" data-store-logo-input type="file" accept="image/jpeg,image/png,image/webp" aria-label="{{ t('vendor.My_Store_Logo', 'Store logo') }}" style="max-width: 320px">
-                        <button class="btn btn-light-danger" type="button" data-store-logo-delete hidden>{{ t('vendor.Delete', 'Delete') }}</button>
+                    <p class="vendor-field-hint" id="vendor-store-logo-hint">{{ t('vendor.My_Store_Logo_Hint', 'Choose an image from your media library to appear next to your store name in the vendor dashboard. Removing the logo does not delete the image from the library.') }}</p>
+                    {{-- MYSTORE-UI-01C: the logo is chosen (or uploaded) in the shared media library picker below the form. --}}
+                    <div class="vendor-store-logo-row">
+                        <img class="vendor-store-logo-preview" data-store-logo hidden alt="" width="72" height="72">
+                        <button class="btn vendor-store-logo-button" type="button" data-store-logo-pick aria-describedby="vendor-store-logo-hint" aria-haspopup="dialog" disabled>
+                            <i class="ph-duotone ph-images" aria-hidden="true"></i>
+                            <span>{{ t('vendor.My_Store_Logo_Choose', 'Choose from media library') }}</span>
+                        </button>
+                        <button class="btn vendor-store-logo-button vendor-store-logo-delete" type="button" data-store-logo-delete hidden>
+                            <i class="ph-duotone ph-x-circle" aria-hidden="true"></i>
+                            <span>{{ t('vendor.My_Store_Logo_Remove', 'Remove logo') }}</span>
+                        </button>
                     </div>
                     <p class="vendor-form-status" data-store-logo-status role="status" aria-live="polite"></p>
                 </div>
@@ -129,7 +177,8 @@
                     </div>
                     <div class="vendor-field">
                         <label class="vendor-label" for="vendor-field-preparation-days">{{ t('vendor.My_Store_Preparation_Days', 'Preparation days') }}</label>
-                        <input class="vendor-input" id="vendor-field-preparation-days" name="preparation_days" type="number" min="0" max="365" inputmode="numeric" disabled aria-describedby="vendor-error-preparation_days">
+                        <p class="vendor-field-hint" id="vendor-hint-preparation_days">{{ t('vendor.My_Store_Preparation_Days_Hint', 'Your usual time to prepare an order before shipping, in days (0 to 365).') }}</p>
+                        <input class="vendor-input" id="vendor-field-preparation-days" name="preparation_days" type="number" min="0" max="365" inputmode="numeric" disabled aria-describedby="vendor-hint-preparation_days vendor-error-preparation_days">
                         <p class="vendor-field-error" id="vendor-error-preparation_days" data-error-for="preparation_days" hidden></p>
                     </div>
                 </div>
@@ -166,6 +215,13 @@
                 </button>
             </div>
         </form>
+
+        {{-- Outside the form: the picker has its own search form. One image at a time; it becomes the logo. --}}
+        @include('vendor-dashboard.partials.media-picker', [
+            'uploadHint' => $galleryText('Upload_Invalid', 'The file must be a JPEG, PNG, GIF or WebP image of up to 10 MB.'),
+            'multiple' => false,
+        ])
+        <script type="application/json" data-store-picker-i18n>@json($pickerMessages)</script>
 
         <noscript>
             <p class="vendor-empty">{{ t('vendor.My_Store_Load_Error', 'Store details could not be loaded.') }}</p>

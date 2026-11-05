@@ -126,7 +126,7 @@ class VendorMyStorePageTest extends TestCase
 
         $this->assertSame(self::EDITABLE, $names);
         $this->assertStringNotContainsString('<select', $html);
-        $this->assertStringContainsString('data-store-logo-input', $html);
+        $this->assertStringContainsString('data-store-logo-pick', $html);
         $this->assertStringNotContainsString('type="password"', $html);
     }
 
@@ -171,8 +171,7 @@ class VendorMyStorePageTest extends TestCase
                 ->assertDontSee('rejection_reason')
                 ->assertDontSee('approved_by')
                 ->assertDontSee('last_login_at')
-                ->assertDontSee('Logo')
-                ->assertDontSee('شعار المتجر')
+                // The store logo has its own section (upload endpoint, not a form field); the cover has none.
                 ->assertDontSee('Cover')
                 ->assertDontSee('الغلاف')
                 ->assertDontSee('Password')
@@ -218,10 +217,169 @@ class VendorMyStorePageTest extends TestCase
 
         $this->assertSame([
             'saving', 'saved', 'notSpecified', 'fixErrors', 'saveError', 'sessionError', 'accessError', 'required', 'tooLong', 'invalid',
+            'logoUploading', 'logoSaving', 'logoUploaded', 'logoUploadFailed', 'logoConfirmDelete', 'logoDeleted', 'logoDeleteFailed',
         ], array_keys($i18n));
         $this->assertSame('غير محدد', $i18n['notSpecified']);
         $this->assertSame('تم حفظ التغييرات بنجاح.', $i18n['saved']);
         $this->assertSame('هذا الحقل مطلوب.', $i18n['required']);
+        // MYSTORE-UI-01C: the media library wording; removing the logo keeps the image.
+        $this->assertSame('جارٍ الرفع…', $i18n['logoUploading']);
+        $this->assertSame('جارٍ الحفظ…', $i18n['logoSaving']);
+        $this->assertSame('تم تعيين الشعار.', $i18n['logoUploaded']);
+        $this->assertSame('تعذّر تعيين هذه الصورة شعارًا. اختر صورة أخرى من مكتبة الوسائط.', $i18n['logoUploadFailed']);
+        $this->assertSame('هل تريد إزالة الشعار من متجرك؟ تبقى الصورة في مكتبة الوسائط.', $i18n['logoConfirmDelete']);
+        $this->assertSame('تمت إزالة الشعار. تبقى الصورة في مكتبة الوسائط.', $i18n['logoDeleted']);
+        $this->assertSame('تعذّرت إزالة الشعار. حاول مرة أخرى.', $i18n['logoDeleteFailed']);
+    }
+
+    public function test_picker_strings_for_the_script(): void
+    {
+        $response = $this->actingAs($this->vendor(), 'vendor')->page();
+        preg_match('/<script type="application\/json" data-store-picker-i18n>(.*?)<\/script>/s', $response->getContent(), $match);
+        $picker = json_decode($match[1], true, flags: JSON_THROW_ON_ERROR);
+
+        $this->assertSame([
+            'title', 'libraryCount', 'pageStatus', 'choose', 'mediaAlt', 'attached', 'current', 'libraryError', 'uploadInvalid',
+            'uploadMax', 'session', 'forbidden', 'invalid', 'network', 'failed',
+        ], array_keys($picker));
+        $this->assertSame('الشعار الحالي', $picker['current']);
+        $this->assertSame('اختر صورة من الوسائط', $picker['title']);
+        $this->assertSame('ليست لديك صلاحية للقيام بذلك.', $picker['forbidden']);
+    }
+
+    // ---- Logo section (MYSTORE-UI-01, chosen from the media library since MYSTORE-UI-01C) and preparation days ----
+
+    public function test_logo_section_and_preparation_days_in_arabic(): void
+    {
+        $this->actingAs($this->vendor(), 'vendor')
+            ->page()
+            ->assertSeeInOrder(['شعار المتجر', 'اختر صورة من مكتبة الوسائط لتظهر بجانب اسم متجرك في لوحة البائع. إزالة الشعار لا تحذف الصورة من المكتبة.', 'اختيار من مكتبة الوسائط', 'إزالة الشعار'])
+            ->assertSeeInOrder(['مدة التجهيز (بالأيام)', 'المدة المعتادة لتجهيز الطلب قبل شحنه، بالأيام (من 0 إلى 365).'])
+            ->assertDontSee('Store logo')
+            ->assertDontSee('Preparation days')
+            ->assertDontSee('حذف الشعار')
+            ->assertDontSee('2 ميغابايت');
+    }
+
+    public function test_logo_section_and_preparation_days_in_english(): void
+    {
+        $this->actingAs($this->vendor(), 'vendor');
+        $this->get(route('vendor.dashboard.my-store').'?change-locale=en');
+
+        $this->page()
+            ->assertSeeInOrder(['Store logo', 'Removing the logo does not delete the image from the library.', 'Choose from media library', 'Remove logo'])
+            ->assertSeeInOrder(['Preparation days', 'Your usual time to prepare an order before shipping, in days (0 to 365).']);
+    }
+
+    public function test_the_logo_is_chosen_in_the_shared_media_picker_and_remove_starts_hidden(): void
+    {
+        $html = $this->actingAs($this->vendor(), 'vendor')->page()->getContent();
+
+        // Choose: opens the picker dialog, described by the hint, disabled until the profile is loaded.
+        $this->assertMatchesRegularExpression('/<button\b[^>]*data-store-logo-pick[^>]*aria-describedby="vendor-store-logo-hint"[^>]*aria-haspopup="dialog"[^>]*disabled>/', $html);
+        $this->assertStringContainsString('id="vendor-store-logo-hint"', $html);
+        // Remove is hidden until a logo is shown; the preview starts hidden too.
+        $this->assertMatchesRegularExpression('/<button\b[^>]*data-store-logo-delete hidden>/', $html);
+        $this->assertMatchesRegularExpression('/<img\b[^>]*data-store-logo hidden\b/', $html);
+        // The shared picker (one dialog, outside the profile form) with the library's endpoints; one file per upload.
+        $this->assertSame(1, substr_count($html, '<dialog class="vendor-media-dialog vendor-product-picker"'));
+        $this->assertMatchesRegularExpression('/<\/form>\s*<dialog class="vendor-media-dialog vendor-product-picker"/', $html);
+        $this->assertMatchesRegularExpression('/<input class="vendor-product-media-file" type="file"[^>]*data-product-media-file tabindex="-1" aria-hidden="true">/', $html);
+        $this->assertStringContainsString('data-logo-url="'.route('vendor.dashboard.profile.logo.update').'"', $html);
+        $this->assertStringContainsString('data-media-library-url="'.route('vendor.dashboard.products.media.library').'"', $html);
+        $this->assertStringContainsString('data-media-store-url="'.route('vendor.dashboard.products.media.store').'"', $html);
+        // The legacy direct upload is no longer used by the page.
+        $this->assertStringNotContainsString(route('vendor.dashboard.profile.media.store', 'logo'), $html);
+        $this->assertStringNotContainsString('data-store-logo-input', $html);
+        // The hint is described by the preparation days field, before its error.
+        $this->assertStringContainsString('aria-describedby="vendor-hint-preparation_days vendor-error-preparation_days"', $html);
+
+        // No Bootstrap utilities (the vendor shell does not load them) and no inline styles in the logo section.
+        preg_match('/<section[^>]*aria-labelledby="vendor-store-logo-title".*?<\/section>/s', $html, $section);
+        foreach (['d-flex', 'align-items-center', 'rounded-circle', 'object-fit-cover', 'form-control', 'btn-light-danger', 'style=', 'type="file"'] as $absent) {
+            $this->assertStringNotContainsString($absent, $section[0], $absent);
+        }
+    }
+
+    public function test_logo_styles_keep_hidden_controls_hidden_and_logos_cropped(): void
+    {
+        $css = file_get_contents(resource_path('css/vendor-dashboard.css'));
+
+        $this->assertMatchesRegularExpression('/\.vendor-store-logo-row \[hidden\] \{\s*display: none;/', $css);
+        $this->assertMatchesRegularExpression('/\.vendor-store-logo-preview \{[^}]*object-fit: cover;/', $css);
+        // The header and sidebar logos (img.vendor-monogram) are cropped too.
+        $this->assertMatchesRegularExpression('/\.vendor-shell img\.vendor-monogram \{\s*object-fit: cover;/', $css);
+        // The picker's own texts keep their look outside the product editor.
+        $this->assertMatchesRegularExpression('/\.vendor-product-picker \.vendor-product-error \{\s*color: #a13d2b;/', $css);
+        $this->assertStringNotContainsString('.vendor-store-logo-file', $css);
+    }
+
+    public function test_the_logo_script_reuses_the_picker_and_sends_only_the_media_id(): void
+    {
+        $script = file_get_contents(resource_path('js/vendor-my-store.js'));
+
+        $this->assertStringContainsString("import { initPicker, uploadError, uploadPlan } from './vendor-product-editor.js';", $script);
+        $this->assertStringNotContainsString('function initPicker', $script);
+        $this->assertStringContainsString('body: JSON.stringify({ media_id: medium.id })', $script);
+        $this->assertStringContainsString("request(root.dataset.logoUrl, { method: 'PUT'", $script);
+        $this->assertStringContainsString("request(root.dataset.logoUrl, { method: 'DELETE'", $script);
+        $this->assertStringContainsString('request(root.dataset.mediaStoreUrl', $script);
+        $this->assertStringContainsString("medium?.path === logoPath ? 'current' : null", $script);
+        $this->assertStringNotContainsString('logoUploadUrl', $script);
+        $this->assertStringNotContainsString('logoDeleteUrl', $script);
+        // Locked until the profile is loaded; texts from the page only.
+        $this->assertStringContainsString('logoPick.disabled = !enabled || preserved === null || logoBusy;', $script);
+        $this->assertStringContainsString('window.confirm(i18n.logoConfirmDelete)', $script);
+        foreach (["'Uploading…'", "'Logo saved.'", "'Logo deleted.'", 'Delete the store logo?', 'could not be'] as $english) {
+            $this->assertStringNotContainsString($english, $script, $english);
+        }
+    }
+
+    public function test_the_remove_button_has_its_own_key_and_delete_stays_generic(): void
+    {
+        $html = $this->actingAs($this->vendor(), 'vendor')->page()->getContent();
+
+        $this->assertMatchesRegularExpression('/data-store-logo-delete hidden>\s*<i[^>]*><\/i>\s*<span>إزالة الشعار<\/span>/u', $html);
+        $view = file_get_contents(resource_path('views/vendor-dashboard/my-store.blade.php'));
+        $this->assertStringContainsString("t('vendor.My_Store_Logo_Remove', 'Remove logo')", $view);
+        $this->assertStringNotContainsString("t('vendor.Delete'", $view);
+        $this->assertSame(['ar' => 'إزالة الشعار', 'en' => 'Remove logo'], VendorDashboardTranslationSeeder::TRANSLATIONS['vendor.My_Store_Logo_Remove']);
+        $this->assertSame(['ar' => 'حذف', 'en' => 'Delete'], VendorDashboardTranslationSeeder::TRANSLATIONS['vendor.Delete']);
+    }
+
+    public function test_the_picker_shows_no_english_on_the_arabic_page(): void
+    {
+        $html = $this->actingAs($this->vendor(), 'vendor')->page()->getContent();
+        preg_match('/<dialog class="vendor-media-dialog vendor-product-picker".*?<\/dialog>/s', $html, $dialog);
+
+        // Visible text, and the texts assistive technology reads (aria-label, placeholder), of every picker state:
+        // header, intro, search, upload, loading, empty, no results, error and retry, pagination.
+        $visible = trim(preg_replace('/\s+/u', ' ', strip_tags($dialog[0])));
+        preg_match_all('/\b(?:aria-label|placeholder)="([^"]*)"/', $dialog[0], $attributes);
+        foreach (array_merge([$visible], $attributes[1]) as $text) {
+            $english = preg_replace('/\b(?:JPEG|PNG|GIF|WebP)\b/', '', $text);
+            $this->assertDoesNotMatchRegularExpression('/[A-Za-z]{2,}/', $english, $text);
+        }
+        foreach (['اختر صورة من الوسائط', 'تظهر هنا صور مكتبة الوسائط الخاصة بك فقط.', 'ارفع صورة جديدة', 'جارٍ تحميل الصور…', 'إعادة المحاولة'] as $arabic) {
+            $this->assertStringContainsString($arabic, $dialog[0]);
+        }
+
+        // The texts the script shows (counts, cards, errors, the current logo marker).
+        preg_match('/<script type="application\/json" data-store-picker-i18n>(.*?)<\/script>/s', $html, $match);
+        foreach (json_decode($match[1], true, flags: JSON_THROW_ON_ERROR) as $name => $text) {
+            $this->assertMatchesRegularExpression('/\p{Arabic}/u', $text, $name);
+            $this->assertDoesNotMatchRegularExpression('/[A-Za-z]{2,}/', preg_replace('/:[a-z]+|\b(?:JPEG|PNG|GIF|WebP)\b/', '', $text), $name);
+        }
+    }
+
+    public function test_the_product_editor_still_includes_the_same_picker(): void
+    {
+        $html = $this->actingAs($this->vendor(), 'vendor')->get(route('vendor.dashboard.products.page'))->assertOk()->getContent();
+
+        $this->assertSame(1, substr_count($html, 'data-product-media-library'));
+        $this->assertMatchesRegularExpression('/data-product-media-file multiple tabindex="-1"/', $html);
+        $this->assertStringContainsString('تُضاف أول صورة مرفوعة إلى المنتج', $html);
+        $this->assertStringNotContainsString('data-store-picker-i18n', $html);
     }
 
     public function test_the_page_never_embeds_profile_data(): void
