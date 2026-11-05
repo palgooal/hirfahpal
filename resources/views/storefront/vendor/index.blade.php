@@ -13,17 +13,23 @@
       <section
         class="relative overflow-hidden rounded-[24px] border border-line bg-surface p-5 shadow-card sm:p-6 lg:p-8">
         <div class="absolute start-0 top-0 h-full w-2 bg-copper/70" aria-hidden="true"></div>
-        <div class="grid gap-6 lg:grid-cols-[auto_1fr_auto] lg:items-center">
+        {{-- VP-FIDELITY-01: the identity column fits its content up to the approved width (about 380px), so long
+             content never takes the description's room; the description column may shrink but keeps the rest. --}}
+        <div class="grid gap-6 lg:grid-cols-[fit-content(380px)_minmax(0,1fr)_auto] lg:items-center">
           <div class="flex items-start justify-start gap-4 sm:gap-5">
             {{-- VP-DATA-01: the same logo and fallback as the directory card; decorative next to the store name (h1). --}}
             @php($storeLogoUrl = $vendor->profile->publicLogoUrl())
             <span aria-hidden="true"
               class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-copper/20 bg-copper/10 text-2xl font-bold leading-8 text-copper shadow-sm sm:h-24 sm:w-24 sm:text-[30px]">@if ($storeLogoUrl)<img src="{{ $storeLogoUrl }}" alt="" width="96" height="96" class="h-full w-full object-cover">@else{{ $vendor->profile->publicInitial() }}@endif</span>
             <div class="min-w-0 flex-1 text-start">
+              {{-- VP-FIDELITY-01: the short tagline only when it adds to the main description (two lines at most). --}}
+              @php($storeTagline = $vendor->profile->publicTagline())
+              @if ($storeTagline)
               <p class="flex items-center gap-1.5 text-xs font-bold uppercase leading-4 tracking-[.6px] text-copper">
-                <span class="h-1.5 w-1.5 rounded-full bg-copper"></span>{{ $vendor->profile->short_description ?: $vendor->profile->store_name }}
+                <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-copper"></span><span class="line-clamp-2 min-w-0" data-store-tagline>{{ $storeTagline }}</span>
               </p>
-              <h1 class="mt-2 text-[30px] font-bold leading-10 text-ink sm:text-4xl sm:leading-[48px]">{{ $vendor->profile->store_name }}</h1>
+              @endif
+              <h1 class="mt-2 text-[30px] font-bold leading-10 text-ink wrap-anywhere sm:text-4xl sm:leading-[48px]">{{ $vendor->profile->store_name }}</h1>
               <div class="mt-3 flex flex-wrap items-center gap-3 text-sm font-semibold text-ink">
                 <span class="flex items-center gap-1.5"><img src="{{ asset('assets/storefront/imgs/mcp/arrival-star.svg') }}" alt=""
                     class="h-[11.083px] w-[11.667px]"><bdi>{{ $vendor->published_reviews_count ? number_format($vendor->published_rating, 1) : '—' }}</bdi><span class="text-muted">تقييم المتجر</span></span>

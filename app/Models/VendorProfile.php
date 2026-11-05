@@ -91,6 +91,24 @@ class VendorProfile extends Model
         return Storage::disk('public')->exists($path) ? Storage::disk('public')->url($path) : null;
     }
 
+    /**
+     * VP-FIDELITY-01: the vendor page's short tagline above the store name. The saved short description, unless it
+     * would repeat the main description shown beside it (the description, or the short description itself when there
+     * is none): an empty, identical or contained short description gives none, so the eyebrow is left out.
+     */
+    public function publicTagline(): ?string
+    {
+        $short = trim((string) $this->short_description);
+        if ($short === '') {
+            return null;
+        }
+
+        $normalize = fn (string $text): string => mb_strtolower(trim((string) preg_replace('/\s+/u', ' ', $text)));
+        $main = trim((string) $this->description) !== '' ? (string) $this->description : $short;
+
+        return str_contains($normalize($main), $normalize($short)) ? null : $short;
+    }
+
     /** VP-DATA-01: the logo fallback: the store name's first character (as in the vendor dashboard). */
     public function publicInitial(): string
     {
