@@ -30,7 +30,7 @@
           <i data-lucide="search"
             class="pointer-events-none absolute start-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted"></i>
           <input id="vendorSearch" type="search" placeholder="ابحث باسم المشغل أو المدينة..."
-            class="h-12 w-full rounded-[16px] border border-line bg-surface ps-11 pe-4 text-start text-sm text-ink outline-none transition-colors placeholder:text-muted focus:border-sage">
+            class="h-12 w-full rounded-[16px] border border-line bg-surface ps-11 pe-4 text-start text-sm text-ink outline-none transition-colors placeholder:text-muted focus:border-sage focus-visible:border-olive focus-visible:ring-2 focus-visible:ring-olive">
         </label>
       </div>
 

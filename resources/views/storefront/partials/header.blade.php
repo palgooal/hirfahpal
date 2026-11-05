@@ -4,7 +4,11 @@
     <div class="h-[70px] bg-surface px-4 shadow-[0_2px_7.5px_rgba(43,43,38,.03)] backdrop-blur-[6px] lg:px-8"
       data-node-id="223:3436">
       <div class="mx-auto hidden h-full max-w-[1216px] items-center justify-between py-[10px] lg:flex">
-        <a href="{{ $onHome ? '#home' : route('home') }}" class="flex w-[184px] shrink-0 items-center justify-start gap-3" aria-label="حرفة الرئيسية"
+        {{-- VP-FIX-01: the three blocks need about 1074px; between 1024 and 1279px the spacing is tighter so they fit
+             the 960px row (no overflow), and from 1280px (xl) the original spacing applies unchanged. VP-FIX-02A: the
+             nav gap there is 12px so the cart button, which grows with its total, still fits at 1024px (tested up to
+             «1,234,567.00 USD»). --}}
+        <a href="{{ $onHome ? '#home' : route('home') }}" class="flex w-auto shrink-0 items-center justify-start gap-3 xl:w-[184px]" aria-label="حرفة الرئيسية"
           data-node-id="223:3474">
           <span class="flex h-[58px] w-[58px] items-center justify-center rounded-[16px] bg-surface p-1 shadow-sm"><img
               src="{{ \App\Support\Storefront\HomepageMedia::url($siteSetting?->logo, 'assets/storefront/imgs/mcp/header-logo.png') }}" alt="شعار حرفة" class="h-[50px] w-[50px] object-cover"></span>
@@ -17,12 +21,13 @@
           </div>
         </a>
 
-        <nav class="flex shrink-0 items-center gap-8 text-[15px] font-semibold leading-[22.5px] text-olive"
+        <nav class="flex shrink-0 items-center gap-3 text-[15px] font-semibold leading-[22.5px] text-olive xl:gap-8"
           data-node-id="223:3463">
           <a href="{{ $onHome ? '#home' : route('home') }}" class="border-b-2 border-copper pb-1.5 font-bold text-copper">الرئيسية</a>
 
           <div class="mega-menu group relative py-1">
-            <button type="button" class="flex items-center gap-1.5" aria-haspopup="true" aria-expanded="false">
+            {{-- VP-FIX-02: a disclosure button (not an ARIA menu): opens on hover, click, Enter or Space; Escape closes it. --}}
+            <button type="button" class="flex items-center gap-1.5" aria-expanded="false" aria-controls="storefrontMegaMenu">
               <span>تسوّق</span>
               <i data-lucide="chevron-down" class="h-4 w-4 transition-transform duration-200 group-[.mega-menu-open]:rotate-180"></i>
             </button>
@@ -35,7 +40,7 @@
           <a href="{{ $onHome ? '#artisans' : route('home') . '#artisans' }}" class="py-1">حكايات حِرفة</a>
         </nav>
 
-        <div class="flex h-[50px] shrink-0 items-center gap-3 p-[10px]" data-node-id="223:3438">
+        <div class="flex h-[50px] shrink-0 items-center gap-2 py-[10px] xl:gap-3 xl:p-[10px]" data-node-id="223:3438">
           <button type="button" disabled aria-disabled="true" id="searchButton"
             class="flex h-[30px] w-[30px] items-center justify-center overflow-hidden rounded-full border border-olive bg-olive p-px"
             aria-label="بحث"><img src="{{ asset('assets/storefront/imgs/mcp/header-search-exact.svg') }}" alt=""
@@ -49,12 +54,12 @@
           <button type="button" disabled aria-disabled="true" class="flex h-[30px] w-[30px] items-center justify-center rounded-full" aria-label="المشاهدة"><img
               src="{{ asset('assets/storefront/imgs/mcp/header-user.svg') }}" alt="" class="h-[16.283px] w-[17.875px]"></button>
           <button type="submit" form="header-cart-form" id="cartButton"
-            class="relative flex h-[30px] w-[86.208px] items-center justify-center gap-2.5 rounded-full border border-olive bg-olive px-[11px] text-surface"
+            class="relative flex h-[30px] w-auto min-w-[86.208px] items-center justify-center gap-2.5 rounded-full border border-olive bg-olive px-[11px] text-surface"
             aria-label="سلة المشتريات">
-            <span class="relative"><img src="{{ asset('assets/storefront/imgs/mcp/header-cart.svg') }}" alt=""
+            <span class="relative me-1"><img src="{{ asset('assets/storefront/imgs/mcp/header-cart.svg') }}" alt=""
                 class="h-[17.875px] w-[14.208px]"><span id="cartCount"
                 class="absolute left-[-12px] top-[-7.73px] flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-copper px-1 text-[11px] font-bold leading-[11px] text-white">{{ $cartCount ?? 2 }}</span></span>
-            <bdi id="cartTotal" class="w-10 text-right text-xs font-bold leading-3">{{ isset($cartTotal) ? number_format($cartTotal, 2).' '.$currency : '₪365' }}</bdi>
+            <bdi id="cartTotal" class="whitespace-nowrap text-right text-xs font-bold leading-3">{{ isset($cartTotal) ? number_format($cartTotal, 2).' '.$currency : '₪365' }}</bdi>
           </button><form hidden id="header-cart-form" method="GET" action="{{ route('cart') }}"></form>
         </div>
       </div>
@@ -69,7 +74,7 @@
               src="{{ asset('assets/storefront/imgs/mcp/header-globe.svg') }}" alt="" class="h-4 w-4"></button><form hidden id="locale-header-0" method="GET" action="{{ url()->current() }}">@include('storefront.partials.locale-query-inputs')<input type="hidden" name="change-locale" value="{{ $languages->firstWhere('code', '!=', app()->getLocale())?->code ?? app()->getLocale() }}"></form><button id="mobileSearchButton"
             class="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-olive bg-olive"
             aria-label="بحث"><img src="{{ asset('assets/storefront/imgs/mcp/header-search-exact.svg') }}" alt=""
-              class="h-[28.667px] w-[14.663px] max-w-none"></button><button id="menuButton"
+              class="h-[28.667px] w-[14.663px] max-w-none"></button><button id="menuButton" type="button" aria-expanded="false" aria-controls="mobileMenu"
             class="flex h-9 w-9 items-center justify-center rounded-full" aria-label="القائمة"><i data-lucide="menu"
               class="h-5 w-5"></i></button></div>
       </div>

@@ -48,7 +48,7 @@
                 aria-label="إزالة إبريق الخليل الأزرق من المفضلة"><i data-lucide="heart" class="h-[15px] w-[15px] fill-current"></i></button><form hidden id="favorite-remove-{{ $favorite->id }}" method="POST" action="{{ route('customer.favorites.destroy', $favorite) }}">@csrf
 @method('DELETE')</form><button form="favorite-cart-{{ $favorite->id }}"
                 type="submit"
-                class="add-cart absolute start-3 end-3 bottom-3 flex translate-y-0 items-center justify-center gap-2 rounded-[16px] bg-sage px-4 py-2.5 text-xs font-bold opacity-100 shadow-md transition-all sm:translate-y-2 sm:opacity-0 group-hover:translate-y-0 group-hover:opacity-100"
+                class="add-cart absolute start-3 end-3 bottom-3 flex translate-y-0 items-center justify-center gap-2 rounded-[16px] bg-sage px-4 py-2.5 text-xs font-bold opacity-100 shadow-md transition-all sm:translate-y-2 sm:opacity-0 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
                 data-price="{{ number_format($product->sellingPrice(), 2, '.', '') }}"><span>إضافة إلى السلة</span><img src="{{ asset('assets/storefront/imgs/mcp/arrival-cart.svg') }}" alt=""
                   class="h-[13.103px] w-[12.918px]"></button><form hidden id="favorite-cart-{{ $favorite->id }}" method="POST" action="{{ route('customer.cart.items.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $product->id }}"><input type="hidden" name="quantity" value="1"></form></div>
             <div class="flex min-h-0 flex-1 flex-col p-4">

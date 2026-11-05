@@ -12,12 +12,27 @@ if ($) {
             $('#searchButton').prop('disabled', false).removeAttr('aria-disabled');
         }
 
-        $('#menuButton').on('click', function () {
-            $('#mobileMenu').stop(true, true).slideToggle(180);
+        // VP-FIX-02: the mobile menu is a disclosure. Its button reports the state (aria-expanded) and controls
+        // #mobileMenu (aria-controls); opening moves focus to the menu's first item, Escape closes it (below).
+        const $menuButton = $('#menuButton');
+        const $mobileMenu = $('#mobileMenu');
+        const setMobileMenu = (open, moveFocus = false) => {
+            $menuButton.attr('aria-expanded', String(open));
+            if (open) {
+                $mobileMenu.stop(true, true).slideDown(180, () => {
+                    if (moveFocus) $mobileMenu.find('a, button').first().trigger('focus');
+                });
+            } else {
+                $mobileMenu.stop(true, true).slideUp(150);
+            }
+        };
+
+        $menuButton.on('click', function () {
+            setMobileMenu($menuButton.attr('aria-expanded') !== 'true', true);
         });
 
         $('#mobileMenu a').on('click', function () {
-            $('#mobileMenu').slideUp(150);
+            setMobileMenu(false);
         });
 
         $('.nav-dropdown').on('click', function (event) {
@@ -35,10 +50,27 @@ if ($) {
             $('.nav-dropdown').removeClass('nav-dropdown-open').find('button').attr('aria-expanded', 'false');
         });
 
+        // VP-FIX-02: one place sets a mega menu's state, so aria-expanded always matches what is shown. A menu
+        // opened by click or keyboard is "pinned": moving the mouse away does not close it.
+        const setMegaMenu = ($menu, open) => {
+            $menu.toggleClass('mega-menu-open', open).children('button').attr('aria-expanded', String(open));
+            if (!open) $menu.removeData('megaMenuPinned');
+        };
+
         $(document).on('keydown', function (event) {
             if (event.key === 'Escape') {
                 $('.nav-dropdown').removeClass('nav-dropdown-open').find('button').attr('aria-expanded', 'false');
-                $('.mega-menu').removeClass('mega-menu-open').find('button').attr('aria-expanded', 'false');
+                // VP-FIX-02: closing a menu that holds the focus gives the focus back to the button that opened it.
+                $('.mega-menu').each(function () {
+                    const hadFocus = this.contains(document.activeElement);
+                    if ($(this).hasClass('mega-menu-open')) setMegaMenu($(this), false);
+                    if (hadFocus) $(this).children('button').trigger('focus');
+                });
+                if ($menuButton.attr('aria-expanded') === 'true') {
+                    const hadFocus = $mobileMenu[0]?.contains(document.activeElement);
+                    setMobileMenu(false);
+                    if (hadFocus) $menuButton.trigger('focus');
+                }
             }
         });
 
@@ -58,15 +90,39 @@ if ($) {
 
         $('.mega-menu').on('mouseenter', function () {
             clearTimeout(megaMenuTimer);
-            $('.mega-menu').not(this).removeClass('mega-menu-open').find('button').attr('aria-expanded', 'false');
-            $(this).addClass('mega-menu-open').find('button').attr('aria-expanded', 'true');
+            $('.mega-menu').not(this).each(function () { setMegaMenu($(this), false); });
+            setMegaMenu($(this), true);
         });
 
         $('.mega-menu').on('mouseleave', function () {
             const $menu = $(this);
-            megaMenuTimer = setTimeout(() => {
-                $menu.removeClass('mega-menu-open').find('button').attr('aria-expanded', 'false');
-            }, 150);
+            if ($menu.data('megaMenuPinned')) return;
+            megaMenuTimer = setTimeout(() => setMegaMenu($menu, false), 150);
+        });
+
+        // VP-FIX-02: click, Enter or Space opens the menu (and pins it); a second activation closes it. Tab moves into
+        // the panel (its links follow the button); leaving the menu with the keyboard, or clicking outside, closes it.
+        $('.mega-menu > button').on('click', function (event) {
+            event.stopPropagation();
+            const $menu = $(this).closest('.mega-menu');
+            clearTimeout(megaMenuTimer);
+            if ($menu.data('megaMenuPinned')) {
+                setMegaMenu($menu, false);
+            } else {
+                $('.mega-menu').not($menu).each(function () { setMegaMenu($(this), false); });
+                setMegaMenu($menu, true);
+                $menu.data('megaMenuPinned', true);
+            }
+        });
+
+        $('.mega-menu').on('focusout', function (event) {
+            if (!this.contains(event.relatedTarget)) setMegaMenu($(this), false);
+        });
+
+        $(document).on('click', function (event) {
+            $('.mega-menu.mega-menu-open').each(function () {
+                if (!this.contains(event.target)) setMegaMenu($(this), false);
+            });
         });
 
         $('.mega-category-trigger').on('mouseenter focus', function () {

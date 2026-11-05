@@ -1,5 +1,5 @@
 {{-- Page navigation is deferred. Original menu/category hooks await Storefront JavaScript. --}}
-            <div
+            <div id="storefrontMegaMenu"
               class="mega-menu-panel invisible absolute start-0 top-full z-40 mt-2 flex w-[720px] origin-top-start overflow-hidden rounded-2xl border border-line bg-surface opacity-0 shadow-soft transition-[opacity,transform] duration-150 [transform:scale(.97)] group-[.mega-menu-open]:visible group-[.mega-menu-open]:opacity-100 group-[.mega-menu-open]:[transform:scale(1)]">
 
               <ul class="w-56 shrink-0 border-e border-line bg-canvas/60 p-2">
