@@ -7,6 +7,7 @@ use App\Http\Requests\Customer\StoreCustomerFavoriteRequest;
 use App\Models\CustomerFavorite;
 use App\Models\Product;
 use App\Support\Storefront\BrowserResponse;
+use App\Support\Storefront\CustomerFavoriteJson;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,7 +39,9 @@ class FavoriteController extends Controller
             'product_id' => $product->id,
         ]);
 
-        return BrowserResponse::saved($request, $favorite->load(['product.vendor.profile', 'product.primaryImage']), $favorite->wasRecentlyCreated ? 201 : 200);
+        // JSON-EXPOSURE-01B: the favorite and a public product summary, never the raw product, vendor or store records.
+        return BrowserResponse::saved($request, CustomerFavoriteJson::favorite($favorite->load(['product.vendor.profile', 'product.primaryImage'])),
+            $favorite->wasRecentlyCreated ? 201 : 200);
     }
 
     public function destroy(Request $request, CustomerFavorite $favorite): JsonResponse|RedirectResponse

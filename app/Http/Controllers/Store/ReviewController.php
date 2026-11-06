@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Store;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\Review;
+use App\Support\Storefront\CustomerOrderJson;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,7 +80,7 @@ class ReviewController extends Controller
         }
 
         return $request->expectsJson()
-            ? response()->json($reviews, 201)
+            ? response()->json(array_map(fn (Review $review) => CustomerOrderJson::review($review), $reviews), 201)
             : back()->with('success', 'تم حفظ تقييمك بنجاح.');
     }
 }

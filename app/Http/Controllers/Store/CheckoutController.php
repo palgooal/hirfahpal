@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\VendorOrder;
 use App\Support\Orders\DeliveryAddress;
 use App\Support\Storefront\CartAvailability;
+use App\Support\Storefront\CustomerOrderJson;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -184,7 +185,7 @@ class CheckoutController extends Controller
         });
 
         return $request->expectsJson()
-            ? response()->json($order->load(['vendorOrders.items', 'payment']), 201)
+            ? response()->json(CustomerOrderJson::order($order->load(['vendorOrders.items', 'payment'])), 201)
             : redirect()->route('customer.dashboard')->with('success', 'تم إنشاء الطلب '.$order->number.' بنجاح.');
     }
 
