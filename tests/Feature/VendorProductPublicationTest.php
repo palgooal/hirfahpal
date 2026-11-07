@@ -295,7 +295,7 @@ class VendorProductPublicationTest extends TestCase
 
     private function input(array $changes): array
     {
-        return $changes + ['name' => 'Clay jug', 'price' => 10, 'stock_quantity' => 10];
+        return $changes + ['category_id' => $this->activeCategoryId(), 'name' => 'Clay jug', 'price' => 10, 'stock_quantity' => 10];
     }
 
     private function create(array $changes): Product

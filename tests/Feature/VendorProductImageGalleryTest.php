@@ -197,7 +197,7 @@ class VendorProductImageGalleryTest extends TestCase
         $paths = [$this->path(), $this->path(), $this->path()];
 
         $response = $this->actingAs($this->vendor, 'vendor')->postJson(route('vendor.dashboard.products.store'), [
-            'name' => 'Clay jug', 'price' => 10, 'stock_quantity' => 2,
+            'category_id' => $this->activeCategoryId(), 'name' => 'Clay jug', 'price' => 10, 'stock_quantity' => 2,
             'images' => [['path' => $paths[0], 'sort_order' => 0], ['path' => $paths[1], 'sort_order' => 1], ['path' => $paths[2], 'sort_order' => 2, 'is_primary' => true]],
         ])->assertCreated();
 

@@ -74,6 +74,7 @@ class VendorDashboardBackendTest extends TestCase
         ]);
 
         $this->actingAs($vendor, 'vendor')->putJson(route('vendor.dashboard.products.update', $product), [
+            'category_id' => $this->activeCategoryId(),
             'name' => 'Changed Product',
             'price' => 15,
             'stock_quantity' => 9,

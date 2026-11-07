@@ -137,7 +137,7 @@ class AdminProductPublicationTest extends TestCase
         $this->travel(5)->minutes();
 
         $this->actingAs($this->vendor, 'vendor')->putJson(route('vendor.dashboard.products.update', $product), [
-            'name' => 'Clay jug', 'price' => 10, 'stock_quantity' => 10, 'status' => 'active',
+            'category_id' => $this->activeCategoryId(), 'name' => 'Clay jug', 'price' => 10, 'stock_quantity' => 10, 'status' => 'active',
         ])->assertOk();
 
         $this->assertEquals(now(), $product->fresh()->published_at);

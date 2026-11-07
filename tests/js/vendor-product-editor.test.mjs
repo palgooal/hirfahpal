@@ -26,6 +26,10 @@ import {
     VENDOR_STATUSES,
     createTickets,
     editorMode,
+    fieldErrors,
+    saveDisabled,
+    categoriesFrom,
+    categoryOptions,
     galleryButtonDisabled,
     mayBeArchivedRefusal,
     refusalOutcome,
@@ -208,6 +212,7 @@ test('a gallery card has its position, no badge, and change / set as main / remo
     assert.equal(meta.children[1].id, 'vendor-product-image-3-name');
     assert.deepEqual(actions(node).map((button) => button.dataset.action), ['up', 'down', 'change', 'main', 'remove']);
     assert.deepEqual(actions(node).map((button) => button.textContent), ['Move up', 'Move down', 'Change', 'Set as main', 'Remove']);
+    assert.deepEqual(actions(node).map((button) => button.title), ['Move up', 'Move down', 'Change', 'Set as main', 'Remove'], 'VPM-UX-01E: the icon-only tiles keep each action as its tooltip.');
     assert.deepEqual(actions(node).map((button) => button.children[0].className), ['ph-duotone ph-arrow-up', 'ph-duotone ph-arrow-down', 'ph-duotone ph-swap', 'ph-duotone ph-star', 'ph-duotone ph-x'], 'The admin gallery icons.');
     assert.deepEqual(enabled(node), ['up', 'down', 'change', 'main', 'remove'], 'A middle image moves both ways.');
     for (const button of actions(node)) {
@@ -549,4 +554,74 @@ test('a late answer for an earlier product is not current once another product (
     tickets.next();
     assert.equal(tickets.isCurrent(second), false, 'Closing drops them too.');
     assert.notEqual(createTickets().next(), undefined);
+});
+
+// VPM-UX-01E: the save bar and the field messages.
+test('a 422 gives each field its messages, by form field name; anything else gives none', () => {
+    const body = { message: 'ignored', errors: { name: ['The name field is required.'], 'dimensions.length': ['Too long.', 'Not a number.'], 'images.0.path': ['Not yours.'], price: [], sku: 'Taken.' } };
+    assert.deepEqual(fieldErrors(422, body), [
+        ['name', 'The name field is required.'],
+        ['dimensions[length]', 'Too long. Not a number.'],
+        ['images.0.path', 'Not yours.'],
+        ['sku', 'Taken.'],
+    ], 'Nested fields use the form name; an empty list is left out; the server message is never used.');
+    assert.deepEqual(fieldErrors(500, body), []);
+    assert.deepEqual(fieldErrors(422, null), []);
+    assert.deepEqual(fieldErrors(422, { errors: null }), []);
+    assert.deepEqual(fieldErrors(422, { errors: { name: [42, null, ''] } }), [], 'Only text is shown.');
+});
+
+test('Save waits for a change, and is never usable while saving or read-only', () => {
+    assert.equal(saveDisabled({ dirty: false }), true, 'Nothing changed yet.');
+    assert.equal(saveDisabled({ dirty: true }), false, 'A change, or a failed save of it (retry).');
+    assert.equal(saveDisabled({ dirty: true, saving: true }), true);
+    assert.equal(saveDisabled({ dirty: true, readOnly: true }), true);
+});
+
+// VPM-CATEGORY-RELIABILITY-01: the category field from the editor's own state and the categories it loads.
+const texts = { prompt: 'Choose a category', inactive: ':name (inactive)' };
+const active = [{ id: '3', name: 'Pottery' }, { id: '4', name: 'Baskets' }];
+const shown = ({ options, value }) => ({ value, options: options.map((o) => `${o.value}:${o.text}${o.disabled ? ':disabled' : ''}${o.inactive ? ':inactive' : ''}`) });
+
+test('the categories come from a products answer; an unusable answer is a failure (null)', () => {
+    assert.deepEqual(categoriesFrom({ status: 200, body: { filters: { categories: [{ id: 3, name: 'Pottery', is_active: true }, null, { name: 'no id' }] } } }), [{ id: '3', name: 'Pottery' }]);
+    assert.deepEqual(categoriesFrom({ status: 200, body: { filters: { categories: [] } } }), [], 'No active category is an answer, not a failure.');
+    assert.equal(categoriesFrom({ status: 500, body: null }), null);
+    assert.equal(categoriesFrom({ status: 0, body: null }), null, 'Network failure.');
+    assert.equal(categoriesFrom({ status: 200, body: { products: {} } }), null);
+    assert.equal(categoriesFrom({ status: 419, body: { message: 'x' } }), null);
+});
+
+test('the prompt is never a choice; a product shows its own active category', () => {
+    assert.deepEqual(shown(categoryOptions(active, { value: '3', current: { id: '3', name: 'Pottery' }, ...texts })), {
+        value: '3', options: [':Choose a category:disabled', '3:Pottery', '4:Baskets'],
+    });
+    assert.equal(categoryOptions(active, { value: '', ...texts }).value, '', 'A new or uncategorized product shows the prompt.');
+});
+
+test('a saved product keeps its own inactive category, marked; a new product is never offered one', () => {
+    const own = { id: '9', name: 'Old craft' };
+    assert.deepEqual(shown(categoryOptions(active, { value: '9', current: own, ...texts })), {
+        value: '9', options: [':Choose a category:disabled', '3:Pottery', '4:Baskets', '9:Old craft (inactive):inactive'],
+    });
+    // The vendor chose an active replacement: the own inactive category stays available to go back to.
+    assert.equal(categoryOptions(active, { value: '4', current: own, ...texts }).value, '4');
+    // A new product (no own category) cannot show an inactive id, whatever value it is given.
+    assert.deepEqual(shown(categoryOptions(active, { value: '9', current: null, ...texts })), { value: '', options: [':Choose a category:disabled', '3:Pottery', '4:Baskets'] });
+});
+
+test('opening product B after A, or Add after Edit, shows only the new state', () => {
+    const a = categoryOptions(active, { value: '9', current: { id: '9', name: 'Old craft' }, ...texts });
+    const b = categoryOptions(active, { value: '3', current: { id: '3', name: 'Pottery' }, ...texts });
+    const add = categoryOptions(active, { value: '', current: null, ...texts });
+    assert.equal(a.value, '9');
+    assert.deepEqual([b.value, b.options.some((o) => o.value === '9')], ['3', false], "A's inactive category is not carried to B.");
+    assert.deepEqual([add.value, add.options.length], ['', 3], 'Add: the prompt and the active categories only.');
+});
+
+test("while the categories are not loaded the field shows the product's own category by name, not marked", () => {
+    assert.deepEqual(shown(categoryOptions(null, { value: '3', current: { id: '3', name: 'Pottery' }, prompt: 'Loading categories…', inactive: texts.inactive })), {
+        value: '3', options: [':Loading categories…:disabled', '3:Pottery'],
+    });
+    assert.deepEqual(shown(categoryOptions(null, { value: '', prompt: 'Loading categories…', inactive: texts.inactive })), { value: '', options: [':Loading categories…:disabled'] });
 });

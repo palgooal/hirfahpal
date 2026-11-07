@@ -296,7 +296,7 @@ class ProductModerationSchemaTest extends TestCase
     public function test_vendor_writes_cannot_set_or_clear_the_state(): void
     {
         $vendor = Vendor::factory()->approved()->create();
-        $input = ['name' => 'Jug', 'price' => 10, 'stock_quantity' => 5, 'status' => 'active', 'suspended_at' => '2026-01-01 00:00:00', 'archived_at' => '2026-01-01 00:00:00'];
+        $input = ['category_id' => $this->activeCategoryId(), 'name' => 'Jug', 'price' => 10, 'stock_quantity' => 5, 'status' => 'active', 'suspended_at' => '2026-01-01 00:00:00', 'archived_at' => '2026-01-01 00:00:00'];
 
         $created = $this->actingAs($vendor, 'vendor')->postJson(route('vendor.dashboard.products.store'), $input)->assertCreated()->json('product.id');
         $product = Product::findOrFail($created);

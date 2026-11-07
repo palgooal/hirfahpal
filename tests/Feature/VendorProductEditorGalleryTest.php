@@ -91,7 +91,8 @@ class VendorProductEditorGalleryTest extends TestCase
         $messages = $this->messages($this->editorPage('en'));
 
         // MYSTORE-UI-01C: the picker dialog's labels live in the shared partial the editor includes.
-        $views = file_get_contents(resource_path('views/vendor-dashboard/resources.blade.php'))
+        // VPM-UX-01A: the editor (and its gallery texts) moved, unchanged, to its own partial.
+        $views = file_get_contents(resource_path('views/vendor-dashboard/partials/product-editor.blade.php'))
             .file_get_contents(resource_path('views/vendor-dashboard/partials/media-picker.blade.php'));
         preg_match_all("/\\\$galleryText\\('([A-Za-z_]+)', '((?:[^'\\\\]|\\\\.)*)'\\)/", $views, $calls, PREG_SET_ORDER);
         // VPM-01A: the 32 script texts and the 12 labels of the image section and its chooser; VPM-01B: the 6 picker

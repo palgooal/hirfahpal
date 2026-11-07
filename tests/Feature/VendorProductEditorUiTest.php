@@ -21,7 +21,8 @@ class VendorProductEditorUiTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const VIEW = 'views/vendor-dashboard/resources.blade.php';
+    // VPM-UX-01A: the editor moved, unchanged, from the shared resources view to its own partial.
+    private const VIEW = 'views/vendor-dashboard/partials/product-editor.blade.php';
 
     private const SCRIPT = 'resources/js/vendor-product-editor.js';
 
@@ -57,11 +58,13 @@ class VendorProductEditorUiTest extends TestCase
     {
         $section = $this->imageSection($this->page('en'));
 
-        $this->assertMatchesRegularExpression('/<fieldset class="admin-cat-form-section vendor-product-gallery" data-product-gallery aria-busy="false">/', $section);
-        $this->assertMatchesRegularExpression('/class="vendor-product-gallery-bar">\s*<p class="vendor-product-gallery-count" data-product-gallery-count><\/p>/', $section);
-        $this->assertSame(2, substr_count($section, 'class="vendor-product-gallery-group"'));
-        $this->assertMatchesRegularExpression('/<h3 class="vendor-product-gallery-label" id="vendor-product-main-label">Main product image<\/h3>.*data-product-primary-open.*<div class="vendor-product-gallery-box" data-product-primary-image><\/div>/s', $section);
-        $this->assertMatchesRegularExpression('/<h3 class="vendor-product-gallery-label" id="vendor-product-gallery-label">Product gallery<\/h3>.*data-product-gallery-open data-limited="true".*<div class="vendor-product-gallery-box" data-product-gallery-images><\/div>/s', $section);
+        // VPM-UX-01E: the images card of the side column: the count in the card head, the mode hint, then the groups.
+        $this->assertMatchesRegularExpression('/<section class="card vendor-form-card vendor-product-gallery" data-product-section="images" data-product-gallery aria-busy="false" aria-labelledby="vendor-product-images-title">/', $section);
+        $this->assertMatchesRegularExpression('/<h3 class="vendor-section-title" id="vendor-product-images-title">.*?<span>Product images<\/span><\/h3>\s*<p class="vendor-product-gallery-count" data-product-gallery-count><\/p>/s', $section);
+        $this->assertMatchesRegularExpression('/id="vendor-product-gallery-hint">.*<span data-product-image-saving><\/span>/s', $section);
+        $this->assertSame(2, preg_match_all('/class="vendor-product-gallery-group(?: is-main)?"/', $section));
+        $this->assertMatchesRegularExpression('/<h4 class="vendor-product-gallery-label" id="vendor-product-main-label">Main product image<\/h4>.*<div class="vendor-product-gallery-box" data-product-primary-image><\/div>.*data-product-primary-open/s', $section);
+        $this->assertMatchesRegularExpression('/<h4 class="vendor-product-gallery-label" id="vendor-product-gallery-label">Product gallery<\/h4>.*<div class="vendor-product-gallery-box" data-product-gallery-images><\/div>.*data-product-gallery-open data-limited="true"/s', $section);
         $this->assertMatchesRegularExpression('/role="status" aria-live="polite" data-product-gallery-status/', $section);
         $this->assertMatchesRegularExpression('/class="vendor-product-error" role="alert" data-product-gallery-error hidden/', $section);
 
@@ -95,10 +98,10 @@ class VendorProductEditorUiTest extends TestCase
         $html = $this->page('ar');
         $section = $this->imageSection($html);
 
-        foreach (['إضافة منتج', 'تفاصيل المنتج', 'السعر والمخزون والشحن', 'الاسم', 'التصنيف', 'بدون تصنيف', 'رمز المنتج (SKU)', 'المخزون', 'وصف مختصر', 'السعر الأساسي', 'سعر التخفيض (اختياري)', 'يجب أن يكون أقل من السعر الأساسي.', 'حد انخفاض المخزون', 'الوزن', 'حفظ', 'إلغاء'] as $text) {
+        foreach (['إضافة منتج', 'المعلومات الأساسية', 'السعر والمخزون', 'الشحن والأبعاد', 'الحرفة والعناية والتوصيل', 'العودة إلى المنتجات', 'كغ', 'طن', 'سم', 'الاسم', 'التصنيف', 'جارٍ تحميل التصنيفات…', 'تعذّر تحميل التصنيفات.', 'إعادة المحاولة', 'رمز المنتج (SKU)', 'المخزون', 'وصف مختصر', 'السعر الأساسي', 'سعر التخفيض (اختياري)', 'يجب أن يكون أقل من السعر الأساسي.', 'حد انخفاض المخزون', 'الوزن', 'حفظ المنتج', 'إلغاء'] as $text) {
             $this->assertStringContainsString($text, $html, $text);
         }
-        $this->assertStringContainsString('<legend class="admin-cat-form-legend">صور المنتج</legend>', $section);
+        $this->assertStringContainsString('<h3 class="vendor-section-title" id="vendor-product-images-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-images"></i></span><span>صور المنتج</span></h3>', $section);
         foreach (['اختر حتى 6 صور من مكتبة الوسائط الخاصة بك. تظهر الصورة الرئيسية أولًا في المتجر.', 'الصورة الرئيسية للمنتج', 'تظهر أولًا في المتجر.', 'اختر من الوسائط', 'معرض المنتج', 'اختر صورًا إضافية من مكتبة الوسائط الخاصة بك.', 'أضف صورة إلى المعرض'] as $text) {
             $this->assertStringContainsString($text, $section, $text);
         }
@@ -106,7 +109,7 @@ class VendorProductEditorUiTest extends TestCase
         foreach (['اختر صورة من الوسائط', 'ارفع صورة جديدة', 'إغلاق'] as $text) {
             $this->assertStringContainsString($text, $html, $text);
         }
-        foreach (['Product details', 'Price, stock and shipping', 'Product images', 'Main product image', 'Product gallery', 'Choose from media', 'Add gallery image', 'Upload new image', 'Must be lower than the regular price.'] as $english) {
+        foreach (['Basic information', 'Pricing and inventory', 'Shipping and dimensions', 'Back to products', 'Save product', '>kg<', '>ton<', 'Product images', 'Main product image', 'Product gallery', 'Choose from media', 'Add gallery image', 'Upload new image', 'Must be lower than the regular price.'] as $english) {
             $this->assertStringNotContainsString($english, $html, $english);
         }
 
@@ -123,18 +126,29 @@ class VendorProductEditorUiTest extends TestCase
     {
         $html = $this->page('en');
 
-        foreach (['Add product', 'Product details', 'Price, stock and shipping', 'SKU', 'Regular price', 'Must be lower than the regular price.', 'Product images', 'Main product image', 'Choose from media', 'Product gallery', 'Add gallery image', 'Choose an image from media', 'Upload new image', 'Save', 'Cancel'] as $text) {
+        foreach (['Add product', 'Basic information', 'Pricing and inventory', 'Shipping and dimensions', 'Craft, care and delivery', 'Back to products', '>kg<', '>ton<', '>cm<', 'SKU', 'Regular price', 'Must be lower than the regular price.', 'Product images', 'Main product image', 'Choose from media', 'Product gallery', 'Add gallery image', 'Choose an image from media', 'Upload new image', 'Save product', 'Cancel'] as $text) {
             $this->assertStringContainsString($text, $html, $text);
         }
         $this->assertSame([
             'add' => 'Add product',
             'edit' => 'Edit product',
-            'noCategory' => 'No category',
+            'noCategory' => 'Choose a category',
+            'categoriesLoading' => 'Loading categories…',
+            'categoryInactive' => ':name (inactive)',
             'confirmDelete' => 'Delete this product? This cannot be undone.',
             'deleteFailed' => 'The product could not be deleted.',
             'loadFailed' => 'The product could not be loaded.',
             'saveFailed' => 'The product could not be saved.',
             'saveInvalid' => 'The product could not be saved. Check these details:',
+            'save' => 'Save product',
+            'saving' => 'Saving…',
+            'unsaved' => 'You have unsaved changes',
+            'fixErrors' => 'Please review the highlighted fields.',
+            'discard' => 'Leave without saving? Your unsaved changes will be lost.',
+            'cancel' => 'Cancel',
+            'back' => 'Back to products',
+            'mediaAdd' => 'Images are saved with the product when you select “Save product”.',
+            'mediaEdit' => 'Image changes are saved right away; you do not need to select “Save product”.',
         ], $this->editorMessages($html));
     }
 
@@ -185,7 +199,7 @@ class VendorProductEditorUiTest extends TestCase
     public function test_the_gallery_styles_are_vendor_scoped_logical_and_responsive(): void
     {
         $css = file_get_contents(resource_path('css/vendor-dashboard.css'));
-        $start = strpos($css, '/* VPM-01A');
+        $start = strpos($css, '/* VPM-UX-01E: the vendor product editor');
         $this->assertNotFalse($start);
         $block = substr($css, $start, strpos($css, "\nhtml.vendor-shell body,", $start) - $start);
 
@@ -200,8 +214,12 @@ class VendorProductEditorUiTest extends TestCase
             }
         }
         $this->assertDoesNotMatchRegularExpression('/(?<![-\w])(left|right|margin-left|margin-right|padding-left|padding-right)\s*:/', $block, 'Logical properties only, so RTL and LTR mirror on their own.');
-        $this->assertStringContainsString('@media (max-width: 575.98px)', $block);
-        $this->assertStringContainsString('grid-template-columns: 5.5rem minmax(0, 1fr)', $block, 'The admin gallery card.');
+        // VPM-UX-01E: two columns (2:1) from an editor width of 880px, one below; the gallery as tiles; a phone save bar.
+        $this->assertStringContainsString('@container vendor-product-editor (min-width: 880px)', $block);
+        $this->assertStringContainsString('grid-template-columns: minmax(0, 2fr) minmax(19rem, 1fr)', $block);
+        $this->assertStringContainsString('grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.75rem), 1fr))', $block, 'The gallery tiles.');
+        $this->assertStringContainsString('@media (max-width: 639.98px)', $block);
+        $this->assertStringContainsString('position: sticky; bottom: 0;', $block, 'The save bar stays in view.');
         $this->assertStringContainsString('object-fit: cover', $block);
         $this->assertStringNotContainsString(':root', $block);
         $this->assertStringNotContainsString('@theme', $block);
@@ -217,14 +235,16 @@ class VendorProductEditorUiTest extends TestCase
 
     private function imageSection(string $html): string
     {
-        $this->assertSame(1, preg_match('#<fieldset class="admin-cat-form-section vendor-product-gallery".*?</fieldset>#s', $html, $match));
+        // VPM-UX-01E: the images card, up to the publication status card that follows it.
+        $this->assertSame(1, preg_match('#<section class="card vendor-form-card vendor-product-gallery".*?(?=<section class="card vendor-form-card" data-product-section="status")#s', $html, $match));
 
         return $match[0];
     }
 
     private function editorBlock(string $view): string
     {
-        $this->assertSame(1, preg_match("#@if \(\\\$resource === 'products'\)\s*<div class=\"col-span-12 admin-media.*?@endif#s", $view, $match));
+        // The partial is the editor block: from its container to the end of the file.
+        $this->assertSame(1, preg_match('#<div class="col-span-12 admin-media.*</div>\s*$#s', $view, $match));
 
         return $match[0];
     }

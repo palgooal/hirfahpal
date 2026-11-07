@@ -72,7 +72,7 @@ class VendorProductEditorStatusTest extends TestCase
 
             $select = $this->sole($xpath, '//form[@data-product-form]//select[@name="status"]');
             $this->assertSame('vendor-product-status', $select->getAttribute('id'));
-            $this->assertSame('form-select', $select->getAttribute('class'), 'The same control as the category field.');
+            $this->assertSame('vendor-input', $select->getAttribute('class'), 'The same control as the category field (VPM-UX-01E: My Store).');
             $this->assertSame($label, trim($this->sole($xpath, '//label[@for="vendor-product-status"]')->textContent));
             $this->assertSame('vendor-product-status-hint', $select->getAttribute('aria-describedby'));
             $this->assertSame($hint, trim($this->sole($xpath, '//p[@id="vendor-product-status-hint"][@class="vendor-product-hint"]')->textContent));
@@ -83,8 +83,9 @@ class VendorProductEditorStatusTest extends TestCase
             $this->assertSame($options, array_map(fn (DOMElement $option) => trim($option->textContent), $rendered));
             $this->assertSame(['draft'], array_map(fn (DOMElement $option) => $option->getAttribute('value'), array_values(array_filter($rendered, fn (DOMElement $option) => $option->hasAttribute('selected')))), 'A new product is a draft.');
 
-            // In the product details section, with the other fields, not in the gallery.
-            $this->assertSame(1, $xpath->query('//fieldset[not(@data-product-gallery)][.//select[@name="name" or @name="status"] and .//input[@name="name"]]')->length);
+            // VPM-UX-01E: in its own card (the side column, after the images), inside a fieldset read-only disables.
+            $this->assertSame(1, $xpath->query('//form[@data-product-form]/fieldset[contains(@class, "is-side")]/section[@data-product-section="status"]//select[@name="status"]')->length);
+            $this->assertSame(0, $xpath->query('//*[@data-product-gallery]//select[@name="status"]')->length, 'Not in the gallery.');
         }
     }
 
@@ -180,7 +181,7 @@ class VendorProductEditorStatusTest extends TestCase
      */
     private function sent(string $name, ?string $status, ?array $images = null): array
     {
-        $body = ['name' => $name, 'category_id' => null, 'price' => 10, 'stock_quantity' => 5, 'sku' => null, 'compare_at_price' => null, 'low_stock_threshold' => 1, 'weight' => null, 'short_description' => null, 'description' => null];
+        $body = ['name' => $name, 'category_id' => $this->activeCategoryId(), 'price' => 10, 'stock_quantity' => 5, 'sku' => null, 'compare_at_price' => null, 'low_stock_threshold' => 1, 'weight' => null, 'short_description' => null, 'description' => null];
 
         if ($status !== null) {
             $body['status'] = $status;

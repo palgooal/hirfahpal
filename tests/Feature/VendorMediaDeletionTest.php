@@ -183,7 +183,7 @@ class VendorMediaDeletionTest extends TestCase
         $this->deleteAfterValidation(StoreProductRequest::class, $gone);
 
         $this->actingAs($this->vendor, 'vendor')->postJson(route('vendor.dashboard.products.store'), [
-            'name' => 'Clay jug', 'price' => 10, 'stock_quantity' => 2, 'images' => [['path' => $kept->file_path], ['path' => $gone->file_path]],
+            'category_id' => $this->activeCategoryId(), 'name' => 'Clay jug', 'price' => 10, 'stock_quantity' => 2, 'images' => [['path' => $kept->file_path], ['path' => $gone->file_path]],
         ])->assertUnprocessable()->assertJsonValidationErrors(['images.1.path' => VendorLibraryImage::MESSAGE]);
 
         $this->assertSame($products, Product::query()->count(), 'The whole creation rolled back.');

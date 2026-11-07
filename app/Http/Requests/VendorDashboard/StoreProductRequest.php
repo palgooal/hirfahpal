@@ -4,6 +4,7 @@ namespace App\Http\Requests\VendorDashboard;
 
 use App\Http\Controllers\VendorDashboard\ProductImageController;
 use App\Rules\VendorLibraryImage;
+use App\Support\Products\VendorProductCategory;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreProductRequest extends FormRequest
@@ -16,7 +17,8 @@ class StoreProductRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            // VPM-CATEGORY-REQUIRED-01: an active category is required.
+            'category_id' => VendorProductCategory::rules(),
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:products,slug'],
             'short_description' => ['nullable', 'string', 'max:1000'],
@@ -62,6 +64,7 @@ class StoreProductRequest extends FormRequest
         return [
             'images.max' => ProductImageController::MAX_IMAGES_MESSAGE,
             'images.*.path.distinct' => ProductImageController::DUPLICATE_MESSAGE,
+            ...VendorProductCategory::messages(),
         ];
     }
 }

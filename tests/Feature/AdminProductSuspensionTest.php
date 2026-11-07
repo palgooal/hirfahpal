@@ -346,7 +346,7 @@ class AdminProductSuspensionTest extends TestCase
         $product = $this->moderated([], ['suspended_at']);
 
         $this->actingAs($this->vendor, 'vendor')->putJson(route('vendor.dashboard.products.update', $product), [
-            'name' => 'Clay jug', 'price' => 10, 'stock_quantity' => 10, 'status' => 'active', 'suspended_at' => null,
+            'category_id' => $this->activeCategoryId(), 'name' => 'Clay jug', 'price' => 10, 'stock_quantity' => 10, 'status' => 'active', 'suspended_at' => null,
         ])->assertOk();
 
         $this->assertTrue($product->fresh()->isSuspended());

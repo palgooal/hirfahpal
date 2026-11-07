@@ -102,7 +102,7 @@ class VendorProductLegacyGalleryTest extends TestCase
         $this->assertSame(array_column($snapshot, 'path'), array_column($shown, 'path'));
 
         // Unrelated product fields save; the images are untouched.
-        $this->as()->putJson(route('vendor.dashboard.products.update', $this->product), ['name' => 'Old jug, renamed', 'price' => 12, 'stock_quantity' => 3])->assertOk();
+        $this->as()->putJson(route('vendor.dashboard.products.update', $this->product), ['category_id' => $this->activeCategoryId(), 'name' => 'Old jug, renamed', 'price' => 12, 'stock_quantity' => 3])->assertOk();
         $this->assertSame($snapshot, $this->rows());
 
         // Nothing can be added above the limit.
@@ -145,11 +145,11 @@ class VendorProductLegacyGalleryTest extends TestCase
         $images = array_map(fn () => ['path' => $this->library()], range(1, 7));
         $products = Product::query()->count();
 
-        $this->as()->postJson(route('vendor.dashboard.products.store'), ['name' => 'New jug', 'price' => 10, 'stock_quantity' => 1, 'images' => $images])
+        $this->as()->postJson(route('vendor.dashboard.products.store'), ['category_id' => $this->activeCategoryId(), 'name' => 'New jug', 'price' => 10, 'stock_quantity' => 1, 'images' => $images])
             ->assertUnprocessable()->assertJsonValidationErrors('images');
         $this->assertSame($products, Product::query()->count());
 
-        $this->as()->postJson(route('vendor.dashboard.products.store'), ['name' => 'New jug', 'price' => 10, 'stock_quantity' => 1, 'images' => array_slice($images, 0, 6)])
+        $this->as()->postJson(route('vendor.dashboard.products.store'), ['category_id' => $this->activeCategoryId(), 'name' => 'New jug', 'price' => 10, 'stock_quantity' => 1, 'images' => array_slice($images, 0, 6)])
             ->assertCreated()->assertJsonCount(6, 'product.images');
     }
 

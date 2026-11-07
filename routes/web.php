@@ -211,7 +211,8 @@ foreach (AccountGuard::all() as $accountType => $account) {
 
                             // Browser pages consume the existing JSON endpoints below.  Keeping their
                             // URLs separate means API clients retain a stable JSON contract.
-                            Route::view('products/manage', 'vendor-dashboard.resources', ['resource' => 'products'])
+                            // VPM-UX-01A: the products page has its own view (the other lists keep the shared one).
+                            Route::view('products/manage', 'vendor-dashboard.products')
                                 ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.products.page');
                             // VENDOR-MEDIA-04A: the media library page (informational until its tools are added).
                             Route::view('media', 'vendor-dashboard.media')
@@ -244,7 +245,10 @@ foreach (AccountGuard::all() as $accountType => $account) {
                             Route::post('products/media/library', [VendorDashboardMediaLibraryController::class, 'store'])
                                 ->middleware(EnsureSafeVendorMediaUpload::class)->name('dashboard.products.media.store');
                             Route::delete('products/media/library/{media}', [VendorDashboardMediaLibraryController::class, 'destroy'])->name('dashboard.products.media.destroy');
+                            // VPM-CATEGORY-REQUIRED-01: create and update answer their validation messages in the page
+                            // language (the vendor's session locale), as the products page shows them.
                             Route::apiResource('products', VendorDashboardProductController::class)
+                                ->middlewareFor(['store', 'update'], 'setLocale')
                                 ->names('dashboard.products');
                             Route::post('products/{product}/images', [VendorDashboardProductImageController::class, 'store'])->name('dashboard.products.images.store');
                             Route::patch('products/{product}/images/{productImage}', [VendorDashboardProductImageController::class, 'update'])->name('dashboard.products.images.update');

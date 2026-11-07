@@ -181,7 +181,7 @@ class VendorProductModerationFlagsTest extends TestCase
 
     private function update(Product $product, array $changes)
     {
-        return $this->actingAs($this->vendor, 'vendor')->putJson(route('vendor.dashboard.products.update', $product), $changes + ['name' => 'Clay jug', 'price' => 10, 'stock_quantity' => 2]);
+        return $this->actingAs($this->vendor, 'vendor')->putJson(route('vendor.dashboard.products.update', $product), $changes + ['category_id' => $this->activeCategoryId(), 'name' => 'Clay jug', 'price' => 10, 'stock_quantity' => 2]);
     }
 
     /** The vendor's product, suspended and / or archived through the admin's own moderation routes (with reasons). */

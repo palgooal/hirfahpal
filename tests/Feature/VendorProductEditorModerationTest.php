@@ -75,19 +75,25 @@ class VendorProductEditorModerationTest extends TestCase
             foreach ($notes as $note) {
                 $this->assertSame('note', $note->getAttribute('role'));
                 $this->assertTrue($note->hasAttribute('hidden'), 'Shown only by the script, from the flags.');
-                $this->assertSame('true', $xpath->query('./i', $note)->item(0)->getAttribute('aria-hidden'));
+                $this->assertSame('true', $xpath->query('.//i', $note)->item(0)->getAttribute('aria-hidden'));
+                // VPM-UX-01E: a short title, then the existing text.
+                $this->assertSame(1, $xpath->query('.//p[@class="vendor-product-notice-title"]', $note)->length);
             }
             [$archivedNote, $suspendedNote] = $notes;
-            $this->assertSame($archived, trim($archivedNote->textContent));
-            $this->assertSame($suspended, trim($suspendedNote->textContent));
+            $this->assertSame($archived, trim($xpath->query('.//p[@class="vendor-product-notice-text"]', $archivedNote)->item(0)->textContent));
+            $this->assertSame($suspended, trim($xpath->query('.//p[@class="vendor-product-notice-text"]', $suspendedNote)->item(0)->textContent));
             $this->assertSame($refused, $archivedNote->getAttribute('data-refused'));
             $this->assertSame('-1', $archivedNote->getAttribute('tabindex'), 'Focus can move to it after a late refusal.');
 
             // Before the first section, so it is read first; the save error region (role=alert) is outside every section.
             $this->assertSame(0, $xpath->query('//form[@data-product-form]/fieldset[1]/preceding-sibling::div[@data-product-notice]/preceding-sibling::fieldset')->length);
-            $this->assertSame(1, $xpath->query('//form[@data-product-form]/p[@data-product-error][@role="alert"]')->length);
-            $this->assertSame(3, $xpath->query('//form[@data-product-form]/fieldset')->length, 'Details, pricing and the gallery: what read-only disables.');
-            $this->assertSame(1, $xpath->query('//form[@data-product-form]/div[@class="admin-cat-form-actions"]/button[@data-product-save]')->length);
+            // VPM-UX-01E: the save outcome is the save bar's line; the bar holds Save, outside both columns.
+            $this->assertSame(1, $xpath->query('//form[@data-product-form]/div[contains(@class, "vendor-product-save-bar")]/p[@data-product-error][@role="alert"]')->length);
+            $this->assertSame(2, $xpath->query('//form[@data-product-form]/fieldset')->length, 'The main and side columns: what read-only disables.');
+            $this->assertSame(1, $xpath->query('//form[@data-product-form]/fieldset[contains(@class, "is-main")]//input[@name="name"]')->length);
+            $this->assertSame(1, $xpath->query('//form[@data-product-form]/fieldset[contains(@class, "is-side")]//*[@data-product-gallery]')->length);
+            $this->assertSame(0, $xpath->query('//form[@data-product-form]//*[self::input or self::select or self::textarea][@name][not(@type="hidden")][not(ancestor::fieldset)]')->length, 'Every field is in a column.');
+            $this->assertSame(1, $xpath->query('//form[@data-product-form]/div[contains(@class, "vendor-product-save-bar")]/button[@data-product-save]')->length);
         }
     }
 
@@ -183,7 +189,7 @@ class VendorProductEditorModerationTest extends TestCase
         // Archived: the save and every image route answer 422 with a message only; the re-read says archived.
         $product->forceFill(['archived_at' => now()])->save();
         $refusals = [
-            $as->putJson(route('vendor.dashboard.products.update', $product), ['name' => 'Jug', 'price' => 10, 'stock_quantity' => 2]),
+            $as->putJson(route('vendor.dashboard.products.update', $product), ['category_id' => $this->activeCategoryId(), 'name' => 'Jug', 'price' => 10, 'stock_quantity' => 2]),
             $as->postJson(route('vendor.dashboard.products.images.store', $product), ['path' => $path]),
             $as->patchJson(route('vendor.dashboard.products.images.update', [$product, $second]), ['path' => $path]),
             $as->patchJson(route('vendor.dashboard.products.images.update', [$product, $second]), ['is_primary' => true]),

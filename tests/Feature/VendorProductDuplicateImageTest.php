@@ -141,7 +141,7 @@ class VendorProductDuplicateImageTest extends TestCase
         // Readable as they are, and the product's other fields can be saved.
         $this->getJson(route('vendor.dashboard.products.show', $this->product))->assertOk()
             ->assertJsonPath('product.images.0.path', $a)->assertJsonPath('product.images.1.path', $a);
-        $this->putJson(route('vendor.dashboard.products.update', $this->product), ['name' => 'Jug renamed', 'price' => 12, 'stock_quantity' => 3])->assertOk();
+        $this->putJson(route('vendor.dashboard.products.update', $this->product), ['category_id' => $this->activeCategoryId(), 'name' => 'Jug renamed', 'price' => 12, 'stock_quantity' => 3])->assertOk();
 
         // The duplicate rows stay manageable: alt text, its own path, the main image.
         $this->replace($second, $a, 'Second view')->assertOk();
@@ -233,7 +233,7 @@ class VendorProductDuplicateImageTest extends TestCase
     private function create(array $images): TestResponse
     {
         return $this->actingAs($this->vendor, 'vendor')->postJson(route('vendor.dashboard.products.store'), [
-            'name' => 'Jug', 'price' => 10, 'stock_quantity' => 2, 'images' => $images,
+            'category_id' => $this->activeCategoryId(), 'name' => 'Jug', 'price' => 10, 'stock_quantity' => 2, 'images' => $images,
         ]);
     }
 

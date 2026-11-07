@@ -66,7 +66,7 @@ class VendorProductPickerTest extends TestCase
     {
         $html = $this->page('en');
 
-        $this->assertSame(1, preg_match('#<form data-product-form novalidate>(.*?)</form>\s*<dialog class="vendor-media-dialog vendor-product-picker" aria-labelledby="vendor-product-picker-title" aria-describedby="vendor-product-picker-intro" data-product-media-library>#s', $html, $form), 'The dialog follows the product form.');
+        $this->assertSame(1, preg_match('#<form class="vendor-product-editor-form" data-product-form novalidate>(.*?)</form>\s*<dialog class="vendor-media-dialog vendor-product-picker" aria-labelledby="vendor-product-picker-title" aria-describedby="vendor-product-picker-intro" data-product-media-library>#s', $html, $form), 'The dialog follows the product form.');
         $this->assertStringNotContainsString('data-product-media-', $form[1], 'Nothing of the picker inside the product form: its search is never submitted with the product.');
         $this->assertStringNotContainsString('<form data-product-form', $this->dialog($html), 'The product form is not nested in the dialog.');
     }

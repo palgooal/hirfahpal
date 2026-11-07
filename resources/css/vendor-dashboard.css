@@ -48,46 +48,122 @@ html.vendor-shell {
   --colors-primary: 61 71 43;
 }
 
-/* Vendor product editor deliberately shares the admin product-form visual language. The data flow remains
- * vendor-specific, but the panel, section rhythm, labels and responsive layout match the admin add-product page. */
-html.vendor-shell .vendor-product-form { max-width: 56rem; }
-html.vendor-shell .vendor-product-form .admin-media-panel { margin-bottom: 0; border: 1px solid var(--color-hf-line); box-shadow: 0 2px 12px rgb(43 43 38 / 6%); }
-html.vendor-shell .vendor-product-form .card-body { padding: 0; }
-html.vendor-shell .vendor-product-form .admin-media-head { display: flex; flex-wrap: wrap; gap: .75rem 1rem; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--color-hf-line); }
-html.vendor-shell .vendor-product-form .admin-product-form-head { flex-direction: column; align-items: flex-start; }
-html.vendor-shell .vendor-product-form .admin-product-title { margin: 0; color: var(--color-hf-ink); font-size: 1.35rem; font-weight: 700; }
-html.vendor-shell .vendor-product-form .admin-cat-form-section { display: flex; flex-direction: column; gap: 1rem; min-width: 0; margin: 0; padding: 1.25rem 1.5rem 1.5rem; border: 0; border-bottom: 1px solid var(--color-hf-line); }
-html.vendor-shell .vendor-product-form .admin-cat-form-legend { float: none; width: auto; margin: 0; padding: 0; color: var(--color-hf-ink); font-size: 1rem; font-weight: 700; }
-html.vendor-shell .vendor-product-form .form-label { margin-bottom: .375rem; color: var(--color-hf-ink); font-weight: 600; }
-html.vendor-shell .vendor-product-form .form-control, html.vendor-shell .vendor-product-form .form-select { min-height: 44px; }
-html.vendor-shell .vendor-product-form .row { display: flex; flex-wrap: wrap; gap: 1rem; margin: 0; }
-html.vendor-shell .vendor-product-form .row > [class*="col-"] { flex: 1 1 18rem; min-width: 0; padding: 0; }
-html.vendor-shell .vendor-product-form .row > .col-12 { flex-basis: 100%; }
-html.vendor-shell .vendor-product-form .admin-cat-form-actions { display: flex; flex-wrap: wrap; gap: .75rem; padding: 1.25rem 1.5rem; }
-html.vendor-shell .vendor-product-form .admin-cat-form-actions .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; }
-html.vendor-shell .vendor-product-form [data-product-primary-image], html.vendor-shell .vendor-product-form [data-product-gallery-images] { min-height: 3.5rem; padding: .75rem; border: 1px dashed var(--color-hf-line); border-radius: .5rem; background: var(--color-hf-surface); }
-@media (max-width: 575.98px) { html.vendor-shell .vendor-product-form .admin-cat-form-section { padding: .75rem 1rem 1rem; } html.vendor-shell .vendor-product-form .admin-cat-form-actions { padding: 1rem; } html.vendor-shell .vendor-product-form .admin-cat-form-actions .btn { flex: 1 1 100%; } }
+/* VPM-UX-01E: the vendor product editor, from the approved prototype (ask/vpm-ux-01e/product-editor.html) in My Store's
+ * language (vendor-form-card, vendor-field, vendor-input, the sticky vendor-form-actions bar). A heading row, then the
+ * form as a grid: the notice and the required-fields legend across, the main and side columns (2fr and 1fr when the
+ * editor is at least 880px wide, one column below it, main first), the save bar across. The columns are the form's two
+ * fieldsets (what read-only disables); they draw no box of their own. Logical properties only (RTL and LTR). */
+html.vendor-shell .vendor-product-form { container: vendor-product-editor / inline-size; }
+html.vendor-shell .vendor-product-editor-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: .75rem 1rem; margin-bottom: 1.25rem; }
+html.vendor-shell .vendor-product-editor-heading { min-width: 0; }
+html.vendor-shell .vendor-product-editor-title { margin: 0; color: var(--color-hf-ink); font-size: 1.5rem; font-weight: 700; line-height: 1.4; }
+html.vendor-shell .vendor-product-editor-subtitle { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .25rem 0 0; color: var(--color-hf-muted); font-size: .875rem; }
+html.vendor-shell .vendor-product-editor-subtitle bdi { min-width: 0; color: var(--color-hf-ink); font-weight: 600; overflow-wrap: anywhere; }
+/* The products list's moderation badges, in the same words and colours. */
+html.vendor-shell .vendor-product-editor-subtitle .vendor-moderation-badge { display: inline-block; padding: .125rem .625rem; border: 1px solid currentColor; border-radius: 9999px; font-size: .75rem; font-weight: 600; line-height: 1.5; white-space: nowrap; }
+html.vendor-shell .vendor-product-editor-subtitle .vendor-moderation-badge.is-archived { color: #a13d2b; }
+html.vendor-shell .vendor-product-editor-subtitle .vendor-moderation-badge.is-suspended { color: #8a4520; }
+html.vendor-shell .vendor-product-editor-subtitle[hidden], html.vendor-shell .vendor-product-editor-subtitle [hidden] { display: none; }
+/* Back to the list (the view chooses the arrow that points back along the reading direction). */
+html.vendor-shell .vendor-product-back { display: inline-flex; align-items: center; gap: .375rem; min-height: 44px; padding: .375rem .875rem; border: 1px solid var(--color-hf-line); border-radius: 10px; background-color: #fff; color: var(--color-hf-ink); font-size: .875rem; font-weight: 600; }
+html.vendor-shell .vendor-product-back:hover { border-color: var(--color-hf-sage); background-color: var(--color-hf-surface); }
+html.vendor-shell .vendor-product-back i { display: inline-block; direction: ltr; unicode-bidi: isolate; line-height: 1; }
 
-/* VPM-01A: the editor's image section in the admin product gallery's look (resources/css/admin-dashboard.css,
- * "Product gallery (PRODUCT-MEDIA-01 P5-C)"), same values, under vendor-product-* names. The vendor shell loads no
- * Bootstrap, so this replaces the d-flex / form-text / text-danger / object-fit-cover / visually-hidden utilities the
- * section used. Logical properties only, so RTL and LTR need no separate rules. */
+html.vendor-shell .vendor-product-editor-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; align-items: start; }
+@container vendor-product-editor (min-width: 880px) {
+  html.vendor-shell .vendor-product-editor-form { grid-template-columns: minmax(0, 2fr) minmax(19rem, 1fr); }
+  html.vendor-shell .vendor-product-editor-form > :not(.vendor-product-column) { grid-column: 1 / -1; }
+}
+html.vendor-shell .vendor-product-column { display: flex; flex-direction: column; gap: 1rem; min-width: 0; margin: 0; padding: 0; border: 0; }
+html.vendor-shell .vendor-product-form .vendor-required-legend[hidden] { display: none; }
+
+/* Cards: My Store's, with the prototype's icon chip before each title. Fields: two per row where the card is wide. */
+html.vendor-shell .vendor-product-form .vendor-form-card .card-body { container-type: inline-size; }
+html.vendor-shell .vendor-product-form .vendor-section-title { display: flex; align-items: center; gap: .625rem; margin: 0; }
+html.vendor-shell .vendor-product-chip { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid var(--color-hf-line); border-radius: 9px; background-color: var(--color-hf-surface); color: var(--color-hf-olive); font-size: 1.0625rem; }
+html.vendor-shell .vendor-product-chip i { display: inline-block; direction: ltr; unicode-bidi: isolate; line-height: 1; }
+html.vendor-shell .vendor-product-card-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+html.vendor-shell .vendor-product-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: .875rem 1rem; }
+@container (min-width: 520px) {
+  html.vendor-shell .vendor-product-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html.vendor-shell .vendor-product-fields > .is-wide { grid-column: 1 / -1; }
+}
+html.vendor-shell .vendor-product-form .vendor-field { min-width: 0; }
+html.vendor-shell .vendor-product-form .vendor-field-error[hidden] { display: none; }
+html.vendor-shell .vendor-product-form .vendor-field-error { font-weight: 600; }
+html.vendor-shell .vendor-product-form .vendor-input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px rgb(161 61 43 / 14%); }
+html.vendor-shell .vendor-product-form .vendor-input:disabled { cursor: not-allowed; }
+html.vendor-shell .vendor-product-textarea-sm { height: 4.75rem; min-height: 4.75rem; resize: vertical; }
+/* VPM-CATEGORY-RELIABILITY-01: the categories could not be loaded: the message and Retry on one line. */
+html.vendor-shell .vendor-product-category-failed { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem .75rem; }
+html.vendor-shell .vendor-product-category-failed[hidden] { display: none; }
+html.vendor-shell .vendor-product-category-retry { display: inline-flex; align-items: center; gap: .375rem; min-height: 36px; padding: .25rem .75rem; border: 1px solid var(--color-hf-line); border-radius: 10px; background-color: var(--color-hf-surface); color: var(--color-hf-ink); font-size: .8125rem; font-weight: 600; }
+html.vendor-shell .vendor-product-category-retry:hover:not(:disabled) { border-color: var(--color-hf-sage); background-color: var(--color-hf-canvas); }
+html.vendor-shell .vendor-product-category-retry i { display: inline-block; direction: ltr; unicode-bidi: isolate; line-height: 1; }
+html.vendor-shell .vendor-product-form select.vendor-input:disabled[aria-busy="true"] { cursor: progress; }
+/* Numbers and codes are written left to right; in Arabic they keep to the field's start side (the right). */
+html.vendor-shell .vendor-product-form:dir(rtl) input[dir="ltr"] { text-align: right; }
+html.vendor-shell .vendor-product-form select.vendor-input { appearance: none; padding-inline-end: 2.25rem; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%236b6a5f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right .875rem center; }
+html.vendor-shell .vendor-product-form:dir(rtl) select.vendor-input { background-position: left .875rem center; }
+/* Weight and its unit as one control. */
+html.vendor-shell .vendor-product-input-group { display: grid; grid-template-columns: minmax(0, 1fr) 7.5rem; }
+html.vendor-shell .vendor-product-input-group .vendor-input:first-child { border-start-end-radius: 0; border-end-end-radius: 0; }
+html.vendor-shell .vendor-product-input-group .vendor-input:last-child { margin-inline-start: -1px; border-start-start-radius: 0; border-end-start-radius: 0; }
+html.vendor-shell .vendor-product-input-group .vendor-input:focus { position: relative; z-index: 1; }
+/* Dimensions: three short fields with their unit inside, on the field's end side. */
+html.vendor-shell .vendor-product-subgroup { min-width: 0; margin: 0; padding: 0; border: 0; }
+html.vendor-shell .vendor-product-subgroup > legend { float: none; width: auto; margin: 0 0 .375rem; padding: 0; }
+html.vendor-shell .vendor-product-dimensions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .625rem; }
+html.vendor-shell .vendor-product-dimension-label { margin: 0; color: var(--color-hf-muted); font-size: .8125rem; font-weight: 600; }
+html.vendor-shell .vendor-product-suffix { position: relative; }
+html.vendor-shell .vendor-product-suffix .vendor-input { padding-inline-end: 2.75rem; }
+html.vendor-shell .vendor-product-form:dir(rtl) .vendor-product-suffix .vendor-input { padding-inline: 2.75rem .75rem; }
+html.vendor-shell .vendor-product-suffix span { position: absolute; inset-block: 0; inset-inline-end: .75rem; display: flex; align-items: center; color: var(--color-hf-muted); font-size: .8125rem; pointer-events: none; }
+
+/* VENDOR-PRODUCT-PUBLISH-UI-01D, VPM-UX-01E: the archived and suspended notices across the form, tinted, icon led. */
+html.vendor-shell .vendor-product-form .vendor-product-notice { display: flex; align-items: flex-start; gap: .75rem; margin: 0; padding: .875rem 1rem; border: 1px solid #ebcbc2; border-radius: 12px; background-color: #fbefeb; color: var(--color-hf-ink); font-size: .9375rem; }
+html.vendor-shell .vendor-product-form .vendor-product-notice[hidden] { display: none; }
+html.vendor-shell .vendor-product-form .vendor-product-notice p { margin: 0; }
+html.vendor-shell .vendor-product-form .vendor-product-notice-title { font-weight: 700; }
+html.vendor-shell .vendor-product-form .vendor-product-notice-icon { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; background-color: #fff; font-size: 1.25rem; }
+html.vendor-shell .vendor-product-form .vendor-product-notice-icon i { display: inline-block; direction: ltr; unicode-bidi: isolate; line-height: 1; }
+html.vendor-shell .vendor-product-form .vendor-product-notice.is-archived .vendor-product-notice-icon { color: #a13d2b; }
+html.vendor-shell .vendor-product-form .vendor-product-notice.is-suspended { border-color: #ecd5c2; background-color: #fbf2ea; }
+html.vendor-shell .vendor-product-form .vendor-product-notice.is-suspended .vendor-product-notice-icon { color: #8a4520; }
+html.vendor-shell .vendor-product-form .vendor-product-notice:focus { outline: none; }
+html.vendor-shell .vendor-product-form .vendor-product-notice:focus-visible { outline: 2px solid var(--color-hf-olive); outline-offset: 2px; }
+
+/* MYSTORE-UX-01D's sticky save bar: Save, Cancel, then one line (unsaved changes, the save outcome or read-only). */
+html.vendor-shell .vendor-product-editor-form > .vendor-product-save-bar { position: sticky; bottom: 0; z-index: 2; padding-bottom: calc(.875rem + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -6px 16px rgb(43 43 38 / 8%); }
+html.vendor-shell .vendor-product-save-bar [hidden] { display: none; }
+html.vendor-shell .vendor-product-save-bar .vendor-save-button { gap: .5rem; }
+html.vendor-shell .vendor-product-save-bar .vendor-save-button[aria-busy="true"] { cursor: progress; }
+html.vendor-shell .vendor-product-spinner { display: none; }
+html.vendor-shell .vendor-product-save-bar [aria-busy="true"] .vendor-product-spinner { display: inline-block; direction: ltr; line-height: 1; animation: vendor-product-spin .9s linear infinite; }
+@keyframes vendor-product-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { html.vendor-shell .vendor-product-save-bar [aria-busy="true"] .vendor-product-spinner { animation: none; } }
+html.vendor-shell .vendor-product-cancel { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .5rem 1.125rem; border: 1px solid var(--color-hf-line); border-radius: 10px; background-color: #fff; color: var(--color-hf-ink); font-size: .9375rem; font-weight: 600; }
+html.vendor-shell .vendor-product-cancel:hover { border-color: var(--color-hf-sage); background-color: var(--color-hf-surface); }
+html.vendor-shell .vendor-product-save-bar .vendor-product-error { display: flex; align-items: center; margin: 0; }
+/* One line at a time: a save outcome replaces the unsaved-changes line until the next edit. */
+html.vendor-shell .vendor-product-save-bar:has([data-product-error]:not([hidden])) [data-product-unsaved] { display: none; }
+html.vendor-shell .vendor-product-save-bar .vendor-readonly-hint { margin: 0; }
+@media (max-width: 639.98px) {
+  html.vendor-shell .vendor-product-save-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; padding: .75rem 1rem; }
+  html.vendor-shell .vendor-product-editor-form > .vendor-product-save-bar { padding-bottom: calc(.75rem + env(safe-area-inset-bottom, 0px)); }
+  html.vendor-shell .vendor-product-save-bar > p { grid-column: 1 / -1; order: -2; }
+  html.vendor-shell .vendor-product-save-bar .vendor-save-button { width: 100%; min-width: 0; }
+  html.vendor-shell .vendor-product-save-bar .vendor-save-button[hidden] + .vendor-product-cancel { grid-column: 1 / -1; }
+}
+
+/* VPM-01A: the editor's image section (the admin product gallery's states and texts, resources/css/admin-dashboard.css,
+ * "Product gallery (PRODUCT-MEDIA-01 P5-C)"), under vendor-product-* names. VPM-UX-01E: in the side column as the
+ * prototype's images card: the main image large with its badge over it, the other images as tiles with icon-only
+ * actions (each button keeps its text for assistive tech and as its tooltip). The vendor shell loads no Bootstrap,
+ * so this replaces the d-flex / form-text / text-danger / object-fit-cover / visually-hidden utilities. */
 html.vendor-shell .vendor-product-form .vendor-product-hint { margin: .25rem 0 0; color: var(--color-hf-muted); font-size: .8125rem; }
 html.vendor-shell .vendor-product-form .vendor-product-error { margin: .75rem 0 0; color: #a13d2b; font-size: .875rem; font-weight: 600; }
 html.vendor-shell .vendor-product-form .vendor-product-error[hidden] { display: none; }
-/* VENDOR-PRODUCT-PUBLISH-UI-01D: the archived / suspended notices above the form (logical properties, both directions). */
-html.vendor-shell .vendor-product-form .vendor-product-notice { display: flex; align-items: flex-start; gap: .625rem; margin: 1.25rem 1.5rem 0; padding: .75rem 1rem; border: 1px solid var(--color-hf-line); border-radius: 12px; background-color: var(--color-hf-surface); color: var(--color-hf-ink); font-size: .875rem; }
-html.vendor-shell .vendor-product-form .vendor-product-notice[hidden] { display: none; }
-html.vendor-shell .vendor-product-form .vendor-product-notice p { margin: 0; }
-html.vendor-shell .vendor-product-form .vendor-product-notice > i { flex: none; margin-top: .125rem; font-size: 1.125rem; }
-html.vendor-shell .vendor-product-form .vendor-product-notice.is-archived { border-color: #a13d2b; }
-html.vendor-shell .vendor-product-form .vendor-product-notice.is-archived > i { color: #a13d2b; }
-html.vendor-shell .vendor-product-form .vendor-product-notice.is-suspended { border-color: var(--color-hf-copper); }
-html.vendor-shell .vendor-product-form .vendor-product-notice.is-suspended > i { color: var(--color-hf-copper); }
-html.vendor-shell .vendor-product-form .vendor-product-notice:focus { outline: 2px solid var(--color-hf-olive); outline-offset: 2px; }
-@media (max-width: 575.98px) { html.vendor-shell .vendor-product-form .vendor-product-notice { margin: .75rem 1rem 0; } }
-html.vendor-shell .vendor-product-gallery { gap: .75rem; }
-html.vendor-shell .vendor-product-gallery > .vendor-product-hint { margin-top: 0; }
 html.vendor-shell .vendor-product-gallery [hidden] { display: none; }
 /* Duotone icons draw their second layer for left-to-right flow; each icon keeps its own direction (as in the admin). */
 html.vendor-shell .vendor-product-gallery i.ph-duotone { display: inline-block; direction: ltr; unicode-bidi: isolate; line-height: 1; }
@@ -96,43 +172,64 @@ html.vendor-shell .vendor-product-gallery .btn-light-secondary { border: 1px sol
 html.vendor-shell .vendor-product-gallery .btn-light-secondary:hover,
 html.vendor-shell .vendor-product-gallery .btn-light-secondary:focus-visible,
 html.vendor-shell .vendor-product-gallery .btn-light-secondary:active { border-color: var(--color-hf-sage); background-color: var(--color-hf-canvas); color: var(--color-hf-ink); }
-html.vendor-shell .vendor-product-gallery .btn:disabled { opacity: .65; cursor: not-allowed; }
-html.vendor-shell .vendor-product-gallery-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
-html.vendor-shell .vendor-product-gallery-count { margin: 0; color: var(--color-hf-muted); font-size: .8125rem; font-weight: 600; }
-html.vendor-shell .vendor-product-gallery-group { display: flex; flex-direction: column; gap: .625rem; min-width: 0; }
-html.vendor-shell .vendor-product-gallery-group-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; }
-html.vendor-shell .vendor-product-gallery-group-text { min-width: 0; }
-html.vendor-shell .vendor-product-gallery-label { margin: 0; color: var(--color-hf-ink); font-size: .9375rem; font-weight: 700; }
+html.vendor-shell .vendor-product-gallery .btn:disabled { opacity: .55; cursor: not-allowed; }
+html.vendor-shell .vendor-product-gallery-count { margin: 0; color: var(--color-hf-muted); font-size: .8125rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+html.vendor-shell .vendor-product-media-hint { display: flex; align-items: flex-start; gap: .5rem; margin: 0; padding: .625rem .75rem; border-radius: 10px; background-color: var(--color-hf-surface); color: var(--color-hf-muted); font-size: .8125rem; line-height: 1.6; }
+html.vendor-shell .vendor-product-media-hint i.ph-duotone { flex: none; margin-top: .1875rem; color: var(--color-hf-olive); }
+html.vendor-shell .vendor-product-gallery-group { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+html.vendor-shell .vendor-product-gallery-group-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .125rem .5rem; }
+html.vendor-shell .vendor-product-gallery-label { margin: 0; color: var(--color-hf-ink); font-size: .875rem; font-weight: 600; }
+html.vendor-shell .vendor-product-gallery-group-head .vendor-product-hint { margin: 0; font-size: .75rem; }
+html.vendor-shell .vendor-product-gallery-add { width: 100%; min-height: 42px; font-size: .875rem; font-weight: 600; }
+/* "Choose from media" only while there is no main image (the main image's Change replaces it). */
+html.vendor-shell .vendor-product-gallery-box:has(.vendor-product-gallery-list) + .vendor-product-gallery-add[data-product-primary-open] { display: none; }
 html.vendor-shell .vendor-product-gallery-add:focus-visible,
-html.vendor-shell .vendor-product-gallery-actions .btn:focus-visible { outline: 2px solid var(--color-hf-copper); outline-offset: 2px; }
-html.vendor-shell .vendor-product-form .vendor-product-gallery-box { min-height: 0; padding: 0; border: 0; background: none; }
-html.vendor-shell .vendor-product-gallery-empty { margin: 0; padding: .75rem 1rem; border: 1px dashed var(--color-hf-line); border-radius: 12px; background-color: var(--color-hf-surface); color: var(--color-hf-muted); font-size: .875rem; }
-html.vendor-shell .vendor-product-gallery-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .75rem; margin: 0; padding: 0; list-style: none; }
-html.vendor-shell .vendor-product-gallery-item { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: .5rem .75rem; padding: .75rem; border: 1px solid var(--color-hf-line); border-radius: 12px; background-color: #fff; }
-html.vendor-shell .vendor-product-gallery-item.is-main { border-color: var(--color-hf-olive); }
+html.vendor-shell .vendor-product-gallery-actions .btn:focus-visible { outline: 2px solid var(--color-hf-olive); outline-offset: 2px; }
+html.vendor-shell .vendor-product-gallery-empty { margin: 0; padding: 1rem; border: 1px dashed #d6ceb8; border-radius: 12px; background-color: var(--color-hf-surface); color: var(--color-hf-muted); font-size: .8125rem; text-align: center; }
+html.vendor-shell .vendor-product-gallery-box[data-product-primary-image] .vendor-product-gallery-empty { display: flex; align-items: center; justify-content: center; min-block-size: 7.5rem; max-inline-size: 22rem; }
+html.vendor-shell .vendor-product-gallery-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.75rem), 1fr)); gap: .625rem; margin: 0; padding: 0; list-style: none; }
+html.vendor-shell .vendor-product-gallery-item { display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 1px solid var(--color-hf-line); border-radius: 12px; background-color: #fff; }
 /* A fixed square; the image fills it (cover), as in the admin gallery card. */
-html.vendor-shell .vendor-product-gallery-thumb { display: flex; align-items: center; justify-content: center; aspect-ratio: 1; overflow: hidden; border: 1px solid var(--color-hf-line); border-radius: 10px; background-color: var(--color-hf-surface); color: var(--color-hf-muted); font-size: 1.75rem; }
+html.vendor-shell .vendor-product-gallery-thumb { display: flex; align-items: center; justify-content: center; aspect-ratio: 1; overflow: hidden; background-color: var(--color-hf-surface); color: var(--color-hf-muted); font-size: 1.75rem; }
 html.vendor-shell .vendor-product-gallery-thumb img { width: 100%; height: 100%; object-fit: cover; }
-html.vendor-shell .vendor-product-gallery-meta { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; min-width: 0; }
-html.vendor-shell .vendor-product-gallery-position { color: var(--color-hf-muted); font-size: .75rem; }
-html.vendor-shell .vendor-product-gallery-name { max-width: 100%; overflow: hidden; color: var(--color-hf-ink); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-html.vendor-shell .vendor-product-gallery-badge { display: inline-block; padding: .0625rem .5rem; border: 1px solid var(--color-hf-line); border-radius: 9999px; font-size: .75rem; font-weight: 600; white-space: nowrap; }
+html.vendor-shell .vendor-product-gallery-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; min-width: 0; padding: .375rem .5rem 0; }
+html.vendor-shell .vendor-product-gallery-position { color: var(--color-hf-muted); font-size: .75rem; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* The image's name stays for assistive tech (the buttons are described by it); the tiles show the image itself. */
+html.vendor-shell .vendor-product-gallery-name { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+html.vendor-shell .vendor-product-gallery-badge { display: inline-block; padding: .125rem .5rem; border: 1px solid var(--color-hf-line); border-radius: 9999px; font-size: .6875rem; font-weight: 600; line-height: 1.5; white-space: nowrap; }
 html.vendor-shell .vendor-product-gallery-badge.is-main { border-color: var(--color-hf-olive); background-color: var(--color-hf-olive); color: #fff; }
 /* VPM-01E: an image from before the media library (the admin gallery's dashed badge), and a file that is gone. */
 html.vendor-shell .vendor-product-gallery-badge.is-legacy { border-style: dashed; color: var(--color-hf-muted); }
 html.vendor-shell .vendor-product-gallery-badge.is-missing { border-color: #8a4520; color: #8a4520; white-space: normal; }
 /* VPM-01E: the one note at or above the six-image limit; above it (a gallery from before the limit) it is a warning. */
-html.vendor-shell .vendor-product-gallery-note { margin: 0; padding: .75rem 1rem; border: 1px dashed var(--color-hf-line); border-radius: 12px; background-color: var(--color-hf-surface); color: var(--color-hf-muted); font-size: .875rem; }
+html.vendor-shell .vendor-product-gallery-note { margin: 0; padding: .625rem .75rem; border: 1px dashed var(--color-hf-line); border-radius: 10px; background-color: var(--color-hf-surface); color: var(--color-hf-muted); font-size: .8125rem; }
 html.vendor-shell .vendor-product-gallery-note[data-state="over"] { border-style: solid; border-color: #8a4520; color: #8a4520; font-weight: 600; }
-html.vendor-shell .vendor-product-gallery-actions { display: flex; flex-wrap: wrap; grid-column: 1 / -1; gap: .375rem; }
-html.vendor-shell .vendor-product-gallery-actions .btn { gap: .25rem; }
-html.vendor-shell .vendor-product-gallery-status { margin: 0; color: var(--color-hf-muted); font-size: .8125rem; }
+/* Tile actions: the icons in one row, sharing the tile's width. */
+html.vendor-shell .vendor-product-gallery-actions { display: flex; gap: .125rem; padding: .25rem .375rem .375rem; }
+html.vendor-shell .vendor-product-gallery-actions .btn { flex: 1 1 0; min-width: 0; min-height: 32px; padding: 0; border: 0; border-radius: 8px; background: none; color: var(--color-hf-ink); font-size: 1rem; }
+html.vendor-shell .vendor-product-gallery-actions .btn:hover:not(:disabled) { background-color: var(--color-hf-surface); color: var(--color-hf-olive); }
+html.vendor-shell .vendor-product-gallery-actions .btn[data-action="remove"]:hover:not(:disabled) { color: #a13d2b; }
+html.vendor-shell .vendor-product-gallery-actions .btn:disabled { opacity: .4; }
+html.vendor-shell .vendor-product-gallery-actions .btn span { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+/* The main image: large (4:3, up to 22rem), its badge over the image's start corner, its actions as labelled buttons;
+ * Move up is never possible for it, so it is not shown. */
+html.vendor-shell .vendor-product-gallery-box[data-product-primary-image] .vendor-product-gallery-list { display: block; }
+html.vendor-shell .vendor-product-gallery-box[data-product-primary-image] .vendor-product-gallery-item { position: relative; gap: .5rem; overflow: visible; border: 0; border-radius: 0; background: none; }
+html.vendor-shell .vendor-product-gallery-box[data-product-primary-image] .vendor-product-gallery-thumb { aspect-ratio: 4 / 3; max-inline-size: 22rem; border: 1px solid var(--color-hf-line); border-radius: 12px; font-size: 2.5rem; }
+html.vendor-shell .vendor-product-gallery-box[data-product-primary-image] .vendor-product-gallery-meta { padding: 0; }
+html.vendor-shell .vendor-product-gallery-box[data-product-primary-image] .vendor-product-gallery-position { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+html.vendor-shell .vendor-product-gallery-box[data-product-primary-image] .vendor-product-gallery-badge.is-main { position: absolute; inset-block-start: .625rem; inset-inline-start: .625rem; padding: .25rem .75rem; font-size: .75rem; font-weight: 700; box-shadow: 0 1px 3px rgb(43 43 38 / 18%); }
+html.vendor-shell .vendor-product-gallery-box[data-product-primary-image] .vendor-product-gallery-actions { flex-wrap: wrap; gap: .5rem; padding: 0; }
+html.vendor-shell .vendor-product-gallery-box[data-product-primary-image] .vendor-product-gallery-actions .btn { flex: 0 1 auto; gap: .375rem; min-height: 40px; padding: .375rem .875rem; border: 1px solid var(--color-hf-line); border-radius: 10px; background-color: var(--color-hf-surface); font-size: .875rem; font-weight: 600; }
+html.vendor-shell .vendor-product-gallery-box[data-product-primary-image] .vendor-product-gallery-actions .btn span { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: nowrap; }
+html.vendor-shell .vendor-product-gallery-box[data-product-primary-image] .vendor-product-gallery-actions .btn[data-action="remove"] { color: #a13d2b; }
+html.vendor-shell .vendor-product-gallery-box[data-product-primary-image] [data-action="up"] { display: none; }
+html.vendor-shell .vendor-product-gallery-status { margin: 0; color: var(--color-hf-olive); font-size: .8125rem; font-weight: 600; }
 html.vendor-shell .vendor-product-gallery-status:empty { display: none; }
 /* Opened by the Upload button only; kept out of sight and out of the tab order. */
 html.vendor-shell .vendor-product-media-file { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-@media (max-width: 575.98px) {
-  html.vendor-shell .vendor-product-gallery-list { grid-template-columns: minmax(0, 1fr); }
-  html.vendor-shell .vendor-product-gallery-add { width: 100%; }
+@media (pointer: coarse) {
+  html.vendor-shell .vendor-product-gallery-actions .btn { min-height: 40px; }
 }
 
 html.vendor-shell body,
@@ -964,6 +1061,36 @@ html.vendor-shell .vendor-home-error .card-body {
   background-color: var(--color-hf-surface);
 }
 
+/* ---- Products page (VPM-UX-01A) ---- */
+
+/* The toolbar: "Add product" (inserted by the editor script) at the start, the Refresh icon at the end. */
+.vendor-shell .vendor-products-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+/* Loading placeholders. No display rule here, so the list script's hidden attribute keeps hiding the block. */
+.vendor-shell .vendor-products-loading {
+  padding-bottom: 0.5rem;
+}
+
+/* The error state (the dashboard home's error look) is shown only while the list script shows its message. */
+.vendor-shell .vendor-products-error {
+  display: none;
+}
+
+.vendor-shell .vendor-products-error:has([data-resource-error]:not([hidden])) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1.25rem;
+  text-align: center;
+}
+
 /* ---- My Store (VUI-03B) ---- */
 
 /* MYSTORE-UX-01C: the store identity card (logo or letter, store name, logo controls) keeps the dashboard welcome
@@ -1229,6 +1356,11 @@ html.vendor-shell .vendor-form-card .vendor-section-title {
 
 /* A focused field or error scrolled into view always clears the bar (WCAG 2.4.11). */
 html.vendor-shell:has(.vendor-store-form) {
+  scroll-padding-bottom: 7.5rem;
+}
+
+/* VPM-UX-01E: the same for the open product editor and its save bar. */
+html.vendor-shell:has([data-product-editor]:not([hidden])) {
   scroll-padding-bottom: 7.5rem;
 }
 

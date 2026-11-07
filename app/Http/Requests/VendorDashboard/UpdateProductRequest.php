@@ -3,6 +3,7 @@
 namespace App\Http\Requests\VendorDashboard;
 
 use App\Models\Product;
+use App\Support\Products\VendorProductCategory;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -19,7 +20,8 @@ class UpdateProductRequest extends FormRequest
         $product = $this->route('product');
 
         return [
-            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            // VPM-CATEGORY-REQUIRED-01: a category is required (an active one, or the one the product already has).
+            'category_id' => VendorProductCategory::rules($product instanceof Product ? $product : null, $this->user('vendor')?->id),
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('products', 'slug')->ignore($product)],
             'short_description' => ['nullable', 'string', 'max:1000'],
@@ -50,6 +52,11 @@ class UpdateProductRequest extends FormRequest
             'craft_tags' => ['nullable', 'array', 'max:5'],
             'craft_tags.*' => ['string', 'max:40'],
         ];
+    }
+
+    public function messages(): array
+    {
+        return VendorProductCategory::messages();
     }
 
     /**

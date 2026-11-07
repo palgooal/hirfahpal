@@ -510,6 +510,11 @@ class VendorDashboardTranslationSeeder extends Seeder
         // VENDOR-PRODUCT-LIST-PAGINATION-01B: the products list's pager (Previous, Next and the page status reuse the
         // media library's texts).
         'vendor.Product_List_Pagination' => ['ar' => 'صفحات المنتجات', 'en' => 'Product pages'],
+        // VPM-UX-01A: the products page's own Refresh icon name, loading and empty texts (the shared Dashboard_Loading
+        // and No_records_found keys of the other vendor lists are left as they are).
+        'vendor.Product_List_Refresh' => ['ar' => 'تحديث قائمة المنتجات', 'en' => 'Refresh product list'],
+        'vendor.Product_List_Loading' => ['ar' => 'جارٍ التحميل...', 'en' => 'Loading…'],
+        'vendor.Product_List_Empty' => ['ar' => 'لا توجد سجلات لعرضها.', 'en' => 'No records found.'],
         // ORD-01A: the orders list's pager (its accessible name; the controls reuse the media library's texts).
         'vendor.Order_List_Pagination' => ['ar' => 'صفحات الطلبات', 'en' => 'Order pages'],
         // ORD-01B: the orders list's search and filters (the status options use the Order_Status_* labels above).
@@ -622,6 +627,32 @@ class VendorDashboardTranslationSeeder extends Seeder
         'vendor.Product_Save_Invalid' => ['ar' => 'تعذّر حفظ المنتج. راجع هذه التفاصيل:', 'en' => 'The product could not be saved. Check these details:'],
         'vendor.Save' => ['ar' => 'حفظ', 'en' => 'Save'],
         'vendor.Cancel' => ['ar' => 'إلغاء', 'en' => 'Cancel'],
+        // VPM-UX-01E: the product editor's card titles, header, notices, units, hints and save bar (the approved
+        // prototype's new texts; the save bar's other lines reuse My Store's texts).
+        'vendor.Product_Section_Basic' => ['ar' => 'المعلومات الأساسية', 'en' => 'Basic information'],
+        'vendor.Product_Section_Inventory' => ['ar' => 'السعر والمخزون', 'en' => 'Pricing and inventory'],
+        'vendor.Product_Section_Shipping' => ['ar' => 'الشحن والأبعاد', 'en' => 'Shipping and dimensions'],
+        'vendor.Product_Back_To_List' => ['ar' => 'العودة إلى المنتجات', 'en' => 'Back to products'],
+        'vendor.Product_Notice_Archived_Title' => ['ar' => 'منتج مؤرشف', 'en' => 'Archived product'],
+        'vendor.Product_Notice_Suspended_Title' => ['ar' => 'منتج معلّق إداريًا', 'en' => 'Suspended by the administration'],
+        'vendor.Product_Weight_Unit_Kg' => ['ar' => 'كغ', 'en' => 'kg'],
+        'vendor.Product_Weight_Unit_G' => ['ar' => 'غ', 'en' => 'g'],
+        'vendor.Product_Weight_Unit_T' => ['ar' => 'طن', 'en' => 'ton'],
+        'vendor.Product_Unit_Cm' => ['ar' => 'سم', 'en' => 'cm'],
+        'vendor.Product_Preparation_Days_Hint' => ['ar' => 'اتركه فارغًا لاستخدام مدة التجهيز المحددة لمتجرك.', 'en' => 'Leave empty to use your store’s preparation time.'],
+        'vendor.Product_Media_Hint_Add' => ['ar' => 'تُحفظ الصور مع المنتج عند الضغط على «حفظ المنتج».', 'en' => 'Images are saved with the product when you select “Save product”.'],
+        'vendor.Product_Media_Hint_Edit' => ['ar' => 'تُحفظ تغييرات الصور فورًا، دون الحاجة إلى الضغط على «حفظ المنتج».', 'en' => 'Image changes are saved right away; you do not need to select “Save product”.'],
+        'vendor.Product_Save' => ['ar' => 'حفظ المنتج', 'en' => 'Save product'],
+        // VPM-CATEGORY-REQUIRED-01: the category field's prompt and its two messages (required, not available).
+        'vendor.Product_Category_Choose' => ['ar' => 'اختر التصنيف', 'en' => 'Choose a category'],
+        'vendor.Product_Category_Required' => ['ar' => 'يرجى اختيار تصنيف للمنتج.', 'en' => 'Please choose a category for the product.'],
+        'vendor.Product_Category_Invalid' => ['ar' => 'اختر تصنيفًا متاحًا.', 'en' => 'Choose an available category.'],
+        // VPM-CATEGORY-RELIABILITY-01: the category field while it loads, when loading fails, and a product's own
+        // category that is no longer active.
+        'vendor.Product_Category_Loading' => ['ar' => 'جارٍ تحميل التصنيفات…', 'en' => 'Loading categories…'],
+        'vendor.Product_Category_Load_Failed' => ['ar' => 'تعذّر تحميل التصنيفات.', 'en' => 'The categories could not be loaded.'],
+        'vendor.Product_Category_Inactive' => ['ar' => ':name (غير نشط)', 'en' => ':name (inactive)'],
+        'vendor.Product_Discard_Confirm' => ['ar' => 'هل تريد المغادرة دون حفظ؟ ستفقد التغييرات غير المحفوظة.', 'en' => 'Leave without saving? Your unsaved changes will be lost.'],
         // VENDOR-MEDIA-02B: the batch limit of one media library upload.
         'vendor.Media_Upload_Max_Files' => ['ar' => 'يمكنك رفع :max صور كحد أقصى في المرة الواحدة.', 'en' => 'You can upload up to :max images at a time.'],
     ];

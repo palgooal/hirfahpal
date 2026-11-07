@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VPM-UX-01E — Product editor prototype (not production)</title>
+<!--
+  VPM-UX-01E-DESIGN: a static, non-production prototype of the vendor product editor (Add / Edit product) in the
+  approved My Store design language (resources/css/vendor-dashboard.css: tokens, cards, fields, sticky save bar).
+  Representative static data only. No request is ever sent: Save and media-library actions are simulated in the page.
+  States come from the address (all optional):
+    ?lang=ar|en  &mode=add|edit  &moderation=none|suspended|archived  &images=empty|some|full
+    &save=idle|dirty|saving|saved|error  &errors=0|1  &stored=out_of_stock  &chrome=0 (hides the prototype bar)
+  Copy: the approved texts of VendorDashboardTranslationSeeder / VendorAuthTranslationSeeder; strings marked NEW in
+  the dictionary below are proposals awaiting approval.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../public/assets-dashboard/fonts/phosphor/duotone/style.css">
+<style>
+  /* ---- Tokens: the vendor dashboard's (@theme in resources/css/vendor-dashboard.css) ---- */
+  :root {
+    --hf-ink: #2b2b26; --hf-olive: #3d472b; --hf-olive-hover: #313923; --hf-sage: #b3ba91; --hf-copper: #b5622e;
+    --hf-canvas: #f5f0e5; --hf-surface: #faf8f3; --hf-line: #e4ddcb; --hf-muted: #6b6a5f;
+    --hf-error: #a13d2b; --hf-error-tint: #fbefeb; --hf-error-line: #ebcbc2;
+    --hf-suspend: #8a4520; --hf-suspend-tint: #fbf2ea; --hf-suspend-line: #ecd5c2;
+    --hf-success-tint: #eef0e6;
+    --radius-card: 14px; --radius-control: 10px;
+    --sidebar: 280px; --header: 74px;
+    --font: "Cairo", ui-sans-serif, system-ui, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-padding-bottom: 7.5rem; }
+  body { margin: 0; background: var(--hf-canvas); color: var(--hf-ink); font-family: var(--font); font-size: 0.9375rem; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  ::selection { background: rgb(179 186 145 / 45%); color: var(--hf-ink); }
+  :focus-visible { outline: 2px solid var(--hf-olive); outline-offset: 2px; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  [hidden] { display: none !important; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+  /* ---- Prototype bar (not part of the design) ---- */
+  .proto-bar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; padding: .5rem 1rem; background: #1f2119; color: #f1eee4; font: 500 .75rem/1.4 ui-sans-serif, system-ui, sans-serif; direction: ltr; }
+  .proto-bar strong { letter-spacing: .04em; color: var(--hf-sage); }
+  .proto-bar label { display: inline-flex; align-items: center; gap: .375rem; }
+  .proto-bar select { padding: .125rem .25rem; border: 1px solid #555; border-radius: 6px; background: #2c2f24; color: #f1eee4; font-size: .75rem; }
+
+  /* ---- Shell: sidebar (from 1024px) and application bar, as the vendor dashboard ---- */
+  .shell-sidebar { position: fixed; inset-block: 0; inset-inline-start: 0; z-index: 20; display: none; flex-direction: column; width: var(--sidebar); border-inline-end: 1px solid var(--hf-line); background: #fff; }
+  .shell-brand { display: flex; align-items: center; gap: .625rem; height: var(--header); padding-inline: 1.25rem; border-bottom: 1px solid var(--hf-line); }
+  .shell-brand img { width: 40px; height: 40px; border: 1px solid var(--hf-line); border-radius: 10px; }
+  .shell-brand b { display: block; font-size: 1.125rem; color: var(--hf-olive); line-height: 1.2; }
+  .shell-brand small { color: var(--hf-muted); font-size: .75rem; }
+  .shell-nav { display: flex; flex-direction: column; gap: .25rem; padding: 1rem .75rem; margin: 0; list-style: none; }
+  .shell-nav a { display: flex; align-items: center; gap: .75rem; padding: .625rem .75rem; border-radius: 10px; color: var(--hf-ink); font-weight: 600; font-size: .9375rem; text-decoration: none; }
+  .shell-nav a i { font-size: 1.25rem; color: var(--hf-olive); }
+  .shell-nav a[aria-current="page"] { background: var(--hf-success-tint); color: var(--hf-olive); }
+  .shell-header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: .75rem; height: var(--header); padding-inline: 1rem; border-bottom: 1px solid var(--hf-line); background: #fff; }
+  .shell-menu { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid var(--hf-line); border-radius: 10px; background: #fff; font-size: 1.25rem; }
+  .shell-account { display: inline-flex; align-items: center; gap: .5rem; font-weight: 600; font-size: .875rem; }
+  .shell-avatar { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: var(--hf-olive); color: var(--hf-surface); font-weight: 700; }
+  .shell-main { min-width: 0; }
+  @media (min-width: 1024px) {
+    .shell-sidebar { display: flex; }
+    .shell-main { margin-inline-start: var(--sidebar); }
+    .shell-menu { visibility: hidden; }
+    .shell-header { padding-inline: 2rem; }
+  }
+
+  /* ---- Page ---- */
+  .page { max-width: 1200px; padding: 1.75rem 2rem 2rem; }
+  @media (max-width: 639.98px) { .page { padding: 1.25rem 15px 1.5rem; } }
+  .breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: .375rem; margin: 0 0 .25rem; padding: 0; list-style: none; color: var(--hf-muted); font-size: .8125rem; }
+  .breadcrumb a { color: var(--hf-muted); text-decoration: none; }
+  .breadcrumb a:hover { color: var(--hf-olive); text-decoration: underline; text-underline-offset: 3px; }
+  .breadcrumb i { font-size: .75rem; }
+  .page-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: .5rem 1rem; margin-bottom: 1.25rem; }
+  .page-title { margin: 0; font-size: 1.5rem; font-weight: 700; line-height: 1.4; }
+  .page-subtitle { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .25rem 0 0; color: var(--hf-muted); font-size: .875rem; }
+  .page-subtitle bdi { color: var(--hf-ink); font-weight: 600; }
+  .back-link { display: inline-flex; align-items: center; gap: .375rem; min-height: 40px; padding: .375rem .875rem; border: 1px solid var(--hf-line); border-radius: var(--radius-control); background: #fff; color: var(--hf-ink); font-size: .875rem; font-weight: 600; text-decoration: none; }
+  .back-link:hover { border-color: var(--hf-sage); background: var(--hf-surface); }
+  [dir="rtl"] .back-link .ph-arrow-left { transform: scaleX(-1); }
+  .required-legend { margin: 0 0 1rem; color: var(--hf-muted); font-size: .8125rem; }
+  .required { color: var(--hf-copper); }
+
+  /* Status pills next to the title (the list's status and moderation badges). */
+  .pill { display: inline-flex; align-items: center; gap: .25rem; padding: .25rem .75rem; border-radius: 9999px; font-size: .75rem; font-weight: 600; line-height: 1.4; white-space: nowrap; }
+  .pill-status { background: rgb(179 186 145 / 22%); color: var(--hf-olive); }
+  .pill-archived { border: 1px solid currentColor; color: var(--hf-error); }
+  .pill-suspended { border: 1px solid currentColor; color: var(--hf-suspend); }
+
+  /* ---- Moderation notice: full width above the form; tinted, icon led (no side stripe) ---- */
+  .notice { display: flex; align-items: flex-start; gap: .75rem; margin-bottom: 1rem; padding: .875rem 1rem; border: 1px solid; border-radius: 12px; font-size: .9375rem; }
+  .notice p { margin: 0; }
+  .notice b { display: block; margin-bottom: .125rem; }
+  .notice-icon { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; background: #fff; font-size: 1.25rem; }
+  .notice.is-archived { border-color: var(--hf-error-line); background: var(--hf-error-tint); }
+  .notice.is-archived .notice-icon { color: var(--hf-error); }
+  .notice.is-suspended { border-color: var(--hf-suspend-line); background: var(--hf-suspend-tint); }
+  .notice.is-suspended .notice-icon { color: var(--hf-suspend); }
+  .notice:focus { outline: none; }
+  .notice:focus-visible { outline: 2px solid var(--hf-olive); outline-offset: 2px; }
+
+  /* ---- Layout: one column; two (about 2:1) when the content area is at least 880px wide ---- */
+  .editor { container-type: inline-size; container-name: editor; }
+  .editor-grid { display: grid; gap: 1rem; align-items: start; grid-template-columns: minmax(0, 1fr); }
+  @container editor (min-width: 880px) {
+    .editor-grid {
+      grid-template-columns: minmax(0, 2fr) minmax(19rem, 1fr);
+      grid-template-areas: "basic images" "pricing status" "shipping ." "craft .";
+    }
+    .card-basic { grid-area: basic; } .card-images { grid-area: images; } .card-status { grid-area: status; }
+    .card-pricing { grid-area: pricing; } .card-shipping { grid-area: shipping; } .card-craft { grid-area: craft; }
+  }
+
+  /* ---- Cards (vendor-form-card) ---- */
+  .card { min-width: 0; border: 1px solid var(--hf-line); border-radius: var(--radius-card); background: #fff; }
+  .card-body { display: flex; flex-direction: column; gap: .875rem; padding: 1.125rem 1.5rem 1.375rem; container-type: inline-size; }
+  @media (max-width: 639.98px) { .card-body { padding: 1rem; } }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+  .card-title { display: flex; align-items: center; gap: .625rem; margin: 0; font-size: 1rem; font-weight: 700; line-height: 1.5; }
+  .card-title .chip { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid var(--hf-line); border-radius: 9px; background: var(--hf-surface); color: var(--hf-olive); font-size: 1.0625rem; }
+  .card-meta { color: var(--hf-muted); font-size: .8125rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* ---- Fields (vendor-field / vendor-input) ---- */
+  .fields { display: grid; gap: .875rem 1rem; grid-template-columns: minmax(0, 1fr); }
+  @container (min-width: 520px) {
+    .fields.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .span-2 { grid-column: 1 / -1; }
+  }
+  .fields.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .625rem; }
+  .field { display: flex; flex-direction: column; gap: .375rem; min-width: 0; }
+  .label-row { display: flex; align-items: baseline; justify-content: space-between; gap: .625rem; }
+  .label { margin: 0; font-size: .875rem; font-weight: 600; }
+  .counter { color: var(--hf-muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
+  .hint { margin: 0; color: var(--hf-muted); font-size: .8125rem; line-height: 1.6; }
+  .input { width: 100%; min-height: 42px; padding: .5rem .75rem; border: 1px solid var(--hf-line); border-radius: var(--radius-control); background: #fff; font-size: .9375rem; line-height: 1.6; transition: border-color .15s ease-out, box-shadow .15s ease-out; }
+  .input::placeholder { color: #8a887b; }
+  .input:hover:not(:disabled):not(:focus) { border-color: #d3cab3; }
+  .input:focus { border-color: var(--hf-olive); outline: none; box-shadow: 0 0 0 3px rgb(61 71 43 / 12%); }
+  .input:disabled { background: var(--hf-surface); color: var(--hf-muted); cursor: not-allowed; }
+  .input[aria-invalid="true"] { border-color: var(--hf-error); }
+  .input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px rgb(161 61 43 / 14%); }
+  select.input { appearance: none; padding-inline-end: 2.25rem; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%236b6a5f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: left .875rem center; }
+  [dir="ltr"] select.input { background-position: right .875rem center; }
+  textarea.input { resize: vertical; }
+  .textarea-sm { min-height: 4.75rem; height: 4.75rem; }
+  .textarea-md { min-height: 6.5rem; height: 8.5rem; }
+  .ltr { direction: ltr; text-align: start; }
+  [dir="rtl"] .ltr { text-align: right; }
+  .narrow .input { max-width: 12rem; }
+  .field-error { display: flex; align-items: center; gap: .375rem; margin: 0; color: var(--hf-error); font-size: .8125rem; font-weight: 600; }
+  /* A value with its unit inside the same control (weight + unit). */
+  .input-group { display: grid; grid-template-columns: minmax(0, 1fr) 7.5rem; }
+  .input-group .input:first-child { border-start-end-radius: 0; border-end-end-radius: 0; }
+  .input-group .input:last-child { margin-inline-start: -1px; border-start-start-radius: 0; border-end-start-radius: 0; }
+  .input-group .input:focus { position: relative; z-index: 1; }
+  .suffix { position: relative; }
+  .suffix .input { padding-inline-end: 2.75rem; }
+  .suffix span { position: absolute; inset-block: 0; inset-inline-end: .75rem; display: flex; align-items: center; color: var(--hf-muted); font-size: .8125rem; pointer-events: none; }
+  .subgroup { display: flex; flex-direction: column; gap: .375rem; margin: 0; padding: 0; border: 0; min-width: 0; }
+  .subgroup legend { padding: 0; margin: 0 0 .375rem; font-size: .875rem; font-weight: 600; }
+
+  /* ---- Publication status ---- */
+  .status-current { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+
+  /* ---- Images ---- */
+  .media-hint { display: flex; align-items: flex-start; gap: .5rem; margin: 0; padding: .625rem .75rem; border-radius: var(--radius-control); background: var(--hf-surface); color: var(--hf-muted); font-size: .8125rem; line-height: 1.6; }
+  .media-hint i { flex: none; margin-top: .1875rem; color: var(--hf-olive); }
+  .media-label { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; margin: 0; font-size: .875rem; font-weight: 600; }
+  .media-label small { color: var(--hf-muted); font-size: .75rem; font-weight: 500; }
+  .main-image { position: relative; overflow: hidden; aspect-ratio: 4 / 3; max-inline-size: 22rem; border: 1px solid var(--hf-line); border-radius: 12px; background: var(--hf-surface); }
+  .main-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .main-badge { position: absolute; inset-block-start: .625rem; inset-inline-start: .625rem; padding: .25rem .75rem; border-radius: 9999px; background: var(--hf-olive); color: var(--hf-surface); font-size: .75rem; font-weight: 700; box-shadow: 0 1px 3px rgb(43 43 38 / 18%); }
+  .image-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .btn-soft { display: inline-flex; align-items: center; justify-content: center; gap: .375rem; min-height: 40px; padding: .375rem .875rem; border: 1px solid var(--hf-line); border-radius: var(--radius-control); background: var(--hf-surface); font-size: .875rem; font-weight: 600; transition: background-color .15s ease-out, border-color .15s ease-out; }
+  .btn-soft:hover:not(:disabled) { border-color: var(--hf-sage); background: var(--hf-canvas); }
+  .btn-soft:disabled { cursor: not-allowed; opacity: .55; }
+  .btn-soft.is-danger { color: var(--hf-error); }
+  .btn-soft.is-wide { width: 100%; }
+  .empty-media { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem; padding: 1.25rem 1rem; border: 1px dashed #d6ceb8; border-radius: 12px; background: var(--hf-surface); color: var(--hf-muted); font-size: .8125rem; text-align: center; }
+  .empty-media i { font-size: 1.75rem; color: var(--hf-sage); }
+  .empty-media.is-main { aspect-ratio: 4 / 3; max-inline-size: 22rem; }
+  .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); gap: .625rem; margin: 0; padding: 0; list-style: none; }
+  .thumb { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--hf-line); border-radius: 12px; background: #fff; }
+  .thumb-img { aspect-ratio: 1; background: var(--hf-surface); }
+  .thumb-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb-foot { display: flex; flex-direction: column; gap: .125rem; padding: .375rem .375rem .375rem; }
+  .thumb-pos { padding-inline: .25rem; color: var(--hf-muted); font-size: .75rem; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .thumb-tools { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .125rem; }
+  .thumb-tools .icon-btn { width: 100%; }
+  .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: none; color: var(--hf-ink); font-size: 1rem; }
+  .icon-btn:hover:not(:disabled) { background: var(--hf-surface); color: var(--hf-olive); }
+  .icon-btn.is-danger:hover:not(:disabled) { color: var(--hf-error); }
+  .icon-btn:disabled { cursor: not-allowed; opacity: .4; }
+  @media (pointer: coarse) { .icon-btn { width: 40px; height: 40px; } }
+  .media-status { margin: 0; color: var(--hf-olive); font-size: .8125rem; font-weight: 600; }
+  .media-status:empty { display: none; }
+  .note-full { margin: 0; color: var(--hf-muted); font-size: .8125rem; }
+
+  /* ---- Sticky save bar (vendor-form-actions, MYSTORE-UX-01D) ---- */
+  .save-bar { position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; margin-top: 1rem; padding: .875rem 1.5rem calc(.875rem + env(safe-area-inset-bottom, 0px)); border: 1px solid var(--hf-line); border-radius: 14px; background: #fff; box-shadow: 0 -6px 16px rgb(43 43 38 / 8%); }
+  .save-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .625rem; }
+  .btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-width: 9rem; min-height: 44px; padding: .5rem 1.25rem; border: 0; border-radius: var(--radius-control); background: var(--hf-olive); color: var(--hf-surface); font-size: .9375rem; font-weight: 700; transition: background-color .15s ease-out; }
+  .btn-primary:hover:not(:disabled) { background: var(--hf-olive-hover); }
+  .btn-primary:disabled { cursor: not-allowed; opacity: .55; }
+  .btn-primary[aria-busy="true"] { opacity: .8; cursor: progress; }
+  .btn-secondary { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .5rem 1.125rem; border: 1px solid var(--hf-line); border-radius: var(--radius-control); background: #fff; font-size: .9375rem; font-weight: 600; text-decoration: none; color: var(--hf-ink); }
+  .btn-secondary:hover { border-color: var(--hf-sage); background: var(--hf-surface); }
+  .spin { display: inline-block; animation: spin .9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+  .save-state { display: inline-flex; align-items: center; gap: .5rem; margin: 0; font-size: .875rem; font-weight: 600; }
+  .save-state:empty { display: none; }
+  .save-state.is-dirty::before { content: ""; flex: none; width: .5rem; height: .5rem; border-radius: 50%; background: var(--hf-copper); }
+  .save-state.is-saved { color: var(--hf-olive); }
+  .save-state.is-error { color: var(--hf-error); }
+  .save-state i { font-size: 1.125rem; }
+  .readonly-hint { display: inline-flex; align-items: center; gap: .375rem; margin: 0; color: var(--hf-muted); font-size: .8125rem; }
+  @media (max-width: 639.98px) {
+    .save-bar { padding: .75rem 1rem calc(.75rem + env(safe-area-inset-bottom, 0px)); border-radius: 14px 14px 0 0; margin-inline: -15px; }
+    .save-actions { width: 100%; display: grid; grid-template-columns: 1fr auto; }
+    .btn-primary { min-width: 0; width: 100%; }
+    .save-state { order: -1; width: 100%; }
+  }
+  .toast { position: fixed; inset-block-end: 6.5rem; inset-inline-start: 50%; z-index: 30; transform: translateX(50%); max-width: calc(100vw - 2rem); padding: .5rem .875rem; border-radius: 10px; background: var(--hf-ink); color: #fff; font-size: .8125rem; box-shadow: 0 6px 18px rgb(43 43 38 / 22%); }
+  [dir="ltr"] .toast { transform: translateX(-50%); }
+</style>
+</head>
+<body>
+
+<div class="proto-bar" data-proto-bar>
+  <strong>PROTOTYPE · VPM-UX-01E · not production · no requests are sent</strong>
+  <label>Language <select data-param="lang"><option value="ar">Arabic (RTL)</option><option value="en">English (LTR)</option></select></label>
+  <label>Mode <select data-param="mode"><option value="add">Add product</option><option value="edit">Edit product</option></select></label>
+  <label>Moderation <select data-param="moderation"><option value="none">None</option><option value="suspended">Suspended</option><option value="archived">Archived</option></select></label>
+  <label>Images <select data-param="images"><option value="empty">Empty</option><option value="some">4 images</option><option value="full">6 images (full)</option></select></label>
+  <label>Save bar <select data-param="save"><option value="idle">Idle</option><option value="dirty">Unsaved changes</option><option value="saving">Saving</option><option value="saved">Saved</option><option value="error">Save failed</option></select></label>
+  <label>Validation <select data-param="errors"><option value="0">No errors</option><option value="1">Errors shown</option></select></label>
+</div>
+
+<aside class="shell-sidebar" aria-label="" data-t-aria="Nav_Main">
+  <div class="shell-brand"><img src="../../public/images/brand/hirfah-logo.png" alt=""><div><b>حِرفة</b><small data-t="Portal"></small></div></div>
+  <ul class="shell-nav">
+    <li><a href="#"><i class="ph-duotone ph-squares-four" aria-hidden="true"></i><span data-t="Nav_Dashboard"></span></a></li>
+    <li><a href="#"><i class="ph-duotone ph-storefront" aria-hidden="true"></i><span data-t="Nav_My_Store"></span></a></li>
+    <li><a href="#" aria-current="page"><i class="ph-duotone ph-package" aria-hidden="true"></i><span data-t="Nav_Products"></span></a></li>
+    <li><a href="#"><i class="ph-duotone ph-images" aria-hidden="true"></i><span data-t="Nav_Media_Library"></span></a></li>
+    <li><a href="#"><i class="ph-duotone ph-receipt" aria-hidden="true"></i><span data-t="Nav_Orders"></span></a></li>
+    <li><a href="#"><i class="ph-duotone ph-star" aria-hidden="true"></i><span data-t="Nav_Reviews"></span></a></li>
+    <li><a href="#"><i class="ph-duotone ph-arrow-u-up-left" aria-hidden="true"></i><span data-t="Nav_Returns"></span></a></li>
+    <li><a href="#"><i class="ph-duotone ph-scales" aria-hidden="true"></i><span data-t="Nav_Disputes"></span></a></li>
+    <li><a href="#"><i class="ph-duotone ph-wallet" aria-hidden="true"></i><span data-t="Nav_Finance"></span></a></li>
+  </ul>
+</aside>
+
+<div class="shell-main">
+  <header class="shell-header">
+    <button type="button" class="shell-menu" aria-label="Menu"><i class="ph-duotone ph-list" aria-hidden="true"></i></button>
+    <span class="shell-account"><span class="shell-avatar" aria-hidden="true">د</span><span>دار الكرمة</span></span>
+  </header>
+
+  <main class="page" id="main">
+    <nav aria-label="Breadcrumb">
+      <ol class="breadcrumb">
+        <li><a href="#" data-t="Nav_Dashboard"></a></li>
+        <li aria-hidden="true"><i class="ph-duotone ph-caret-right"></i></li>
+        <li><a href="#" data-t="Nav_Products"></a></li>
+        <li aria-hidden="true"><i class="ph-duotone ph-caret-right"></i></li>
+        <li aria-current="page" data-title-crumb></li>
+      </ol>
+    </nav>
+    <div class="page-head">
+      <div>
+        <h1 class="page-title" data-page-title></h1>
+        <p class="page-subtitle" data-page-subtitle hidden><bdi data-product-name-display></bdi><span class="pill pill-status" data-status-pill></span><span class="pill" data-moderation-pill hidden></span></p>
+      </div>
+      <a href="#" class="back-link" data-back><i class="ph-duotone ph-arrow-left" aria-hidden="true"></i><span data-t="Back_To_Products"></span></a>
+    </div>
+
+    <div class="notice" role="note" tabindex="-1" data-notice hidden>
+      <span class="notice-icon" aria-hidden="true"><i class="ph-duotone"></i></span>
+      <div><b data-notice-title></b><p data-notice-text></p></div>
+    </div>
+
+    <p class="required-legend" data-required-legend><span data-t="My_Store_Required_Legend"></span></p>
+
+    <form class="editor" novalidate data-form>
+      <div class="editor-grid">
+
+        <!-- 1. Basic information -->
+        <section class="card card-basic" aria-labelledby="t-basic">
+          <div class="card-body">
+            <h2 class="card-title" id="t-basic"><span class="chip" aria-hidden="true"><i class="ph-duotone ph-tag"></i></span><span data-t="Card_Basic"></span></h2>
+            <div class="fields cols-2">
+              <div class="field span-2">
+                <label class="label" for="f-name"><span data-t="Product_Name"></span> <span class="required" aria-hidden="true">*</span></label>
+                <input class="input" id="f-name" name="name" maxlength="255" required dir="auto" aria-describedby="e-name">
+                <p class="field-error" id="e-name" data-error-for="name" hidden><i class="ph-duotone ph-warning-circle" aria-hidden="true"></i><span></span></p>
+              </div>
+              <div class="field">
+                <label class="label" for="f-category" data-t="Product_Category"></label>
+                <select class="input" id="f-category" name="category_id" data-category></select>
+              </div>
+              <div class="field">
+                <label class="label" for="f-sku" data-t="Product_Sku"></label>
+                <input class="input ltr" id="f-sku" name="sku" maxlength="255" dir="ltr" autocomplete="off">
+              </div>
+              <div class="field span-2">
+                <div class="label-row"><label class="label" for="f-short" data-t="Product_Short_Description"></label><span class="counter" aria-hidden="true"><bdi data-counter="short">0 / 1000</bdi></span></div>
+                <textarea class="input textarea-sm" id="f-short" name="short_description" maxlength="1000" dir="auto"></textarea>
+              </div>
+              <div class="field span-2">
+                <label class="label" for="f-description" data-t="Product_Description"></label>
+                <textarea class="input textarea-md" id="f-description" name="description" dir="auto"></textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. Product images (side) -->
+        <section class="card card-images" aria-labelledby="t-images">
+          <div class="card-body">
+            <div class="card-head">
+              <h2 class="card-title" id="t-images"><span class="chip" aria-hidden="true"><i class="ph-duotone ph-images"></i></span><span data-t="Product_Gallery_Section"></span></h2>
+              <span class="card-meta" data-image-count></span>
+            </div>
+            <p class="media-hint"><i class="ph-duotone ph-info" aria-hidden="true"></i><span data-media-mode-hint></span></p>
+
+            <div class="field">
+              <p class="media-label"><span data-t="Product_Gallery_Main_Label"></span><small data-t="Product_Gallery_Main_Help"></small></p>
+              <div data-main-image></div>
+            </div>
+
+            <div class="field">
+              <p class="media-label"><span data-t="Product_Gallery_Gallery_Label"></span></p>
+              <div data-gallery></div>
+              <button type="button" class="btn-soft is-wide" data-add-gallery data-media-action><i class="ph-duotone ph-plus" aria-hidden="true"></i><span data-t="Product_Gallery_Add"></span></button>
+              <p class="note-full" data-full-note hidden></p>
+            </div>
+            <p class="media-status" role="status" aria-live="polite" data-media-status></p>
+          </div>
+        </section>
+
+        <!-- 3. Publication status (side) -->
+        <section class="card card-status" aria-labelledby="t-status">
+          <div class="card-body">
+            <h2 class="card-title" id="t-status"><span class="chip" aria-hidden="true"><i class="ph-duotone ph-eye"></i></span><span data-t="Product_Status"></span></h2>
+            <div class="field">
+              <label class="sr-only" for="f-status" data-t="Product_Status"></label>
+              <select class="input" id="f-status" name="status" aria-describedby="h-status" data-status-select></select>
+              <p class="hint" id="h-status" data-t="Product_Status_Hint"></p>
+            </div>
+            <div class="status-current" data-status-moderation hidden></div>
+          </div>
+        </section>
+
+        <!-- 4. Pricing and inventory -->
+        <section class="card card-pricing" aria-labelledby="t-pricing">
+          <div class="card-body">
+            <h2 class="card-title" id="t-pricing"><span class="chip" aria-hidden="true"><i class="ph-duotone ph-coins"></i></span><span data-t="Card_Pricing"></span></h2>
+            <div class="fields cols-2">
+              <div class="field">
+                <label class="label" for="f-price"><span data-t="Product_Price"></span> <span class="required" aria-hidden="true">*</span></label>
+                <input class="input ltr" id="f-price" name="price" type="number" min="0.01" step="0.01" inputmode="decimal" required dir="ltr" aria-describedby="e-price">
+                <p class="field-error" id="e-price" data-error-for="price" hidden><i class="ph-duotone ph-warning-circle" aria-hidden="true"></i><span></span></p>
+              </div>
+              <div class="field">
+                <label class="label" for="f-compare" data-t="Product_Compare_Price"></label>
+                <input class="input ltr" id="f-compare" name="compare_at_price" type="number" min="0" step="0.01" inputmode="decimal" dir="ltr" aria-describedby="h-compare e-compare">
+                <p class="hint" id="h-compare" data-t="Product_Compare_Price_Hint"></p>
+                <p class="field-error" id="e-compare" data-error-for="compare_at_price" hidden><i class="ph-duotone ph-warning-circle" aria-hidden="true"></i><span></span></p>
+              </div>
+              <div class="field">
+                <label class="label" for="f-stock"><span data-t="Product_Stock"></span> <span class="required" aria-hidden="true">*</span></label>
+                <input class="input ltr" id="f-stock" name="stock_quantity" type="number" min="0" step="1" inputmode="numeric" required dir="ltr">
+              </div>
+              <div class="field">
+                <label class="label" for="f-low" data-t="Product_Low_Stock"></label>
+                <input class="input ltr" id="f-low" name="low_stock_threshold" type="number" min="0" step="1" inputmode="numeric" dir="ltr" value="1">
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. Shipping and dimensions -->
+        <section class="card card-shipping" aria-labelledby="t-shipping">
+          <div class="card-body">
+            <h2 class="card-title" id="t-shipping"><span class="chip" aria-hidden="true"><i class="ph-duotone ph-ruler"></i></span><span data-t="Card_Shipping"></span></h2>
+            <div class="fields cols-2">
+              <div class="field">
+                <label class="label" for="f-weight" data-t="Product_Weight"></label>
+                <div class="input-group">
+                  <input class="input ltr" id="f-weight" name="weight" type="number" min="0" step="0.01" inputmode="decimal" dir="ltr">
+                  <select class="input" name="weight_unit" aria-label="" data-t-aria="Product_Weight_Unit">
+                    <option value="" data-t="Product_Weight_Unit_Select"></option>
+                    <option value="kg" data-t="Unit_Kg"></option><option value="g" data-t="Unit_G"></option><option value="t" data-t="Unit_T"></option>
+                  </select>
+                </div>
+              </div>
+              <fieldset class="subgroup span-2">
+                <legend data-t="Product_Dimensions"></legend>
+                <div class="fields cols-3">
+                  <div class="field"><label class="label" for="f-length" data-t="Product_Length"></label><div class="suffix"><input class="input ltr" id="f-length" name="dimensions[length]" type="number" min="0" step="0.01" inputmode="decimal" dir="ltr"><span data-t="Unit_Cm"></span></div></div>
+                  <div class="field"><label class="label" for="f-width" data-t="Product_Width"></label><div class="suffix"><input class="input ltr" id="f-width" name="dimensions[width]" type="number" min="0" step="0.01" inputmode="decimal" dir="ltr"><span data-t="Unit_Cm"></span></div></div>
+                  <div class="field"><label class="label" for="f-height" data-t="Product_Height"></label><div class="suffix"><input class="input ltr" id="f-height" name="dimensions[height]" type="number" min="0" step="0.01" inputmode="decimal" dir="ltr"><span data-t="Unit_Cm"></span></div></div>
+                </div>
+              </fieldset>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. Craft, care and delivery -->
+        <section class="card card-craft" aria-labelledby="t-craft">
+          <div class="card-body">
+            <h2 class="card-title" id="t-craft"><span class="chip" aria-hidden="true"><i class="ph-duotone ph-hand-heart"></i></span><span data-t="Product_Section_Craft"></span></h2>
+            <div class="fields cols-2">
+              <div class="field"><label class="label" for="f-material" data-t="Product_Material"></label><input class="input" id="f-material" name="material" maxlength="255" dir="auto"></div>
+              <div class="field"><label class="label" for="f-place" data-t="Product_Place_Of_Manufacture"></label><input class="input" id="f-place" name="place_of_manufacture" maxlength="255" dir="auto"></div>
+              <div class="field narrow span-2">
+                <label class="label" for="f-prep" data-t="Product_Preparation_Days"></label>
+                <input class="input ltr" id="f-prep" name="preparation_days" type="number" min="0" max="3650" step="1" inputmode="numeric" dir="ltr" aria-describedby="h-prep">
+                <p class="hint" id="h-prep" data-t="Prep_Hint"></p>
+              </div>
+              <div class="field span-2"><label class="label" for="f-care" data-t="Product_Care_Instructions"></label><textarea class="input textarea-sm" id="f-care" name="care_instructions" maxlength="5000" dir="auto"></textarea></div>
+              <div class="field span-2"><label class="label" for="f-shipping" data-t="Product_Shipping_Details"></label><textarea class="input textarea-sm" id="f-shipping" name="shipping_details" maxlength="5000" dir="auto"></textarea></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Sticky save bar -->
+      <div class="save-bar" data-save-bar>
+        <div class="save-actions" data-save-actions>
+          <button type="submit" class="btn-primary" data-save><span data-save-label></span></button>
+          <a href="#" class="btn-secondary" data-cancel data-t="Cancel"></a>
+        </div>
+        <p class="save-state" role="status" aria-live="polite" data-save-state></p>
+        <p class="readonly-hint" data-readonly hidden><i class="ph-duotone ph-lock-simple" aria-hidden="true"></i><span data-t="My_Store_Readonly_Hint"></span></p>
+      </div>
+    </form>
+  </main>
+</div>
+
+<div class="toast" role="status" data-toast hidden></div>
+
+<script>
+// ---------------------------------------------------------------------------------------------------------------------
+// Copy. Existing keys: the approved values of VendorDashboardTranslationSeeder / VendorAuthTranslationSeeder (vendor.*).
+// NEW: proposals for this redesign, awaiting the owner's approval.
+// ---------------------------------------------------------------------------------------------------------------------
+const T = {
+  ar: {
+    Nav_Main: 'القائمة الرئيسية', Nav_Dashboard: 'لوحة التحكم', Nav_My_Store: 'متجري', Nav_Products: 'المنتجات', Nav_Media_Library: 'مكتبة الوسائط',
+    Nav_Orders: 'الطلبات', Nav_Reviews: 'التقييمات', Nav_Returns: 'المرتجعات', Nav_Disputes: 'النزاعات', Nav_Finance: 'المالية', Portal: 'بوابة البائعين',
+    Product_New: 'إضافة منتج', Product_Edit: 'تعديل المنتج', Cancel: 'إلغاء',
+    Product_Section_Craft: 'الحرفة والعناية والتوصيل', Product_Name: 'الاسم', Product_Category: 'التصنيف', Product_No_Category: 'بدون تصنيف',
+    Product_Sku: 'رمز المنتج (SKU)', Product_Stock: 'المخزون', Product_Status: 'حالة النشر', Product_Status_Draft: 'مسودة', Product_Status_Active: 'نشط',
+    Product_Status_Inactive: 'غير نشط', Product_Status_Keep_Out_Of_Stock: 'نفد من المخزون (إبقاء الحالة الحالية)', Product_Status_Out_Of_Stock: 'نفد من المخزون',
+    Product_Status_Hint: 'تظهر المنتجات النشطة في المتجر فقط عندما تستوفي شروطه القائمة. لا تظهر المنتجات المسودة وغير النشطة.',
+    Product_Short_Description: 'وصف مختصر', Product_Description: 'الوصف', Product_Price: 'السعر الأساسي', Product_Compare_Price: 'سعر التخفيض (اختياري)',
+    Product_Compare_Price_Hint: 'يجب أن يكون أقل من السعر الأساسي.', Product_Low_Stock: 'حد انخفاض المخزون', Product_Weight: 'الوزن', Product_Weight_Unit: 'وحدة الوزن',
+    Product_Weight_Unit_Select: 'الوحدة', Product_Dimensions: 'الأبعاد (سم)', Product_Length: 'الطول', Product_Width: 'العرض', Product_Height: 'الارتفاع',
+    Product_Material: 'المادة الأساسية', Product_Place_Of_Manufacture: 'مكان الصنع', Product_Preparation_Days: 'مدة التجهيز (بالأيام)',
+    Product_Care_Instructions: 'تعليمات العناية والحفظ', Product_Shipping_Details: 'تفاصيل التغليف والشحن',
+    Product_Notice_Archived: 'هذا المنتج مؤرشف من الإدارة ولا يمكن تعديله. يرجى التواصل مع الإدارة لاستعادته.',
+    Product_Notice_Suspended: 'هذا المنتج معلّق من الإدارة، ولن يظهر في المتجر أو يكون متاحًا للبيع حتى يُرفع التعليق، أيًّا كانت حالة نشره. ما زال بإمكانك تعديله.',
+    Product_Badge_Archived: 'مؤرشف', Product_Badge_Suspended: 'معلّق إداريًا', Product_Save_Failed: 'تعذّر حفظ المنتج.',
+    Product_Gallery_Section: 'صور المنتج', Product_Gallery_Count: ':count من :max صور', Product_Gallery_Main_Label: 'الصورة الرئيسية للمنتج',
+    Product_Gallery_Main_Help: 'تظهر أولًا في المتجر.', Product_Gallery_Gallery_Label: 'معرض المنتج', Product_Gallery_Choose_Main: 'اختر من الوسائط',
+    Product_Gallery_Add: 'أضف صورة إلى المعرض', Product_Gallery_No_Main: 'لم تُختر صورة رئيسية.', Product_Gallery_No_Gallery: 'لم تُختر صور إضافية للمعرض.',
+    Product_Gallery_Main_Badge: 'الصورة الرئيسية', Product_Gallery_Position: 'الصورة :position', Product_Gallery_Change: 'تغيير', Product_Gallery_Set_Main: 'تعيين كصورة رئيسية',
+    Product_Gallery_Remove: 'إزالة', Product_Gallery_Move_Up: 'نقل لأعلى', Product_Gallery_Move_Down: 'نقل لأسفل',
+    Product_Gallery_Full: 'يحتوي هذا المنتج على الحد الأقصى وهو :max صور. أزل صورة أو استبدلها لإضافة أخرى.',
+    My_Store_Required_Legend: 'الحقول المعلَّمة بـ * مطلوبة.', My_Store_Readonly_Hint: 'هذه البيانات غير قابلة للتعديل من هذه الصفحة.',
+    My_Store_Unsaved: 'لديك تغييرات غير محفوظة', My_Store_Saving: 'جارٍ الحفظ…', My_Store_Saved: 'تم حفظ التغييرات بنجاح.',
+    My_Store_Fix_Errors: 'يرجى مراجعة الحقول المحددة.', My_Store_Error_Required: 'هذا الحقل مطلوب.',
+    // NEW (proposed copy)
+    Card_Basic: 'المعلومات الأساسية', Card_Pricing: 'السعر والمخزون', Card_Shipping: 'الشحن والأبعاد', Back_To_Products: 'العودة إلى المنتجات',
+    Save_Product: 'حفظ المنتج', Media_Hint_Add: 'تُحفظ الصور مع المنتج عند الضغط على «حفظ المنتج».',
+    Media_Hint_Edit: 'تُحفظ تغييرات الصور فورًا، دون الحاجة إلى زر الحفظ.', Prep_Hint: 'اتركه فارغًا لاستخدام مدة التجهيز المحددة لمتجرك.',
+    Unit_Kg: 'كغ', Unit_G: 'غ', Unit_T: 'طن', Unit_Cm: 'سم', Notice_Archived_Title: 'منتج مؤرشف', Notice_Suspended_Title: 'منتج معلّق إداريًا',
+    Picker_Concept: 'تُفتح مكتبة الوسائط هنا (نموذج تصميمي فقط).', Cancel_Concept: 'يعود إلى قائمة المنتجات (نموذج تصميمي فقط).',
+  },
+  en: {
+    Nav_Main: 'Main menu', Nav_Dashboard: 'Dashboard', Nav_My_Store: 'My Store', Nav_Products: 'Products', Nav_Media_Library: 'Media Library',
+    Nav_Orders: 'Orders', Nav_Reviews: 'Reviews', Nav_Returns: 'Returns', Nav_Disputes: 'Disputes', Nav_Finance: 'Finance', Portal: 'Vendor portal',
+    Product_New: 'Add product', Product_Edit: 'Edit product', Cancel: 'Cancel',
+    Product_Section_Craft: 'Craft, care and delivery', Product_Name: 'Name', Product_Category: 'Category', Product_No_Category: 'No category',
+    Product_Sku: 'SKU', Product_Stock: 'Stock', Product_Status: 'Publication status', Product_Status_Draft: 'Draft', Product_Status_Active: 'Active',
+    Product_Status_Inactive: 'Inactive', Product_Status_Keep_Out_Of_Stock: 'Out of stock (keep current status)', Product_Status_Out_Of_Stock: 'Out of stock',
+    Product_Status_Hint: 'Active products are shown in the store only when they meet its existing conditions. Draft and inactive products are not shown.',
+    Product_Short_Description: 'Short description', Product_Description: 'Description', Product_Price: 'Regular price', Product_Compare_Price: 'Sale price (optional)',
+    Product_Compare_Price_Hint: 'Must be lower than the regular price.', Product_Low_Stock: 'Low stock threshold', Product_Weight: 'Weight', Product_Weight_Unit: 'Weight unit',
+    Product_Weight_Unit_Select: 'Unit', Product_Dimensions: 'Dimensions (cm)', Product_Length: 'Length', Product_Width: 'Width', Product_Height: 'Height',
+    Product_Material: 'Main material', Product_Place_Of_Manufacture: 'Place of manufacture', Product_Preparation_Days: 'Preparation time (days)',
+    Product_Care_Instructions: 'Care and storage instructions', Product_Shipping_Details: 'Packaging and shipping details',
+    Product_Notice_Archived: 'This product is archived by the administration and cannot be edited. Contact the administration to restore it.',
+    Product_Notice_Suspended: 'This product is suspended by the administration. It is not shown in the store or available for sale until the suspension is lifted, whatever its publication status. You can still edit it.',
+    Product_Badge_Archived: 'Archived', Product_Badge_Suspended: 'Suspended by administration', Product_Save_Failed: 'The product could not be saved.',
+    Product_Gallery_Section: 'Product images', Product_Gallery_Count: ':count of :max images', Product_Gallery_Main_Label: 'Main product image',
+    Product_Gallery_Main_Help: 'Shown first on the store.', Product_Gallery_Gallery_Label: 'Product gallery', Product_Gallery_Choose_Main: 'Choose from media',
+    Product_Gallery_Add: 'Add gallery image', Product_Gallery_No_Main: 'No main image selected.', Product_Gallery_No_Gallery: 'No gallery images selected.',
+    Product_Gallery_Main_Badge: 'Main image', Product_Gallery_Position: 'Image :position', Product_Gallery_Change: 'Change', Product_Gallery_Set_Main: 'Set as main',
+    Product_Gallery_Remove: 'Remove', Product_Gallery_Move_Up: 'Move up', Product_Gallery_Move_Down: 'Move down',
+    Product_Gallery_Full: 'This product has the maximum of :max images. Remove or replace an image to add another.',
+    My_Store_Required_Legend: 'Fields marked * are required.', My_Store_Readonly_Hint: 'These details cannot be edited on this page.',
+    My_Store_Unsaved: 'You have unsaved changes', My_Store_Saving: 'Saving…', My_Store_Saved: 'Changes saved successfully.',
+    My_Store_Fix_Errors: 'Please review the highlighted fields.', My_Store_Error_Required: 'This field is required.',
+    // NEW (proposed copy)
+    Card_Basic: 'Basic information', Card_Pricing: 'Pricing and inventory', Card_Shipping: 'Shipping and dimensions', Back_To_Products: 'Back to products',
+    Save_Product: 'Save product', Media_Hint_Add: 'Images are saved with the product when you select “Save product”.',
+    Media_Hint_Edit: 'Image changes are saved right away, without the Save button.', Prep_Hint: 'Leave empty to use your store’s preparation time.',
+    Unit_Kg: 'kg', Unit_G: 'g', Unit_T: 'ton', Unit_Cm: 'cm', Notice_Archived_Title: 'Archived product', Notice_Suspended_Title: 'Suspended by administration',
+    Picker_Concept: 'The media library opens here (design prototype only).', Cancel_Concept: 'Returns to the products list (design prototype only).',
+  },
+};
+
+// Representative static data (the storefront's own sample images; no live record).
+const IMG = '../../public/assets/storefront/imgs/mcp/';
+const SAMPLE = {
+  ar: { name: 'إبريق فخار مقدسي مزخرف', sku: 'KRM-PIT-014', short: 'إبريق من فخار الخليل، مرسوم ومزجج يدويًا بزخارف زرقاء تقليدية.', description: 'يُشكَّل كل إبريق على الدولاب اليدوي في مشغل دار الكرمة، ثم يُرسم بالريشة ويُحرق مرتين لتثبيت الألوان. مناسب للضيافة والزينة، وتختلف كل قطعة قليلًا عن الأخرى لأنها مصنوعة باليد.', material: 'فخار مزجج', place: 'الخليل', care: 'يُغسل باليد بماء دافئ. لا يُستخدم في غسالة الصحون أو الميكروويف.', shipping: 'يُغلّف بطبقتين من الورق المموّج داخل صندوق مقوّى.' },
+  en: { name: 'Hand-painted Jerusalem pottery pitcher', sku: 'KRM-PIT-014', short: 'A Hebron clay pitcher, painted and glazed by hand with traditional blue motifs.', description: 'Each pitcher is thrown on a kick wheel at the Dar Al-Karma workshop, painted with a brush and fired twice to set the colours. Made for serving and display; every piece differs slightly because it is made by hand.', material: 'Glazed clay', place: 'Hebron', care: 'Wash by hand in warm water. Not for the dishwasher or microwave.', shipping: 'Wrapped in two layers of corrugated paper inside a rigid box.' },
+};
+const CATEGORIES = { ar: ['الفخار والخزف', 'التطريز الفلسطيني', 'السلال والقش', 'الشموع والصابون'], en: ['Pottery and ceramics', 'Palestinian embroidery', 'Baskets and straw', 'Candles and soap'] };
+const GALLERY = ['season-pitcher.png', 'popular-pitcher.png', 'category-ceramics.png', 'arrival-candle.png', 'arrival-basket.png', 'category-basket.png'];
+const MAX = 6;
+
+const params = new URLSearchParams(location.search);
+const state = {
+  lang: params.get('lang') === 'en' ? 'en' : 'ar',
+  mode: params.get('mode') === 'edit' ? 'edit' : 'add',
+  moderation: ['suspended', 'archived'].includes(params.get('moderation')) ? params.get('moderation') : 'none',
+  images: ['some', 'full'].includes(params.get('images')) ? params.get('images') : 'empty',
+  save: ['dirty', 'saving', 'saved', 'error'].includes(params.get('save')) ? params.get('save') : 'idle',
+  errors: params.get('errors') === '1',
+  stored: params.get('stored') === 'out_of_stock' ? 'out_of_stock' : null,
+};
+if (state.mode === 'add') state.moderation = 'none';
+const t = (key, vars = {}) => Object.entries(vars).reduce((s, [k, v]) => s.split(':' + k).join(String(v)), T[state.lang][key] ?? key);
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+function render() {
+  const archived = state.moderation === 'archived';
+  document.documentElement.lang = state.lang;
+  document.documentElement.dir = state.lang === 'ar' ? 'rtl' : 'ltr';
+  if (params.get('chrome') === '0') $('[data-proto-bar]').hidden = true;
+  $$('[data-proto-bar] select').forEach((select) => { select.value = String(select.dataset.param === 'errors' ? Number(state.errors) : state[select.dataset.param]); });
+  // Breadcrumb carets point along the reading direction (as the vendor pager chooses them).
+  $$('.breadcrumb i').forEach((i) => { i.className = 'ph-duotone ' + (state.lang === 'ar' ? 'ph-caret-left' : 'ph-caret-right'); });
+  $$('[data-t]').forEach((el) => { el.textContent = t(el.dataset.t); });
+  $$('[data-t-aria]').forEach((el) => el.setAttribute('aria-label', t(el.dataset.tAria)));
+
+  // Title, breadcrumb and the product's state next to it (Edit).
+  const title = state.mode === 'add' ? t('Product_New') : t('Product_Edit');
+  document.title = `${title} · ${t('Nav_Products')}`;
+  $('[data-page-title]').textContent = title;
+  $('[data-title-crumb]').textContent = title;
+  const subtitle = $('[data-page-subtitle]');
+  subtitle.hidden = state.mode === 'add';
+  $('[data-product-name-display]').textContent = SAMPLE[state.lang].name;
+  $('[data-status-pill]').textContent = t(state.stored ? 'Product_Status_Out_Of_Stock' : 'Product_Status_Active');
+  const modPill = $('[data-moderation-pill]');
+  modPill.hidden = state.moderation === 'none';
+  modPill.className = 'pill ' + (archived ? 'pill-archived' : 'pill-suspended');
+  modPill.textContent = archived ? t('Product_Badge_Archived') : t('Product_Badge_Suspended');
+
+  // Moderation notice (the editor's existing texts), full width above the form.
+  const notice = $('[data-notice]');
+  notice.hidden = state.moderation === 'none';
+  notice.className = 'notice ' + (archived ? 'is-archived' : 'is-suspended');
+  $('i', notice).className = 'ph-duotone ' + (archived ? 'ph-archive' : 'ph-pause-circle');
+  $('[data-notice-title]').textContent = archived ? t('Notice_Archived_Title') : t('Notice_Suspended_Title');
+  $('[data-notice-text]').textContent = archived ? t('Product_Notice_Archived') : t('Product_Notice_Suspended');
+  $('[data-required-legend]').hidden = archived;
+
+  // Categories and status options (draft / active / inactive; "keep out of stock" only for a stored out_of_stock).
+  const category = $('[data-category]');
+  category.replaceChildren(new Option(t('Product_No_Category'), ''), ...CATEGORIES[state.lang].map((name, i) => new Option(name, String(i + 1))));
+  const status = $('[data-status-select]');
+  status.replaceChildren(...(state.stored ? [new Option(t('Product_Status_Keep_Out_Of_Stock'), '')] : []),
+    new Option(t('Product_Status_Draft'), 'draft'), new Option(t('Product_Status_Active'), 'active'), new Option(t('Product_Status_Inactive'), 'inactive'));
+
+  // Field values: empty for Add, the sample product for Edit.
+  const sample = SAMPLE[state.lang];
+  const values = state.mode === 'add' ? { low_stock_threshold: '1' } : {
+    name: sample.name, category_id: '1', sku: sample.sku, short_description: sample.short, description: sample.description,
+    price: '145.00', compare_at_price: '129.00', stock_quantity: '4', low_stock_threshold: '1', weight: '0.85', weight_unit: 'kg',
+    'dimensions[length]': '18', 'dimensions[width]': '14', 'dimensions[height]': '26', material: sample.material, place_of_manufacture: sample.place,
+    preparation_days: '3', care_instructions: sample.care, shipping_details: sample.shipping,
+  };
+  const form = $('[data-form]');
+  [...form.elements].forEach((el) => { if (el.name && el.name !== 'status') el.value = values[el.name] ?? ''; });
+  status.value = state.mode === 'add' ? 'draft' : (state.stored ? '' : 'active');
+  if (state.errors) { form.elements.name.value = ''; form.elements.compare_at_price.value = state.mode === 'add' ? '160' : '150.00'; if (state.mode === 'add') form.elements.price.value = '145'; }
+  updateCounter();
+
+  // Validation display: messages under their fields (the existing texts), and the summary in the save bar.
+  showError('name', state.errors ? t('My_Store_Error_Required') : '');
+  showError('compare_at_price', state.errors ? t('Product_Compare_Price_Hint') : '');
+  $('#h-compare').hidden = state.errors;
+
+  // Read-only for an archived product: every control disabled, Save replaced by the read-only hint.
+  [...form.elements].forEach((el) => { if (el.matches('input, select, textarea')) el.disabled = archived; });
+  $('[data-readonly]').hidden = !archived;
+  $('[data-save]').hidden = archived;
+  $('[data-cancel]').textContent = archived ? t('Back_To_Products') : t('Cancel');
+
+  renderImages(archived);
+  renderSave(archived);
+}
+
+function showError(name, text) {
+  const box = $(`[data-error-for="${name}"]`);
+  const input = $('[data-form]').elements[name];
+  box.hidden = !text;
+  $('span', box).textContent = text;
+  if (text) input.setAttribute('aria-invalid', 'true'); else input.removeAttribute('aria-invalid');
+}
+
+function updateCounter() {
+  const field = $('[data-form]').elements.short_description;
+  $('[data-counter="short"]').textContent = `${field.value.length} / 1000`;
+}
+
+function renderImages(archived) {
+  const files = state.images === 'empty' ? [] : GALLERY.slice(0, state.images === 'full' ? 6 : 4);
+  $('[data-image-count]').textContent = t('Product_Gallery_Count', { count: files.length, max: MAX });
+  $('[data-media-mode-hint]').textContent = state.mode === 'add' ? t('Media_Hint_Add') : t('Media_Hint_Edit');
+
+  const main = $('[data-main-image]');
+  if (files.length) {
+    main.innerHTML = `<div class="main-image"><img src="${IMG + files[0]}" alt=""><span class="main-badge"></span></div>
+      <div class="image-actions" style="margin-top:.5rem"><button type="button" class="btn-soft" data-media-action><i class="ph-duotone ph-swap" aria-hidden="true"></i><span></span></button>
+      <button type="button" class="btn-soft is-danger" data-media-action><i class="ph-duotone ph-x" aria-hidden="true"></i><span></span></button></div>`;
+    $('.main-badge', main).textContent = t('Product_Gallery_Main_Badge');
+    $('img', main).alt = SAMPLE[state.lang].name;
+    const [change, remove] = $$('button', main);
+    $('span', change).textContent = t('Product_Gallery_Change');
+    $('span', remove).textContent = t('Product_Gallery_Remove');
+  } else {
+    main.innerHTML = `<div class="empty-media is-main"><i class="ph-duotone ph-image-square" aria-hidden="true"></i><span></span>
+      <button type="button" class="btn-soft" data-media-action><i class="ph-duotone ph-images" aria-hidden="true"></i><span></span></button></div>`;
+    $('.empty-media > span', main).textContent = t('Product_Gallery_No_Main');
+    $('button span', main).textContent = t('Product_Gallery_Choose_Main');
+  }
+
+  const gallery = $('[data-gallery]');
+  const rest = files.slice(1);
+  if (rest.length) {
+    gallery.innerHTML = `<ul class="thumbs">${rest.map(() => '<li class="thumb"><div class="thumb-img"><img alt=""></div><div class="thumb-foot"><span class="thumb-pos"></span><span class="thumb-tools"></span></div></li>').join('')}</ul>`;
+    $$('.thumb', gallery).forEach((li, i) => {
+      const position = i + 2;
+      $('img', li).src = IMG + rest[i];
+      $('img', li).alt = `${t('Product_Gallery_Position', { position })}`;
+      $('.thumb-pos', li).textContent = t('Product_Gallery_Position', { position });
+      const tools = $('.thumb-tools', li);
+      const tool = (icon, label, danger = false, disabled = false) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'icon-btn' + (danger ? ' is-danger' : ''); b.dataset.mediaAction = '';
+        b.setAttribute('aria-label', `${label}: ${t('Product_Gallery_Position', { position })}`); b.title = label; b.disabled = disabled;
+        b.innerHTML = `<i class="ph-duotone ${icon}" aria-hidden="true"></i>`;
+        tools.append(b);
+      };
+      tool('ph-star', t('Product_Gallery_Set_Main'));
+      tool('ph-arrow-up', t('Product_Gallery_Move_Up'));
+      tool('ph-arrow-down', t('Product_Gallery_Move_Down'), false, i === rest.length - 1);
+      tool('ph-x', t('Product_Gallery_Remove'), true);
+    });
+  } else {
+    gallery.innerHTML = '<div class="empty-media"><span></span></div>';
+    $('span', gallery).textContent = t('Product_Gallery_No_Gallery');
+  }
+
+  const full = files.length >= MAX;
+  const add = $('[data-add-gallery]');
+  add.disabled = full || archived;
+  add.setAttribute('aria-describedby', 'full-note');
+  const note = $('[data-full-note]');
+  note.id = 'full-note';
+  note.hidden = !full;
+  note.textContent = full ? t('Product_Gallery_Full', { max: MAX }) : '';
+  $$('[data-media-action]').forEach((b) => { if (archived) b.disabled = true; });
+}
+
+function renderSave(archived) {
+  const button = $('[data-save]');
+  const label = $('[data-save-label]');
+  const line = $('[data-save-state]');
+  line.className = 'save-state';
+  line.textContent = '';
+  button.removeAttribute('aria-busy');
+  button.disabled = false;
+  label.innerHTML = '';
+  label.append(t('Save_Product'));
+  if (archived) return;
+  // Edit: Save waits for a change (as My Store); Add: always available.
+  if (state.mode === 'edit' && state.save === 'idle' && !state.errors) button.disabled = true;
+  if (state.save === 'dirty') { line.classList.add('is-dirty'); line.textContent = t('My_Store_Unsaved'); }
+  if (state.save === 'saving') {
+    button.disabled = true; button.setAttribute('aria-busy', 'true');
+    label.innerHTML = '<i class="ph-duotone ph-circle-notch spin" aria-hidden="true"></i>';
+    label.append(t('My_Store_Saving'));
+    line.textContent = '';
+  }
+  if (state.save === 'saved') { line.classList.add('is-saved'); line.innerHTML = '<i class="ph-duotone ph-check-circle" aria-hidden="true"></i>'; line.append(t('My_Store_Saved')); if (state.mode === 'edit') button.disabled = true; }
+  if (state.save === 'error') { line.classList.add('is-error'); line.innerHTML = '<i class="ph-duotone ph-warning-circle" aria-hidden="true"></i>'; line.append(t('Product_Save_Failed')); }
+  if (state.errors && state.save !== 'saving') { line.className = 'save-state is-error'; line.innerHTML = '<i class="ph-duotone ph-warning-circle" aria-hidden="true"></i>'; line.append(t('My_Store_Fix_Errors')); }
+}
+
+function toast(text) {
+  const el = $('[data-toast]');
+  el.textContent = text; el.hidden = false;
+  clearTimeout(toast.timer); toast.timer = setTimeout(() => { el.hidden = true; }, 2400);
+}
+
+// ---- Demo interactions: local only, nothing is sent ----
+$$('[data-proto-bar] select').forEach((select) => select.addEventListener('change', () => {
+  params.set(select.dataset.param, select.value);
+  location.search = params.toString();
+}));
+$('[data-form]').addEventListener('input', (event) => {
+  if (state.moderation === 'archived') return;
+  if (event.target.name === 'short_description') updateCounter();
+  if (event.target.getAttribute('aria-invalid')) showError(event.target.name, '');
+  state.save = 'dirty'; state.errors = false; renderSave(false);
+});
+$('[data-form]').addEventListener('submit', (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const missing = !form.elements.name.value.trim();
+  showError('name', missing ? t('My_Store_Error_Required') : '');
+  if (missing) { state.errors = true; renderSave(false); form.elements.name.focus(); return; }
+  state.save = 'saving'; renderSave(false);
+  setTimeout(() => { state.save = 'saved'; renderSave(false); }, 1200);
+});
+document.addEventListener('click', (event) => {
+  if (event.target.closest('[data-media-action]')) toast(t('Picker_Concept'));
+  if (event.target.closest('[data-cancel], [data-back]')) { event.preventDefault(); toast(t('Cancel_Concept')); }
+});
+
+render();
+if (state.moderation === 'archived') $('[data-notice]').focus({ preventScroll: true });
+</script>
+</body>
+</html>

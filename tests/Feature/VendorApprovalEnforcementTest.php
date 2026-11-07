@@ -490,7 +490,7 @@ class VendorApprovalEnforcementTest extends TestCase
 
     private function productInput(string $name): array
     {
-        return ['name' => $name, 'price' => 20, 'stock_quantity' => 3, 'status' => 'active'];
+        return ['category_id' => $this->activeCategoryId(), 'name' => $name, 'price' => 20, 'stock_quantity' => 3, 'status' => 'active'];
     }
 
     private function vendorOrderFor(Vendor $vendor): VendorOrder

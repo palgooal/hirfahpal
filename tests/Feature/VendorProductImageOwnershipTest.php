@@ -280,7 +280,7 @@ class VendorProductImageOwnershipTest extends TestCase
     private function createProduct(array $images): TestResponse
     {
         return $this->actingAs($this->vendor, 'vendor')->postJson(route('vendor.dashboard.products.store'), [
-            'name' => 'Clay jug', 'price' => 10, 'stock_quantity' => 2, 'images' => $images,
+            'category_id' => $this->activeCategoryId(), 'name' => 'Clay jug', 'price' => 10, 'stock_quantity' => 2, 'images' => $images,
         ]);
     }
 

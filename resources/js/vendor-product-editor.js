@@ -1,5 +1,5 @@
 /*
- * The vendor product editor (resources/views/vendor-dashboard/resources.blade.php, resource "products").
+ * The vendor product editor (resources/views/vendor-dashboard/partials/product-editor.blade.php, on the products page).
  *
  * G7-C2-5: product images come from the vendor's own media library only (uploads go to the library, never to a
  * product). On an existing product every gallery change is one request, and the gallery is redrawn only from the
@@ -277,6 +277,52 @@ export function saveErrorText(status, body, texts, messages) {
     return status === 401 || status === 419 ? messages.session : status === 403 ? messages.forbidden : texts.saveFailed;
 }
 
+/**
+ * VPM-UX-01E: a failed save's field messages, by form field name (dimensions.length is the field dimensions[length]).
+ * Only a 422's string messages count; the page decides which of them it can show beside a field.
+ */
+export function fieldErrors(status, body) {
+    if (status !== 422 || !body || typeof body.errors !== 'object' || body.errors === null) return [];
+
+    return Object.entries(body.errors)
+        .map(([key, list]) => [key.replace(/^([a-z_]+)\.([a-z_]+)$/, '$1[$2]'), [].concat(list).filter((text) => typeof text === 'string' && text !== '').join(' ')])
+        .filter(([, text]) => text !== '');
+}
+
+/**
+ * VPM-CATEGORY-RELIABILITY-01: the active categories of a products answer (its filters.categories), as { id, name }
+ * with string ids, or null when the answer cannot be used (the field then shows the loading error and Retry).
+ */
+export function categoriesFrom({ status, body }) {
+    const list = body?.filters?.categories;
+
+    if (status !== 200 || !Array.isArray(list)) return null;
+
+    return list.filter((category) => category && category.id !== undefined && category.id !== null)
+        .map((category) => ({ id: String(category.id), name: String(category.name ?? '') }));
+}
+
+/**
+ * VPM-CATEGORY-RELIABILITY-01: the category field's options and value, from the editor's own state only (never from
+ * what the field showed before, so another product's or an earlier answer's category cannot come back). The prompt is
+ * never a choice. A saved product's own category that is not among the active ones (inactive now) is added, marked
+ * inactive, so it is shown and kept; a new product has no own category, so an inactive one is never offered to it.
+ * `active` is null while the categories are not loaded: the product's own category is then shown by its name alone.
+ */
+export function categoryOptions(active, { value = '', current = null, prompt, inactive }) {
+    const loaded = Array.isArray(active);
+    const options = [{ value: '', text: prompt, disabled: true, inactive: false }, ...(loaded ? active : []).map((category) => ({ value: category.id, text: category.name, disabled: false, inactive: false }))];
+
+    if (current?.id && !options.some((option) => option.value === current.id)) {
+        options.push({ value: current.id, text: loaded ? format(inactive, { name: current.name }) : current.name, disabled: false, inactive: loaded });
+    }
+
+    return { options, value: options.some((option) => option.value === value && !option.disabled) ? value : '' };
+}
+
+/** VPM-UX-01E: Save is usable unless the product is read-only, a save is running, or nothing has changed yet. */
+export const saveDisabled = ({ readOnly = false, saving = false, dirty = false }) => readOnly || saving || !dirty;
+
 const icon = (doc, name) => {
     const node = doc.createElement('i');
     node.className = `ph-duotone ${name}`;
@@ -364,6 +410,8 @@ export function renderImageCard(doc, image, { index, count = index + 1, isPrimar
         // VPM-01D: a move past either end is unavailable; setBusy() keeps it disabled after a request.
         node.disabled = boundary;
         node.dataset.boundary = boundary ? 'true' : 'false';
+        // VPM-UX-01E: the gallery tiles show the icon only; the caption stays the name, the title its tooltip.
+        node.title = text;
         const caption = doc.createElement('span');
         caption.textContent = text;
         node.append(icon(doc, iconName), caption);
@@ -675,6 +723,26 @@ function initEditor(editor) {
     // VENDOR-PRODUCT-PUBLISH-UI-01D: the notices, the save button, and the product the editor is on (createTickets()).
     const notices = { archived: editor.querySelector('[data-product-notice="archived"]'), suspended: editor.querySelector('[data-product-notice="suspended"]') };
     const saveButton = editor.querySelector('[data-product-save]');
+    // VPM-UX-01E: the save bar, the Edit header (stored name, status and moderation badges) and the images card's hint.
+    const saveLabel = editor.querySelector('[data-product-save-label]');
+    const unsaved = editor.querySelector('[data-product-unsaved]');
+    const readonlyHint = editor.querySelector('[data-product-readonly]');
+    const cancelButton = editor.querySelector('[data-product-cancel]');
+    const requiredLegend = editor.querySelector('[data-product-required-legend]');
+    const mediaMode = editor.querySelector('[data-product-image-saving]');
+    const counter = editor.querySelector('[data-product-counter="short_description"] bdi');
+    // VPM-CATEGORY-RELIABILITY-01: the category is the editor's state (categoryValue, and the saved product's own
+    // category), shown from the categories the editor loads itself; the field is only its display.
+    const categoryField = form.querySelector('[name="category_id"]');
+    const categoryFailed = editor.querySelector('[data-product-category-failed]');
+    const categoryRetry = editor.querySelector('[data-product-category-retry]');
+    const categoryTickets = createTickets();
+    let activeCategories = null, categoryValue = '', ownCategory = null;
+    const subtitle = editor.querySelector('[data-product-editor-subtitle]');
+    const parseTexts = (raw) => { try { return JSON.parse(raw || '{}') ?? {}; } catch { return {}; } };
+    const listTexts = parseTexts(list?.dataset.listTexts);
+    const moderationLabels = parseTexts(list?.dataset.moderationTexts);
+    let saving = false, baseline = null;
     const tickets = createTickets();
     let session = tickets.next();
     const field = (name) => form.elements.namedItem(name);
@@ -720,11 +788,64 @@ function initEditor(editor) {
         form.querySelectorAll(':scope > fieldset').forEach((section) => { section.disabled = readOnly; });
         saveButton.hidden = readOnly;
         saveButton.disabled = readOnly;
+        // VPM-UX-01E: read-only: no required-fields legend, the read-only hint in the save bar, Cancel reads "Back".
+        requiredLegend.hidden = readOnly;
+        readonlyHint.hidden = !readOnly;
+        cancelButton.textContent = readOnly ? texts.back : texts.cancel;
         if (readOnly) picker?.close();
         setBusy(busy);
+        updateSaveBar();
     };
     // A new product, another product, or none: a new ticket, and no request of the previous one counts as running.
-    const begin = () => { session = tickets.next(); busy = false; return session; };
+    const begin = () => { session = tickets.next(); busy = false; setSaving(false); return session; };
+
+    // ---- VPM-UX-01E: the save bar. Unsaved changes are the fields (and, for a new product, its images) that differ
+    // from the product as opened; the line changes only when that flips, so it is announced once. ----
+    const snapshot = () => JSON.stringify(payload());
+    const isDirty = () => baseline !== null && !readOnly && snapshot() !== baseline;
+    const updateSaveBar = () => {
+        const dirty = isDirty();
+        const line = dirty && !saving ? texts.unsaved : '';
+        if (unsaved.textContent !== line) unsaved.textContent = line;
+        if (!readOnly) saveButton.disabled = saveDisabled({ readOnly, saving, dirty });
+    };
+    const markClean = () => { baseline = snapshot(); updateSaveBar(); };
+    function setSaving(state) {
+        saving = state;
+        saveButton.setAttribute('aria-busy', state ? 'true' : 'false');
+        saveLabel.textContent = state ? texts.saving : texts.save;
+        if (baseline !== null) updateSaveBar();
+    }
+    const updateCounter = () => { counter.textContent = `${field('short_description').value.length} / 1000`; };
+    const errorBoxes = () => [...form.querySelectorAll('[data-error-for]')];
+    const clearFieldError = (name) => errorBoxes().filter((box) => box.dataset.errorFor === name).forEach((box) => { box.hidden = true; box.textContent = ''; field(name)?.removeAttribute?.('aria-invalid'); });
+    const clearFieldErrors = () => errorBoxes().forEach((box) => clearFieldError(box.dataset.errorFor));
+    /** Shows each message beside its field; returns the first field shown and whether any message had no field. */
+    const showFieldErrors = (status, body) => {
+        let first = null, unmatched = false;
+        fieldErrors(status, body).forEach(([name, text]) => {
+            const box = errorBoxes().find((node) => node.dataset.errorFor === name);
+            const control = field(name);
+            if (!box || !control) { unmatched = true; return; }
+            box.textContent = text; box.hidden = false; control.setAttribute('aria-invalid', 'true');
+            first ??= control;
+        });
+        return { first, unmatched };
+    };
+    // Edit: the stored name, status and the administration's state beside the title; none for a new product.
+    const showHeader = (product, moderation) => {
+        subtitle.hidden = !product;
+        if (!product) return;
+        subtitle.querySelector('[data-product-editor-name]').textContent = product.name ?? '';
+        const badge = subtitle.querySelector('[data-product-editor-status]');
+        badge.textContent = listTexts.statuses?.[product.status] ?? String(product.status ?? '');
+        badge.hidden = badge.textContent === '';
+        const kind = editorMode(moderation);
+        const flag = subtitle.querySelector('[data-product-editor-moderation]');
+        flag.hidden = kind === 'editable' || !moderationLabels[kind];
+        flag.className = `vendor-moderation-badge is-${kind}`;
+        flag.textContent = flag.hidden ? '' : moderationLabels[kind];
+    };
     const focusCard = (key, action) => focusAfterMove(gallery, key, action);
 
     const render = () => {
@@ -749,7 +870,10 @@ function initEditor(editor) {
         if (galleryLimit.textContent !== noteText) galleryLimit.textContent = noteText;
         galleryLimit.hidden = noteText === '';
         galleryLimit.dataset.state = note ?? 'none';
+        // VPM-UX-01E: when image changes are saved: with the product (new) or right away (saved product).
+        mediaMode.textContent = editingId ? texts.mediaEdit : texts.mediaAdd;
         setBusy(busy);
+        if (baseline !== null) updateSaveBar();
     };
 
     // One saved-product request: busy while it runs; the gallery changes only from a successful answer.
@@ -775,13 +899,19 @@ function initEditor(editor) {
     // UI-01D: the product as the server has it, its mode included (opening, and after an archived refusal).
     const fill = ({ product, moderation }) => {
         form.reset();
-        ['name', 'category_id', 'price', 'stock_quantity', 'sku', 'compare_at_price', 'low_stock_threshold', 'weight', 'weight_unit', 'material', 'place_of_manufacture', 'preparation_days', 'care_instructions', 'shipping_details', 'short_description', 'description'].forEach((name) => { field(name).value = product[name] ?? ''; });
+        ['name', 'price', 'stock_quantity', 'sku', 'compare_at_price', 'low_stock_threshold', 'weight', 'weight_unit', 'material', 'place_of_manufacture', 'preparation_days', 'care_instructions', 'shipping_details', 'short_description', 'description'].forEach((name) => { field(name).value = product[name] ?? ''; });
         ['length', 'width', 'height'].forEach((name) => { field(`dimensions[${name}]`).value = product.dimensions?.[name] ?? ''; });
         setStatusField(field('status'), product.status);
         images = product.images || [];
         clearGalleryError(); status(''); picker.close();
         applyMode(editorMode(moderation));
         render();
+        // VPM-UX-01E: the header, no field errors, and the product as opened is what "unsaved" compares with.
+        // VPM-CATEGORY-RELIABILITY-01: this product's category (none: the prompt), shown whether or not it is active.
+        categoryValue = product.category_id === null || product.category_id === undefined ? '' : String(product.category_id);
+        ownCategory = product.category?.id ? { id: String(product.category.id), name: String(product.category.name ?? '') } : null;
+        renderCategories();
+        showHeader(product, moderation); clearFieldErrors(); updateCounter(); markClean();
     };
     const load = (id) => fetchJson(`${endpoint}/${id}`, { credentials: 'same-origin', headers: headers(false) });
 
@@ -860,14 +990,17 @@ function initEditor(editor) {
 
     // VPM-01B: the picker opens for the mode (main image, gallery image, or replacing `image`) and remembers the
     // button that opened it; when that button is gone after a redraw, focus goes back to the section's own button.
+    // VPM-UX-01E: "Choose from media" shows only while there is no main image, so focus goes to the first of the
+    // section's buttons (or the main image's Change) that is shown and enabled.
     const openMedia = (nextMode, image = null, from = null) => {
         if (locked()) return;
         mode = nextMode; target = image; clearGalleryError();
         if (!target && images.length >= MAX_IMAGES) { galleryFail('limit'); return; }
+        const shown = (node) => Boolean(node?.isConnected && !node.disabled && node.getClientRects().length);
         picker.open({
             title: pickerTitle(messages, { mode, target }),
             from,
-            fallback: () => (mode === 'primary' || galleryOpen.disabled ? primaryOpen : galleryOpen),
+            fallback: () => [mode === 'primary' ? primaryOpen : galleryOpen, primaryOpen, primaryBox().querySelector('[data-action="change"]'), galleryOpen].find(shown) ?? null,
         });
     };
 
@@ -890,9 +1023,41 @@ function initEditor(editor) {
         if (media[0] && await choose(media[0])) status(`${messages.added} ${format(messages.uploaded, { count: media.length })}`);
     };
 
-    const close = () => { begin(); editor.hidden = true; list.hidden = false; error.hidden = true; form.reset(); field('low_stock_threshold').value = '1'; setStatusField(field('status'), null); editingId = null; images = []; applyMode('editable'); clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.add; };
-    const payload = () => ({ name: field('name').value.trim(), category_id: number('category_id'), price: number('price'), stock_quantity: number('stock_quantity'), sku: value('sku'), compare_at_price: number('compare_at_price'), low_stock_threshold: number('low_stock_threshold'), weight: number('weight'), weight_unit: value('weight_unit'), dimensions: { length: number('dimensions[length]'), width: number('dimensions[width]'), height: number('dimensions[height]') }, material: value('material'), place_of_manufacture: value('place_of_manufacture'), preparation_days: number('preparation_days'), care_instructions: value('care_instructions'), shipping_details: value('shipping_details'), short_description: value('short_description'), description: value('description'), status: statusPayload(field('status').value), images: editingId ? undefined : images.map(({ path, alt_text, sort_order, is_primary }) => ({ path, alt_text, sort_order, is_primary })) });
-    window.addEventListener('vendor-resource:loaded', (event) => { if (event.detail.resource !== 'products') return; const selected = field('category_id').value; field('category_id').replaceChildren(new Option(texts.noCategory, '')); (event.detail.payload?.filters?.categories ?? []).forEach((category) => field('category_id').add(new Option(category.name, String(category.id)))); field('category_id').value = selected; });
+    const close = () => { begin(); editor.hidden = true; list.hidden = false; error.hidden = true; form.reset(); field('low_stock_threshold').value = '1'; setStatusField(field('status'), null); editingId = null; images = []; applyMode('editable'); clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.add; categoryValue = ''; ownCategory = null; renderCategories(); showHeader(null); clearFieldErrors(); updateCounter(); markClean(); };
+    // VPM-UX-01E: Cancel and "Back to products" ask first while there are unsaved changes.
+    const leave = () => { if (isDirty() && !window.confirm(texts.discard)) return; close(); };
+    const payload = () => ({ name: field('name').value.trim(), category_id: categoryValue === '' ? null : Number(categoryValue), price: number('price'), stock_quantity: number('stock_quantity'), sku: value('sku'), compare_at_price: number('compare_at_price'), low_stock_threshold: number('low_stock_threshold'), weight: number('weight'), weight_unit: value('weight_unit'), dimensions: { length: number('dimensions[length]'), width: number('dimensions[width]'), height: number('dimensions[height]') }, material: value('material'), place_of_manufacture: value('place_of_manufacture'), preparation_days: number('preparation_days'), care_instructions: value('care_instructions'), shipping_details: value('shipping_details'), short_description: value('short_description'), description: value('description'), status: statusPayload(field('status').value), images: editingId ? undefined : images.map(({ path, alt_text, sort_order, is_primary }) => ({ path, alt_text, sort_order, is_primary })) });
+    /**
+     * VPM-CATEGORY-RELIABILITY-01: the category field from the editor's state. Disabled until the categories are loaded
+     * (the product's own category is shown meanwhile); a failed load shows its message and Retry.
+     */
+    function renderCategories() {
+        const { options, value: shown } = categoryOptions(activeCategories, { value: categoryValue, current: ownCategory, prompt: activeCategories || !categoryFailed.hidden ? texts.noCategory : texts.categoriesLoading, inactive: texts.categoryInactive });
+        categoryField.replaceChildren(...options.map((option) => {
+            const node = new Option(option.text, option.value, option.value === '', option.value === shown);
+            node.disabled = option.disabled;
+            if (option.inactive) node.dataset.inactive = 'true';
+            return node;
+        }));
+        categoryField.value = shown;
+        categoryField.disabled = activeCategories === null;
+        categoryField.setAttribute('aria-busy', activeCategories === null && categoryFailed.hidden ? 'true' : 'false');
+    }
+    // The active categories, read by the editor itself (the products endpoint's filters, one product per page), so
+    // they never depend on when the list loads. Only the latest request counts (createTickets()).
+    const loadCategories = async () => {
+        const ticket = categoryTickets.next();
+        const retried = document.activeElement === categoryRetry;
+        activeCategories = null; categoryFailed.hidden = true; renderCategories();
+        const list = categoriesFrom(await fetchJson(`${endpoint}?page=1&per_page=1`, { credentials: 'same-origin', headers: headers(false) }));
+        if (!categoryTickets.isCurrent(ticket)) return;
+        activeCategories = list; categoryFailed.hidden = list !== null; renderCategories();
+        if (retried) (list !== null ? categoryField : categoryRetry).focus();
+    };
+    const chooseCategory = () => { if (!categoryField.disabled) categoryValue = categoryField.value; };
+    categoryField.addEventListener('input', chooseCategory);
+    categoryField.addEventListener('change', chooseCategory);
+    categoryRetry.addEventListener('click', loadCategories);
     document.addEventListener('click', async (event) => { const button = event.target.closest('[data-product-action]'); if (!button) return; const id = button.dataset.productId; if (button.dataset.productAction === 'delete') { if (!window.confirm(texts.confirmDelete)) return; const response = await request(`${endpoint}/${id}`, 'DELETE'); if (!response.ok) { fail(texts.deleteFailed); showEditor(); return; } window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products', reason: 'deleted' } })); return; }
         // UI-01D: a new ticket while it loads (nothing can be changed meanwhile); only the latest product opened is shown.
         const ticket = begin(); setBusy(true);
@@ -906,11 +1071,21 @@ function initEditor(editor) {
         event.preventDefault();
         // UI-01D: never in read-only mode, nor while a request of this product runs; an answer after a switch is dropped.
         if (locked()) return;
-        error.hidden = true;
+        // VPM-UX-01E: one save at a time (the button is disabled and busy meanwhile).
+        if (saving) return;
+        error.hidden = true; clearFieldErrors();
         const ticket = session;
+        setSaving(true);
         const answer = await send(editingId ? `${endpoint}/${editingId}` : endpoint, editingId ? 'PUT' : 'POST', payload());
         if (!tickets.isCurrent(ticket)) return;
-        const failed = () => fail(saveErrorText(answer.status, answer.body, texts, messages));
+        setSaving(false);
+        // VPM-UX-01E: field messages beside their fields; the bar then asks to review them, or keeps the full text
+        // when a message has no field on the form (an image, for example).
+        const failed = () => {
+            const shown = showFieldErrors(answer.status, answer.body);
+            fail(shown.first && !shown.unmatched ? texts.fixErrors : saveErrorText(answer.status, answer.body, texts, messages));
+            shown.first?.focus();
+        };
         if (answer.status < 200 || answer.status >= 300) {
             if (editingId && mayBeArchivedRefusal(answer.status, answer.body)) return recheck(ticket, failed);
             return failed();
@@ -919,7 +1094,25 @@ function initEditor(editor) {
         const reason = editingId ? 'saved' : 'created';
         close(); window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products', reason } }));
     });
-    editor.querySelectorAll('[data-product-editor-close]').forEach((button) => button.onclick = close);
+    editor.querySelectorAll('[data-product-editor-close]').forEach((button) => button.onclick = leave);
+    // VPM-UX-01E: typing clears that field's message and the bar's error; the counter and the unsaved line follow.
+    const edited = (event) => {
+        const name = event.target?.name;
+        if (!name || readOnly) return;
+        clearFieldError(name);
+        error.hidden = true;
+        if (name === 'short_description') updateCounter();
+        updateSaveBar();
+    };
+    form.addEventListener('input', edited);
+    form.addEventListener('change', edited);
+    // The browser's own leave-page warning, only while the open editor has unsaved changes (as My Store).
+    window.addEventListener('beforeunload', (event) => {
+        if (!editor.hidden && isDirty()) {
+            event.preventDefault();
+            event.returnValue = '';
+        }
+    });
     picker = initPicker(editor.querySelector('[data-product-media-library]'), {
         url: editor.dataset.mediaLibraryUrl,
         messages,
@@ -932,6 +1125,10 @@ function initEditor(editor) {
     const add = document.createElement('button'); add.type = 'button'; add.className = 'btn btn-primary'; add.textContent = texts.add; add.onclick = () => { close(); showEditor(); }; document.querySelector('[data-vendor-resource-list] [data-resource-retry]').before(add);
     applyMode('editable');
     render();
+    updateCounter();
+    renderCategories();
+    markClean();
+    loadCategories();
 }
 
 if (typeof document !== 'undefined') {

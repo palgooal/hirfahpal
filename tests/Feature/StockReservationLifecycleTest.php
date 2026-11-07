@@ -573,6 +573,7 @@ class StockReservationLifecycleTest extends TestCase
     private function updateStock(Vendor $vendor, Product $product, int $stock): TestResponse
     {
         return $this->actingAs($vendor, 'vendor')->putJson(route('vendor.dashboard.products.update', $product), [
+            'category_id' => $this->activeCategoryId(),
             'name' => $product->name,
             'price' => 10,
             'stock_quantity' => $stock,
