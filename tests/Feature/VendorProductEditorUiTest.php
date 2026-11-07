@@ -60,11 +60,11 @@ class VendorProductEditorUiTest extends TestCase
 
         // VPM-UX-01E: the images card of the side column: the count in the card head, the mode hint, then the groups.
         $this->assertMatchesRegularExpression('/<section class="card vendor-form-card vendor-product-gallery" data-product-section="images" data-product-gallery aria-busy="false" aria-labelledby="vendor-product-images-title">/', $section);
-        $this->assertMatchesRegularExpression('/<h3 class="vendor-section-title" id="vendor-product-images-title">.*?<span>Product images<\/span><\/h3>\s*<p class="vendor-product-gallery-count" data-product-gallery-count><\/p>/s', $section);
+        $this->assertMatchesRegularExpression('/<h2 class="vendor-section-title" id="vendor-product-images-title">.*?<span>Product images<\/span><\/h2>\s*<p class="vendor-product-gallery-count" data-product-gallery-count><\/p>/s', $section);
         $this->assertMatchesRegularExpression('/id="vendor-product-gallery-hint">.*<span data-product-image-saving><\/span>/s', $section);
         $this->assertSame(2, preg_match_all('/class="vendor-product-gallery-group(?: is-main)?"/', $section));
-        $this->assertMatchesRegularExpression('/<h4 class="vendor-product-gallery-label" id="vendor-product-main-label">Main product image<\/h4>.*<div class="vendor-product-gallery-box" data-product-primary-image><\/div>.*data-product-primary-open/s', $section);
-        $this->assertMatchesRegularExpression('/<h4 class="vendor-product-gallery-label" id="vendor-product-gallery-label">Product gallery<\/h4>.*<div class="vendor-product-gallery-box" data-product-gallery-images><\/div>.*data-product-gallery-open data-limited="true"/s', $section);
+        $this->assertMatchesRegularExpression('/<h3 class="vendor-product-gallery-label" id="vendor-product-main-label">Main product image<\/h3>.*<div class="vendor-product-gallery-box" data-product-primary-image><\/div>.*data-product-primary-open/s', $section);
+        $this->assertMatchesRegularExpression('/<h3 class="vendor-product-gallery-label" id="vendor-product-gallery-label">Product gallery<\/h3>.*<div class="vendor-product-gallery-box" data-product-gallery-images><\/div>.*data-product-gallery-open data-limited="true"/s', $section);
         $this->assertMatchesRegularExpression('/role="status" aria-live="polite" data-product-gallery-status/', $section);
         $this->assertMatchesRegularExpression('/class="vendor-product-error" role="alert" data-product-gallery-error hidden/', $section);
 
@@ -101,7 +101,7 @@ class VendorProductEditorUiTest extends TestCase
         foreach (['إضافة منتج', 'المعلومات الأساسية', 'السعر والمخزون', 'الشحن والأبعاد', 'الحرفة والعناية والتوصيل', 'العودة إلى المنتجات', 'كغ', 'طن', 'سم', 'الاسم', 'التصنيف', 'جارٍ تحميل التصنيفات…', 'تعذّر تحميل التصنيفات.', 'إعادة المحاولة', 'رمز المنتج (SKU)', 'المخزون', 'وصف مختصر', 'السعر الأساسي', 'سعر التخفيض (اختياري)', 'يجب أن يكون أقل من السعر الأساسي.', 'حد انخفاض المخزون', 'الوزن', 'حفظ المنتج', 'إلغاء'] as $text) {
             $this->assertStringContainsString($text, $html, $text);
         }
-        $this->assertStringContainsString('<h3 class="vendor-section-title" id="vendor-product-images-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-images"></i></span><span>صور المنتج</span></h3>', $section);
+        $this->assertStringContainsString('<h2 class="vendor-section-title" id="vendor-product-images-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-images"></i></span><span>صور المنتج</span></h2>', $section);
         foreach (['اختر حتى 6 صور من مكتبة الوسائط الخاصة بك. تظهر الصورة الرئيسية أولًا في المتجر.', 'الصورة الرئيسية للمنتج', 'تظهر أولًا في المتجر.', 'اختر من الوسائط', 'معرض المنتج', 'اختر صورًا إضافية من مكتبة الوسائط الخاصة بك.', 'أضف صورة إلى المعرض'] as $text) {
             $this->assertStringContainsString($text, $section, $text);
         }
@@ -132,6 +132,8 @@ class VendorProductEditorUiTest extends TestCase
         $this->assertSame([
             'add' => 'Add product',
             'edit' => 'Edit product',
+            'headingAdd' => 'Add Product',
+            'headingEdit' => 'Edit Product',
             'noCategory' => 'Choose a category',
             'categoriesLoading' => 'Loading categories…',
             'categoryInactive' => ':name (inactive)',

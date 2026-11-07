@@ -757,7 +757,10 @@ function initEditor(editor) {
     const galleryLimit = editor.querySelector('[data-product-gallery-limit]');
     const primaryBox = () => editor.querySelector('[data-product-primary-image]');
     const galleryBox = () => editor.querySelector('[data-product-gallery-images]');
-    const showEditor = () => { list.hidden = true; editor.hidden = false; editor.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    // VPM-UX-01E-POLISH-01: while the editor is open its own title is the page heading; the layout's "Products" h1 is
+    // hidden (the breadcrumb keeps it) and comes back with the list.
+    const pageTitle = document.querySelector('.vendor-page-title');
+    const showEditor = () => { list.hidden = true; editor.hidden = false; if (pageTitle) pageTitle.hidden = true; editor.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
 
     // ---- Gallery states: one at a time, announced; an error stays until the next action. ----
     // VPM-01B: while the picker is open, the same texts also show inside it (the section behind it is covered).
@@ -1023,7 +1026,7 @@ function initEditor(editor) {
         if (media[0] && await choose(media[0])) status(`${messages.added} ${format(messages.uploaded, { count: media.length })}`);
     };
 
-    const close = () => { begin(); editor.hidden = true; list.hidden = false; error.hidden = true; form.reset(); field('low_stock_threshold').value = '1'; setStatusField(field('status'), null); editingId = null; images = []; applyMode('editable'); clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.add; categoryValue = ''; ownCategory = null; renderCategories(); showHeader(null); clearFieldErrors(); updateCounter(); markClean(); };
+    const close = () => { begin(); editor.hidden = true; list.hidden = false; if (pageTitle) pageTitle.hidden = false; error.hidden = true; form.reset(); field('low_stock_threshold').value = '1'; setStatusField(field('status'), null); editingId = null; images = []; applyMode('editable'); clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.headingAdd; categoryValue = ''; ownCategory = null; renderCategories(); showHeader(null); clearFieldErrors(); updateCounter(); markClean(); };
     // VPM-UX-01E: Cancel and "Back to products" ask first while there are unsaved changes.
     const leave = () => { if (isDirty() && !window.confirm(texts.discard)) return; close(); };
     const payload = () => ({ name: field('name').value.trim(), category_id: categoryValue === '' ? null : Number(categoryValue), price: number('price'), stock_quantity: number('stock_quantity'), sku: value('sku'), compare_at_price: number('compare_at_price'), low_stock_threshold: number('low_stock_threshold'), weight: number('weight'), weight_unit: value('weight_unit'), dimensions: { length: number('dimensions[length]'), width: number('dimensions[width]'), height: number('dimensions[height]') }, material: value('material'), place_of_manufacture: value('place_of_manufacture'), preparation_days: number('preparation_days'), care_instructions: value('care_instructions'), shipping_details: value('shipping_details'), short_description: value('short_description'), description: value('description'), status: statusPayload(field('status').value), images: editingId ? undefined : images.map(({ path, alt_text, sort_order, is_primary }) => ({ path, alt_text, sort_order, is_primary })) });
@@ -1065,7 +1068,7 @@ function initEditor(editor) {
         if (!tickets.isCurrent(ticket)) return;
         setBusy(false);
         if (answer.status !== 200 || !answer.body?.product) return fail(texts.loadFailed);
-        error.hidden = true; editingId = id; fill(answer.body); title.textContent = texts.edit; showEditor();
+        error.hidden = true; editingId = id; fill(answer.body); title.textContent = texts.headingEdit; showEditor();
     });
     form.addEventListener('submit', async (event) => {
         event.preventDefault();

@@ -72,7 +72,9 @@ class VendorProductsPageTest extends TestCase
             $xpath = $this->xpath($this->page($locale));
 
             // The layout's h1 is the only "Products" heading; the list card has no heading of its own.
-            $this->assertSame([$title], array_map(fn ($node) => trim($node->textContent), iterator_to_array($xpath->query('//h1'))), $locale);
+            // VPM-UX-01E-POLISH-01: the only other h1 is the (hidden) editor's title, the page heading while it is open.
+            $this->assertSame([$title], array_map(fn ($node) => trim($node->textContent), iterator_to_array($xpath->query('//h1[not(ancestor::*[@data-product-editor])]'))), $locale);
+            $this->assertSame(1, $xpath->query('//*[@data-product-editor][@hidden]//h1[@data-product-editor-title]')->length, $locale);
             $this->assertSame(0, $xpath->query('//*[@data-vendor-resource-list]//*[self::h2 or self::h3]')->length, $locale);
 
             // Refresh: the first data-resource-retry of the list (the list script binds it, the editor script adds

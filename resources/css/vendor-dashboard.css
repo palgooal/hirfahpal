@@ -54,10 +54,12 @@ html.vendor-shell {
  * editor is at least 880px wide, one column below it, main first), the save bar across. The columns are the form's two
  * fieldsets (what read-only disables); they draw no box of their own. Logical properties only (RTL and LTR). */
 html.vendor-shell .vendor-product-form { container: vendor-product-editor / inline-size; }
-html.vendor-shell .vendor-product-editor-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: .75rem 1rem; margin-bottom: 1.25rem; }
-html.vendor-shell .vendor-product-editor-heading { min-width: 0; }
-html.vendor-shell .vendor-product-editor-title { margin: 0; color: var(--color-hf-ink); font-size: 1.5rem; font-weight: 700; line-height: 1.4; }
-html.vendor-shell .vendor-product-editor-subtitle { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: .25rem 0 0; color: var(--color-hf-muted); font-size: .875rem; }
+/* VPM-UX-01E-POLISH-01: the editor's title is the page heading (the layout's title style); Back is centred on the
+ * title's row, at the end side; the Edit subtitle runs below both. */
+html.vendor-shell .vendor-product-editor-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .25rem 1rem; margin-bottom: 1.25rem; }
+html.vendor-shell .vendor-product-editor-title { grid-column: 1; grid-row: 1; min-width: 0; margin: 0; color: var(--color-hf-ink); font-size: 1.5rem; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
+html.vendor-shell .vendor-product-editor-head > .vendor-product-back { grid-column: 2; grid-row: 1; }
+html.vendor-shell .vendor-product-editor-subtitle { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 0; color: var(--color-hf-muted); font-size: .875rem; }
 html.vendor-shell .vendor-product-editor-subtitle bdi { min-width: 0; color: var(--color-hf-ink); font-weight: 600; overflow-wrap: anywhere; }
 /* The products list's moderation badges, in the same words and colours. */
 html.vendor-shell .vendor-product-editor-subtitle .vendor-moderation-badge { display: inline-block; padding: .125rem .625rem; border: 1px solid currentColor; border-radius: 9999px; font-size: .75rem; font-weight: 600; line-height: 1.5; white-space: nowrap; }
@@ -210,6 +212,8 @@ html.vendor-shell .vendor-product-gallery-actions .btn { flex: 1 1 0; min-width:
 html.vendor-shell .vendor-product-gallery-actions .btn:hover:not(:disabled) { background-color: var(--color-hf-surface); color: var(--color-hf-olive); }
 html.vendor-shell .vendor-product-gallery-actions .btn[data-action="remove"]:hover:not(:disabled) { color: #a13d2b; }
 html.vendor-shell .vendor-product-gallery-actions .btn:disabled { opacity: .4; }
+/* VPM-UX-01E-POLISH-01: Able Pro's global [data-action] { margin: .625rem auto } (tiny-slider) would spread the buttons. */
+html.vendor-shell .vendor-product-gallery-actions [data-action] { margin: 0; }
 html.vendor-shell .vendor-product-gallery-actions .btn span { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 /* The main image: large (4:3, up to 22rem), its badge over the image's start corner, its actions as labelled buttons;
  * Move up is never possible for it, so it is not shown. */

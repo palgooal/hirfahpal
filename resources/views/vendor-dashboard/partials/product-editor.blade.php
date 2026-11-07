@@ -10,14 +10,14 @@
     script's data hooks are unchanged.
 --}}
 <div class="col-span-12 admin-media admin-cat-form admin-product-form vendor-product-form" data-product-editor data-endpoint="{{ $endpoint }}" data-media-library-url="{{ route('vendor.dashboard.products.media.library') }}" data-media-store-url="{{ route('vendor.dashboard.products.media.store') }}" data-library-prefix="{{ \App\Support\Media\VendorMediaPath::prefix((int) auth('vendor')->id()) }}" hidden>
+    {{-- VPM-UX-01E-POLISH-01: while the editor is open its title is the page heading (the script hides the layout's
+         "Products" h1; the breadcrumb keeps it). Back sits on the title's row; the Edit subtitle (stored name, status,
+         moderation, filled by the script) runs below both. --}}
     <div class="vendor-product-editor-head">
-        <div class="vendor-product-editor-heading">
-            <h2 class="vendor-product-editor-title" data-product-editor-title>{{ t('vendor.Product_New', 'Add product') }}</h2>
-            {{-- Edit: the product's stored name and status, and the administration's state (filled by the script). --}}
-            <p class="vendor-product-editor-subtitle" data-product-editor-subtitle hidden><bdi data-product-editor-name></bdi><span class="vendor-status-badge" data-product-editor-status></span><span class="vendor-moderation-badge" data-product-editor-moderation hidden></span></p>
-        </div>
+        <h1 class="vendor-product-editor-title" data-product-editor-title>{{ t('vendor.Product_Heading_New', 'Add Product') }}</h1>
         {{-- The arrow points back along the reading direction (as the order details page chooses it). --}}
         <button type="button" class="vendor-product-back" data-product-editor-close><i class="ph-duotone {{ ($currentLanguage ?? null)?->is_rtl ? 'ph-arrow-right' : 'ph-arrow-left' }}" aria-hidden="true"></i><span>{{ t('vendor.Product_Back_To_List', 'Back to products') }}</span></button>
+        <p class="vendor-product-editor-subtitle" data-product-editor-subtitle hidden><bdi data-product-editor-name></bdi><span class="vendor-status-badge" data-product-editor-status></span><span class="vendor-moderation-badge" data-product-editor-moderation hidden></span></p>
     </div>
 
     <form class="vendor-product-editor-form" data-product-form novalidate>
@@ -33,7 +33,7 @@
         <fieldset class="vendor-product-column is-main">
             <section class="card vendor-form-card" data-product-section="basic" aria-labelledby="vendor-product-basic-title">
                 <div class="card-body">
-                    <h3 class="vendor-section-title" id="vendor-product-basic-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-tag"></i></span><span>{{ t('vendor.Product_Section_Basic', 'Basic information') }}</span></h3>
+                    <h2 class="vendor-section-title" id="vendor-product-basic-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-tag"></i></span><span>{{ t('vendor.Product_Section_Basic', 'Basic information') }}</span></h2>
                     <div class="vendor-product-fields">
                         <div class="vendor-field is-wide">
                             <label class="vendor-label" for="vendor-product-name">{{ t('vendor.Product_Name', 'Name') }} <span class="vendor-required" aria-hidden="true">*</span></label>
@@ -77,7 +77,7 @@
 
             <section class="card vendor-form-card" data-product-section="pricing" aria-labelledby="vendor-product-pricing-title">
                 <div class="card-body">
-                    <h3 class="vendor-section-title" id="vendor-product-pricing-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-coins"></i></span><span>{{ t('vendor.Product_Section_Inventory', 'Pricing and inventory') }}</span></h3>
+                    <h2 class="vendor-section-title" id="vendor-product-pricing-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-coins"></i></span><span>{{ t('vendor.Product_Section_Inventory', 'Pricing and inventory') }}</span></h2>
                     <div class="vendor-product-fields">
                         <div class="vendor-field">
                             <label class="vendor-label" for="vendor-product-price">{{ t('vendor.Product_Price', 'Regular price') }} <span class="vendor-required" aria-hidden="true">*</span></label>
@@ -106,7 +106,7 @@
 
             <section class="card vendor-form-card" data-product-section="shipping" aria-labelledby="vendor-product-shipping-title">
                 <div class="card-body">
-                    <h3 class="vendor-section-title" id="vendor-product-shipping-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-ruler"></i></span><span>{{ t('vendor.Product_Section_Shipping', 'Shipping and dimensions') }}</span></h3>
+                    <h2 class="vendor-section-title" id="vendor-product-shipping-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-ruler"></i></span><span>{{ t('vendor.Product_Section_Shipping', 'Shipping and dimensions') }}</span></h2>
                     <div class="vendor-product-fields">
                         <div class="vendor-field">
                             <label class="vendor-label" for="vendor-product-weight">{{ t('vendor.Product_Weight', 'Weight') }}</label>
@@ -139,7 +139,7 @@
 
             <section class="card vendor-form-card" data-product-section="craft" aria-labelledby="vendor-product-craft-title">
                 <div class="card-body">
-                    <h3 class="vendor-section-title" id="vendor-product-craft-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-hand-heart"></i></span><span>{{ t('vendor.Product_Section_Craft', 'Craft, care and delivery') }}</span></h3>
+                    <h2 class="vendor-section-title" id="vendor-product-craft-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-hand-heart"></i></span><span>{{ t('vendor.Product_Section_Craft', 'Craft, care and delivery') }}</span></h2>
                     <div class="vendor-product-fields">
                         <div class="vendor-field">
                             <label class="vendor-label" for="vendor-product-material">{{ t('vendor.Product_Material', 'Main material') }}</label>
@@ -245,6 +245,9 @@
             $editorMessages = [
                 'add' => t('vendor.Product_New', 'Add product'),
                 'edit' => t('vendor.Product_Edit', 'Edit product'),
+                // VPM-UX-01E-POLISH-01: the page heading while the editor is open (the list keeps "Add product" for its button).
+                'headingAdd' => t('vendor.Product_Heading_New', 'Add Product'),
+                'headingEdit' => t('vendor.Product_Heading_Edit', 'Edit Product'),
                 'noCategory' => t('vendor.Product_Category_Choose', 'Choose a category'),
                 // VPM-CATEGORY-RELIABILITY-01: the category field while loading, and a product's own inactive category.
                 'categoriesLoading' => t('vendor.Product_Category_Loading', 'Loading categories…'),
@@ -274,7 +277,7 @@
             <section class="card vendor-form-card vendor-product-gallery" data-product-section="images" data-product-gallery aria-busy="false" aria-labelledby="vendor-product-images-title">
                 <div class="card-body">
                     <div class="vendor-product-card-head">
-                        <h3 class="vendor-section-title" id="vendor-product-images-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-images"></i></span><span>{{ $galleryText('Section', 'Product images') }}</span></h3>
+                        <h2 class="vendor-section-title" id="vendor-product-images-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-images"></i></span><span>{{ $galleryText('Section', 'Product images') }}</span></h2>
                         <p class="vendor-product-gallery-count" data-product-gallery-count></p>
                     </div>
                     <p class="vendor-product-media-hint" id="vendor-product-gallery-hint"><i class="ph-duotone ph-info" aria-hidden="true"></i><span><span>{{ $galleryText('Hint', 'Choose up to 6 images from your media library. The main image is shown first in the store.') }}</span> <span data-product-image-saving></span></span></p>
@@ -283,7 +286,7 @@
 
                     <section class="vendor-product-gallery-group is-main" aria-labelledby="vendor-product-main-label">
                         <div class="vendor-product-gallery-group-head">
-                            <h4 class="vendor-product-gallery-label" id="vendor-product-main-label">{{ $galleryText('Main_Label', 'Main product image') }}</h4>
+                            <h3 class="vendor-product-gallery-label" id="vendor-product-main-label">{{ $galleryText('Main_Label', 'Main product image') }}</h3>
                             <p class="vendor-product-hint">{{ $galleryText('Main_Help', 'Shown first on the store.') }}</p>
                         </div>
                         <div class="vendor-product-gallery-box" data-product-primary-image></div>
@@ -296,7 +299,7 @@
 
                     <section class="vendor-product-gallery-group" aria-labelledby="vendor-product-gallery-label">
                         <div class="vendor-product-gallery-group-head">
-                            <h4 class="vendor-product-gallery-label" id="vendor-product-gallery-label">{{ $galleryText('Gallery_Label', 'Product gallery') }}</h4>
+                            <h3 class="vendor-product-gallery-label" id="vendor-product-gallery-label">{{ $galleryText('Gallery_Label', 'Product gallery') }}</h3>
                             <p class="vendor-product-hint">{{ $galleryText('Gallery_Help', 'Choose additional images from your media library.') }}</p>
                         </div>
                         <div class="vendor-product-gallery-box" data-product-gallery-images></div>
@@ -314,7 +317,7 @@
 
             <section class="card vendor-form-card" data-product-section="status" aria-labelledby="vendor-product-status-title">
                 <div class="card-body">
-                    <h3 class="vendor-section-title" id="vendor-product-status-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-eye"></i></span><span>{{ t('vendor.Product_Status', 'Publication status') }}</span></h3>
+                    <h2 class="vendor-section-title" id="vendor-product-status-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-eye"></i></span><span>{{ t('vendor.Product_Status', 'Publication status') }}</span></h2>
                     {{-- VENDOR-PRODUCT-PUBLISH-UI-01B (OPEN-PROD-19, 20; DETAIL-01): the vendor's three statuses. A product
                          stored as out_of_stock gets a "keep" option (value "", added by the script from data-keep-label),
                          so its status is left out of the update; out_of_stock itself is never an option. --}}
