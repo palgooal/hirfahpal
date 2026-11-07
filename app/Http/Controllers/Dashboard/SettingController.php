@@ -53,6 +53,16 @@ class SettingController extends Controller
         $data = $request->validated();
         $oldFiles = [];
 
+        if (array_key_exists('footer', $data)) {
+            $data['footer_content'] = array_replace(
+                Setting::footerDefaults(),
+                $setting->footer_content ?? [],
+                $data['footer'] ?? [],
+            );
+        }
+
+        unset($data['footer']);
+
         foreach (['logo', 'favicon'] as $field) {
             if ($request->hasFile($field)) {
                 $oldFiles[] = $setting->{$field};

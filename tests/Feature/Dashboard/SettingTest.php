@@ -57,6 +57,57 @@ class SettingTest extends TestCase
         ]);
     }
 
+    public function test_settings_form_is_prepopulated_with_saved_footer_content(): void
+    {
+        $admin = $this->adminWithAbilities(['settings.view']);
+        Setting::singleton()->update(['footer_content' => ['tagline' => 'فخر الصناعة المحلية']]);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('dashboard.setting.index'))
+            ->assertOk()
+            ->assertSee('فخر الصناعة المحلية')
+            ->assertSee('إعدادات الفوتر');
+    }
+
+    public function test_admin_can_update_footer_content(): void
+    {
+        $admin = $this->adminWithAbilities(['settings.edit']);
+
+        $this->actingAs($admin, 'admin')
+            ->put(route('dashboard.setting.update'), $this->validPayload([
+                'footer' => [
+                    'tagline' => 'منتجات فلسطينية أصلية',
+                    'instagram_url' => 'https://instagram.com/hirfah',
+                    'copyright' => 'حقوق محفوظة للاختبار.',
+                ],
+            ]))
+            ->assertRedirect(route('dashboard.setting.index'));
+
+        $footer = Setting::singleton()->footer_content;
+        $this->assertSame('منتجات فلسطينية أصلية', $footer['tagline']);
+        $this->assertSame('https://instagram.com/hirfah', $footer['instagram_url']);
+        $this->assertSame('حقوق محفوظة للاختبار.', $footer['copyright']);
+        $this->assertSame('عن حِرفة', $footer['about_title']);
+    }
+
+    public function test_storefront_footer_uses_the_saved_settings(): void
+    {
+        Setting::singleton()->update([
+            'site_name' => 'متجر الاختبار',
+            'footer_content' => [
+                'tagline' => 'حكاية الحرفة',
+                'description' => 'وصف مخصص للفوتر',
+                'instagram_url' => 'https://instagram.com/hirfah',
+            ],
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('حكاية الحرفة')
+            ->assertSee('وصف مخصص للفوتر')
+            ->assertSee('https://instagram.com/hirfah');
+    }
+
     public function test_admin_with_settings_view_only_cannot_update_settings(): void
     {
         $admin = $this->adminWithAbilities(['settings.view']);
