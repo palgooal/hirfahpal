@@ -1,4 +1,6 @@
 @php
+  // PREVIEW-02: the vendor's private preview (VendorDashboard\StorefrontPreviewController) passes true.
+  $preview = $preview ?? false;
   $dimensions = collect($product->dimensions ?? [])->only(['length', 'width', 'height'])->filter(fn ($value) => $value !== null && $value !== '');
   $weight = $product->weight === null ? null : rtrim(rtrim(number_format((float) $product->weight, 2, '.', ''), '0'), '.').' '.($product->weight_unit ?: 'kg');
   // This section describes the product being viewed, not the vendor profile.
@@ -9,9 +11,10 @@
 <main>
   <section class="border-b border-line/60 bg-canvas px-4 py-3 lg:px-8" data-node-id="223:2698">
     <div class="mx-auto flex max-w-[1216px] flex-wrap items-center justify-between gap-3 text-sm text-muted">
-      <nav class="flex w-full min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap text-xs font-medium sm:w-auto sm:text-sm"><a href="{{ route('home') }}" class="shrink-0 hover:text-olive">الرئيسية</a><img
-          src="{{ asset('assets/storefront/imgs/product-page/breadcrumb-chevron.svg') }}" alt="" class="h-[7px] w-1"><a href="{{ route('home') }}#shop"
-          class="shrink-0 hover:text-olive">{{ $product->category?->name }}</a><img src="{{ asset('assets/storefront/imgs/product-page/breadcrumb-chevron.svg') }}" alt=""
+      <nav class="flex w-full min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap text-xs font-medium sm:w-auto sm:text-sm">@if ($preview)<span class="shrink-0">الرئيسية</span>@else<a href="{{ route('home') }}" class="shrink-0 hover:text-olive">الرئيسية</a>@endif<img
+          src="{{ asset('assets/storefront/imgs/product-page/breadcrumb-chevron.svg') }}" alt="" class="h-[7px] w-1">@if ($preview)<span
+          class="shrink-0">{{ $product->category?->name }}</span>@else<a href="{{ route('home') }}#shop"
+          class="shrink-0 hover:text-olive">{{ $product->category?->name }}</a>@endif<img src="{{ asset('assets/storefront/imgs/product-page/breadcrumb-chevron.svg') }}" alt=""
           class="h-[7px] w-1 shrink-0"><span class="min-w-0 truncate font-semibold text-olive">{{ $product->name }}</span></nav>{{-- PRODUCT-FIX-01: the
           workshop's location only when the store has one; no unsupported "verified authentic piece" claim. --}}@if ($product->vendor->profile->city || $product->vendor->profile->governorate)<span
         class="flex w-full items-center justify-center gap-1.5 rounded-full border border-copper/20 bg-copper/10 px-[13px] py-[5px] text-center text-[11px] leading-4 text-copper sm:w-auto sm:text-xs"><img
@@ -31,10 +34,12 @@
             @foreach ($product->highlight_tags ?? [] as $tag)<span class="rounded-full bg-[#2563eb] px-3 py-1 text-xs font-bold text-white shadow-sm">{{ $tag }}</span>@endforeach
             <span class="rounded-full bg-olive px-3 py-1 text-xs font-bold text-surface shadow-sm">{{ $product->vendor->profile->location_name }}</span>
           </div>
+@unless ($preview)
           <button form="main-favorite-{{ $product->id }}" type="submit"
             class="favorite absolute left-4 top-4 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-line bg-surface/95 shadow-sm backdrop-blur-sm"
             aria-label="أضف إلى المفضلة"><img src="{{ asset('assets/storefront/imgs/product-page/hero-heart.svg') }}" alt=""
               class="h-[18px] w-5"></button><form hidden id="main-favorite-{{ $product->id }}" method="POST" action="{{ route('customer.favorites.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $product->id }}"></form>
+@endunless
           <div
             class="absolute inset-x-3 top-1/2 flex -translate-y-1/2 justify-between opacity-100 transition-opacity lg:inset-x-4 lg:opacity-0 lg:group-hover:opacity-100">
             <button class="gallery-prev flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-line bg-surface shadow"
@@ -89,11 +94,16 @@
                 class="h-4 w-4"></i></button>
           </div><span class="col-span-2 text-muted sm:col-auto">الحد الأقصى للطلب: {{ $product->availableStockQuantity() }} قطع</span>
         </div>
+@if ($preview)
+        <div class="mt-4 flex gap-3"><button type="button" disabled aria-disabled="true" data-preview-purchase
+            class="flex h-12 flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-2xl border border-line bg-canvas font-bold text-muted"><i data-lucide="lock" class="h-4 w-4"></i>{{ t('vendor.Preview_Purchase_Disabled', 'Purchasing is not available in the preview') }}</button></div>
+@else
         <div class="mt-4 flex gap-3"><button form="main-cart-{{ $product->id }}" type="submit"
             class="add-cart flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-sage font-bold shadow-md transition-[background-color,transform,box-shadow] hover:bg-[#a7af82] hover:shadow-lg active:scale-[0.99]"
             data-price="{{ number_format($product->sellingPrice(), 2, '.', '') }}" @disabled($product->availableStockQuantity() < 1)><i data-lucide="shopping-bag" class="h-4 w-4"></i>أضف إلى السلة</button><form hidden id="main-cart-{{ $product->id }}" method="POST" action="{{ route('customer.cart.items.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $product->id }}"><input class="product-cart-quantity" type="hidden" name="quantity" value="{{ $selectedQuantity }}"></form><button form="buy-now-{{ $product->id }}" @disabled($product->availableStockQuantity() < 1) type="submit"
             class="h-12 shrink-0 cursor-pointer rounded-2xl border border-olive bg-surface px-4 font-bold text-olive transition-[background-color,color,transform] hover:bg-olive hover:text-white active:scale-[0.98] sm:px-7">اشتري الآن</button><form hidden id="buy-now-{{ $product->id }}" method="POST" action="{{ route('customer.cart.items.store') }}">@csrf<input type="hidden" name="product_id" value="{{ $product->id }}"><input class="product-cart-quantity" type="hidden" name="quantity" value="{{ $selectedQuantity }}"><input type="hidden" name="checkout" value="1"></form>
         </div>
+@endif
         {{-- PRODUCT-FIX-01: only the services the platform supports (payment methods online / cod, delivery from the
              workshop); the "serial number" and "domestic and international packaging" cards had no data behind them. --}}
         <div class="mt-7 grid grid-cols-2 gap-3">
@@ -123,9 +133,10 @@
             <div><span class="block text-muted">الأعمال</span><strong>{{ $product->vendor->available_products_count }} منتجاً</strong></div>
             {{-- PRODUCT-FIX-01: the store's own preparation time (vendor_profiles.preparation_days). --}}
             <div><span class="block text-muted">التجهيز</span><strong>{{ \App\Support\Storefront\ArabicDays::label($product->vendor->profile->preparation_days) ?? 'غير محدد' }}</strong></div>
-          </div><a href="{{ route('vendors.profile', ['storeSlug' => $product->vendor->profile->slug]) }}"
+          </div>@unless ($preview)<a href="{{ route('vendors.profile', ['storeSlug' => $product->vendor->profile->slug]) }}"
             class="mt-4 flex h-10 cursor-pointer items-center justify-center rounded-2xl border border-line text-xs font-bold text-olive transition-colors hover:border-olive hover:bg-canvas">تصفح
             كافة أعمال {{ $product->vendor->profile->store_name }} <i data-lucide="chevron-left" class="me-1 h-3 w-3"></i></a>
+@endunless
         </article>
       </div>
     </div>
@@ -279,6 +290,7 @@
     </div>
   </section>
 
+@unless ($preview)
   <section class="bg-canvas px-4 py-12 lg:px-8" data-node-id="223:3136">
     <div class="mx-auto max-w-[1216px]">
       <div class="flex items-center justify-between border-b border-line/60 pb-[13px]">
@@ -324,4 +336,5 @@
       </div>
     </div>
   </section>
+@endunless
 </main>

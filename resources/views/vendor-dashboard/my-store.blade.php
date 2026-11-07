@@ -84,6 +84,14 @@
         data-media-library-url="{{ route('vendor.dashboard.products.media.library') }}"
         data-media-store-url="{{ route('vendor.dashboard.products.media.store') }}"
     >
+        {{-- PREVIEW-04: the store page as customers see it, in the vendor's private preview (a new tab). Outside the
+             form and its loading state, so it works whatever the profile read gives. --}}
+        <div class="vendor-store-toolbar">
+            <a class="vendor-store-preview-link" href="{{ route('vendor.dashboard.preview.store') }}" target="_blank" rel="noopener noreferrer" data-store-preview aria-label="{{ t('vendor.Preview_My_Store_Named', 'Preview my store (opens in a new tab)') }}">
+                <i class="ph-duotone ph-eye" aria-hidden="true"></i>
+                <span>{{ t('vendor.Preview_My_Store', 'Preview my store') }}</span>
+            </a>
+        </div>
         <div class="card vendor-home-error" data-store-load-error hidden>
             <div class="card-body">
                 <span class="vendor-kpi-icon" aria-hidden="true"><i class="ph-duotone ph-cloud-slash"></i></span>

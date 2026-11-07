@@ -74,6 +74,8 @@ class VendorProductListTextsTest extends TestCase
         $this->assertSame([
             'actions' => 'الإجراءات', 'edit' => 'تعديل', 'delete' => 'حذف',
             'editNamed' => 'تعديل المنتج: :name', 'deleteNamed' => 'حذف المنتج: :name',
+            // PREVIEW-04: the link to a product's private preview.
+            'view' => 'مشاهدة', 'viewNamed' => 'مشاهدة المنتج: :name (يفتح في تبويب جديد)',
             'columns' => ['name' => 'المنتج', 'sku' => 'رمز المنتج (SKU)', 'status' => 'الحالة', 'price' => 'السعر', 'stock_quantity' => 'المخزون'],
             'statuses' => ['draft' => 'مسودة', 'active' => 'نشط', 'inactive' => 'غير نشط', 'out_of_stock' => 'نفد من المخزون'],
         ], $this->texts($ar));
@@ -83,6 +85,7 @@ class VendorProductListTextsTest extends TestCase
         $this->assertSame([
             'actions' => 'Actions', 'edit' => 'Edit', 'delete' => 'Delete',
             'editNamed' => 'Edit product: :name', 'deleteNamed' => 'Delete product: :name',
+            'view' => 'View', 'viewNamed' => 'View product: :name (opens in a new tab)',
             'columns' => ['name' => 'Product', 'sku' => 'SKU', 'status' => 'Status', 'price' => 'Price', 'stock_quantity' => 'Stock'],
             'statuses' => ['draft' => 'Draft', 'active' => 'Active', 'inactive' => 'Inactive', 'out_of_stock' => 'Out of stock'],
         ], $this->texts($en));

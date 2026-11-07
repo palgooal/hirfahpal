@@ -15,6 +15,9 @@
         'delete' => t('vendor.Product_List_Delete', 'Delete'),
         'editNamed' => t('vendor.Product_List_Edit_Named', 'Edit product: :name'),
         'deleteNamed' => t('vendor.Product_List_Delete_Named', 'Delete product: :name'),
+        // PREVIEW-04: the link to each product's private preview (opens in a new tab).
+        'view' => t('vendor.Product_List_View', 'View'),
+        'viewNamed' => t('vendor.Product_List_View_Named', 'View product: :name (opens in a new tab)'),
         'columns' => [
             'name' => t('vendor.Product_List_Product', 'Product'),
             'sku' => t('vendor.Product_Sku', 'SKU'),
@@ -46,7 +49,7 @@
         <li class="breadcrumb-item" aria-current="page">{{ t('vendor.Nav_Products', 'Products') }}</li>
     </x-slot:breadcrumbs>
 
-    <div class="col-span-12 vendor-products" data-vendor-resource-list data-resource="products" data-endpoint="{{ $endpoint }}" data-list-texts="{{ json_encode($listTexts, JSON_UNESCAPED_UNICODE) }}" data-moderation-texts="{{ json_encode($moderationTexts, JSON_UNESCAPED_UNICODE) }}">
+    <div class="col-span-12 vendor-products" data-vendor-resource-list data-resource="products" data-endpoint="{{ $endpoint }}" data-preview-url="{{ route('vendor.dashboard.preview.product', ['product' => '__ID__']) }}" data-list-texts="{{ json_encode($listTexts, JSON_UNESCAPED_UNICODE) }}" data-moderation-texts="{{ json_encode($moderationTexts, JSON_UNESCAPED_UNICODE) }}">
         <div class="card vendor-products-card">
             <div class="card-body">
                 {{-- "Add product" is inserted here by the editor script, before the Refresh icon (the list's

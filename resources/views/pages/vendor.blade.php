@@ -4,6 +4,10 @@
 
 @section('meta_description', $vendor->profile->short_description ?: $vendor->profile->store_name)
 
+@if ($preview ?? false)
+@section('robots', 'noindex, nofollow')
+@endif
+
 @section('content')
     @include('storefront.vendor.index')
 @endsection

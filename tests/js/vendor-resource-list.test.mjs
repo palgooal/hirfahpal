@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { columnLabel, detailsUrl, filterParams, filtersFromQuery, filtersQuery, formatAmount, listQuery, formatOrderDate, hasFilters, isPaged, listTexts, numberedLabel, ORDER_ACTION_STYLES, orderActionsFor, orderFilters, moderationBadges, moderationTexts, namedLabel, pageNumber, pagerState, pageUrl, recoveryPage, refreshPage, statusLabel } from '../../resources/js/vendor-resource-list.js';
+import { columnLabel, detailsUrl, filterParams, filtersFromQuery, filtersQuery, formatAmount, listQuery, formatOrderDate, hasFilters, isPaged, listTexts, numberedLabel, ORDER_ACTION_STYLES, orderActionsFor, orderFilters, moderationBadges, moderationTexts, namedLabel, pageNumber, pagerState, pageUrl, productPreviewUrl, recoveryPage, refreshPage, statusLabel } from '../../resources/js/vendor-resource-list.js';
 
 const ARABIC = {
     actions: 'الإجراءات',
@@ -11,11 +11,13 @@ const ARABIC = {
     delete: 'حذف',
     editNamed: 'تعديل المنتج: :name',
     deleteNamed: 'حذف المنتج: :name',
+    view: 'مشاهدة',
+    viewNamed: 'مشاهدة المنتج: :name (يفتح في تبويب جديد)',
     columns: { name: 'المنتج', sku: 'رمز المنتج (SKU)', status: 'الحالة', price: 'السعر', stock_quantity: 'المخزون' },
     statuses: { draft: 'مسودة', active: 'نشط', inactive: 'غير نشط', out_of_stock: 'نفد من المخزون' },
 };
 const ORDER_ACTIONS_FALLBACK = { accept: { label: 'Accept', named: null }, reject: { label: 'Reject', named: null }, preparing: { label: 'Preparing', named: null }, ready: { label: 'Ready', named: null } };
-const ENGLISH_FALLBACK = { actions: 'Actions', edit: 'Edit', delete: 'Delete', editNamed: null, deleteNamed: null, columns: {}, statuses: {}, orderActions: ORDER_ACTIONS_FALLBACK, actionError: 'The order could not be updated. Please try again.', detailsLink: { label: 'View details', named: null } };
+const ENGLISH_FALLBACK = { actions: 'Actions', edit: 'Edit', delete: 'Delete', editNamed: null, deleteNamed: null, view: 'View', viewNamed: null, columns: {}, statuses: {}, orderActions: ORDER_ACTIONS_FALLBACK, actionError: 'The order could not be updated. Please try again.', detailsLink: { label: 'View details', named: null } };
 
 test('the products list reads its translated texts from the page', () => {
     assert.deepEqual(listTexts(JSON.stringify(ARABIC)), { ...ARABIC, orderActions: ORDER_ACTIONS_FALLBACK, actionError: ENGLISH_FALLBACK.actionError, detailsLink: ENGLISH_FALLBACK.detailsLink });
@@ -311,4 +313,17 @@ test('the details link reads the page translation; without it, the former Englis
     assert.deepEqual(listTexts(undefined).detailsLink, { label: 'View details', named: null });
     assert.deepEqual(listTexts('{"detailsLink":{"label":"","named":7}}').detailsLink, { label: 'View details', named: null });
     assert.equal(numberedLabel('عرض التفاصيل للطلب :number', 'HF-1-V2'), 'عرض التفاصيل للطلب HF-1-V2');
+});
+
+// PREVIEW-04: the products list's "View" link to a product's private preview.
+test('a product preview address comes from the page template and a whole-number id only', () => {
+    const template = 'https://hirfah.test/vendor/dashboard/preview/products/__ID__';
+    assert.equal(productPreviewUrl(template, 19), 'https://hirfah.test/vendor/dashboard/preview/products/19');
+    assert.equal(productPreviewUrl(template, '7'), 'https://hirfah.test/vendor/dashboard/preview/products/7');
+    for (const id of [0, -1, '1.5', 'abc', '19/../x', '', null, undefined]) {
+        assert.equal(productPreviewUrl(template, id), null, String(id));
+    }
+    assert.equal(productPreviewUrl(undefined, 19), null, 'The other lists have no template: no link.');
+    assert.equal(productPreviewUrl('https://hirfah.test/no-placeholder', 19), null);
+    assert.equal(namedLabel('مشاهدة المنتج: :name (يفتح في تبويب جديد)', 'جرة'), 'مشاهدة المنتج: جرة (يفتح في تبويب جديد)');
 });

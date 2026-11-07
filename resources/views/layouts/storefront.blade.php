@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="@yield('meta_description', 'حِرفة - سوق الصنعة الفلسطينية الأصيلة')">
     <title>@yield('title', 'حِرفة | سوق الصنعة الفلسطينية الأصيلة')</title>
+@hasSection('robots')
+    <meta name="robots" content="@yield('robots')">
+@endif
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -15,6 +18,9 @@
 </head>
 
 <body class="overflow-x-hidden bg-canvas font-cairo text-ink antialiased">
+@if ($preview ?? false)
+    @include('storefront.partials.vendor-preview-banner')
+@else
     @include('storefront.partials.site-availability-indicator')
 
     <header class="relative z-50 bg-surface" data-node-id="223:3408">
@@ -24,6 +30,7 @@
     </header>
 
     @include('storefront.partials.search-panel')
+@endif
 
     {{-- A page that shows its own feedback (e.g. the contact form) defines the "inline_feedback" section. --}}
     @sectionMissing('inline_feedback')
@@ -37,7 +44,9 @@
 
     @yield('content')
 
+@unless ($preview ?? false)
     @include('storefront.partials.footer')
+@endunless
 
     <script src="{{ asset('assets/storefront/js/vendor/jquery.min.js') }}"></script>
     <script src="{{ asset('assets/storefront/js/vendor/lucide.min.js') }}"></script>

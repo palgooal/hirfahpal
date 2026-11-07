@@ -32,6 +32,9 @@ export function listTexts(raw) {
         delete: pick('delete', 'Delete'),
         editNamed: pick('editNamed', null),
         deleteNamed: pick('deleteNamed', null),
+        // PREVIEW-04: the products list's link to a product's private preview (label and ":name" accessible name).
+        view: pick('view', 'View'),
+        viewNamed: pick('viewNamed', null),
         columns: strings(given.columns),
         statuses: strings(given.statuses),
         // ORD-01C: the orders list's actions (label and ":number" accessible name) and its action error.
@@ -220,6 +223,16 @@ export function recoveryPage(collection) {
 export const refreshPage = (reason, current) => (reason === 'created' ? 1 : pageNumber(current));
 
 /** VENDOR-UI-CLEANUP-01B: an accessible name from a ":name" template (plain text; split/join, so "$" in a name stays). */
+/**
+ * PREVIEW-04: a product's private preview address, from the page's template (data-preview-url, with __ID__ for the id;
+ * the products page only), for a whole-number id; else null (no link).
+ */
+export function productPreviewUrl(template, id) {
+    const value = String(id ?? '');
+
+    return typeof template === 'string' && template.includes('__ID__') && /^[1-9]\d*$/.test(value) ? template.split('__ID__').join(value) : null;
+}
+
 export const namedLabel = (template, name) => (template ? template.split(':name').join(String(name ?? '').trim() || '—') : null);
 
 const schema = {
@@ -323,6 +336,20 @@ function init() {
             });
             if (root.dataset.resource === 'products') {
                 const actions = document.createElement('td');
+                // PREVIEW-04: "View" opens the product's private preview (any status) in a new tab, before Edit and
+                // Delete. A link (not a data-product-action button, which the editor script handles).
+                const previewUrl = productPreviewUrl(root.dataset.previewUrl, item.id);
+                if (previewUrl) {
+                    const view = document.createElement('a');
+                    view.href = previewUrl; view.target = '_blank'; view.rel = 'noopener noreferrer';
+                    view.className = 'btn btn-sm btn-light-secondary me-1 vendor-product-view'; view.dataset.productPreview = String(item.id);
+                    const eye = document.createElement('i'); eye.className = 'ph-duotone ph-eye'; eye.setAttribute('aria-hidden', 'true');
+                    const label = document.createElement('span'); label.textContent = texts.view;
+                    view.append(eye, label);
+                    const viewName = namedLabel(texts.viewNamed, item.name);
+                    if (viewName) view.setAttribute('aria-label', viewName);
+                    actions.append(view);
+                }
                 [[texts.edit, 'edit', texts.editNamed], [texts.delete, 'delete', texts.deleteNamed]].forEach(([label, action, named]) => {
                     const button = document.createElement('button');
                     button.type = 'button'; button.className = action === 'delete' ? 'btn btn-sm btn-light-danger me-1' : 'btn btn-sm btn-light-primary me-1';

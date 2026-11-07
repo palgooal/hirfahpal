@@ -422,6 +422,10 @@ class VendorApprovalEnforcementTest extends TestCase
             ['DELETE', route('vendor.dashboard.products.media.destroy', $media)],
             ['GET', route('vendor.dashboard.media.page')],
             ['GET', route('vendor.dashboard.products.page')],
+            // PREVIEW-02: the vendor's private product preview.
+            ['GET', route('vendor.dashboard.preview.product', $product)],
+            // PREVIEW-03: the vendor's private store preview.
+            ['GET', route('vendor.dashboard.preview.store')],
             ['GET', route('vendor.dashboard.orders.page')],
             ['GET', route('vendor.dashboard.reviews.page')],
             ['GET', route('vendor.dashboard.returns.page')],

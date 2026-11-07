@@ -6,10 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\Governorate;
-use App\Models\Product;
-use App\Models\ProductImage;
 use App\Models\Vendor;
 use App\Support\Storefront\CartAvailability;
+use App\Support\Storefront\ProductPageData;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
@@ -76,19 +75,9 @@ class StorefrontPageController extends Controller
         abort_unless(is_string($slug) && $slug !== '' && mb_strlen($slug) <= 255, 404);
         $product = $this->products()->where('slug', $slug)->first();
         abort_unless($product, 404);
-        $product->setRelation('vendor', Vendor::query()->withStorefrontSummary()->findOrFail($product->vendor_id));
-        $reviews = $product->reviews()->where('status', 'published')->with('customer')->latest()->get();
 
-        return view('pages.product', [
-            'product' => $product,
-            // PRODUCT-FIX-02: the quantity a refused add-to-cart sent (old input), else ?quantity=; anything that is not
-            // a whole number of at least 1 counts as 1 (no redirect); never above the available stock.
-            'selectedQuantity' => min($this->requestedQuantity($request), max(1, $product->availableStockQuantity())),
-            'productImages' => $product->images->isNotEmpty() ? $product->images->sortByDesc('is_primary')->values() : collect([new ProductImage(['alt_text' => $product->name])]),
-            'productReviews' => $reviews,
-            'reviewDistribution' => collect(range(1, 5))->mapWithKeys(fn ($rating) => [$rating => $reviews->isEmpty() ? 0 : (int) round($reviews->where('rating', $rating)->count() * 100 / $reviews->count())])->all(),
-            'relatedProducts' => $this->products()->whereKeyNot($product->id)->where('category_id', $product->category_id)->latest('id')->limit(4)->get(),
-        ]);
+        // PREVIEW-01: the page's data comes from ProductPageData (shared with the vendor's preview later).
+        return view('pages.product', ProductPageData::viewData($product, $request));
     }
 
     public function cart(Request $request, CartController $carts)
@@ -113,20 +102,10 @@ class StorefrontPageController extends Controller
         ]);
     }
 
-    private function requestedQuantity(Request $request): int
-    {
-        $quantity = $request->old('quantity', $request->query('quantity'));
-        $quantity = is_int($quantity) ? (string) $quantity : $quantity;
-
-        return is_string($quantity) && ctype_digit($quantity) && (int) $quantity >= 1 ? (int) $quantity : 1;
-    }
-
+    /** The products a customer may see, with the storefront's product data (PREVIEW-01: ProductPageData). */
     private function products(): Builder
     {
-        return Product::query()->sellable()->with(['category', 'vendor.profile.city', 'vendor.profile.governorate', 'primaryImage', 'images'])
-            ->withCount(['reviews' => fn ($query) => $query->where('status', 'published')])
-            ->withAvg(['reviews' => fn ($query) => $query->where('status', 'published')], 'rating')
-            ->withSum(['stockReservations as reserved_quantity' => fn ($query) => $query->where('status', 'reserved')], 'quantity');
+        return ProductPageData::sellable();
     }
 
     private function cartData(Request $request, CartController $carts): array

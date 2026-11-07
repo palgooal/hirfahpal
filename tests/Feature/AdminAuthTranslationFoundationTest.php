@@ -192,6 +192,10 @@ class AdminAuthTranslationFoundationTest extends TestCase
             'vendor.dashboard.my-store',
             'vendor.dashboard.orders.details',
             'vendor.dashboard.orders.page',
+            // PREVIEW-02: the vendor's private product preview.
+            'vendor.dashboard.preview.product',
+            // PREVIEW-03: the vendor's private store preview.
+            'vendor.dashboard.preview.store',
             'vendor.dashboard.products.page',
             'vendor.dashboard.returns.page',
             'vendor.dashboard.reviews.page',

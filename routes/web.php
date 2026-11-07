@@ -34,6 +34,7 @@ use App\Http\Controllers\VendorDashboard\MediaLibraryController as VendorDashboa
 use App\Http\Controllers\VendorDashboard\OrderController as VendorDashboardOrderController;
 use App\Http\Controllers\VendorDashboard\OverviewController as VendorDashboardOverviewController;
 use App\Http\Controllers\VendorDashboard\ProductController as VendorDashboardProductController;
+use App\Http\Controllers\VendorDashboard\StorefrontPreviewController as VendorDashboardStorefrontPreviewController;
 use App\Http\Controllers\VendorDashboard\ProductImageController as VendorDashboardProductImageController;
 use App\Http\Controllers\VendorDashboard\ProfileController as VendorDashboardProfileController;
 use App\Http\Controllers\VendorDashboard\ProfileLogoController as VendorDashboardProfileLogoController;
@@ -214,6 +215,15 @@ foreach (AccountGuard::all() as $accountType => $account) {
                             // VPM-UX-01A: the products page has its own view (the other lists keep the shared one).
                             Route::view('products/manage', 'vendor-dashboard.products')
                                 ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.products.page');
+                            // PREVIEW-02: the vendor's private preview of their own product page (any status; another
+                            // vendor's product answers 404). Allowed in open and coming_soon only (DEC-SA-01).
+                            Route::get('preview/products/{product}', [VendorDashboardStorefrontPreviewController::class, 'product'])
+                                ->whereNumber('product')
+                                ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.preview.product');
+                            // PREVIEW-03: the vendor's private preview of their own store page (the store is the signed-in
+                            // vendor's; nothing in the address chooses it). Allowed in open and coming_soon only (DEC-SA-01).
+                            Route::get('preview/store', [VendorDashboardStorefrontPreviewController::class, 'store'])
+                                ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.preview.store');
                             // VENDOR-MEDIA-04A: the media library page (informational until its tools are added).
                             Route::view('media', 'vendor-dashboard.media')
                                 ->middleware(['setLocale', 'disableTranslationAutoCreate'])->name('dashboard.media.page');

@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Store;
 
 use App\Http\Controllers\Controller;
-use App\Models\Category;
 use App\Models\Setting;
 use App\Models\Vendor;
 use App\Models\VendorProfile;
+use App\Support\Storefront\StorePageData;
 use Illuminate\View\View;
 
 class VendorDirectoryController extends Controller
@@ -25,21 +25,8 @@ class VendorDirectoryController extends Controller
     {
         $vendor = Vendor::query()->storefrontVisible()->withStorefrontSummary()
             ->whereHas('profile', fn ($profile) => $profile->where('slug', $storeSlug))->firstOrFail();
-        $products = $vendor->products()->sellable()
-            ->with(['category', 'primaryImage', 'images'])
-            ->withCount(['reviews' => fn ($reviews) => $reviews->where('status', 'published')])
-            ->withAvg(['reviews' => fn ($reviews) => $reviews->where('status', 'published')], 'rating')
-            ->withSum(['stockReservations as reserved_quantity' => fn ($reservations) => $reservations->where('status', 'reserved')], 'quantity')
-            ->latest('published_at')->latest('id')->get();
-        $setting = Setting::query()->first();
 
-        return view('pages.vendor', [
-            'vendor' => $vendor,
-            'products' => $products,
-            'vendorCategories' => Category::query()->where('is_active', true)
-                ->whereIn('id', $products->pluck('category_id')->filter())->orderBy('sort_order')->orderBy('id')->get(),
-            'siteSetting' => $setting,
-            'currency' => $setting?->default_currency ?: 'ILS',
-        ]);
+        // PREVIEW-01: the page's data comes from StorePageData (shared with the vendor's preview later).
+        return view('pages.vendor', StorePageData::viewData($vendor));
     }
 }

@@ -655,6 +655,32 @@ class VendorDashboardTranslationSeeder extends Seeder
         // VPM-UX-01E-POLISH-01: the editor's page heading (Add / Edit), separate from the list's "Add product" button.
         'vendor.Product_Heading_New' => ['ar' => 'إضافة منتج', 'en' => 'Add Product'],
         'vendor.Product_Heading_Edit' => ['ar' => 'تعديل منتج', 'en' => 'Edit Product'],
+        // PREVIEW-02: the vendor's private product preview (its bar, the product's status as customers experience it, and
+        // the disabled purchase button); "Back to products" reuses Product_Back_To_List.
+        'vendor.Preview_Banner_Title' => ['ar' => 'معاينة خاصة', 'en' => 'Private preview'],
+        'vendor.Preview_Banner_Text' => ['ar' => 'تظهر هذه الصفحة لك وحدك ولا يراها الزوار. الشراء والإضافة إلى السلة والمفضلة معطّلة في المعاينة.', 'en' => 'Only you can see this page; visitors cannot. Buying, the cart and favourites are turned off in the preview.'],
+        'vendor.Preview_Status_Label' => ['ar' => 'حالة المنتج:', 'en' => 'Product status:'],
+        'vendor.Preview_Status_Visible' => ['ar' => 'منشور، ويظهر للعملاء عندما يكون المتجر مفتوحًا.', 'en' => 'Published, and shown to customers while the store is open.'],
+        'vendor.Preview_Status_Draft' => ['ar' => 'مسودة، ولا يظهر للعملاء.', 'en' => 'Draft, not shown to customers.'],
+        'vendor.Preview_Status_Inactive' => ['ar' => 'غير نشط، ولا يظهر للعملاء.', 'en' => 'Inactive, not shown to customers.'],
+        'vendor.Preview_Status_Out_Of_Stock' => ['ar' => 'نفد من المخزون، ولا يظهر للعملاء.', 'en' => 'Out of stock, not shown to customers.'],
+        'vendor.Preview_Status_Suspended' => ['ar' => 'معلّق من الإدارة، ولا يظهر للعملاء حتى يُرفع التعليق.', 'en' => 'Suspended by the administration, not shown to customers until the suspension is lifted.'],
+        'vendor.Preview_Status_Archived' => ['ar' => 'مؤرشف من الإدارة، ولا يظهر للعملاء.', 'en' => 'Archived by the administration, not shown to customers.'],
+        'vendor.Preview_Purchase_Disabled' => ['ar' => 'الشراء غير متاح في المعاينة', 'en' => 'Purchasing is not available in the preview'],
+        // PREVIEW-03: the vendor's private store preview (its bar, whether visitors can see the store yet, and how many of
+        // the vendor's products the store page leaves out).
+        'vendor.Preview_Store_Title' => ['ar' => 'معاينة متجري', 'en' => 'My store preview'],
+        'vendor.Preview_Store_Text_Closed' => ['ar' => 'هكذا ستظهر صفحة متجرك للعملاء عند افتتاح متجر حرفة. لا يراها الزوار حاليًا، والشراء والإضافة إلى السلة والمفضلة معطّلة في المعاينة.', 'en' => 'This is how your store page will look to customers when Hirfah opens. Visitors cannot see it yet; buying, the cart and favourites are turned off in the preview.'],
+        'vendor.Preview_Store_Text_Open' => ['ar' => 'هكذا تظهر صفحة متجرك للعملاء. هذه المعاينة تظهر لك وحدك، والشراء والإضافة إلى السلة والمفضلة معطّلة فيها.', 'en' => 'This is how your store page looks to customers. Only you see this preview; buying, the cart and favourites are turned off in it.'],
+        'vendor.Preview_Store_Hidden' => ['ar' => 'منتجات لا تظهر للزوار: :count', 'en' => 'Products not shown to visitors: :count'],
+        'vendor.Preview_Store_Hidden_Hint' => ['ar' => 'المنتجات غير المنشورة أو غير المتاحة لا تظهر في صفحة متجرك. راجعها من صفحة المنتجات.', 'en' => 'Products that are not published or not available are left out of your store page. Review them on the Products page.'],
+        'vendor.Preview_Back_To_My_Store' => ['ar' => 'العودة إلى متجري', 'en' => 'Back to My Store'],
+        // PREVIEW-04: the way into the private previews: "View" in the products list, "Preview my store" on My Store and
+        // in a product's preview.
+        'vendor.Product_List_View' => ['ar' => 'مشاهدة', 'en' => 'View'],
+        'vendor.Product_List_View_Named' => ['ar' => 'مشاهدة المنتج: :name (يفتح في تبويب جديد)', 'en' => 'View product: :name (opens in a new tab)'],
+        'vendor.Preview_My_Store' => ['ar' => 'معاينة متجري', 'en' => 'Preview my store'],
+        'vendor.Preview_My_Store_Named' => ['ar' => 'معاينة متجري (يفتح في تبويب جديد)', 'en' => 'Preview my store (opens in a new tab)'],
         'vendor.Product_Discard_Confirm' => ['ar' => 'هل تريد المغادرة دون حفظ؟ ستفقد التغييرات غير المحفوظة.', 'en' => 'Leave without saving? Your unsaved changes will be lost.'],
         // VENDOR-MEDIA-02B: the batch limit of one media library upload.
         'vendor.Media_Upload_Max_Files' => ['ar' => 'يمكنك رفع :max صور كحد أقصى في المرة الواحدة.', 'en' => 'You can upload up to :max images at a time.'],

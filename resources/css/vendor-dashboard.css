@@ -1431,6 +1431,60 @@ html.vendor-shell:has([data-product-editor]:not([hidden])) {
   opacity: 0.55;
 }
 
+/* PREVIEW-04: the page's action row (end side), with the store preview link in the form's secondary button language. */
+.vendor-shell .vendor-store-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+html.vendor-shell .vendor-store-preview-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 42px;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 10px;
+  background-color: #fff;
+  color: var(--color-hf-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+html.vendor-shell .vendor-store-preview-link:hover {
+  border-color: var(--color-hf-sage);
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-ink);
+}
+
+html.vendor-shell .vendor-store-preview-link i,
+html.vendor-shell .vendor-product-view i {
+  display: inline-block;
+  direction: ltr;
+  unicode-bidi: isolate;
+  line-height: 1;
+}
+
+/* PREVIEW-04: the products list's View link: icon and text on one line, like the Edit and Delete buttons beside it. */
+html.vendor-shell .vendor-product-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid var(--color-hf-line);
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-ink);
+  text-decoration: none;
+}
+
+html.vendor-shell .vendor-product-view:hover,
+html.vendor-shell .vendor-product-view:focus-visible {
+  border-color: var(--color-hf-sage);
+  background-color: var(--color-hf-canvas);
+  color: var(--color-hf-ink);
+}
+
 /* MYSTORE-UX-01E: the required-fields legend (form start) and the read-only hint under each read-only block. */
 .vendor-shell .vendor-required-legend {
   margin: 0;
