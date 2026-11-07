@@ -63,12 +63,25 @@ class VendorProductEditorLayoutTest extends TestCase
 
         $this->assertSame(['basic', 'pricing', 'shipping', 'craft'], $sections('is-main'));
         $this->assertSame(['images', 'status'], $sections('is-side'));
-        // The editor title is the page's h2 (the layout's h1 is "Products"); the cards are h3, the image groups h4.
-        $this->assertSame(['h2' => 1, 'h3' => 6, 'h4' => 2], [
-            'h2' => $xpath->query('//*[@data-product-editor]//h2[@data-product-editor-title]')->length,
-            'h3' => $xpath->query('//form[@data-product-form]//h3[@class="vendor-section-title"]')->length,
-            'h4' => $xpath->query('//*[@data-product-gallery]//h4')->length,
+        // VPM-UX-01E-POLISH-01: the editor title is an h1 (the page heading while the editor is open; the script hides
+        // the layout's "Products" h1 meanwhile), the cards are h2, the image groups h3; Back sits on the title's row.
+        $this->assertSame(['h1' => 1, 'h2' => 6, 'h3' => 2, 'h4' => 0], [
+            'h1' => $xpath->query('//*[@data-product-editor]/div[@class="vendor-product-editor-head"]/h1[@data-product-editor-title]')->length,
+            'h2' => $xpath->query('//form[@data-product-form]//h2[@class="vendor-section-title"]')->length,
+            'h3' => $xpath->query('//*[@data-product-gallery]//h3')->length,
+            'h4' => $xpath->query('//*[@data-product-editor]//h4')->length,
         ]);
+        $this->assertSame(1, $xpath->query('//div[@class="vendor-product-editor-head"]/h1/following-sibling::*[1][self::button][@data-product-editor-close]')->length);
+        // The heading's own wording ("إضافة منتج" / "تعديل منتج"); the list's "Add product" button keeps Product_New.
+        $this->assertSame('إضافة منتج', trim($xpath->query('//h1[@data-product-editor-title]')->item(0)->textContent));
+        $this->assertSame(['ar' => 'تعديل منتج', 'en' => 'Edit Product'], VendorDashboardTranslationSeeder::TRANSLATIONS['vendor.Product_Heading_Edit']);
+        $this->assertSame(['ar' => 'إضافة منتج', 'en' => 'Add Product'], VendorDashboardTranslationSeeder::TRANSLATIONS['vendor.Product_Heading_New']);
+        $script = file_get_contents(base_path(self::SCRIPT));
+        $this->assertStringContainsString('title.textContent = texts.headingEdit;', $script);
+        $this->assertStringContainsString('title.textContent = texts.headingAdd;', $script);
+        $this->assertStringContainsString('add.textContent = texts.add;', $script);
+        // The main image's buttons are grouped (Able Pro's global [data-action] auto margins are cancelled).
+        $this->assertStringContainsString('html.vendor-shell .vendor-product-gallery-actions [data-action] { margin: 0; }', file_get_contents(resource_path('css/vendor-dashboard.css')));
         // Back to the list (the editor's close hook) in the header; Save and Cancel in the save bar.
         $this->assertSame('العودة إلى المنتجات', trim($xpath->query('//*[@data-product-editor]/div[@class="vendor-product-editor-head"]/button[@data-product-editor-close]')->item(0)->textContent));
         $bar = $xpath->query('//form[@data-product-form]/div[contains(@class, "vendor-product-save-bar")]')->item(0);
@@ -130,6 +143,10 @@ class VendorProductEditorLayoutTest extends TestCase
         $this->assertStringContainsString("editor.querySelectorAll('[data-product-editor-close]').forEach((button) => button.onclick = leave);", $script);
         $this->assertStringContainsString('const leave = () => { if (isDirty() && !window.confirm(texts.discard)) return; close(); };', $script);
         $this->assertMatchesRegularExpression("/window\\.addEventListener\\('beforeunload', \\(event\\) => \\{\\s*if \\(!editor\\.hidden && isDirty\\(\\)\\) \\{\\s*event\\.preventDefault\\(\\);/", $script);
+        // VPM-UX-01E-POLISH-01: the layout's "Products" h1 is hidden while the editor is open, and back with the list.
+        $this->assertStringContainsString("const pageTitle = document.querySelector('.vendor-page-title');", $script);
+        $this->assertStringContainsString('editor.hidden = false; if (pageTitle) pageTitle.hidden = true;', $script);
+        $this->assertStringContainsString('list.hidden = false; if (pageTitle) pageTitle.hidden = false;', $script);
         // Field messages: beside their fields, the bar's line asks to review them (or keeps the full text).
         $this->assertStringContainsString('fail(shown.first && !shown.unmatched ? texts.fixErrors : saveErrorText(answer.status, answer.body, texts, messages));', $script);
     }

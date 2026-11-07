@@ -213,7 +213,7 @@ class VendorProductCategoryRequiredTest extends TestCase
         // The saved value is the editor's state, never what the field happens to show.
         $this->assertStringContainsString("category_id: categoryValue === '' ? null : Number(categoryValue), price:", $script);
         $this->assertStringContainsString("categoryValue = product.category_id === null || product.category_id === undefined ? '' : String(product.category_id);", $script);
-        $this->assertStringContainsString("title.textContent = texts.add; categoryValue = ''; ownCategory = null; renderCategories();", $script, 'Add (and closing) starts from no category.');
+        $this->assertStringContainsString("title.textContent = texts.headingAdd; categoryValue = ''; ownCategory = null; renderCategories();", $script, 'Add (and closing) starts from no category.');
         $this->assertStringContainsString('categoryField.disabled = activeCategories === null;', $script);
         $this->assertStringContainsString("categoryRetry.addEventListener('click', loadCategories);", $script);
     }
