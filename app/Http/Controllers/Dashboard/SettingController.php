@@ -38,7 +38,8 @@ class SettingController extends Controller
     {
         $this->authorize('view', Setting::class);
 
-        $setting = Setting::singleton();
+        // SETTINGS-FIX-01 (SET-03): reading the page never creates the settings row.
+        $setting = Setting::forDisplay();
 
         return view('dashboard.settings.index', [
             'setting' => $setting,
@@ -53,12 +54,9 @@ class SettingController extends Controller
         $data = $request->validated();
         $oldFiles = [];
 
+        // SETTINGS-FIX-01 (SET-02, R-02): empty text fields go back to their defaults; empty links stay empty.
         if (array_key_exists('footer', $data)) {
-            $data['footer_content'] = array_replace(
-                Setting::footerDefaults(),
-                $setting->footer_content ?? [],
-                $data['footer'] ?? [],
-            );
+            $data['footer_content'] = Setting::mergeFooter($setting->footer_content, $data['footer'] ?? []);
         }
 
         unset($data['footer']);

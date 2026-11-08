@@ -96,6 +96,16 @@ class SiteAvailabilitySettingsTest extends TestCase
     {
         $super = $this->createAdmin(superAdmin: true);
 
+        // SETTINGS-FIX-01 (SET-03): viewing the page no longer creates the settings row, so before the first save no
+        // state is stored yet ("—"); the site is open by default.
+        $this->settingsPage($super)
+            ->assertSee('data-site-availability-effective="open"', false)
+            ->assertSee('data-site-availability-stored=""', false)
+            ->assertDontSee('data-site-availability-warning="launch"', false);
+        $this->assertDatabaseCount('settings', 0);
+
+        // Once the row exists, its never-changed state is the column default, open.
+        Setting::singleton();
         $this->settingsPage($super)
             ->assertSee('data-site-availability-effective="open"', false)
             ->assertSee('data-site-availability-stored="open"', false)
@@ -737,7 +747,7 @@ class SiteAvailabilitySettingsTest extends TestCase
 
         $this->assertStringContainsString('name="site_name"', $html);
         $this->assertStringContainsString('action="'.route('dashboard.setting.update').'"', $html);
-        $this->assertStringContainsString('>Save</button>', $html);
+        $this->assertStringContainsString('<span>Save settings</span>', $html); // SETTINGS-UX-02B: the form's own label.
         $this->assertStringNotContainsString('id="site-availability"', $html, 'No card for them (the header badge is Phase 3C).');
     }
 
@@ -794,13 +804,14 @@ class SiteAvailabilitySettingsTest extends TestCase
     }
 
     /**
-     * The rendered outcome message: exactly one, with the level's existing classes, exactly one role (the expected one)
-     * and the message text unchanged.
+     * The rendered outcome message: exactly one, with the level's classes (SETTINGS-UX-02B: the media page alert of
+     * that tone; info is the neutral one), exactly one role (the expected one) and the message text unchanged.
      */
     private function assertFlashElement(string $html, string $level, string $role, string $message): void
     {
-        $this->assertSame(1, preg_match_all('/<div [^>]*data-site-availability-flash[^>]*>(.*?)<\/div>/s', $html, $matches), 'One outcome message.');
-        $this->assertSame('<div class="alert alert-'.$level.'" role="'.$role.'" data-site-availability-flash>', strstr($matches[0][0], '>', true).'>');
+        $this->assertSame(1, preg_match_all('/<div [^>]*data-site-availability-flash[^>]*>.*?<p>(.*?)<\/p>/s', $html, $matches), 'One outcome message.');
+        $tone = ['success' => 'admin-media-alert is-success', 'info' => 'admin-media-alert', 'warning' => 'admin-media-alert is-warning', 'danger' => 'admin-media-alert is-error'][$level];
+        $this->assertSame('<div class="'.$tone.' mb-3" role="'.$role.'" data-site-availability-flash>', strstr($matches[0][0], '>', true).'>');
         $this->assertSame(1, substr_count($matches[0][0], 'role='), 'One role only.');
         $this->assertSame($message, trim($matches[1][0]));
     }

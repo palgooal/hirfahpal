@@ -1,4 +1,4 @@
-@php($footer = array_replace(\App\Models\Setting::footerDefaults(), $siteSetting?->footer_content ?? []))
+@php($footer = \App\Models\Setting::footerFor($siteSetting ?? null))
 <footer class="border-t border-sage bg-olive text-white lg:h-[355px]">
     <div class="mx-auto flex w-full max-w-[1280px] flex-col gap-9 px-4 pb-8 pt-10 sm:gap-12 sm:pb-10 sm:pt-14 lg:px-8">
         <div class="grid w-full grid-cols-2 gap-x-6 gap-y-9 sm:gap-10 lg:h-[159px] lg:grid-cols-5 lg:gap-12">
@@ -9,8 +9,26 @@
                 </div>
                 <p class="w-full max-w-[384px] text-right text-sm font-light leading-5 text-white/75">{{ $footer['description'] }}</p>
                 <div class="flex w-full items-center justify-start gap-2.5 pt-2">
+                    {{-- SETTINGS-FIX-02 (SET-08): each link's accessible name in the page language (AdminSettingsTranslationSeeder),
+                         read without auto-creating rows. --}}
+                    @php($socialText = function (string $key, string $default): string {
+                        $autoCreate = config('palgoals-locale.auto_create');
+                        config(['palgoals-locale.auto_create' => false]);
+
+                        try {
+                            return t('storefront.Footer_Social_'.$key, $default);
+                        } finally {
+                            config(['palgoals-locale.auto_create' => $autoCreate]);
+                        }
+                    })
+                    @php($socialNames = ['instagram' => $socialText('Instagram', 'Instagram'), 'facebook' => $socialText('Facebook', 'Facebook'), 'x' => $socialText('X', 'X')])
                     @foreach (['instagram' => 'footer-instagram.svg', 'facebook' => 'footer-facebook.svg', 'x' => 'footer-x.svg'] as $network => $icon)
-                        <a href="{{ $footer[$network.'_url'] ?: '#' }}" @if (! $footer[$network.'_url']) aria-disabled="true" @endif class="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/10" aria-label="{{ $network }}"><img src="{{ asset('assets/storefront/imgs/mcp/'.$icon) }}" alt="" class="h-4 w-4"></a>
+                        @if ($footer[$network.'_url'])
+                            <a href="{{ $footer[$network.'_url'] }}" class="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/10" aria-label="{{ $socialNames[$network] }}"><img src="{{ asset('assets/storefront/imgs/mcp/'.$icon) }}" alt="" class="h-4 w-4"></a>
+                        @else
+                            {{-- SETTINGS-FIX-01 (SET-02): no address, no link (the same icon, not a link to "#"). --}}
+                            <span class="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/10" aria-hidden="true"><img src="{{ asset('assets/storefront/imgs/mcp/'.$icon) }}" alt="" class="h-4 w-4"></span>
+                        @endif
                     @endforeach
                 </div>
             </div>

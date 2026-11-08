@@ -48,8 +48,19 @@ class Setting extends Model
         return [
             'timezone' => config('app.timezone', 'UTC'),
             'default_locale' => config('app.locale', 'en'),
-            'default_currency' => 'USD',
+            // SETTINGS-FIX-01 (SET-03): ILS, the platform currency (the storefront's fallback too). Only a new row gets
+            // it: a saved currency is never replaced.
+            'default_currency' => 'ILS',
         ];
+    }
+
+    /**
+     * SETTINGS-FIX-01 (SET-03): the settings row for reading, or, while there is none, an unsaved one holding the
+     * defaults. Never writes: the row is created only by an authorized save (singleton()).
+     */
+    public static function forDisplay(): self
+    {
+        return static::query()->where('singleton_key', 1)->first() ?? new static(static::defaults());
     }
 
     /**
@@ -84,6 +95,54 @@ class Setting extends Model
             'apple_pay_label' => 'Apple Pay',
             'cash_on_delivery_label' => 'الدفع عند الاستلام',
         ];
+    }
+
+    /** SETTINGS-FIX-01 (SET-01, SET-02): the footer's link fields: optional, and empty means no link. */
+    public const FOOTER_URL_FIELDS = ['instagram_url', 'facebook_url', 'x_url'];
+
+    /**
+     * SETTINGS-FIX-01 (SET-02, R-02): the footer as shown (storefront and settings form). Each text field is its saved
+     * text, or its default when the saved value is missing, empty or not text, so no heading or link label is ever
+     * empty. Each link field is its saved http(s) address, or empty (no link). Saved content of any other shape (a
+     * string, a number, null) counts as nothing saved. Read only: what is stored is never rewritten here.
+     *
+     * @return array<string, string>
+     */
+    public static function footerFor(?self $setting): array
+    {
+        $stored = is_array($setting?->footer_content) ? $setting->footer_content : [];
+        $footer = [];
+
+        foreach (static::footerDefaults() as $key => $default) {
+            $value = is_string($stored[$key] ?? null) ? trim($stored[$key]) : '';
+
+            $footer[$key] = in_array($key, self::FOOTER_URL_FIELDS, true)
+                ? (preg_match('#^https?://#i', $value) === 1 ? $value : '')
+                : ($value !== '' ? $value : $default);
+        }
+
+        return $footer;
+    }
+
+    /**
+     * SETTINGS-FIX-01 (SET-02, R-02): the footer content to save: the saved content (the defaults the first time; saved
+     * content that is not an object counts as none) with the submitted fields over it. A field left out keeps its saved
+     * value; a submitted empty (or whitespace-only) text field goes back to its default; an empty link field is saved
+     * empty (no link). Fields the footer does not have are ignored.
+     *
+     * @return array<string, mixed>
+     */
+    public static function mergeFooter(mixed $stored, array $submitted): array
+    {
+        $defaults = static::footerDefaults();
+        $footer = array_replace($defaults, is_array($stored) ? $stored : []);
+
+        foreach (array_intersect_key($submitted, $defaults) as $key => $value) {
+            $value = is_string($value) ? trim($value) : '';
+            $footer[$key] = $value !== '' || in_array($key, self::FOOTER_URL_FIELDS, true) ? $value : $defaults[$key];
+        }
+
+        return $footer;
     }
 
     public static function singleton(): self

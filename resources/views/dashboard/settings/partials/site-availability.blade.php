@@ -44,6 +44,8 @@
     // assertively (alert), confirmations politely (status).
     $flashLevel = in_array($flash['level'] ?? null, ['success', 'info', 'warning', 'danger'], true) ? $flash['level'] : 'info';
     $flashRole = in_array($flashLevel, ['danger', 'warning'], true) ? 'alert' : 'status';
+    // SETTINGS-UX-02B: the media page alerts (text and icon, never colour alone); info is the neutral alert.
+    $alertTones = ['success' => ['is-success', 'ph-check-circle'], 'info' => ['', 'ph-info'], 'warning' => ['is-warning', 'ph-warning'], 'danger' => ['is-error', 'ph-warning-circle']];
     // SA-FIX-1: the change time is stored in the app timezone (UTC) and shown in Palestine time, for display only.
     $changedAtLocal = $card['changed_at']?->copy()->setTimezone('Asia/Hebron');
     // SA-FIX-4B (D4), display only: the migration gives every row `open` with no change date, and only
@@ -53,28 +55,30 @@
 @endphp
 
 <div class="col-span-12" id="site-availability">
-    <div class="card">
-        <div class="card-header">
-            <h4 class="mb-1">{{ $saText('Site_Availability_Title', 'Site availability') }}</h4>
-            <p class="text-muted mb-0">{{ $saText('Site_Availability_Intro', 'Control whether the storefront is open, coming soon or under maintenance.') }}</p>
-        </div>
-
+    <div class="card admin-media-panel">
         <div class="card-body">
+            {{-- SETTINGS-UX-02B: the settings panels' heading (named by its tab when the tabs are on). --}}
+            <h2 class="admin-settings-panel-title px-0 pt-0">{{ $saText('Site_Availability_Title', 'Site availability') }}</h2>
+            <p class="admin-media-hint mb-4">{{ $saText('Site_Availability_Intro', 'Control whether the storefront is open, coming soon or under maintenance.') }}</p>
+
             @if (is_array($flash) && isset($flash['message']))
-                <div class="alert alert-{{ $flashLevel }}" role="{{ $flashRole }}" data-site-availability-flash>
-                    {{ $flash['message'] }}
+                <div class="{{ trim('admin-media-alert '.$alertTones[$flashLevel][0]) }} mb-3" role="{{ $flashRole }}" data-site-availability-flash>
+                    <i class="ph-duotone {{ $alertTones[$flashLevel][1] }}" aria-hidden="true"></i>
+                    <div class="admin-media-alert-content"><p>{{ $flash['message'] }}</p></div>
                 </div>
             @endif
 
             @if ($card['override'])
-                <div class="alert alert-warning" data-site-availability-override>
-                    {{ str_replace(':value', $card['override']->value, $saText('Site_Availability_Override_Warning', 'The site state is forced by the server settings (HIRFAH_SITE_AVAILABILITY=:value) and takes precedence over the state saved here. Changes are saved but do not apply until the value is set back to auto.')) }}
+                <div class="admin-media-alert is-warning mb-3" data-site-availability-override>
+                    <i class="ph-duotone ph-warning" aria-hidden="true"></i>
+                    <div class="admin-media-alert-content"><p>{{ str_replace(':value', $card['override']->value, $saText('Site_Availability_Override_Warning', 'The site state is forced by the server settings (HIRFAH_SITE_AVAILABILITY=:value) and takes precedence over the state saved here. Changes are saved but do not apply until the value is set back to auto.')) }}</p></div>
                 </div>
             @endif
 
             @unless ($ready)
-                <div class="alert alert-danger" data-site-availability-migration-pending>
-                    {{ $saText('Site_Availability_Migration_Pending', 'The site availability database migration has not been applied yet, so the state cannot be saved. Ask the technical administrator to run the migration.') }}
+                <div class="admin-media-alert is-error mb-3" data-site-availability-migration-pending>
+                    <i class="ph-duotone ph-warning-circle" aria-hidden="true"></i>
+                    <div class="admin-media-alert-content"><p>{{ $saText('Site_Availability_Migration_Pending', 'The site availability database migration has not been applied yet, so the state cannot be saved. Ask the technical administrator to run the migration.') }}</p></div>
                 </div>
             @endunless
 
@@ -113,7 +117,7 @@
                 @method('PATCH')
 
                 <fieldset @disabled(! $ready)>
-                    <legend class="h6 mb-3">{{ $saText('Site_Availability_Choose', 'Choose the site state') }}</legend>
+                    <legend class="admin-cat-form-legend pt-0 mb-3">{{ $saText('Site_Availability_Choose', 'Choose the site state') }}</legend>
 
                     {{-- U3: each control and its label in one row that follows the page direction (no .form-check, whose
                          Bootstrap float puts the control on the far side in RTL). --}}
@@ -146,7 +150,7 @@
                     {{-- U2: no Save button while the migration is pending (the notice above explains why). --}}
                     @if ($ready)
                         <div class="d-flex justify-content-end mt-4">
-                            <button type="submit" class="btn btn-primary" data-site-availability-save>{{ $saText('Site_Availability_Save', 'Save site state') }}</button>
+                            <button type="submit" class="btn btn-primary" data-site-availability-save><i class="ph-duotone ph-floppy-disk" aria-hidden="true"></i><span>{{ $saText('Site_Availability_Save', 'Save site state') }}</span></button>
                         </div>
                     @endif
                 </fieldset>

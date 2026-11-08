@@ -5,6 +5,7 @@ namespace Tests\Feature\Dashboard;
 use App\Models\Admin;
 use App\Models\RoleUser;
 use App\Models\Setting;
+use Database\Seeders\AdminSettingsTranslationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Schema;
@@ -22,7 +23,8 @@ class SettingTest extends TestCase
         $this->actingAs($admin, 'admin')->get(route('dashboard.setting.index'))
             ->assertOk()->assertSee('Settings');
 
-        $this->assertDatabaseCount('settings', 1);
+        // SETTINGS-FIX-01 (SET-03): viewing the settings never creates the settings row.
+        $this->assertDatabaseCount('settings', 0);
     }
 
     public function test_super_admin_can_open_settings(): void
@@ -61,12 +63,14 @@ class SettingTest extends TestCase
     {
         $admin = $this->adminWithAbilities(['settings.view']);
         Setting::singleton()->update(['footer_content' => ['tagline' => 'فخر الصناعة المحلية']]);
+        // SETTINGS-FIX-02 (SET-04): the section heading is now the translated dashboard.Settings_Footer_Title.
+        $this->seed(AdminSettingsTranslationSeeder::class);
 
         $this->actingAs($admin, 'admin')
             ->get(route('dashboard.setting.index'))
             ->assertOk()
             ->assertSee('فخر الصناعة المحلية')
-            ->assertSee('إعدادات الفوتر');
+            ->assertSee('إعدادات التذييل');
     }
 
     public function test_admin_can_update_footer_content(): void
