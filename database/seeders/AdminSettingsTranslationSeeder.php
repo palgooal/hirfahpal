@@ -31,6 +31,10 @@ class AdminSettingsTranslationSeeder extends Seeder
     public const TRANSLATIONS = [
         'dashboard.Settings_Footer_Title' => ['ar' => 'إعدادات التذييل', 'en' => 'Footer settings'],
         'dashboard.Settings_Footer_Hint' => ['ar' => 'هذه البيانات تظهر مباشرة في تذييل الموقع.', 'en' => 'These details appear directly in the site footer.'],
+        // FOOTER-I18N-01C: the two languages of the footer texts, and how an empty English field behaves.
+        'dashboard.Settings_Language_Ar' => ['ar' => 'العربية', 'en' => 'Arabic'],
+        'dashboard.Settings_Language_En' => ['ar' => 'الإنجليزية', 'en' => 'English'],
+        'dashboard.Settings_Footer_Language_Hint' => ['ar' => 'لكل نص حقل بالعربية وآخر بالإنجليزية. الحقل الفارغ يعرض النص الافتراضي الظاهر فيه.', 'en' => 'Each text has an Arabic and an English field. An empty field shows the default text displayed in it.'],
         'dashboard.Settings_Footer_Tagline' => ['ar' => 'الشعار النصي', 'en' => 'Tagline'],
         'dashboard.Settings_Footer_Description' => ['ar' => 'وصف الفوتر', 'en' => 'Footer description'],
         'dashboard.Settings_Footer_Instagram_Url' => ['ar' => 'رابط إنستغرام', 'en' => 'Instagram link'],
@@ -83,10 +87,39 @@ class AdminSettingsTranslationSeeder extends Seeder
         'dashboard.Settings_Group_Footer_Service_Hint' => ['ar' => 'عنوان عمود خدمة العملاء ونصوص روابطه.', 'en' => 'The customer service column title and its link texts.'],
         'dashboard.Settings_Group_Footer_Payment_Hint' => ['ar' => 'طرق الدفع المعروضة أسفل التذييل.', 'en' => 'The payment methods shown at the bottom of the footer.'],
         'dashboard.Settings_Group_Footer_Copyright_Hint' => ['ar' => 'النص الظاهر بعد اسم الموقع والسنة.', 'en' => 'The text shown after the site name and the year.'],
+        // FOOTER-SOCIAL-02B: the social links manager (partials/social-links.blade.php) and its validation messages.
+        'dashboard.Settings_Social_Url' => ['ar' => 'رابط :platform', 'en' => ':platform link'],
+        'dashboard.Settings_Social_Order' => ['ar' => 'الترتيب', 'en' => 'Order'],
+        'dashboard.Settings_Social_Order_Of' => ['ar' => 'ترتيب :platform', 'en' => ':platform order'],
+        'dashboard.Settings_Social_Enabled' => ['ar' => 'إظهار في التذييل', 'en' => 'Show in the footer'],
+        'dashboard.Settings_Social_Move_Up' => ['ar' => 'نقل :platform للأعلى', 'en' => 'Move :platform up'],
+        'dashboard.Settings_Social_Move_Down' => ['ar' => 'نقل :platform للأسفل', 'en' => 'Move :platform down'],
+        'dashboard.Settings_Social_Remove' => ['ar' => 'إزالة :platform', 'en' => 'Remove :platform'],
+        'dashboard.Settings_Social_Add' => ['ar' => 'إضافة منصة', 'en' => 'Add platform'],
+        'dashboard.Settings_Social_Add_Button' => ['ar' => 'إضافة', 'en' => 'Add'],
+        'dashboard.Settings_Social_Choose' => ['ar' => 'اختر منصة', 'en' => 'Choose a platform'],
+        'dashboard.Settings_Social_Empty' => ['ar' => 'لم تُضف أي منصة بعد.', 'en' => 'No platforms added yet.'],
+        'dashboard.Settings_Social_Moved' => ['ar' => ':platform الآن في الموضع :position من :count.', 'en' => ':platform is now in position :position of :count.'],
+        'dashboard.Settings_Social_Added' => ['ar' => 'أُضيفت :platform.', 'en' => ':platform added.'],
+        'dashboard.Settings_Social_Removed' => ['ar' => 'أُزيلت :platform.', 'en' => ':platform removed.'],
+        'dashboard.Settings_Social_Url_Invalid' => ['ar' => 'أدخل رابط :platform صحيحًا يبدأ بـ https://.', 'en' => 'Enter a valid :platform address starting with https://.'],
+        'dashboard.Settings_Social_Saved_Invalid' => ['ar' => 'هذا الرابط المحفوظ ليس رابط :platform صالحًا، لذلك لا يظهر في المتجر. صحّحه أو أزِل المنصة قبل الحفظ.', 'en' => 'This saved address is not a valid :platform address, so it is not shown in the store. Correct it or remove the platform before saving.'],
+        'dashboard.Settings_Social_Position_Distinct' => ['ar' => 'اختر ترتيبًا مختلفًا لكل منصة.', 'en' => 'Choose a different order for each platform.'],
         // The storefront footer's social links (their accessible names).
         'storefront.Footer_Social_Instagram' => ['ar' => 'إنستغرام', 'en' => 'Instagram'],
         'storefront.Footer_Social_Facebook' => ['ar' => 'فيسبوك', 'en' => 'Facebook'],
         'storefront.Footer_Social_X' => ['ar' => 'إكس (X)', 'en' => 'X'],
+        // FOOTER-SOCIAL-02A: the five new platforms (App\Support\Storefront\SocialPlatforms) and the new-tab notice.
+        'storefront.Footer_Social_WhatsApp' => ['ar' => 'واتساب', 'en' => 'WhatsApp'],
+        'storefront.Footer_Social_TikTok' => ['ar' => 'تيك توك', 'en' => 'TikTok'],
+        'storefront.Footer_Social_YouTube' => ['ar' => 'يوتيوب', 'en' => 'YouTube'],
+        'storefront.Footer_Social_LinkedIn' => ['ar' => 'لينكدإن', 'en' => 'LinkedIn'],
+        'storefront.Footer_Social_Telegram' => ['ar' => 'تيليجرام', 'en' => 'Telegram'],
+        // FOOTER-FIX-01: the footer's link columns as navigation landmarks.
+        'storefront.Footer_Nav_About' => ['ar' => 'عن الموقع', 'en' => 'About'],
+        'storefront.Footer_Nav_Links' => ['ar' => 'روابط مفيدة', 'en' => 'Useful links'],
+        'storefront.Footer_Nav_Service' => ['ar' => 'خدمة العملاء', 'en' => 'Customer service'],
+        'storefront.Footer_Social_New_Tab' => ['ar' => 'يُفتح في نافذة جديدة', 'en' => 'opens in a new tab'],
     ];
 
     /**
@@ -109,6 +142,9 @@ class AdminSettingsTranslationSeeder extends Seeder
         'dashboard.Default_Locale' => ['from' => 'Default Locale', 'to' => 'اللغة الافتراضية'],
         'dashboard.Default_Currency' => ['from' => 'Default Currency', 'to' => 'العملة الافتراضية'],
         'dashboard.Save' => ['from' => 'Save', 'to' => 'حفظ'],
+        // FOOTER-SOCIAL-02D: the notice after a save (SettingController::update(), read with auto-create, so the first
+        // save stored the English default in Arabic too).
+        'dashboard.Settings_updated_successfully' => ['from' => 'Settings updated successfully.', 'to' => 'تم حفظ الإعدادات بنجاح.'],
     ];
 
     /**

@@ -25,13 +25,21 @@
          request's validation errors or site-availability message; otherwise admin-settings.js follows the URL
          fragment (kept through the redirect after saving), else the first tab. --}}
     @php($generalErrors = collect(array_keys(App\Http\Requests\Dashboard\UpdateSettingRequest::GENERAL_LABELS))->filter(fn ($field) => $errors->has($field))->count())
-    @php($footerErrors = collect($errors->keys())->filter(fn ($field) => $field === 'footer' || str_starts_with($field, 'footer.'))->count())
+    @php($footerErrors = collect($errors->keys())->filter(fn ($field) => $field === 'footer' || $field === 'footer_social' || str_starts_with($field, 'footer.') || str_starts_with($field, 'footer_social.'))->count())
     @php($tabs = array_filter([
         'availability' => ($siteAvailability ?? null) ? $settingsText('Site_Availability_Title', 'Site availability') : null,
         'general' => $settingsText('Settings_Tab_General', 'General settings'),
         'footer' => $settingsText('Settings_Tab_Footer', 'Footer settings'),
     ]))
     @php($tabErrors = ['general' => $generalErrors, 'footer' => $footerErrors])
+    {{-- FOOTER-SOCIAL-02D: saved links (legacy fields included) that fail the platform check would stop the next save;
+         each gets a warning on its row. Only on a fresh page: after a failed save the sent values and their errors
+         take over. They suggest the Footer tab, used only when neither the server nor the URL fragment picks one. --}}
+    @php($socialWarnings = old('footer_social') === null
+        ? collect(App\Support\Storefront\SocialPlatforms::entriesFrom($setting->footer_content))
+            ->reject(fn (array $entry) => App\Support\Storefront\SocialPlatforms::isAllowedUrl($entry['platform'], $entry['url']))
+            ->pluck('platform')->all()
+        : [])
     @php($initialTab = match (true) {
         isset($tabs['availability']) && session()->has(App\Http\Controllers\Dashboard\SiteAvailabilityController::FLASH) => 'availability',
         $generalErrors > 0 => 'general',
@@ -45,7 +53,7 @@
     @php($required = $settingsText('Settings_Required', 'Required'))
     @php($fieldLabels = (new App\Http\Requests\Dashboard\UpdateSettingRequest)->attributes())
 
-    <div class="col-span-12 admin-media admin-cat-form admin-settings" data-settings-tabs data-initial-tab="{{ $initialTab }}">
+    <div class="col-span-12 admin-media admin-cat-form admin-settings" data-settings-tabs data-initial-tab="{{ $initialTab }}" data-suggested-tab="{{ $socialWarnings !== [] ? 'footer' : '' }}">
         <div class="admin-media-head">
             <p class="admin-media-intro">{{ t('dashboard.Settings_hint', 'Manage the core site configuration.') }}</p>
         </div>
@@ -87,8 +95,13 @@
                         <p>{{ $settingsText('Settings_Form_Errors', 'Please correct the following:') }}</p>
                         <ul>
                             @foreach ($errors->getMessages() as $field => $messages)
-                                {{-- footer.x_url is the field footer[x_url]. --}}
-                                @php($fieldId = str_starts_with($field, 'footer.') ? 'footer['.substr($field, 7).']' : $field)
+                                {{-- footer.en.tagline is the field footer[en][tagline] (FOOTER-I18N-01C). --}}
+                                @php($fieldId = match (true) {
+                                    str_starts_with($field, 'footer.') => 'footer['.implode('][', explode('.', substr($field, 7))).']',
+                                    str_starts_with($field, 'footer_social.') => str_replace('.', '_', $field),
+                                    $field === 'footer_social' => 'settings-social-add',
+                                    default => $field,
+                                })
                                 <li><a href="#{{ $fieldId }}">{{ $fieldLabels[$field] ?? $field }}</a>: {{ $messages[0] }}</li>
                             @endforeach
                         </ul>
@@ -180,6 +193,16 @@
                     <section class="admin-settings-panel" id="settings-panel-footer" aria-labelledby="settings-heading-footer" data-settings-panel="footer">
                         <h2 class="admin-settings-panel-title" id="settings-heading-footer">{{ $settingsText('Settings_Footer_Title', 'Footer settings') }}</h2>
                         <p class="admin-media-hint admin-settings-panel-hint">{{ $settingsText('Settings_Footer_Hint', 'These details appear directly in the site footer.') }}</p>
+                        <p class="admin-media-hint admin-settings-panel-hint pt-1">{{ $settingsText('Settings_Footer_Language_Hint', 'Each text has an Arabic and an English field. An empty field shows the default text displayed in it.') }}</p>
+
+                        {{-- FOOTER-I18N-01C: each text in both languages, side by side (stacked on narrow screens). Arabic shows its
+                             current text (flat fields before the first bilingual save); English shows only what was written in
+                             English, its approved default as the placeholder, never the Arabic text. --}}
+                        @php($footerEnglish = App\Models\Setting::savedFooterTexts($setting, 'en'))
+                        @php($footerLanguages = [
+                            'ar' => [$settingsText('Settings_Language_Ar', 'Arabic'), 'rtl', $footer, App\Models\Setting::footerDefaults('ar')],
+                            'en' => [$settingsText('Settings_Language_En', 'English'), 'ltr', $footerEnglish, App\Models\Setting::footerDefaults('en')],
+                        ])
 
                         {{-- [legend key, English legend, [[footer key, English label(, 'textarea')], ...]] --}}
                         @php($footerGroups = [
@@ -187,7 +210,6 @@
                                 ['tagline', 'Tagline'], ['description', 'Footer description', 'textarea'],
                             ]],
                             ['Settings_Group_Footer_Social', 'Social links', [
-                                ['instagram_url', 'Instagram link'], ['facebook_url', 'Facebook link'], ['x_url', 'X link'],
                             ]],
                             ['Settings_Group_Footer_Navigation', 'Navigation links', [
                                 ['about_title', 'About section title'], ['about_story_label', 'Story and vision link text'], ['about_authenticity_label', 'Authenticity and quality link text'], ['about_contact_label', 'Contact link text'],
@@ -218,8 +240,9 @@
                         @foreach ($footerGroups as [$groupKey, $groupDefault, $footerFields])
                             @php([$groupIcon, $groupHint] = $groupDetails[$groupKey])
                             @php($groupId = 'settings-group-'.strtolower(substr($groupKey, strlen('Settings_Group_Footer_'))))
-                            @php($groupErrors = collect($footerFields)->filter(fn ($field) => $errors->has('footer.'.$field[0]))->count())
-                            <details class="card admin-media-panel admin-settings-group" id="{{ $groupId }}" open data-settings-group data-settings-group-open="{{ $loop->first ? 'true' : 'false' }}" data-settings-group-errors="{{ $groupErrors }}">
+                            @php($groupErrors = collect($footerFields)->sum(fn ($field) => collect(App\Models\Setting::FOOTER_LOCALES)->filter(fn ($locale) => $errors->has('footer.'.$locale.'.'.$field[0]))->count())
+                                + ($groupKey === 'Settings_Group_Footer_Social' ? collect($errors->keys())->filter(fn ($field) => $field === 'footer_social' || str_starts_with($field, 'footer_social.'))->count() : 0))
+                            <details class="card admin-media-panel admin-settings-group" id="{{ $groupId }}" open data-settings-group data-settings-group-open="{{ $loop->first || ($groupKey === 'Settings_Group_Footer_Social' && $socialWarnings !== []) ? 'true' : 'false' }}" data-settings-group-errors="{{ $groupErrors }}">
                                 <summary class="admin-settings-group-summary">
                                     <span class="admin-settings-group-icon" aria-hidden="true"><i class="ph-duotone {{ $groupIcon }}"></i></span>
                                     <span class="admin-settings-group-text">
@@ -235,27 +258,36 @@
                                 <legend class="admin-cat-form-legend visually-hidden">{{ $settingsText($groupKey, $groupDefault) }}</legend>
                                 @if ($groupKey === 'Settings_Group_Footer_Social')
                                     <p class="admin-media-hint mb-0" id="settings-hint-social">{{ $settingsText('Settings_Hint_Social', 'Enter the full address, starting with https://. Leave it empty to hide the icon.') }}</p>
+                                    @error('footer_social')
+                                        <p class="admin-cat-form-error" id="footer_social_error">{{ $message }}</p>
+                                    @enderror
+                                    @include('dashboard.settings.partials.social-links')
                                 @endif
 
+                                @if ($footerFields !== [])
                                 <div class="admin-cat-form-row">
                                     @foreach ($footerFields as $field)
                                         @php([$key, $default] = $field)
                                         @php($type = $field[2] ?? 'input')
-                                        @php($isUrl = in_array($key, App\Models\Setting::FOOTER_URL_FIELDS, true))
                                         {{-- dashboard.Settings_Footer_<Field> (tagline → Tagline, x_url → X_Url). --}}
                                         @php($label = $settingsText('Settings_Footer_'.implode('_', array_map('ucfirst', explode('_', $key))), $default))
-                                        <div @class(['admin-cat-form-field', 'w-100' => $type === 'textarea'])>
-                                            {{-- SETTINGS-FIX-02 (SET-05): the field is footer[key], its validation key footer.key. --}}
-                                            @if ($type === 'textarea')
-                                                <x-form.textarea name="footer[{{ $key }}]" error-key="footer.{{ $key }}" label="{{ $label }}" :value="old('footer.'.$key, $footer[$key])" dir="auto" />
-                                            @elseif ($isUrl)
-                                                <x-form.input name="footer[{{ $key }}]" inputmode="url" error-key="footer.{{ $key }}" label="{{ $label }}" :value="old('footer.'.$key, $footer[$key])" dir="ltr" aria-describedby="settings-hint-social" />
-                                            @else
-                                                <x-form.input name="footer[{{ $key }}]" error-key="footer.{{ $key }}" label="{{ $label }}" :value="old('footer.'.$key, $footer[$key])" dir="auto" />
-                                            @endif
+                                        {{-- One field, two languages: footer[<locale>][key], validated as footer.<locale>.key (SET-05). --}}
+                                        <div class="admin-cat-form-field w-100 admin-settings-text-pair" role="group" aria-label="{{ $label }}" data-footer-text="{{ $key }}">
+                                            <div class="admin-cat-form-row">
+                                                @foreach ($footerLanguages as $locale => [$language, $direction, $values, $defaults])
+                                                    <div class="admin-cat-form-field">
+                                                        @if ($type === 'textarea')
+                                                            <x-form.textarea name="footer[{{ $locale }}][{{ $key }}]" error-key="footer.{{ $locale }}.{{ $key }}" label="{{ $label }} ({{ $language }})" :value="$values[$key] ?? ''" lang="{{ $locale }}" dir="{{ $direction }}" placeholder="{{ $defaults[$key] }}" />
+                                                        @else
+                                                            <x-form.input name="footer[{{ $locale }}][{{ $key }}]" error-key="footer.{{ $locale }}.{{ $key }}" label="{{ $label }} ({{ $language }})" :value="$values[$key] ?? ''" lang="{{ $locale }}" dir="{{ $direction }}" placeholder="{{ $defaults[$key] }}" />
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                            </div>
                                         </div>
                                     @endforeach
                                 </div>
+                                @endif
                             </fieldset>
                             </details>
                         @endforeach

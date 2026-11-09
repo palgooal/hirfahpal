@@ -7,6 +7,7 @@ use App\Models\Admin;
 use App\Models\Language;
 use App\Models\RoleUser;
 use App\Models\Setting;
+use App\Support\Storefront\SocialPlatforms;
 use Database\Seeders\AdminSettingsTranslationSeeder;
 use Database\Seeders\AdminSiteAvailabilityTranslationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -68,8 +69,14 @@ class SettingTabsTest extends TestCase
         foreach (array_keys(UpdateSettingRequest::GENERAL_LABELS) as $field) {
             $this->assertSame(1, substr_count($general, 'name="'.$field.'"'), $field);
         }
-        foreach (array_keys(Setting::footerDefaults()) as $field) {
-            $this->assertSame(1, substr_count($footer, 'name="footer['.$field.']"'), $field);
+        foreach (Setting::footerTextFields() as $field) {
+            foreach (Setting::FOOTER_LOCALES as $locale) {
+                $this->assertSame(1, substr_count($footer, 'name="footer['.$locale.']['.$field.']"'), $locale.' '.$field);
+            }
+        }
+        // FOOTER-SOCIAL-02B: the links are the social manager's rows, in the same form.
+        foreach (array_keys(SocialPlatforms::PLATFORMS) as $platform) {
+            $this->assertSame(1, substr_count($footer, 'name="footer_social['.$platform.'][url]"'), $platform);
         }
         $this->assertSame(6, substr_count($footer, '<legend class="admin-cat-form-legend visually-hidden">'));
         $this->assertSame(3, substr_count($general, '<legend class="admin-cat-form-legend">'));
@@ -103,14 +110,14 @@ class SettingTabsTest extends TestCase
     {
         $editor = $this->adminWith(['settings.view', 'settings.edit']);
 
-        $footer = $this->failedSave($editor, ['footer' => ['about_title' => str_repeat('ع', 101), 'tagline' => 'شعار جديد']]);
+        $footer = $this->failedSave($editor, ['footer' => ['ar' => ['about_title' => str_repeat('ع', 101), 'tagline' => 'شعار جديد']]]);
         $this->assertStringContainsString('data-initial-tab="footer"', $footer);
         $this->assertMatchesRegularExpression('#id="settings-tab-footer" aria-controls="settings-panel-footer" aria-selected="true" tabindex="0"#', $footer);
         $this->assertMatchesRegularExpression('#id="settings-tab-general" aria-controls="settings-panel-general" aria-selected="false"#', $footer);
         $this->assertStringContainsString('data-settings-tab-errors="1"', $footer);
-        $this->assertMatchesRegularExpression('#name="footer\[tagline\]"\s+value="شعار جديد"#u', $footer);
+        $this->assertMatchesRegularExpression('#name="footer\[ar\]\[tagline\]"\s+value="شعار جديد"#u', $footer);
 
-        $both = $this->failedSave($editor, ['site_name' => str_repeat('a', 256), 'footer' => ['x_url' => 'ftp://x', 'faq_label' => str_repeat('a', 256)]]);
+        $both = $this->failedSave($editor, ['site_name' => str_repeat('a', 256), 'footer' => ['ar' => ['faq_label' => str_repeat('a', 256)], 'en' => ['faq_label' => str_repeat('a', 256)]]]);
         $this->assertStringContainsString('data-initial-tab="general"', $both, 'The first tab with errors opens.');
         $this->assertMatchesRegularExpression('#id="settings-tab-general".*?data-settings-tab-errors="1"#s', $both);
         $this->assertMatchesRegularExpression('#id="settings-tab-footer".*?data-settings-tab-errors="2"#s', $both);
@@ -177,12 +184,17 @@ class SettingTabsTest extends TestCase
             $this->assertMatchesRegularExpression('#name="'.$field.'"[^>]*dir="ltr"[^>]*aria-describedby="settings-hint-#', $html, $field);
         }
         $this->assertSame(3, substr_count($html, '<span class="admin-cat-form-mark">'));
-        foreach (['email', 'phone', 'footer[instagram_url]', 'footer[facebook_url]', 'footer[x_url]'] as $field) {
+        foreach (['email', 'phone'] as $field) {
             $this->assertMatchesRegularExpression('#name="'.preg_quote($field, '#').'"[^>]*dir="ltr"#', $html, $field);
         }
-        $this->assertSame(3, substr_count($html, 'aria-describedby="settings-hint-social"'));
-        foreach (['site_name', 'footer[tagline]', 'footer[copyright]'] as $field) {
-            $this->assertMatchesRegularExpression('#name="'.preg_quote($field, '#').'"[^>]*dir="auto"#', $html, $field);
+        foreach (array_keys(SocialPlatforms::PLATFORMS) as $platform) {
+            $this->assertMatchesRegularExpression('#dir="ltr" id="footer_social_'.$platform.'_url" name="footer_social\['.$platform.'\]\[url\]"#', $html, $platform);
+        }
+        $this->assertSame(8, substr_count($html, 'aria-describedby="settings-hint-social"'));
+        $this->assertMatchesRegularExpression('#name="site_name"[^>]*dir="auto"#', $html);
+        // FOOTER-I18N-01C: each footer text in its language's direction.
+        foreach (['footer[ar][tagline]' => 'lang="ar" dir="rtl"', 'footer[en][tagline]' => 'lang="en" dir="ltr"', 'footer[ar][copyright]' => 'lang="ar" dir="rtl"', 'footer[en][copyright]' => 'lang="en" dir="ltr"'] as $field => $direction) {
+            $this->assertMatchesRegularExpression('#name="'.preg_quote($field, '#').'"[^>]*'.$direction.'#', $html, $field);
         }
     }
 
@@ -191,16 +203,16 @@ class SettingTabsTest extends TestCase
         $this->seed(AdminSettingsTranslationSeeder::class);
         $html = $this->actingAs($this->adminWith(['settings.view', 'settings.edit']), 'admin')->withSession(['locale' => 'ar'])
             ->from(route('dashboard.setting.index'))->followingRedirects()
-            ->put(route('dashboard.setting.update'), $this->payload(['site_name' => str_repeat('a', 256), 'footer' => ['x_url' => 'ftp://x']]))
+            ->put(route('dashboard.setting.update'), $this->payload(['site_name' => str_repeat('a', 256), 'footer_social' => ['x' => ['url' => 'ftp://x', 'enabled' => '1', 'position' => '1']]]))
             ->assertOk()->getContent();
 
         $summary = $this->between($html, 'id="settings-form-errors"', '</ul>');
         $this->assertStringContainsString('يرجى تصحيح ما يلي:', $summary);
         $this->assertMatchesRegularExpression('#<li><a href="\#site_name">[^<]+</a>: #u', $summary);
-        $this->assertStringContainsString('<li><a href="#footer[x_url]">رابط إكس (X)</a>: ', $summary);
-        $this->assertStringNotContainsString('footer.x_url', $summary);
+        $this->assertStringContainsString('<li><a href="#footer_social_x_url">رابط إكس (X)</a>: ', $summary);
+        $this->assertStringNotContainsString('footer_social.x.url', $summary);
         // Each link's target exists: the field's id.
-        $this->assertStringContainsString('id="footer[x_url]"', $html);
+        $this->assertStringContainsString('id="footer_social_x_url"', $html);
     }
 
     public function test_the_site_availability_card_uses_the_approved_panel_and_keeps_its_form(): void
@@ -234,13 +246,13 @@ class SettingTabsTest extends TestCase
         $this->assertSame(0, preg_match('#<summary[^>]*>(?:(?!</summary>).)*<button#s', $footer));
 
         // Every footer field sits in its group, unchanged.
-        foreach (['identity' => ['tagline', 'description'], 'social' => ['instagram_url', 'facebook_url', 'x_url'], 'copyright' => ['copyright']] as $group => $fields) {
+        foreach (['identity' => ['footer[ar][tagline]', 'footer[en][description]'], 'social' => ['footer_social[instagram][url]', 'footer_social[telegram][url]'], 'copyright' => ['footer[ar][copyright]', 'footer[en][copyright]']] as $group => $fields) {
             $body = $this->between($footer, 'id="settings-group-'.$group.'"', '</details>');
             foreach ($fields as $field) {
-                $this->assertStringContainsString('name="footer['.$field.']"', $body, $group.' '.$field);
+                $this->assertStringContainsString('name="'.$field.'"', $body, $group.' '.$field);
             }
         }
-        $this->assertSame(23, preg_match_all('#name="footer\[[a-z_]+\]"#', $footer));
+        $this->assertSame(40, preg_match_all('#name="footer\[(ar|en)\]\[[a-z_]+\]"#', $footer), 'The 20 text fields in both languages; the links are the social manager.');
 
         $ar = $this->actingAs($this->adminWith(['settings.view']), 'admin')->withSession(['locale' => 'ar'])
             ->get(route('dashboard.setting.index'))->getContent();
@@ -250,9 +262,9 @@ class SettingTabsTest extends TestCase
 
     public function test_groups_holding_errors_are_marked_to_open_and_keep_the_entered_values(): void
     {
-        $html = $this->failedSave($this->adminWith(['settings.view', 'settings.edit']), ['footer' => [
-            'x_url' => 'ftp://x', 'faq_label' => str_repeat('a', 256), 'tagline' => 'شعار جديد',
-        ]]);
+        $html = $this->failedSave($this->adminWith(['settings.view', 'settings.edit']), ['footer' => ['ar' => [
+            'faq_label' => str_repeat('a', 256), 'tagline' => 'شعار جديد',
+        ]], 'footer_social' => ['x' => ['url' => 'ftp://x', 'enabled' => '1', 'position' => '1']]]);
 
         foreach (['identity' => 0, 'social' => 1, 'navigation' => 0, 'service' => 1, 'payment' => 0, 'copyright' => 0] as $group => $count) {
             $this->assertMatchesRegularExpression('#id="settings-group-'.$group.'" open data-settings-group data-settings-group-open="[a-z]+" data-settings-group-errors="'.$count.'">#', $html, $group);
@@ -260,8 +272,8 @@ class SettingTabsTest extends TestCase
         $social = $this->between($html, 'id="settings-group-social"', '</summary>');
         $this->assertMatchesRegularExpression('#<span class="admin-settings-tab-alert"><span aria-hidden="true">1</span><span class="visually-hidden">[^<]+</span></span>#', $social);
         $this->assertStringNotContainsString('admin-settings-tab-alert', $this->between($html, 'id="settings-group-identity"', '</summary>'));
-        $this->assertMatchesRegularExpression('#name="footer\[tagline\]"\s+value="شعار جديد"#u', $html);
-        $this->assertStringContainsString('<li><a href="#footer[x_url]">', $html, 'The summary link targets the field in its group.');
+        $this->assertMatchesRegularExpression('#name="footer\[ar\]\[tagline\]"\s+value="شعار جديد"#u', $html);
+        $this->assertStringContainsString('<li><a href="#footer_social_x_url">', $html, 'The summary link targets the field in its group.');
     }
 
     private function page(Admin $admin): string

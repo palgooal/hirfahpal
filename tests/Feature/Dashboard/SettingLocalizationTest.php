@@ -8,6 +8,7 @@ use App\Models\Language;
 use App\Models\RoleUser;
 use App\Models\Setting;
 use App\Models\TranslationValue;
+use App\Support\Storefront\SocialPlatforms;
 use Database\Seeders\AdminSettingsTranslationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -36,9 +37,11 @@ class SettingLocalizationTest extends TestCase
 
     public function test_the_seeder_covers_exactly_the_keys_the_views_read_with_their_english_defaults(): void
     {
-        $this->assertCount(54, AdminSettingsTranslationSeeder::TRANSLATIONS);
+        $this->assertCount(83, AdminSettingsTranslationSeeder::TRANSLATIONS);
 
-        $view = file_get_contents(resource_path('views/dashboard/settings/index.blade.php'));
+        // FOOTER-SOCIAL-02B: the social links manager is a partial of the page.
+        $view = file_get_contents(resource_path('views/dashboard/settings/index.blade.php'))
+            .file_get_contents(resource_path('views/dashboard/settings/partials/social-links.blade.php'));
         $defaults = [];
         preg_match_all("/\\\$settingsText\('([A-Za-z_]+)', '([^']+)'\)/", $view, $matches, PREG_SET_ORDER);
         foreach ($matches as [, $key, $default]) {
@@ -55,16 +58,35 @@ class SettingLocalizationTest extends TestCase
         foreach ($matches as [, $key, $default]) {
             $defaults['dashboard.Settings_Footer_'.implode('_', array_map('ucfirst', explode('_', $key)))] = $default;
         }
+        // The three legacy link fields have no input of their own any more (FOOTER-SOCIAL-02B); their labels still
+        // name them in validation messages.
+        foreach (UpdateSettingRequest::FOOTER_LABELS as $key => $default) {
+            $defaults['dashboard.Settings_Footer_'.implode('_', array_map('ucfirst', explode('_', $key)))] = $default;
+        }
+        // Validation texts read by the request itself.
+        preg_match_all("/\\\$this->label\('([A-Za-z_]+)', '([^']+)'\)/", file_get_contents(app_path('Http/Requests/Dashboard/UpdateSettingRequest.php')), $matches, PREG_SET_ORDER);
+        foreach ($matches as [, $key, $default]) {
+            $defaults['dashboard.'.$key] = $default;
+        }
         $footer = file_get_contents(resource_path('views/storefront/partials/footer.blade.php'));
-        preg_match_all("/\\\$socialText\('([A-Za-z]+)', '([^']+)'\)/", $footer, $matches, PREG_SET_ORDER);
+        preg_match_all("/\\\$socialText\('([A-Za-z_]+)', '([^']+)'\)/", $footer, $matches, PREG_SET_ORDER);
         foreach ($matches as [, $key, $default]) {
             $defaults['storefront.Footer_Social_'.$key] = $default;
         }
+        // FOOTER-FIX-01: the footer's landmark names.
+        preg_match_all("/\\\$footerText\('([A-Za-z_]+)', '([^']+)'\)/", $footer, $matches, PREG_SET_ORDER);
+        foreach ($matches as [, $key, $default]) {
+            $defaults['storefront.Footer_'.$key] = $default;
+        }
+        // FOOTER-SOCIAL-02A: the platform names come from the platform list.
+        foreach (SocialPlatforms::PLATFORMS as [$key, $default]) {
+            $defaults['storefront.Footer_Social_'.$key] = $default;
+        }
 
-        $this->assertCount(51, array_filter(array_keys($defaults), fn ($key) => str_starts_with($key, 'dashboard.')));
+        $this->assertCount(71, array_filter(array_keys($defaults), fn ($key) => str_starts_with($key, 'dashboard.')));
         $labels = array_map(
             fn ($key) => strtolower(substr($key, strlen('dashboard.Settings_Footer_'))),
-            array_values(array_filter(array_keys($defaults), fn ($key) => str_starts_with($key, 'dashboard.Settings_Footer_') && ! in_array($key, ['dashboard.Settings_Footer_Title', 'dashboard.Settings_Footer_Hint'], true)))
+            array_values(array_filter(array_keys($defaults), fn ($key) => str_starts_with($key, 'dashboard.Settings_Footer_') && ! in_array($key, ['dashboard.Settings_Footer_Title', 'dashboard.Settings_Footer_Hint', 'dashboard.Settings_Footer_Language_Hint'], true)))
         );
         $fields = array_keys(Setting::footerDefaults());
         sort($labels);
@@ -94,10 +116,12 @@ class SettingLocalizationTest extends TestCase
         $en->assertSee('Footer settings')->assertSee('These details appear directly in the site footer.')
             ->assertSee('Instagram link')->assertSee('Cash on delivery label')->assertDontSee('إعدادات التذييل');
 
-        // Every one of the 23 labels, bound to its field.
-        foreach (Setting::footerDefaults() as $key => $value) {
+        // Every one of the 20 text labels, bound to its field (the links are the social manager's, FOOTER-SOCIAL-02B).
+        foreach (array_diff_key(Setting::footerDefaults(), array_flip(Setting::FOOTER_URL_FIELDS)) as $key => $value) {
             $label = AdminSettingsTranslationSeeder::TRANSLATIONS['dashboard.Settings_Footer_'.implode('_', array_map('ucfirst', explode('_', $key)))]['en'];
-            $this->assertMatchesRegularExpression('#for="footer\['.$key.'\]">\s*'.preg_quote(e($label), '#').'\s*</label>#u', $en->getContent(), $key);
+            // FOOTER-I18N-01C: one field per language, named by its label and language.
+            $this->assertMatchesRegularExpression('#for="footer\[ar\]\['.$key.'\]">\s*'.preg_quote(e($label.' (Arabic)'), '#').'\s*</label>#u', $en->getContent(), $key);
+            $this->assertMatchesRegularExpression('#for="footer\[en\]\['.$key.'\]">\s*'.preg_quote(e($label.' (English)'), '#').'\s*</label>#u', $en->getContent(), $key);
         }
     }
 
@@ -122,7 +146,7 @@ class SettingLocalizationTest extends TestCase
         $this->seed(AdminSettingsTranslationSeeder::class);
 
         $this->assertSame($first, TranslationValue::orderBy('id')->get(['id', 'key', 'locale', 'value', 'updated_at'])->toArray());
-        $this->assertSame(135, TranslationValue::count(), '133 missing rows (67 keys in two languages, one existing) inserted, the two existing rows kept.');
+        $this->assertSame(195, TranslationValue::count(), '193 missing rows (97 keys in two languages, one existing) inserted, the two existing rows kept.');
         $this->assertSame('تذييل الموقع', TranslationValue::where('key', 'dashboard.Settings_Footer_Title')->where('locale', 'ar')->value('value'));
         $this->assertSame('قيمة أخرى', TranslationValue::where('key', 'dashboard.Something_else')->value('value'));
         $this->assertFalse(cache()->has('translation.en.dashboard.Settings_Footer_Hint'), 'A newly inserted row clears its stale cache entry.');
@@ -145,6 +169,8 @@ class SettingLocalizationTest extends TestCase
         // SETTINGS-UX-02B: the page's button now reads dashboard.Settings_Save; the shared dashboard.Save correction
         // stays for the other pages that read it.
         unset($corrections['dashboard.Save']);
+        // FOOTER-SOCIAL-02D: the save notice is read by SettingController, not by the page.
+        unset($corrections['dashboard.Settings_updated_successfully']);
         ksort($read);
         ksort($corrections);
         $this->assertSame($read, $corrections, 'Every general label the page reads, with its English default.');
@@ -192,6 +218,29 @@ class SettingLocalizationTest extends TestCase
         $this->assertMatchesRegularExpression('#for="site_name">\s*Site Name#u', $en);
     }
 
+    public function test_the_auto_created_english_save_notice_is_corrected_in_arabic_only_and_an_edited_one_is_kept(): void
+    {
+        // What the first save stored through t()'s auto-create: the English default in both locales.
+        TranslationValue::create(['key' => 'dashboard.Settings_updated_successfully', 'locale' => 'ar', 'value' => 'Settings updated successfully.']);
+        TranslationValue::create(['key' => 'dashboard.Settings_updated_successfully', 'locale' => 'en', 'value' => 'Settings updated successfully.']);
+        cache()->put('translation.ar.dashboard.Settings_updated_successfully', 'Settings updated successfully.', 60);
+
+        $this->seed(AdminSettingsTranslationSeeder::class);
+        $this->seed(AdminSettingsTranslationSeeder::class);
+
+        $this->assertSame('تم حفظ الإعدادات بنجاح.', $this->value('dashboard.Settings_updated_successfully', 'ar'));
+        $this->assertSame('Settings updated successfully.', $this->value('dashboard.Settings_updated_successfully', 'en'));
+        $this->assertSame(1, TranslationValue::where('key', 'dashboard.Settings_updated_successfully')->where('locale', 'ar')->count());
+        $this->assertFalse(cache()->has('translation.ar.dashboard.Settings_updated_successfully'));
+
+        // An admin's own wording, or one that differs only in case, is never replaced.
+        foreach (['تم الحفظ', 'settings updated successfully.'] as $custom) {
+            TranslationValue::where('key', 'dashboard.Settings_updated_successfully')->where('locale', 'ar')->update(['value' => $custom]);
+            $this->seed(AdminSettingsTranslationSeeder::class);
+            $this->assertSame($custom, $this->value('dashboard.Settings_updated_successfully', 'ar'));
+        }
+    }
+
     public function test_the_old_arabic_footer_heading_is_corrected_and_an_edited_one_is_kept(): void
     {
         TranslationValue::create(['key' => 'dashboard.Settings_Footer_Title', 'locale' => 'ar', 'value' => 'إعدادات الفوتر']);
@@ -213,14 +262,15 @@ class SettingLocalizationTest extends TestCase
     {
         $this->seed(AdminSettingsTranslationSeeder::class);
         $rows = TranslationValue::count();
-        $invalid = $this->payload(['site_name' => str_repeat('a', 256), 'footer' => ['about_title' => str_repeat('ع', 101), 'x_url' => 'ftp://x']]);
+        $invalid = $this->payload(['site_name' => str_repeat('a', 256), 'footer' => ['en' => ['about_title' => str_repeat('ع', 101)]],
+            'footer_social' => ['x' => ['url' => 'ftp://x', 'enabled' => '1', 'position' => '1']]]);
 
-        foreach (['ar' => ['اسم الموقع', 'عنوان قسم عن الموقع', 'رابط إكس (X)'], 'en' => ['Site Name', 'About section title', 'X link']] as $locale => $labels) {
+        foreach (['ar' => ['اسم الموقع', 'عنوان قسم عن الموقع (الإنجليزية)', 'إكس (X)'], 'en' => ['Site Name', 'About section title (English)', 'X']] as $locale => $labels) {
             $this->actingAs($this->editor(), 'admin')->withSession(['locale' => $locale])->from(route('dashboard.setting.index'))
-                ->put(route('dashboard.setting.update'), $invalid)->assertSessionHasErrors(['site_name', 'footer.about_title', 'footer.x_url']);
+                ->put(route('dashboard.setting.update'), $invalid)->assertSessionHasErrors(['site_name', 'footer.en.about_title', 'footer_social.x.url']);
 
             $errors = session('errors')->getBag('default');
-            foreach (['site_name', 'footer.about_title', 'footer.x_url'] as $i => $field) {
+            foreach (['site_name', 'footer.en.about_title', 'footer_social.x.url'] as $i => $field) {
                 $message = $errors->first($field);
                 $this->assertStringContainsString($labels[$i], $message, "{$locale} {$field}");
                 $this->assertDoesNotMatchRegularExpression('/footer|about[ _]title|x[ _]url|site[ _]name/', $message, "{$locale} {$field}: no technical key.");
@@ -236,22 +286,22 @@ class SettingLocalizationTest extends TestCase
     {
         $page = route('dashboard.setting.index');
         $html = $this->actingAs($this->editor(), 'admin')->from($page)->followingRedirects()
-            ->put(route('dashboard.setting.update'), $this->payload(['footer' => [
-                'instagram_url' => 'ftp://example.com/a',
+            ->put(route('dashboard.setting.update'), $this->payload(['footer' => ['ar' => [
+                'links_title' => str_repeat('ل', 101),
                 'about_title' => str_repeat('ع', 101),
                 'tagline' => 'شعار جديد',
-            ]]))
+            ]]]))
             ->assertOk()->getContent();
 
-        foreach (['instagram_url' => 'ftp://example.com/a', 'about_title' => str_repeat('ع', 101)] as $key => $value) {
+        foreach (['links_title' => str_repeat('ل', 101), 'about_title' => str_repeat('ع', 101)] as $key => $value) {
             $this->assertMatchesRegularExpression(
-                '#name="footer\['.$key.'\]"\s+value="'.preg_quote(e($value), '#').'"\s+class="form-control is-invalid"[^>]*/>\s*<div class="invalid-feedback">\s*\S#u',
+                '#name="footer\[ar\]\['.$key.'\]"\s+value="'.preg_quote(e($value), '#').'"\s+class="form-control is-invalid"[^>]*/>\s*<div class="invalid-feedback">\s*\S#u',
                 $html,
                 "{$key}: marked invalid, the entered value kept, the message right under it."
             );
         }
         // A valid field keeps its entered value and is not marked invalid.
-        $this->assertMatchesRegularExpression('#name="footer\[tagline\]"\s+value="شعار جديد"\s+class="form-control"[^>]*/>#u', $html);
+        $this->assertMatchesRegularExpression('#name="footer\[ar\]\[tagline\]"\s+value="شعار جديد"\s+class="form-control"[^>]*/>#u', $html);
         $this->assertSame(2, substr_count($html, 'class="invalid-feedback"'));
         $this->assertNull(DB::table('settings')->value('footer_content'), 'Nothing is saved.');
     }
@@ -261,11 +311,11 @@ class SettingLocalizationTest extends TestCase
         $page = route('dashboard.setting.index');
         $long = str_repeat('ص', 2001);
         $html = $this->actingAs($this->editor(), 'admin')->from($page)->followingRedirects()
-            ->put(route('dashboard.setting.update'), $this->payload(['footer' => ['description' => $long]]))
+            ->put(route('dashboard.setting.update'), $this->payload(['footer' => ['en' => ['description' => $long]]]))
             ->assertOk()->getContent();
 
         $this->assertMatchesRegularExpression(
-            '#<textarea\s+id="footer\[description\]"\s+name="footer\[description\]"\s+rows="4"\s+class="form-control is-invalid"[^>]*>'.$long.'</textarea>\s*<div class="invalid-feedback">\s*\S#u',
+            '#<textarea\s+id="footer\[en\]\[description\]"\s+name="footer\[en\]\[description\]"\s+rows="4"\s+class="form-control is-invalid"[^>]*>'.$long.'</textarea>\s*<div class="invalid-feedback">\s*\S#u',
             $html
         );
         $this->assertSame(1, substr_count($html, 'class="invalid-feedback"'));
@@ -290,8 +340,8 @@ class SettingLocalizationTest extends TestCase
     {
         $html = $this->actingAs($this->editor(), 'admin')->get(route('dashboard.setting.index'))->assertOk()->getContent();
 
-        $this->assertSame(3, preg_match_all('#<textarea\b#', $html));
-        foreach (['site_description', 'address', 'footer[description]'] as $name) {
+        $this->assertSame(4, preg_match_all('#<textarea\b#', $html));
+        foreach (['site_description', 'address', 'footer[ar][description]', 'footer[en][description]'] as $name) {
             $quoted = preg_quote($name, '#');
             $this->assertMatchesRegularExpression('#<label for="'.$quoted.'">#', $html, $name);
             $this->assertMatchesRegularExpression('#<textarea\s+id="'.$quoted.'"\s+name="'.$quoted.'"#', $html, $name);
@@ -311,7 +361,7 @@ class SettingLocalizationTest extends TestCase
 
     // ---------------------------------------------------------------- SET-08: social links
 
-    public function test_social_links_have_translated_accessible_names_and_inactive_icons_stay_hidden(): void
+    public function test_social_links_have_translated_accessible_names_and_an_empty_one_is_not_rendered(): void
     {
         $this->seed(AdminSettingsTranslationSeeder::class);
         Setting::singleton()->update(['footer_content' => array_replace(Setting::footerDefaults(), [
@@ -319,20 +369,19 @@ class SettingLocalizationTest extends TestCase
         ])]);
 
         $ar = $this->footerHtml($this->withSession(['locale' => 'ar'])->get(route('home'))->assertOk()->getContent());
-        $this->assertStringContainsString('href="https://instagram.com/hirfah" class="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/10" aria-label="إنستغرام"', $ar);
-        $this->assertStringContainsString('href="https://facebook.com/hirfah" class="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/10" aria-label="فيسبوك"', $ar);
+        $this->assertStringContainsString('href="https://instagram.com/hirfah" target="_blank" rel="noopener noreferrer" class="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage" aria-label="إنستغرام (يُفتح في نافذة جديدة)"', $ar);
+        $this->assertStringContainsString('href="https://facebook.com/hirfah" target="_blank" rel="noopener noreferrer" class="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage" aria-label="فيسبوك (يُفتح في نافذة جديدة)"', $ar);
         $this->assertStringNotContainsString('aria-label="instagram"', $ar);
 
         $en = $this->footerHtml($this->withSession(['locale' => 'en'])->get(route('home'))->assertOk()->getContent());
-        $this->assertStringContainsString('aria-label="Instagram"', $en);
-        $this->assertStringContainsString('aria-label="Facebook"', $en);
+        $this->assertStringContainsString('aria-label="Instagram (opens in a new tab)"', $en);
+        $this->assertStringContainsString('aria-label="Facebook (opens in a new tab)"', $en);
 
         foreach ([$ar, $en] as $footer) {
-            // X has no address: the same icon, hidden, not a link, without a name of its own.
-            $this->assertSame(1, preg_match_all('#<span class="flex h-8 w-8[^"]*" aria-hidden="true"><img src="[^"]*footer-x\.svg" alt="" class="h-4 w-4"></span>#', $footer));
-            $this->assertStringNotContainsString('footer-x.svg" alt="" class="h-4 w-4"></a>', $footer);
-            $this->assertStringNotContainsString('aria-label="X"', $footer);
-            $this->assertStringNotContainsString('aria-label="إكس (X)"', $footer);
+            // FOOTER-SOCIAL-02A: X has no address, so nothing of it is rendered (no inactive icon any more).
+            $this->assertStringNotContainsString('data-footer-social="x"', $footer);
+            $this->assertStringNotContainsString('footer-x.svg', $footer);
+            $this->assertStringNotContainsString('aria-hidden="true"><img', $footer);
         }
     }
 
@@ -341,9 +390,9 @@ class SettingLocalizationTest extends TestCase
         $this->seed(AdminSettingsTranslationSeeder::class);
         Setting::singleton()->update(['footer_content' => array_replace(Setting::footerDefaults(), ['x_url' => 'https://x.com/hirfah'])]);
 
-        $this->assertStringContainsString('href="https://x.com/hirfah" class="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/10" aria-label="إكس (X)"',
+        $this->assertStringContainsString('href="https://x.com/hirfah" target="_blank" rel="noopener noreferrer" class="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage" aria-label="إكس (X) (يُفتح في نافذة جديدة)"',
             $this->footerHtml($this->withSession(['locale' => 'ar'])->get(route('home'))->getContent()));
-        $this->assertStringContainsString('aria-label="X"', $this->footerHtml($this->withSession(['locale' => 'en'])->get(route('home'))->getContent()));
+        $this->assertStringContainsString('aria-label="X (opens in a new tab)"', $this->footerHtml($this->withSession(['locale' => 'en'])->get(route('home'))->getContent()));
     }
 
     private function value(string $key, string $locale): ?string

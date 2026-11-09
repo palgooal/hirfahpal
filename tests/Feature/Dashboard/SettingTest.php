@@ -79,11 +79,12 @@ class SettingTest extends TestCase
 
         $this->actingAs($admin, 'admin')
             ->put(route('dashboard.setting.update'), $this->validPayload([
-                'footer' => [
+                // FOOTER-I18N-01C / FOOTER-SOCIAL-02B: the texts per language, the links through the social manager.
+                'footer' => ['ar' => [
                     'tagline' => 'منتجات فلسطينية أصلية',
-                    'instagram_url' => 'https://instagram.com/hirfah',
                     'copyright' => 'حقوق محفوظة للاختبار.',
-                ],
+                ]],
+                'footer_social' => ['instagram' => ['url' => 'https://instagram.com/hirfah', 'enabled' => '1', 'position' => '1']],
             ]))
             ->assertRedirect(route('dashboard.setting.index'));
 

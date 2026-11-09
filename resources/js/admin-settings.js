@@ -71,9 +71,180 @@ export function openGroupOf(element) {
     }
 }
 
-/** The index of the first tab: the server's choice, else the fragment's, else the first. */
-export function initialIndex(keys, initial = '', hash = '') {
-    const key = keys.includes(initial) ? initial : keyFromHash(hash, keys);
+/** FOOTER-SOCIAL-02B: the order after moving one platform up or down (unchanged at either end). */
+export function moveKey(order, key, direction) {
+    const from = order.indexOf(key);
+    const to = direction === 'up' ? from - 1 : from + 1;
+
+    if (from < 0 || to < 0 || to >= order.length) {
+        return order;
+    }
+
+    const next = [...order];
+    [next[from], next[to]] = [next[to], next[from]];
+
+    return next;
+}
+
+/** A message with its :platform, :position and :count filled in. */
+export function fillText(template, values) {
+    return String(template ?? '').replace(/:(platform|position|count)/g, (match, name) => (values[name] ?? match));
+}
+
+/**
+ * FOOTER-SOCIAL-02B: the footer's social links in the settings form (partials/social-links.blade.php). Without this
+ * script every platform's row is shown with an order field. Here only the added platforms are shown; Move up / Move
+ * down / Remove buttons and an Add platform control manage them, the order fields are hidden and kept in step (1 to n
+ * for the added platforms, then the others), and each change is announced in the live region. Nothing is submitted:
+ * the buttons are type="button" and the form posts the rows as they are.
+ */
+export function initSocialLinks(root) {
+    const list = root?.querySelector('[data-social-list]');
+
+    if (!list) {
+        return null;
+    }
+
+    const rows = [...list.querySelectorAll('[data-social-row]')];
+    const byKey = new Map(rows.map((row) => [row.dataset.socialRow, row]));
+    const select = root.querySelector('[data-social-add-select]');
+    const addBox = root.querySelector('[data-social-add]');
+    const empty = root.querySelector('[data-social-empty]');
+    const status = root.querySelector('[data-social-status]');
+    const texts = { moved: root.dataset?.textMoved, added: root.dataset?.textAdded, removed: root.dataset?.textRemoved };
+    let shown = rows.filter((row) => row.dataset.socialConfigured === '1').map((row) => row.dataset.socialRow);
+
+    const part = (row, selector) => row.querySelector(selector);
+    const announce = (template, key) => {
+        if (status) {
+            status.textContent = fillText(template, {
+                platform: byKey.get(key)?.dataset.socialName ?? key,
+                position: shown.indexOf(key) + 1,
+                count: shown.length,
+            });
+        }
+    };
+
+    const render = () => {
+        const hidden = rows.map((row) => row.dataset.socialRow).filter((key) => !shown.includes(key));
+
+        [...shown, ...hidden].forEach((key, index) => {
+            const row = byKey.get(key);
+            const at = shown.indexOf(key);
+            const up = part(row, '[data-social-move="up"]');
+            const down = part(row, '[data-social-move="down"]');
+            const position = part(row, '[data-social-position]');
+
+            list.appendChild(row);
+            row.hidden = at < 0;
+            row.dataset.socialConfigured = at < 0 ? '0' : '1';
+
+            if (position) {
+                position.value = String(index + 1);
+            }
+            if (up) {
+                up.disabled = at <= 0;
+            }
+            if (down) {
+                down.disabled = at < 0 || at === shown.length - 1;
+            }
+        });
+
+        if (select) {
+            [...select.options].filter((option) => option.value).forEach((option) => {
+                option.hidden = shown.includes(option.value);
+                option.disabled = option.hidden;
+            });
+
+            if (shown.includes(select.value)) {
+                select.value = '';
+            }
+        }
+
+        if (addBox) {
+            addBox.hidden = shown.length === rows.length;
+        }
+        if (empty) {
+            empty.hidden = shown.length > 0;
+        }
+    };
+
+    const move = (key, direction) => {
+        shown = moveKey(shown, key, direction);
+        render();
+
+        const row = byKey.get(key);
+        const pressed = part(row, `[data-social-move="${direction}"]`);
+        const other = part(row, `[data-social-move="${direction === 'up' ? 'down' : 'up'}"]`);
+        (pressed && !pressed.disabled ? pressed : other)?.focus();
+        announce(texts.moved, key);
+    };
+
+    const remove = (key) => {
+        const row = byKey.get(key);
+        const url = part(row, '[data-social-url]');
+        const enabled = part(row, '[data-social-enabled]');
+
+        if (url) {
+            url.value = ''; // A platform without an address is not saved.
+        }
+        if (enabled) {
+            enabled.checked = true;
+        }
+
+        announce(texts.removed, key);
+        shown = shown.filter((item) => item !== key);
+        render();
+        (addBox && !addBox.hidden ? select : null)?.focus();
+    };
+
+    const add = (key) => {
+        if (!byKey.has(key) || shown.includes(key)) {
+            return;
+        }
+
+        const row = byKey.get(key);
+        const enabled = part(row, '[data-social-enabled]');
+
+        if (enabled) {
+            enabled.checked = true;
+        }
+
+        shown = [...shown, key];
+        render();
+        part(row, '[data-social-url]')?.focus();
+        announce(texts.added, key);
+    };
+
+    rows.forEach((row) => {
+        const key = row.dataset.socialRow;
+        const order = part(row, '[data-social-order-field]');
+        const actions = part(row, '[data-social-actions]');
+
+        if (order) {
+            order.hidden = !part(order, '.is-invalid'); // Kept in view only when it holds an error.
+        }
+        if (actions) {
+            actions.hidden = false;
+        }
+
+        part(row, '[data-social-move="up"]')?.addEventListener('click', () => move(key, 'up'));
+        part(row, '[data-social-move="down"]')?.addEventListener('click', () => move(key, 'down'));
+        part(row, '[data-social-remove]')?.addEventListener('click', () => remove(key));
+    });
+
+    root.querySelector('[data-social-add-button]')?.addEventListener('click', () => add(select?.value ?? ''));
+    render();
+
+    return { add, remove, move, shown: () => [...shown] };
+}
+
+/**
+ * The index of the first tab: the server's choice, else the fragment's, else the suggested one (FOOTER-SOCIAL-02D: a
+ * saved social link needing attention), else the first.
+ */
+export function initialIndex(keys, initial = '', hash = '', suggested = '') {
+    const key = keys.includes(initial) ? initial : (keyFromHash(hash, keys) ?? (keys.includes(suggested) ? suggested : null));
     const index = key ? keys.indexOf(key) : -1;
 
     return index >= 0 ? index : 0;
@@ -192,7 +363,7 @@ export function initSettingsTabs(root, { direction = 'ltr', hash = '', history =
         });
     }
 
-    select(initialIndex(keys, root.dataset?.initialTab ?? '', hash));
+    select(initialIndex(keys, root.dataset?.initialTab ?? '', hash, root.dataset?.suggestedTab ?? ''));
     tablist.hidden = false;
     root.classList?.add('is-tabbed');
 
@@ -204,6 +375,7 @@ if (typeof document !== 'undefined') {
         const root = document.querySelector('[data-settings-tabs]');
 
         initSettingsGroups(root);
+        initSocialLinks(document.querySelector('[data-social-links]'));
         initSettingsTabs(root, {
             direction: document.documentElement.dir === 'rtl' ? 'rtl' : 'ltr',
             hash: window.location.hash,

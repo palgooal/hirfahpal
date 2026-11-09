@@ -7,6 +7,7 @@ use App\Http\Requests\Dashboard\UpdateHomeContentRequest;
 use App\Http\Requests\Dashboard\UpdateSettingRequest;
 use App\Models\Setting;
 use App\Support\SiteAvailability\SiteAvailabilitySettings;
+use App\Support\Storefront\SocialPlatforms;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -54,12 +55,25 @@ class SettingController extends Controller
         $data = $request->validated();
         $oldFiles = [];
 
-        // SETTINGS-FIX-01 (SET-02, R-02): empty text fields go back to their defaults; empty links stay empty.
+        // FOOTER-I18N-01C: the footer texts per language (texts.ar / texts.en, flat Arabic copy kept); a language or a
+        // field not sent keeps what is saved, an empty one goes back to its language's default.
         if (array_key_exists('footer', $data)) {
-            $data['footer_content'] = Setting::mergeFooter($setting->footer_content, $data['footer'] ?? []);
+            $data['footer_content'] = Setting::mergeFooterTexts($setting->footer_content, $data['footer'] ?? []);
         }
 
-        unset($data['footer']);
+        // FOOTER-SOCIAL-02B: the social list only when the form sent it; an omitted list keeps the saved one (and
+        // mergeFooter() keeps it through text-only saves). An empty list is saved as such, so removed links never come
+        // back through the legacy fields, which follow the list for code that still reads them.
+        if (array_key_exists('footer_social', $data)) {
+            $links = SocialPlatforms::fromForm($data['footer_social'] ?? []);
+            $data['footer_content'] = array_replace(
+                $data['footer_content'] ?? Setting::mergeFooter($setting->footer_content, []),
+                SocialPlatforms::legacyFieldsFor($links),
+                ['social_links' => $links],
+            );
+        }
+
+        unset($data['footer'], $data['footer_social']);
 
         foreach (['logo', 'favicon'] as $field) {
             if ($request->hasFile($field)) {

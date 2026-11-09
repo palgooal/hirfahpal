@@ -2190,6 +2190,106 @@ html.admin-shell .admin-settings .admin-settings-group[open] .admin-settings-gro
   transform: rotate(180deg);
 }
 
+/* FOOTER-SOCIAL-02B: the social links manager (partials/social-links.blade.php): one bordered row per platform on
+ * the surface tone, 44px controls, the dashboard's light secondary buttons. */
+html.admin-shell .admin-settings .admin-settings-social-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html.admin-shell .admin-settings .admin-settings-social-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 10px;
+  background-color: var(--color-hf-surface);
+}
+
+html.admin-shell .admin-settings .admin-settings-social-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+html.admin-shell .admin-settings .admin-settings-social-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background-color: var(--color-hf-olive);
+  color: #fff;
+}
+
+html.admin-shell .admin-settings .admin-settings-social-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* The name keeps its width; on a narrow screen the buttons move under it rather than squeezing it. */
+html.admin-shell .admin-settings .admin-settings-social-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--color-hf-ink);
+  font-weight: 700;
+}
+
+html.admin-shell .admin-settings .admin-settings-social-actions {
+  display: inline-flex;
+  flex: none;
+  gap: 0.25rem;
+  margin-inline-start: auto;
+}
+
+html.admin-shell .admin-settings .admin-settings-social-actions .btn {
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  font-size: 1.125rem;
+}
+
+html.admin-shell .admin-settings .admin-settings-social-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+html.admin-shell .admin-settings .admin-settings-social-toggle .form-check-input {
+  flex: none;
+  margin: 0;
+}
+
+html.admin-shell .admin-settings .admin-settings-social-add {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.25rem;
+}
+
+html.admin-shell .admin-settings .admin-settings-social-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+html.admin-shell .admin-settings .admin-settings-social-add-row .form-select {
+  flex: 1 1 12rem;
+  min-height: 44px;
+}
+
+html.admin-shell .admin-settings .admin-settings-social-add-row .btn {
+  min-height: 44px;
+}
+
 /* A textarea takes the whole row (Bootstrap's w-100 alone loses to the field's flex-basis). */
 html.admin-shell .admin-settings .admin-cat-form-row > .admin-cat-form-field.w-100 {
   flex-basis: 100%;

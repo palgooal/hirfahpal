@@ -33,20 +33,22 @@ class SettingIntegrityTest extends TestCase
 
     // ---------------------------------------------------------------- SET-01: social links
 
-    public function test_social_links_accept_http_and_https_and_may_be_left_empty(): void
+    public function test_link_fields_are_not_accepted_with_the_footer_texts(): void
     {
-        $this->save(['footer' => ['instagram_url' => 'https://instagram.com/hirfah', 'facebook_url' => 'http://facebook.com/hirfah', 'x_url' => '']])
-            ->assertSessionHasNoErrors()->assertRedirect(route('dashboard.setting.index'));
+        // FOOTER-I18N-01C: the footer texts are footer[ar|en]; the links are the social manager's (footer_social).
+        $this->save(['footer' => ['instagram_url' => 'https://instagram.com/hirfah']])->assertSessionHasErrors('footer');
+        $this->save(['footer' => ['ar' => ['instagram_url' => 'https://instagram.com/hirfah']]])->assertSessionHasErrors('footer.ar');
 
-        $footer = Setting::singleton()->footer_content;
-        $this->assertSame(['https://instagram.com/hirfah', 'http://facebook.com/hirfah', ''], [$footer['instagram_url'], $footer['facebook_url'], $footer['x_url']]);
+        $this->assertDatabaseCount('settings', 0);
     }
 
     public function test_social_links_reject_every_other_scheme_and_save_nothing(): void
     {
-        foreach (['instagram_url', 'facebook_url', 'x_url'] as $field) {
+        // FOOTER-SOCIAL-02B: the same refusals, through the social manager.
+        foreach (['instagram', 'facebook', 'x'] as $platform) {
             foreach (self::REJECTED_URLS as $url) {
-                $this->save(['site_name' => 'Changed', 'footer' => [$field => $url]])->assertSessionHasErrors("footer.{$field}");
+                $this->save(['site_name' => 'Changed', 'footer_social' => [$platform => ['url' => $url, 'enabled' => '1', 'position' => '1']]])
+                    ->assertSessionHasErrors("footer_social.{$platform}.url");
             }
         }
 
@@ -63,7 +65,7 @@ class SettingIntegrityTest extends TestCase
             'instagram_url' => 'https://instagram.com/old',
         ])]);
 
-        $this->save(['footer' => ['about_title' => '', 'cart_label' => '   ', 'description' => '', 'tagline' => 'شعار جديد', 'instagram_url' => '']])
+        $this->save(['footer' => ['ar' => ['about_title' => '', 'cart_label' => '   ', 'description' => '', 'tagline' => 'شعار جديد']]])
             ->assertSessionHasNoErrors();
 
         $footer = Setting::singleton()->footer_content;
@@ -72,8 +74,12 @@ class SettingIntegrityTest extends TestCase
         $this->assertSame($defaults['description'], $footer['description']);
         $this->assertSame('شعار جديد', $footer['tagline'], 'A value is saved.');
         $this->assertSame('حقوق مخصصة', $footer['copyright'], 'Left out: kept.');
-        $this->assertSame('', $footer['instagram_url'], 'An empty link is no link, never a placeholder.');
-        $this->assertSame(array_keys($defaults), array_keys($footer), 'Every field, nothing else.');
+        $this->assertSame('https://instagram.com/old', $footer['instagram_url'], 'The links are not the texts: kept.');
+        $this->assertSame([...array_keys($defaults), 'texts'], array_keys($footer), 'Every flat field and the texts, nothing else.');
+        // FOOTER-I18N-01C: texts.ar holds only what differs from the defaults; the flat fields are its resolved copy.
+        $arabic = $footer['texts']['ar'];
+        ksort($arabic);
+        $this->assertSame(['copyright' => 'حقوق مخصصة', 'tagline' => 'شعار جديد'], $arabic);
     }
 
     public function test_the_storefront_footer_never_shows_an_empty_heading_label_or_placeholder_link(): void
@@ -92,8 +98,9 @@ class SettingIntegrityTest extends TestCase
         foreach (['links_title', 'orders_label', 'faq_label', 'copyright'] as $key) {
             $this->assertStringContainsString($defaults[$key], $footer, $key);
         }
-        $this->assertDoesNotMatchRegularExpression('#<h3[^>]*>\s*</h3>#', $footer, 'No empty heading.');
-        $this->assertDoesNotMatchRegularExpression('#<span>\s*</span></a>#', $footer, 'No link without a label.');
+        // FOOTER-FIX-01: the column headings are h2, their text isolated in a dir="auto" span.
+        $this->assertSame(3, preg_match_all('#<h2 [^>]*><span dir="auto">\S[^<]*</span></h2>#u', $footer), 'No empty heading.');
+        $this->assertDoesNotMatchRegularExpression('#<span dir="auto">\s*</span></a>#', $footer, 'No link without a label.');
         $this->assertStringNotContainsString('href="#"', $footer, 'No placeholder link.');
         $this->assertStringNotContainsString('aria-disabled', $footer);
         $this->assertSame(1, substr_count($footer, 'href="https://x.com/hirfah"'), 'A saved link is a link.');
@@ -101,12 +108,12 @@ class SettingIntegrityTest extends TestCase
 
         // The settings form shows the same values.
         $form = $this->actingAs($this->editor(), 'admin')->get(route('dashboard.setting.index'))->assertOk()->getContent();
-        $this->assertMatchesRegularExpression('#name="footer\[links_title\]"\s+value="'.preg_quote(e($defaults['links_title']), '#').'"#u', $form);
+        $this->assertMatchesRegularExpression('#name="footer\[ar\]\[links_title\]"\s+value="'.preg_quote(e($defaults['links_title']), '#').'"#u', $form);
     }
 
     public function test_saved_custom_content_and_escaping_are_kept(): void
     {
-        $this->save(['footer' => ['tagline' => '<script>alert(1)</script>', 'description' => 'نص مخصص']])->assertSessionHasNoErrors();
+        $this->save(['footer' => ['ar' => ['tagline' => '<script>alert(1)</script>', 'description' => 'نص مخصص']]])->assertSessionHasNoErrors();
 
         $html = $this->get(route('home'))->assertOk()->getContent();
         $this->assertStringContainsString('&lt;script&gt;alert(1)&lt;/script&gt;', $html);
@@ -148,7 +155,7 @@ class SettingIntegrityTest extends TestCase
         Setting::singleton()->forceFill(['default_currency' => 'USD'])->save();
 
         // The form sends the currency it shows (the saved one) with the other changes.
-        $this->save(['site_name' => 'Renamed', 'default_currency' => 'USD', 'footer' => ['tagline' => 'جديد']])->assertSessionHasNoErrors();
+        $this->save(['site_name' => 'Renamed', 'default_currency' => 'USD', 'footer' => ['ar' => ['tagline' => 'جديد']]])->assertSessionHasNoErrors();
         $this->assertSame(['Renamed', 'USD'], [Setting::singleton()->site_name, Setting::singleton()->default_currency]);
 
         // The home content and the site availability have their own saves and never touch it.
@@ -196,7 +203,7 @@ class SettingIntegrityTest extends TestCase
 
         // A save over unexpected content works and stores a proper object.
         DB::table('settings')->update(['footer_content' => '"a string"']);
-        $this->save(['footer' => ['tagline' => 'محفوظ']])->assertSessionHasNoErrors();
+        $this->save(['footer' => ['ar' => ['tagline' => 'محفوظ']]])->assertSessionHasNoErrors();
         $this->assertSame('محفوظ', Setting::singleton()->footer_content['tagline']);
         $this->assertSame($defaults['about_title'], Setting::singleton()->footer_content['about_title']);
     }
@@ -223,7 +230,7 @@ class SettingIntegrityTest extends TestCase
         $productsBefore = (array) DB::table('products')->where('id', $product->id)->first();
 
         $this->actingAs($this->editor(), 'admin')->get(route('dashboard.setting.index'))->assertOk();
-        $this->save(['default_currency' => 'USD', 'footer' => ['tagline' => '']])->assertSessionHasNoErrors();
+        $this->save(['default_currency' => 'USD', 'footer' => ['ar' => ['tagline' => '']]])->assertSessionHasNoErrors();
 
         $this->assertSame('coming_soon', DB::table('settings')->value('site_availability_mode'));
         app(SiteAvailability::class)->forget();

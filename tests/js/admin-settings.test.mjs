@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { idFromHash, initialIndex, initSettingsGroups, initSettingsTabs, keyFromHash, openGroupOf } from '../../resources/js/admin-settings.js';
+import { fillText, idFromHash, initialIndex, initSettingsGroups, initSettingsTabs, initSocialLinks, keyFromHash, moveKey, openGroupOf } from '../../resources/js/admin-settings.js';
 
 const KEYS = ['availability', 'general', 'footer'];
 
@@ -14,6 +14,13 @@ test('a fragment names its tab; #site-availability opens site availability only 
     assert.equal(keyFromHash('#settings-panel-unknown', KEYS), null);
     assert.equal(keyFromHash('', KEYS), null);
     assert.equal(keyFromHash(undefined, KEYS), null);
+});
+
+test('FOOTER-SOCIAL-02D: a suggested tab comes after the server choice and the fragment', () => {
+    assert.equal(initialIndex(KEYS, '', '', 'footer'), 2);
+    assert.equal(initialIndex(KEYS, 'general', '', 'footer'), 1, 'Validation errors lead.');
+    assert.equal(initialIndex(KEYS, '', '#site-availability', 'footer'), 0, 'A link to a tab leads.');
+    assert.equal(initialIndex(['general', 'footer'], '', '', 'unknown'), 0);
 });
 
 test('the server choice wins over the fragment, which wins over the first tab', () => {
@@ -258,4 +265,142 @@ test('a field the browser rejects opens its group as well as its tab', () => {
 
     assert.deepEqual(shown(panels), ['general']);
     assert.equal(details.open, true);
+});
+
+// FOOTER-SOCIAL-02B: the social links manager.
+
+test('moving a platform swaps it with its neighbour and stops at either end', () => {
+    assert.deepEqual(moveKey(['a', 'b', 'c'], 'b', 'up'), ['b', 'a', 'c']);
+    assert.deepEqual(moveKey(['a', 'b', 'c'], 'b', 'down'), ['a', 'c', 'b']);
+    assert.deepEqual(moveKey(['a', 'b', 'c'], 'a', 'up'), ['a', 'b', 'c']);
+    assert.deepEqual(moveKey(['a', 'b', 'c'], 'c', 'down'), ['a', 'b', 'c']);
+    assert.deepEqual(moveKey(['a'], 'z', 'up'), ['a']);
+    assert.equal(fillText(':platform is now in position :position of :count.', { platform: 'X', position: 2, count: 3 }), 'X is now in position 2 of 3.');
+    assert.equal(fillText(undefined, {}), '');
+});
+
+function control(extra = {}) {
+    const listeners = {};
+
+    return {
+        hidden: false, disabled: false, focused: false, value: '', checked: false,
+        addEventListener: (type, fn) => (listeners[type] ??= []).push(fn),
+        focus() { this.focused = true; },
+        click() { (listeners.click ?? []).forEach((fn) => fn({})); },
+        ...extra,
+    };
+}
+
+function socialPage(configured = ['instagram', 'x'], all = ['instagram', 'x', 'facebook', 'whatsapp']) {
+    const rows = all.map((key) => {
+        const parts = {
+            '[data-social-move="up"]': control(), '[data-social-move="down"]': control(), '[data-social-remove]': control(),
+            '[data-social-position]': control(), '[data-social-url]': control({ value: configured.includes(key) ? `https://${key}.com/a` : '' }),
+            '[data-social-enabled]': control({ checked: false }), '[data-social-order-field]': control({ querySelector: () => null }),
+            '[data-social-actions]': control({ hidden: true }),
+        };
+
+        return { hidden: false, dataset: { socialRow: key, socialConfigured: configured.includes(key) ? '1' : '0', socialName: key.toUpperCase() }, parts, querySelector: (selector) => parts[selector] ?? null };
+    });
+    const order = [...rows];
+    const list = {
+        querySelectorAll: () => rows,
+        appendChild(row) { order.splice(order.indexOf(row), 1); order.push(row); },
+    };
+    const select = control({ options: [{ value: '' }, ...all.map((value) => ({ value, hidden: false, disabled: false }))] });
+    const addButton = control();
+    const addBox = control({ hidden: true });
+    const empty = control({ hidden: true });
+    const status = { textContent: '' };
+    const root = {
+        dataset: { textMoved: ':platform :position/:count', textAdded: ':platform added', textRemoved: ':platform removed' },
+        querySelector: (selector) => ({ '[data-social-list]': list, '[data-social-add-select]': select, '[data-social-add-button]': addButton,
+            '[data-social-add]': addBox, '[data-social-empty]': empty, '[data-social-status]': status })[selector] ?? null,
+    };
+
+    return { root, rows, order, select, addButton, addBox, empty, status, row: (key) => rows.find((r) => r.dataset.socialRow === key) };
+}
+
+const visible = (page) => page.order.filter((row) => !row.hidden).map((row) => row.dataset.socialRow);
+const positions = (page) => page.order.map((row) => `${row.dataset.socialRow}:${row.parts['[data-social-position]'].value}`);
+
+test('only the added platforms are shown, with buttons; the order fields are hidden and numbered', () => {
+    const page = socialPage();
+    initSocialLinks(page.root);
+
+    assert.deepEqual(visible(page), ['instagram', 'x']);
+    assert.deepEqual(positions(page), ['instagram:1', 'x:2', 'facebook:3', 'whatsapp:4']);
+    assert.equal(page.row('instagram').parts['[data-social-actions]'].hidden, false);
+    assert.equal(page.row('instagram').parts['[data-social-order-field]'].hidden, true);
+    assert.equal(page.row('instagram').parts['[data-social-move="up"]'].disabled, true, 'First: cannot move up.');
+    assert.equal(page.row('x').parts['[data-social-move="down"]'].disabled, true, 'Last: cannot move down.');
+    assert.equal(page.addBox.hidden, false);
+    assert.equal(page.empty.hidden, true);
+    assert.deepEqual(page.select.options.filter((o) => o.value && !o.disabled).map((o) => o.value), ['facebook', 'whatsapp'], 'Only platforms not added yet can be added.');
+});
+
+test('move up and down reorder, renumber, keep focus on a usable button and announce the new position', () => {
+    const page = socialPage(['instagram', 'x', 'facebook']);
+    initSocialLinks(page.root);
+
+    page.row('x').parts['[data-social-move="up"]'].click();
+    assert.deepEqual(visible(page), ['x', 'instagram', 'facebook']);
+    assert.deepEqual(positions(page).slice(0, 3), ['x:1', 'instagram:2', 'facebook:3']);
+    assert.equal(page.row('x').parts['[data-social-move="up"]'].disabled, true);
+    assert.ok(page.row('x').parts['[data-social-move="down"]'].focused, 'At the top: focus goes to Move down.');
+    assert.equal(page.status.textContent, 'X 1/3');
+
+    page.row('instagram').parts['[data-social-move="down"]'].click();
+    assert.deepEqual(visible(page), ['x', 'facebook', 'instagram']);
+    assert.equal(page.status.textContent, 'INSTAGRAM 3/3');
+});
+
+test('remove clears the address, hides the row, offers the platform again and moves focus to the add control', () => {
+    const page = socialPage();
+    initSocialLinks(page.root);
+
+    page.row('instagram').parts['[data-social-remove]'].click();
+    assert.deepEqual(visible(page), ['x']);
+    assert.equal(page.row('instagram').parts['[data-social-url]'].value, '', 'A platform without an address is not saved.');
+    assert.equal(page.row('instagram').dataset.socialConfigured, '0');
+    assert.equal(page.select.options.find((o) => o.value === 'instagram').disabled, false);
+    assert.ok(page.select.focused);
+    assert.equal(page.status.textContent, 'INSTAGRAM removed');
+    assert.deepEqual(positions(page)[0], 'x:1');
+
+    page.row('x').parts['[data-social-remove]'].click();
+    assert.deepEqual(visible(page), []);
+    assert.equal(page.empty.hidden, false, 'Nothing added: the empty message shows.');
+});
+
+test('add shows the platform last, enabled, focuses its address and announces it; nothing when none is chosen', () => {
+    const page = socialPage();
+    initSocialLinks(page.root);
+
+    page.addButton.click();
+    assert.deepEqual(visible(page), ['instagram', 'x'], 'No platform chosen: nothing happens.');
+
+    page.select.value = 'whatsapp';
+    page.addButton.click();
+    assert.deepEqual(visible(page), ['instagram', 'x', 'whatsapp']);
+    assert.equal(page.row('whatsapp').parts['[data-social-enabled]'].checked, true);
+    assert.ok(page.row('whatsapp').parts['[data-social-url]'].focused);
+    assert.equal(page.status.textContent, 'WHATSAPP added');
+    assert.equal(page.select.value, '', 'The added platform is no longer offered.');
+    assert.equal(page.row('x').parts['[data-social-move="down"]'].disabled, false);
+
+    page.select.value = 'facebook';
+    page.addButton.click();
+    assert.equal(page.addBox.hidden, true, 'Every platform added: the add control is hidden.');
+});
+
+test('an order field holding an error stays in view; without the list the manager does nothing', () => {
+    const page = socialPage();
+    page.row('x').parts['[data-social-order-field]'].querySelector = (selector) => (selector === '.is-invalid' ? {} : null);
+    initSocialLinks(page.root);
+
+    assert.equal(page.row('x').parts['[data-social-order-field]'].hidden, false);
+    assert.equal(page.row('instagram').parts['[data-social-order-field]'].hidden, true);
+    assert.equal(initSocialLinks(null), null);
+    assert.equal(initSocialLinks({ querySelector: () => null }), null);
 });
