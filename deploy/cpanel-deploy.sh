@@ -5,7 +5,10 @@
 # through deploy/vite-package-install.php - replacing <app>/public/build and <web>/build with the validated Vite
 # package for HEAD (the replaced builds are moved to deploy-packages/previous/, never deleted before a verified
 # install; the last 2 are kept). All staging, state and lock files live under deploy-packages/.
-# No value read from .env, or from the config cache built from it, is ever printed or logged.
+# No value read from .env, or from the config cache built from it, is ever printed or logged, with one exception:
+# HIRFAH_SITE_AVAILABILITY is shown when it is `auto` or `coming_soon` (public mode names, not secrets); any other
+# value is reported only as missing or invalid.
+# Step 4b runs one read-only artisan command (site-availability:deploy-check) to resolve the effective site availability.
 # No Composer/npm/Node/migrations/seeders, no cache commands, no .env or database change, no change to the Coming
 # Soon setting, and no network access (origin/main is the locally known ref; no git fetch).
 #
@@ -100,26 +103,77 @@ remote_sha="$(git -C "$APP" rev-parse --verify --quiet "refs/remotes/origin/$BRA
 [ "$head_sha" = "$remote_sha" ] || fail "HEAD $head_sha differs from the locally known origin/$BRANCH $remote_sha"
 pass "git: branch $BRANCH, clean, HEAD = origin/$BRANCH = $head_sha"
 
-# 4. Required .env values. Only the three keys below are read, and no value taken from .env (or from the config
-#    cache built from it) is ever printed or logged: a mismatch names the key and the expected value only.
+# 4. Required .env values. Only the two keys below are read, and no value taken from .env is ever printed or logged:
+#    a mismatch names the key and the expected value only.
 env_value() {
     # Last assignment of $1 in .env, without surrounding spaces, quotes, a trailing comment or CR.
     grep -E "^[[:space:]]*$1[[:space:]]*=" "$APP/.env" | tail -n 1 \
         | sed -E 's/^[^=]*=[[:space:]]*//; s/[[:space:]]*(#.*)?$//; s/^"(.*)"$/\1/; s/^'"'"'(.*)'"'"'$/\1/' | tr -d '\r' || true
 }
-for pair in HIRFAH_SITE_AVAILABILITY=coming_soon APP_ENV=production APP_DEBUG=false; do
+for pair in APP_ENV=production APP_DEBUG=false; do
     key="${pair%%=*}"
     expected="${pair#*=}"
     [ "$(env_value "$key")" = "$expected" ] || fail ".env $key is missing or not '$expected' (value not shown)"
 done
-pass ".env: HIRFAH_SITE_AVAILABILITY=coming_soon, APP_ENV=production, APP_DEBUG=false"
-if [ -f "$APP/bootstrap/cache/config.php" ]; then
-    cached_mode="$(cd "$APP" && "$PHP_BIN" -r '$c = require "bootstrap/cache/config.php"; echo $c["site-availability"]["override"] ?? "";' 2>/dev/null || true)"
-    [ "$cached_mode" = "coming_soon" ] || fail "config cache site-availability.override is missing or not 'coming_soon' (stale config cache; value not shown)"
-    pass "config cache: site-availability.override = coming_soon"
-else
-    pass "no config cache: .env value applies"
-fi
+pass ".env: APP_ENV=production, APP_DEBUG=false"
+
+# 4b. Site availability (DEC-SA-08): the storefront must be effectively coming_soon. Read-only, through the
+#     application's own resolution (`php artisan site-availability:deploy-check`, DeploymentAvailabilityCheck):
+#     .env HIRFAH_SITE_AVAILABILITY is coming_soon (forced) or auto (settings.site_availability_mode must then be
+#     coming_soon); the override loaded by the application (config cache included) must equal .env; any unreadable,
+#     unknown or inconsistent state fails. stderr is discarded, and the report is parsed strictly: exactly the six
+#     fields below, each once, no other line, every value from its known set (REASON from a safe character set), and
+#     consistent with the exit code and with each other. Anything else refuses the deployment without logging what
+#     the command printed, so no .env value, exception message or connection detail can reach the log.
+availability_out="$(cd "$APP" && "$PHP_BIN" artisan site-availability:deploy-check --no-interaction --no-ansi 2>/dev/null)" \
+    && availability_status=0 || availability_status=$?
+AVAILABILITY_FIELDS="RESULT ENV_OVERRIDE CONFIG_CACHE STATE SOURCE REASON"
+AVAILABILITY_REASON_RE='^[A-Za-z0-9 _.,:;()/\'"'"'-]{1,240}$'
+# The value of field $1 (meaningful once availability_report_error has accepted the report: each field occurs once).
+afield() { printf '%s\n' "$availability_out" | sed -n "s/^$1=//p"; }
+# Prints why the report is unusable, or nothing. Only validated values are ever printed.
+availability_report_error() {
+    local line key count result env cache state source reason expected_reason
+    [ -n "$availability_out" ] || { echo "empty report"; return 0; }
+    # Control characters other than the line breaks (CR included) are refused here, in bash itself: some sed builds
+    # drop a CR silently.
+    [[ "${availability_out//$'\n'/}" != *[[:cntrl:]]* ]] || { echo "control character in the report"; return 0; }
+    while IFS= read -r line; do
+        key="${line%%=*}"
+        { [ "$key" != "$line" ] && [[ " $AVAILABILITY_FIELDS " == *" $key "* ]]; } || { echo "unexpected line in the report"; return 0; }
+    done <<< "$availability_out"
+    for key in $AVAILABILITY_FIELDS; do
+        count="$(grep -c "^$key=" <<< "$availability_out" || true)"
+        [ "$count" = 1 ] || { echo "field $key appears $count times"; return 0; }
+    done
+    result="$(afield RESULT)"; env="$(afield ENV_OVERRIDE)"; cache="$(afield CONFIG_CACHE)"
+    state="$(afield STATE)"; source="$(afield SOURCE)"; reason="$(afield REASON)"
+    case "$result" in PASS|FAIL) ;; *) echo "invalid RESULT"; return 0 ;; esac
+    case "$env" in auto|coming_soon|missing|invalid|unknown) ;; *) echo "invalid ENV_OVERRIDE"; return 0 ;; esac
+    case "$cache" in present|absent|unknown) ;; *) echo "invalid CONFIG_CACHE"; return 0 ;; esac
+    case "$state" in coming_soon|open|maintenance|unknown) ;; *) echo "invalid STATE"; return 0 ;; esac
+    case "$source" in environment|database|default|none) ;; *) echo "invalid SOURCE"; return 0 ;; esac
+    [[ "$reason" =~ $AVAILABILITY_REASON_RE ]] || { echo "invalid REASON"; return 0; }
+    if [ "$result" = FAIL ]; then
+        [ "$availability_status" -ne 0 ] || echo "RESULT=FAIL with exit 0"
+        return 0
+    fi
+    [ "$availability_status" -eq 0 ] || { echo "RESULT=PASS with exit $availability_status"; return 0; }
+    [ "$state" = coming_soon ] || { echo "RESULT=PASS with STATE=$state"; return 0; }
+    case "$cache" in present|absent) ;; *) echo "RESULT=PASS with CONFIG_CACHE=$cache"; return 0 ;; esac
+    case "$env:$source" in
+        auto:database) expected_reason="auto: settings.site_availability_mode is coming_soon" ;;
+        coming_soon:environment) expected_reason="forced coming_soon by the environment override" ;;
+        *) echo "RESULT=PASS with ENV_OVERRIDE=$env and SOURCE=$source"; return 0 ;;
+    esac
+    [ "$reason" = "$expected_reason" ] || echo "RESULT=PASS with a REASON that does not match ENV_OVERRIDE=$env"
+}
+availability_problem="$(availability_report_error)"
+[ -z "$availability_problem" ] \
+    || fail "site availability check gave an unusable report: $availability_problem (exit $availability_status); deployment refused"
+[ "$(afield RESULT)" = PASS ] \
+    || fail "site availability does not allow deployment: $(afield REASON) (HIRFAH_SITE_AVAILABILITY: $(afield ENV_OVERRIDE); config cache: $(afield CONFIG_CACHE))"
+pass "site availability: coming_soon (HIRFAH_SITE_AVAILABILITY=$(afield ENV_OVERRIDE), source $(afield SOURCE), config cache $(afield CONFIG_CACHE))"
 [ -f "$APP/bootstrap/cache/routes-v7.php" ] && warn "route cache present (bootstrap/cache/routes-v7.php): new routes stay invisible until it is refreshed"
 
 # 5. Installed Vite build in both paths (integrity): valid JSON, every referenced file present, the two manifests
