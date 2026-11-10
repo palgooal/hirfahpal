@@ -29,6 +29,8 @@ export default defineConfig({
                 'resources/js/admin-categories.js',
                 'resources/js/admin-product-show.js',
                 'resources/js/admin-settings.js',
+                'resources/js/admin-content-editor.js',
+                'resources/js/admin-content-pages.js',
                 'resources/css/storefront.css',
                 'resources/js/storefront.js',
                 'resources/js/storefront-browse.js',

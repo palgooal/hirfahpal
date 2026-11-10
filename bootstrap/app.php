@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\DisableTranslationAutoCreate;
 use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureContentPageLocale;
 use App\Http\Middleware\EnsureDeliveryDriverIsApproved;
 use App\Http\Middleware\EnsureSiteIsAvailable;
 use App\Http\Middleware\EnsureVendorIsApproved;
@@ -67,6 +68,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'setLocale' => SetLocale::class,
+            // PAGES-05D: public content pages take their language from the URL (/{locale}/pages/{slug}).
+            'contentPageLocale' => EnsureContentPageLocale::class,
             'disableTranslationAutoCreate' => DisableTranslationAutoCreate::class,
             'vendor.approved' => EnsureVendorIsApproved::class,
             'delivery-driver.approved' => EnsureDeliveryDriverIsApproved::class,

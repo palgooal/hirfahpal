@@ -21,6 +21,8 @@
         'dashboard.languages.*' => ['dashboard.Nav_Languages', 'Languages'],
         'dashboard.translation-values.*' => ['dashboard.Nav_Translations', 'Translations'],
         'dashboard.setting.*' => ['dashboard.Nav_Settings', 'Settings'],
+        // The content pages pass their own $pageTitle (read without auto-creating the key), like the contact messages.
+        'dashboard.content-pages.*' => ['dashboard.Nav_Content_Pages', 'Content pages'],
         'media-library.*' => ['dashboard.Nav_Media_Library', 'Media Library'],
     ];
 

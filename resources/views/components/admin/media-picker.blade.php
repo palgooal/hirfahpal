@@ -5,6 +5,9 @@
     'labelKey' => 'Category_Image',
     'labelDefault' => 'Image',
     'canRemove' => true,
+    // PAGES-03B: "callback" renders only the working dialog for a page editor (initMediaPicker()->open()); the field
+    // markup stays, hidden and without input names, so nothing is posted and the field code runs unchanged.
+    'mode' => 'field',
 ])
 
 {{--
@@ -71,13 +74,14 @@
     ];
 @endphp
 
-<div {{ $attributes->class(['admin-media', 'admin-media-picker']) }} id="{{ $pickerId }}" data-admin-media-picker>
-    <span class="form-label admin-media-picker-label" id="{{ $pickerId }}-label">{{ $pickerText($labelKey, $labelDefault) }}</span>
+@php($pickerCallback = $mode === 'callback')
+<div {{ $attributes->class(['admin-media', 'admin-media-picker']) }} id="{{ $pickerId }}" data-admin-media-picker @if ($pickerCallback) data-picker-mode="callback" @endif>
+    <span class="form-label admin-media-picker-label" id="{{ $pickerId }}-label" @if ($pickerCallback) hidden @endif>{{ $pickerText($labelKey, $labelDefault) }}</span>
 
-    <input type="hidden" name="{{ $name }}" value="{{ $pickerValue }}" data-picker-value>
-    <input type="hidden" name="{{ $removeName }}" value="{{ $pickerRemoved ? 1 : 0 }}" data-picker-remove>
+    <input type="hidden"{!! $pickerCallback ? '' : ' name="'.e($name).'"' !!} value="{{ $pickerValue }}" data-picker-value>
+    <input type="hidden"{!! $pickerCallback ? '' : ' name="'.e($removeName).'"' !!} value="{{ $pickerRemoved ? 1 : 0 }}" data-picker-remove>
 
-    <div class="admin-media-picker-field @if ($pickerError) is-invalid @endif" role="group" aria-labelledby="{{ $pickerId }}-label" @if ($pickerError) aria-describedby="{{ $pickerId }}-error" @endif>
+    <div class="admin-media-picker-field @if ($pickerError) is-invalid @endif" @if ($pickerCallback) hidden @endif role="group" aria-labelledby="{{ $pickerId }}-label" @if ($pickerError) aria-describedby="{{ $pickerId }}-error" @endif>
         <div class="admin-media-picker-preview" data-picker-preview>
             <img src="{{ $pickerMedia?->url }}" alt="{{ $pickerMedia?->alt ?: '' }}" data-picker-image @if (! $pickerMedia || $pickerRemoved) hidden @endif>
             <i class="ph-duotone ph-image" aria-hidden="true" data-picker-placeholder @if ($pickerMedia && ! $pickerRemoved) hidden @endif></i>

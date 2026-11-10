@@ -107,6 +107,17 @@ return [
         'name' => t('dashboard.Contact_Messages', 'Contact Messages'),
         'view' => t('dashboard.View_Contact_Messages', 'View Contact Messages'),
     ],
+    // PAGES-03A: the storefront content pages (the seven system pages): reading them in the dashboard and previewing
+    // them, and editing their texts and state.
+    'content-pages' => [
+        'name' => t('dashboard.Content_Pages', 'Content Pages'),
+        'view' => t('dashboard.View_Content_Pages', 'View Content Pages'),
+        'edit' => t('dashboard.Edit_Content_Pages', 'Edit Content Pages'),
+        // PAGES-04B: creating custom pages; separate from edit, never implied by it.
+        'create' => t('dashboard.Create_Content_Pages', 'Create Content Pages'),
+        // PAGES-04C: deleting custom drafts; separate from create and edit.
+        'delete' => t('dashboard.Delete_Content_Pages', 'Delete Content Pages'),
+    ],
     // SITE-AVAILABILITY Phase 3A (docs/deployment/HIRFAH-SITE-AVAILABILITY-DESIGN.md SA-05, §4): previewing the
     // storefront while it is closed. Granted and revoked by a Super Admin only (AdminController).
     'maintenance' => [

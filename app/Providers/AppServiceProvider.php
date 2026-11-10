@@ -7,7 +7,9 @@ use App\Models\Admin;
 use App\Models\Customer;
 use App\Models\Language;
 use App\Models\Setting;
+use App\Models\StorefrontContentPage;
 use App\Models\Vendor;
+use App\Policies\ContentPagePolicy;
 use App\Support\Storefront\StorefrontContext;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -41,6 +43,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // PAGES-03A: the content pages' abilities are "content-pages.*" (not the model's class name).
+        Gate::policy(StorefrontContentPage::class, ContentPagePolicy::class);
+
         View::composer(['layouts.storefront', 'pages.*', 'storefront.*'], function ($view) {
             $view->with(array_replace(StorefrontContext::forRequest(request()), $view->getData()));
         });

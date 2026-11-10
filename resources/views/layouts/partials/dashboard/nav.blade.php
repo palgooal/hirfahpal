@@ -32,6 +32,8 @@
             ['route' => 'dashboard.languages.index', 'active' => 'dashboard.languages.*', 'key' => 'dashboard.Nav_Languages', 'default' => 'Languages', 'icon' => 'ph-globe', 'visible' => $policy(App\Models\Language::class)],
             ['route' => 'dashboard.translation-values.index', 'active' => 'dashboard.translation-values.*', 'key' => 'dashboard.Nav_Translations', 'default' => 'Translations', 'icon' => 'ph-translate', 'visible' => $policy(App\Models\TranslationValue::class)],
             ['route' => 'dashboard.setting.index', 'active' => 'dashboard.setting.*', 'key' => 'dashboard.Nav_Settings', 'default' => 'Settings', 'icon' => 'ph-gear-six', 'visible' => $policy(App\Models\Setting::class)],
+            // PAGES-03A: the storefront content pages (content-pages.view).
+            ['route' => 'dashboard.content-pages.index', 'active' => 'dashboard.content-pages.*', 'key' => 'dashboard.Nav_Content_Pages', 'default' => 'Content pages', 'icon' => 'ph-files', 'visible' => $policy(App\Models\StorefrontContentPage::class), 'no_auto_create' => true],
             // AD-UI-CAT-M3: the media library (palgoal/media-library routes); the server checks media.view itself.
             // ADMIN-MEDIA-ORGANIZATION-01 P4: also current on its vendor media section (routeIs takes a list).
             ['route' => 'media-library.page', 'active' => ['media-library.*', 'dashboard.vendor-media.*'], 'key' => 'dashboard.Nav_Media_Library', 'default' => 'Media Library', 'icon' => 'ph-images', 'visible' => $ability('media.view')],

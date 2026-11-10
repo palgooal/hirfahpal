@@ -25,6 +25,7 @@ class AdminDashboardSidebarTest extends TestCase
         'dashboard.vendor-orders.index', 'dashboard.reviews.index', 'dashboard.disputes.index', 'dashboard.return-requests.index',
         'dashboard.contact-messages.index', // CONTACT-ADMIN-IMPLEMENTATION-01, Quality group, contact-messages.view.
         'dashboard.languages.index', 'dashboard.translation-values.index', 'dashboard.setting.index',
+        'dashboard.content-pages.index', // PAGES-03A, System group, content-pages.view.
         'media-library.page', // AD-UI-CAT-M3, System group, media.view.
     ];
 

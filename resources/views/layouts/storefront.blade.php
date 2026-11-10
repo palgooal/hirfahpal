@@ -9,6 +9,8 @@
 @hasSection('robots')
     <meta name="robots" content="@yield('robots')">
 @endif
+    {{-- PAGES-05E: page-specific head tags (a content page's canonical, hreflang and Open Graph); empty elsewhere. --}}
+    @stack('head')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -19,7 +21,8 @@
 
 <body class="overflow-x-hidden bg-canvas font-cairo text-ink antialiased">
 @if ($preview ?? false)
-    @include('storefront.partials.vendor-preview-banner')
+    {{-- PAGES-03A: an admin page preview brings its own bar ($previewBanner); a vendor preview keeps its own. --}}
+    @include($previewBanner ?? 'storefront.partials.vendor-preview-banner')
 @else
     @include('storefront.partials.site-availability-indicator')
 

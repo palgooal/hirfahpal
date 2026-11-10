@@ -184,6 +184,8 @@ class AdminAuthTranslationFoundationTest extends TestCase
             'admin.password.request',
             'admin.password.reset',
             'admin.password.update',
+            // PAGES-03A: the dashboard's private preview of a content page.
+            'dashboard.content-pages.preview',
             'vendor.approval-status',
             'vendor.dashboard',
             'vendor.dashboard.commissions.page',

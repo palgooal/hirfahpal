@@ -55,6 +55,14 @@ export function fieldValues(state) {
 const SUCCESS_TIMEOUT = 5000;
 
 export function initMediaPicker(root) {
+    // An element is driven once, whoever asks first (this module's boot, or a page editor that opens it).
+    if (root.adminMediaPicker) {
+        return root.adminMediaPicker;
+    }
+
+    // PAGES-03B: in "callback" mode the picker has no form field of its own (its field markup is hidden and has no
+    // names): open(onChoose, opener) shows the dialog and hands the chosen image ({id, url, alt, name}) to onChoose.
+    const callbackMode = root.dataset.pickerMode === 'callback';
     const doc = root.ownerDocument;
     const $ = (selector) => root.querySelector(selector);
     const configElement = $('[data-picker-config]');
@@ -138,8 +146,8 @@ export function initMediaPicker(root) {
         removeButton?.focus();
     });
 
-    if (!config || !openButton) {
-        return { state };
+    if (!config || (!openButton && !callbackMode)) {
+        return (root.adminMediaPicker = { state });
     }
 
     // ---- Dialog ----
@@ -323,8 +331,20 @@ export function initMediaPicker(root) {
         more.hidden = list.page >= list.lastPage;
     };
 
+    let onChoose = null;
+    let opener = null;
+    let pendingChoice = null;
+
     const confirm = () => {
         if (!chosen) {
+            return;
+        }
+
+        if (callbackMode) {
+            // Handed over once the dialog has closed and focus is back on its opener (see the close listener).
+            pendingChoice = { id: chosen.id, url: chosen.url || '', alt: chosen.alt || '', name: nameOf(chosen) };
+            dialog.close();
+
             return;
         }
 
@@ -335,17 +355,38 @@ export function initMediaPicker(root) {
         dialog.close();
     };
 
-    openButton.addEventListener('click', () => {
+    const openDialog = () => {
         chosen = null;
+        pendingChoice = null;
         confirmButton.disabled = true;
         selection.textContent = '';
         alerts.replaceChildren();
         dialog.showModal();
         load(1);
-    });
+    };
 
-    // Focus goes back to the button that opened the dialog, however it was closed (Escape included).
-    dialog.addEventListener('close', () => openButton.focus());
+    openButton?.addEventListener('click', openDialog);
+
+    /** PAGES-03B (callback mode): choose an image for onChoose; focus returns to opener. */
+    const open = (callback, from = null) => {
+        onChoose = callback;
+        opener = from;
+        openDialog();
+    };
+
+    // Focus goes back to the button that opened the dialog, however it was closed (Escape included); a choice made
+    // in callback mode is handed over after that, so its handler can move focus on.
+    dialog.addEventListener('close', () => {
+        (opener ?? openButton)?.focus();
+
+        if (pendingChoice) {
+            const choice = pendingChoice;
+            const callback = onChoose;
+            pendingChoice = null;
+            onChoose = null;
+            callback?.(choice);
+        }
+    });
     dialog.addEventListener('click', (event) => {
         if (event.target === dialog) {
             dialog.close();
@@ -417,7 +458,7 @@ export function initMediaPicker(root) {
         });
     }
 
-    return { state, load, choose, confirm };
+    return (root.adminMediaPicker = { state, load, choose, confirm, open });
 }
 
 function boot() {

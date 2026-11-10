@@ -52,9 +52,9 @@
                 @endif
             </div>
             @php($groups = [
-                ['about_title', [['about_story_label', route('content.show', 'about')], ['about_authenticity_label', route('content.show', 'authenticity')], ['about_contact_label', route('contact.create')]]],
+                ['about_title', [['about_story_label', \App\Models\StorefrontContentPage::publicUrl('about')], ['about_authenticity_label', \App\Models\StorefrontContentPage::publicUrl('authenticity')], ['about_contact_label', route('contact.create')]]],
                 ['links_title', [['orders_label', route('customer.orders.index')], ['cart_label', route('cart')], ['login_label', route('customer.login')], ['account_label', route('customer.dashboard')]]],
-                ['customer_service_title', [['shipping_label', route('content.show', 'shipping')], ['returns_label', route('content.show', 'returns')], ['faq_label', route('content.show', 'faq')]]],
+                ['customer_service_title', [['shipping_label', \App\Models\StorefrontContentPage::publicUrl('shipping')], ['returns_label', \App\Models\StorefrontContentPage::publicUrl('returns')], ['faq_label', \App\Models\StorefrontContentPage::publicUrl('faq')]]],
             ])
             {{-- Each column's landmark name in the page language (its heading is the merchant's text). --}}
             @php($navNames = [

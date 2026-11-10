@@ -135,9 +135,12 @@ class StorefrontFooterLocalizationTest extends TestCase
         }
 
         $hrefs = fn (string $html) => preg_match_all('#href="([^"]+)"#', $html, $m) ? $m[1] : [];
-        $this->assertSame($hrefs($this->footer('ar')), $hrefs($this->footer('en')));
+        // PAGES-05D: the same links in both languages, except that a content page link carries the footer's language.
+        $neutral = fn (array $links) => array_map(fn (string $href) => preg_replace('#/(ar|en)/pages/#', '/pages/', $href), $links);
+        $this->assertSame($neutral($hrefs($this->footer('ar'))), $neutral($hrefs($this->footer('en'))));
         $this->assertContains('https://instagram.com/hirfah', $hrefs($this->footer('en')));
-        $this->assertContains(route('content.show', 'faq'), $hrefs($this->footer('en')));
+        $this->assertContains(route('content.show', ['locale' => 'en', 'slug' => 'faq']), $hrefs($this->footer('en')));
+        $this->assertContains(route('content.show', ['locale' => 'ar', 'slug' => 'faq']), $hrefs($this->footer('ar')));
     }
 
     public function test_the_site_name_falls_back_per_language_and_a_saved_one_shows_in_both(): void

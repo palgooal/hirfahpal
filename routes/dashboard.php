@@ -3,6 +3,7 @@
 use App\Http\Controllers\Dashboard\AdminController;
 use App\Http\Controllers\Dashboard\CategoryManagementController;
 use App\Http\Controllers\Dashboard\ContactMessageManagementController;
+use App\Http\Controllers\Dashboard\ContentPageManagementController;
 use App\Http\Controllers\Dashboard\CustomerManagementController;
 use App\Http\Controllers\Dashboard\DeliveryDriverManagementController;
 use App\Http\Controllers\Dashboard\DisputeManagementController;
@@ -102,6 +103,20 @@ Route::prefix('dashboard')
 
         Route::get('settings', [SettingController::class, 'index'])->name('setting.index');
         Route::put('settings', [SettingController::class, 'update'])->name('setting.update');
+        // PAGES-03A: the storefront content pages (the seven system pages): list, edit, save and a private preview of
+        // the saved page in either language. No create or delete for them.
+        Route::get('content-pages', [ContentPageManagementController::class, 'index'])->name('content-pages.index');
+        // PAGES-04B: a new custom page (content-pages.create); the numeric constraints below keep "create" off {contentPage}.
+        Route::get('content-pages/create', [ContentPageManagementController::class, 'create'])->name('content-pages.create');
+        Route::post('content-pages', [ContentPageManagementController::class, 'store'])->name('content-pages.store');
+        Route::get('content-pages/{contentPage}/edit', [ContentPageManagementController::class, 'edit'])->whereNumber('contentPage')->name('content-pages.edit');
+        Route::put('content-pages/{contentPage}', [ContentPageManagementController::class, 'update'])->whereNumber('contentPage')->name('content-pages.update');
+        // PAGES-04C: a custom draft only (checked in the controller); system pages are never deleted.
+        Route::delete('content-pages/{contentPage}', [ContentPageManagementController::class, 'destroy'])->whereNumber('contentPage')->name('content-pages.destroy');
+        Route::get('content-pages/{contentPage}/preview/{locale}', [ContentPageManagementController::class, 'preview'])
+            // PAGES-05C: any well-formed code; the controller accepts only the registry's languages.
+            ->whereNumber('contentPage')->where('locale', '[a-z]{2}(?:-[a-z]{2})?')
+            ->middleware('disableTranslationAutoCreate')->name('content-pages.preview');
         Route::get('settings/home-content', [SettingController::class, 'homeContent'])->name('setting.home-content');
         Route::patch('settings/home-content', [SettingController::class, 'updateHomeContent'])->name('setting.home-content.update');
         // SITE-AVAILABILITY Phase 3B: the stored site state, Super Admin only (checked in the controller).

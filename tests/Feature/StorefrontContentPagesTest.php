@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\ContactMessage;
 use App\Models\Customer;
+use App\Models\Language;
 use App\Models\StorefrontContentPage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -14,19 +15,22 @@ class StorefrontContentPagesTest extends TestCase
 
     public function test_published_content_pages_are_rendered_from_the_database(): void
     {
-        StorefrontContentPage::query()->where('slug', 'about')->update([
+        // PAGES-05D: a page is public in an enabled language of the registry.
+        Language::create(['name' => 'Arabic', 'native' => 'العربية', 'code' => 'ar', 'is_rtl' => true, 'is_active' => true]);
+        // PAGES-02: a page shows its translation (the Arabic row here); the legacy columns are only the rollback copy.
+        StorefrontContentPage::query()->where('slug', 'about')->first()->translations()->where('locale', 'ar')->update([
             'title' => 'Our dynamic story',
-            'body' => 'This content comes from the database.',
+            'body_html' => '<p>This content comes from the database.</p>',
         ]);
 
-        $this->get(route('content.show', 'about'))
+        $this->get(route('content.show', ['locale' => 'ar', 'slug' => 'about']))
             ->assertOk()
             ->assertSee('Our dynamic story')
             ->assertSee('This content comes from the database.');
 
         StorefrontContentPage::query()->where('slug', 'about')->update(['is_published' => false]);
 
-        $this->get(route('content.show', 'about'))->assertNotFound();
+        $this->get(route('content.show', ['locale' => 'ar', 'slug' => 'about']))->assertNotFound();
     }
 
     public function test_contact_messages_are_validated_and_saved_for_guests_and_customers(): void

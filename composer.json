@@ -11,7 +11,8 @@
         "laravel/tinker": "^2.10.1",
         "mcamara/laravel-localization": "^2.4",
         "palgoal/media-library": "^0.1.0",
-        "palgoals/locale-package": "*"
+        "palgoals/locale-package": "*",
+        "symfony/html-sanitizer": "^7.4"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

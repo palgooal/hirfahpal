@@ -34,13 +34,14 @@ use App\Http\Controllers\VendorDashboard\MediaLibraryController as VendorDashboa
 use App\Http\Controllers\VendorDashboard\OrderController as VendorDashboardOrderController;
 use App\Http\Controllers\VendorDashboard\OverviewController as VendorDashboardOverviewController;
 use App\Http\Controllers\VendorDashboard\ProductController as VendorDashboardProductController;
-use App\Http\Controllers\VendorDashboard\StorefrontPreviewController as VendorDashboardStorefrontPreviewController;
 use App\Http\Controllers\VendorDashboard\ProductImageController as VendorDashboardProductImageController;
 use App\Http\Controllers\VendorDashboard\ProfileController as VendorDashboardProfileController;
 use App\Http\Controllers\VendorDashboard\ProfileLogoController as VendorDashboardProfileLogoController;
 use App\Http\Controllers\VendorDashboard\ReturnRequestController as VendorReturnRequestController;
 use App\Http\Controllers\VendorDashboard\ReviewController as VendorDashboardReviewController;
+use App\Http\Controllers\VendorDashboard\StorefrontPreviewController as VendorDashboardStorefrontPreviewController;
 use App\Http\Middleware\EnsureSafeVendorMediaUpload;
+use App\Models\StorefrontContentPage;
 use App\Support\Auth\AccountGuard;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -55,7 +56,17 @@ Route::post('/newsletter', [NewsletterSubscriptionController::class, 'store'])
 
 Route::get('/contact', [ContactMessageController::class, 'create'])->middleware('setLocale')->name('contact.create');
 Route::post('/contact', [ContactMessageController::class, 'store'])->middleware(['setLocale', 'throttle:5,1'])->name('contact.store');
-Route::get('/pages/{slug}', [StorefrontContentPageController::class, 'show'])->middleware('setLocale')->name('content.show');
+// PAGES-05D: a content page in a language of the registry, /{locale}/pages/{slug}: one route for every enabled
+// language (the locale's form here, the registry checked by contentPageLocale, which sets the language from the URL
+// instead of the session). PAGES-04B: only a well-formed slug reaches the controller.
+Route::get('/{locale}/pages/{slug}', [StorefrontContentPageController::class, 'show'])
+    ->where(['locale' => StorefrontContentPage::LOCALE_PATTERN, 'slug' => StorefrontContentPage::SLUG_PATTERN])
+    ->middleware('contentPageLocale')->name('content.show');
+// PAGES-05D: the former address: a published page is sent (302, the language varies by visitor) to its address in the
+// visitor's language; an unknown page or a draft is not found.
+// PAGES-05E: the content pages' sitemap: public addresses only, with their language alternates.
+Route::get('/sitemap-pages.xml', [StorefrontContentPageController::class, 'sitemap'])->name('content.sitemap');
+Route::get('/pages/{slug}', [StorefrontContentPageController::class, 'legacy'])->where('slug', StorefrontContentPage::SLUG_PATTERN)->middleware('setLocale')->name('content.legacy');
 
 Route::get('/categories', [StorefrontPageController::class, 'categories'])->middleware('setLocale')->name('categories');
 

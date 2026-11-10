@@ -50,6 +50,7 @@ class DeliveryCustodyAbilitiesTest extends TestCase
             'disputes.view', 'disputes.edit',
             'return-requests.view', 'return-requests.edit',
             'contact-messages.view',
+            'content-pages.view', 'content-pages.edit', 'content-pages.create', 'content-pages.delete', // PAGES-03A, PAGES-04B, PAGES-04C.
             'maintenance.bypass',
         ];
 

@@ -54,3 +54,111 @@
 .scroll-thin::-webkit-scrollbar-thumb:hover {
     background-color: var(--color-sage);
 }
+
+/* PAGES-02: the body of a content page (cleaned HTML). Blocks are one line apart (2rem, the article's leading-8), as the
+ * former plain text with a blank line between them; the size and colours come from the article. */
+.hirfah-prose > :first-child {
+    margin-top: 0;
+}
+
+.hirfah-prose p,
+.hirfah-prose ul,
+.hirfah-prose ol,
+.hirfah-prose blockquote,
+.hirfah-prose table,
+.hirfah-prose img,
+.hirfah-prose hr {
+    margin-top: 2rem;
+}
+
+.hirfah-prose :is(p, ul, ol, blockquote, table, img, hr):first-child {
+    margin-top: 0;
+}
+
+.hirfah-prose h2,
+.hirfah-prose h3,
+.hirfah-prose h4 {
+    margin-top: 2em;
+    color: var(--color-ink);
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+.hirfah-prose h2 {
+    font-size: 1.375em;
+}
+
+.hirfah-prose h3 {
+    font-size: 1.1875em;
+}
+
+.hirfah-prose h4 {
+    font-size: 1.0625em;
+}
+
+.hirfah-prose :is(h2, h3, h4) + * {
+    margin-top: 0.75em;
+}
+
+.hirfah-prose ul,
+.hirfah-prose ol {
+    padding-inline-start: 1.5em;
+}
+
+.hirfah-prose ul {
+    list-style: disc;
+}
+
+.hirfah-prose ol {
+    list-style: decimal;
+}
+
+.hirfah-prose a {
+    color: var(--color-olive);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.hirfah-prose a:focus-visible {
+    outline: 2px solid var(--color-olive);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+.hirfah-prose blockquote {
+    padding-inline-start: 1em;
+    border-inline-start: 3px solid var(--color-sage);
+    color: var(--color-muted);
+}
+
+.hirfah-prose hr {
+    border: 0;
+    border-top: 1px solid var(--color-line);
+}
+
+.hirfah-prose img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 14px;
+}
+
+.hirfah-prose table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    border-collapse: collapse;
+}
+
+.hirfah-prose th,
+.hirfah-prose td {
+    padding: 0.5em 0.75em;
+    border: 1px solid var(--color-line);
+    text-align: start;
+    vertical-align: top;
+}
+
+.hirfah-prose th {
+    background-color: var(--color-canvas);
+    font-weight: 700;
+}

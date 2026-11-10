@@ -3613,3 +3613,396 @@ html.admin-shell .admin-product-gallery-choice .admin-media-open:disabled {
     justify-content: center;
   }
 }
+
+/* ---- PAGES-03A: storefront content pages: resources/views/dashboard/content-pages ----
+ * The media page pieces (head, panel, alerts, buttons), the products badges and the category form. */
+html.admin-shell .pc-content:has(#admin-content-pages, #admin-content-page-form) > .page-header,
+html.admin-shell .pc-content:has(#admin-content-pages, #admin-content-page-form) > .row > .alert-danger {
+  display: none;
+}
+
+html.admin-shell .pc-content:has(#admin-content-pages, #admin-content-page-form) {
+  padding-top: 1.5rem;
+}
+
+html.admin-shell .admin-content-pages-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html.admin-shell .admin-content-pages-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-hf-line);
+}
+
+html.admin-shell .admin-content-pages-item:last-child {
+  border-bottom: 0;
+}
+
+html.admin-shell .admin-content-pages-main {
+  display: flex;
+  flex: 1 1 14rem;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+html.admin-shell .admin-content-pages-title {
+  color: var(--color-hf-ink);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+html.admin-shell .admin-content-pages-title:hover {
+  color: var(--color-hf-olive);
+  text-decoration: underline;
+}
+
+html.admin-shell .admin-content-pages-slug,
+html.admin-shell .admin-content-page-slug {
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+}
+
+html.admin-shell .admin-content-pages-meta {
+  display: flex;
+  flex: 1 1 18rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 0.75rem;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+}
+
+html.admin-shell .admin-content-pages .admin-content-pages-meta .admin-products-badge {
+  margin-top: 0;
+}
+
+/* PAGES-05C: one small badge per language (complete / incomplete / missing); wraps when many are enabled. */
+html.admin-shell .admin-content-pages-languages {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+html.admin-shell .admin-content-pages .admin-content-pages-languages .admin-products-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+html.admin-shell .admin-content-pages-system,
+html.admin-shell .admin-content-page-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--color-hf-ink);
+  font-weight: 600;
+}
+
+html.admin-shell .admin-content-pages-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+html.admin-shell .admin-content-pages-actions .btn,
+html.admin-shell .admin-content-page-form .btn {
+  min-height: 44px;
+}
+
+@media (max-width: 575.98px) {
+  html.admin-shell .admin-content-pages-item {
+    padding: 1rem;
+  }
+}
+
+html.admin-shell .admin-content-page-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* The saved content, read-only until the visual editor: a framed, scrollable copy of the page body. */
+html.admin-shell .admin-content-page-body {
+  max-height: 24rem;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 10px;
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-ink);
+  line-height: 1.8;
+}
+
+html.admin-shell .admin-content-page-body:focus-visible {
+  outline: 2px solid var(--color-hf-olive);
+  outline-offset: 2px;
+}
+
+html.admin-shell .hirfah-admin-prose > * + * {
+  margin-top: 0.75rem;
+}
+
+html.admin-shell .hirfah-admin-prose :is(p, ul, ol, blockquote, h2, h3, h4) {
+  margin-bottom: 0;
+}
+
+html.admin-shell .hirfah-admin-prose :is(ul, ol) {
+  padding-inline-start: 1.25rem;
+}
+
+html.admin-shell .hirfah-admin-prose img {
+  max-width: 100%;
+  height: auto;
+}
+
+html.admin-shell .admin-content-page-seo summary {
+  color: var(--color-hf-ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+html.admin-shell .admin-content-page-seo[open] summary {
+  margin-bottom: 0.75rem;
+}
+
+html.admin-shell .admin-content-page-seo > .admin-cat-form-field + .admin-cat-form-field {
+  margin-top: 1rem;
+}
+
+/* ---- PAGES-03B: the visual content editor (resources/js/admin-content-editor.js) and the language tabs ---- */
+html.admin-shell .admin-content-page-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0.75rem 1.25rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-bottom: 1px solid var(--color-hf-line);
+}
+
+html.admin-shell .admin-content-page-tab {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  margin-bottom: -1px;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--color-hf-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+html.admin-shell .admin-content-page-tab:hover {
+  color: var(--color-hf-ink);
+}
+
+html.admin-shell .admin-content-page-tab[aria-selected="true"] {
+  border-bottom-color: var(--color-hf-olive);
+  color: var(--color-hf-olive);
+}
+
+html.admin-shell .admin-content-page-tab:focus-visible {
+  outline: 2px solid var(--color-hf-olive);
+  outline-offset: -2px;
+}
+
+html.admin-shell .admin-content-page-tab-alert {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.375rem;
+  border-radius: 999px;
+  background: var(--color-hf-error);
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+html.admin-shell .admin-content-editor {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 10px;
+  background-color: #fff;
+  overflow: hidden;
+}
+
+html.admin-shell .admin-content-editor.is-invalid {
+  border-color: var(--color-hf-error);
+}
+
+html.admin-shell .admin-content-editor > [data-content-editor-status] {
+  padding: 0.5rem 0.75rem;
+}
+
+html.admin-shell .admin-content-editor > [data-content-editor-status].is-error {
+  color: var(--color-hf-error);
+  font-weight: 600;
+}
+
+html.admin-shell .admin-content-editor > .admin-content-page-body {
+  border: 0;
+  border-radius: 0;
+}
+
+html.admin-shell .admin-content-editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.375rem;
+  border-bottom: 1px solid var(--color-hf-line);
+  background-color: var(--color-hf-surface);
+}
+
+html.admin-shell .admin-content-editor-toolbar.is-table {
+  background-color: var(--color-hf-canvas);
+}
+
+html.admin-shell .admin-content-editor-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-hf-ink);
+  font-size: 1.125rem;
+  cursor: pointer;
+}
+
+html.admin-shell .admin-content-editor-tool.is-text {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-content-editor-tool:hover {
+  border-color: var(--color-hf-line);
+  background-color: #fff;
+}
+
+html.admin-shell .admin-content-editor-tool[aria-pressed="true"] {
+  border-color: var(--color-hf-olive);
+  background-color: var(--color-hf-canvas);
+  color: var(--color-hf-olive);
+}
+
+html.admin-shell .admin-content-editor-tool[aria-disabled="true"] {
+  color: var(--color-hf-muted);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+html.admin-shell .admin-content-editor-tool:focus-visible {
+  outline: 2px solid var(--color-hf-olive);
+  outline-offset: 1px;
+}
+
+html.admin-shell .admin-content-editor-surface {
+  min-height: 16rem;
+  max-height: 32rem;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+  color: var(--color-hf-ink);
+  line-height: 1.8;
+  outline: none;
+}
+
+html.admin-shell .admin-content-editor-mount:focus-within {
+  box-shadow: inset 0 0 0 2px var(--color-hf-olive);
+}
+
+html.admin-shell .admin-content-editor-surface :is(h2, h3, h4) {
+  font-weight: 700;
+}
+
+html.admin-shell .admin-content-editor-surface blockquote {
+  padding-inline-start: 0.75rem;
+  border-inline-start: 3px solid var(--color-hf-sage);
+  color: var(--color-hf-muted);
+}
+
+html.admin-shell .admin-content-editor-surface a {
+  color: var(--color-hf-olive);
+  text-decoration: underline;
+}
+
+html.admin-shell .admin-content-editor-surface table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+html.admin-shell .admin-content-editor-surface :is(th, td) {
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--color-hf-line);
+  vertical-align: top;
+}
+
+html.admin-shell .admin-content-editor-surface th {
+  background-color: var(--color-hf-canvas);
+}
+
+html.admin-shell .admin-content-editor-surface .selectedCell {
+  background-color: var(--color-hf-canvas);
+}
+
+html.admin-shell .admin-content-editor-surface img.ProseMirror-selectednode {
+  outline: 2px solid var(--color-hf-olive);
+}
+
+html.admin-shell .admin-content-dialog {
+  width: min(32rem, calc(100vw - 2rem));
+}
+
+html.admin-shell .admin-content-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem;
+}
+
+html.admin-shell .admin-content-dialog-title {
+  margin: 0 0 0.25rem;
+  color: var(--color-hf-ink);
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+
+html.admin-shell .admin-content-dialog-image {
+  max-width: 100%;
+  max-height: 12rem;
+  border-radius: 10px;
+  object-fit: contain;
+}
+
+html.admin-shell .admin-content-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+html.admin-shell .admin-content-dialog-actions .btn,
+html.admin-shell .admin-content-dialog .form-control {
+  min-height: 44px;
+}

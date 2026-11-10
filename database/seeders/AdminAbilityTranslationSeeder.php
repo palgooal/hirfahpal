@@ -95,6 +95,14 @@ class AdminAbilityTranslationSeeder extends Seeder
         // SITE-AVAILABILITY Phase 3A: the maintenance group (maintenance.bypass), here for the same reason.
         'dashboard.Maintenance' => ['from' => 'Site Availability', 'to' => 'حالة الموقع'],
         'dashboard.Maintenance_Bypass' => ['from' => 'Preview the storefront while closed', 'to' => 'معاينة المتجر أثناء إغلاقه'],
+        // PAGES-03A: the content pages group, here for the same reason.
+        'dashboard.Content_Pages' => ['from' => 'Content Pages', 'to' => 'صفحات المحتوى'],
+        'dashboard.View_Content_Pages' => ['from' => 'View Content Pages', 'to' => 'عرض صفحات المحتوى'],
+        'dashboard.Edit_Content_Pages' => ['from' => 'Edit Content Pages', 'to' => 'تعديل صفحات المحتوى'],
+        // PAGES-04B: content-pages.create, here for the same reason.
+        'dashboard.Create_Content_Pages' => ['from' => 'Create Content Pages', 'to' => 'إنشاء صفحات المحتوى'],
+        // PAGES-04C: content-pages.delete, here for the same reason.
+        'dashboard.Delete_Content_Pages' => ['from' => 'Delete Content Pages', 'to' => 'حذف صفحات المحتوى'],
     ];
 
     public function run(): void
