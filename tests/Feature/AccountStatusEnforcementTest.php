@@ -466,6 +466,12 @@ class AccountStatusEnforcementTest extends TestCase
             ]);
         }
 
+        // Likewise the driver dashboard needs an approved driver profile (delivery-driver.approved): this test is about
+        // the account status, so approval is granted and only the status varies.
+        if ($account instanceof DeliveryDriver) {
+            $account->profile()->create(['approval_status' => 'approved', 'approved_at' => now(), 'is_available' => true]);
+        }
+
         return $account;
     }
 }

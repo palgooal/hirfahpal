@@ -44,7 +44,7 @@ class StorefrontAccountNavigationTest extends TestCase
         $footer = $this->section($this->get(route('home'))->getContent(), '<footer', '</footer>');
 
         $this->assertMatchesRegularExpression(
-            '/<a href="'.preg_quote(route('customer.dashboard'), '/').'"[^>]*>\s*<i[^>]*><\/i>\s*<span>حسابي<\/span>/',
+            '/<a href="'.preg_quote(route('customer.dashboard'), '/').'"[^>]*>\s*<i[^>]*><\/i>\s*<span dir="auto">حسابي<\/span>/',
             $footer
         );
     }
