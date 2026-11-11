@@ -100,6 +100,9 @@
                                     str_starts_with($field, 'footer.') => 'footer['.implode('][', explode('.', substr($field, 7))).']',
                                     str_starts_with($field, 'footer_social.') => str_replace('.', '_', $field),
                                     $field === 'footer_social' => 'settings-social-add',
+                                    // SETTINGS-MEDIA-01: the logo and favicon errors link to their media picker.
+                                    in_array($field, ['logo_media_id', 'remove_logo', 'remove_legacy_logo'], true) => 'media-picker-logo-media-id',
+                                    in_array($field, ['favicon_media_id', 'remove_favicon', 'remove_legacy_favicon'], true) => 'media-picker-favicon-media-id',
                                     default => $field,
                                 })
                                 <li><a href="#{{ $fieldId }}">{{ $fieldLabels[$field] ?? $field }}</a>: {{ $messages[0] }}</li>
@@ -128,18 +131,37 @@
                                 <x-form.textarea name="site_description" label="{{ t('dashboard.Site_Description', 'Site Description') }}" value="{{ $setting->site_description }}" dir="auto" />
                             </div>
 
+                            {{-- SETTINGS-MEDIA-01: the logo and favicon are chosen from the media library (the shared picker;
+                                 unlinking keeps the file in the library). An image uploaded before, with no library image
+                                 linked, is still shown and used by the site; it can be removed (its file is kept). --}}
                             <div class="admin-cat-form-row">
                                 <div class="admin-cat-form-field">
-                                    <x-form.input type="file" name="logo" label="{{ t('dashboard.Logo', 'Logo') }}" accept="image/*" />
-                                    @if ($setting->logo)
-                                        <img src="{{ Storage::disk('public')->url($setting->logo) }}" alt="{{ t('dashboard.Logo', 'Logo') }}" class="img-fluid mt-2" style="max-height: 80px">
+                                    <x-admin.media-picker name="logo_media_id" remove-name="remove_logo" :value="$setting->logo_media_id" label-key="Logo" label-default="Logo"
+                                        removed-note-key="Settings_Logo_Removed_Note" removed-note-default="The logo will be removed from the site when you save. The file stays in the media library." />
+                                    @if (filled($setting->logo) && ! $setting->logo_media_id)
+                                        <div class="admin-settings-legacy-image" data-settings-legacy-image="logo">
+                                            <img src="{{ App\Support\Storefront\HomepageMedia::url($setting->logo) }}" alt="{{ t('dashboard.Logo', 'Logo') }}" class="img-fluid mt-2" style="max-height: 80px">
+                                            <p class="admin-media-hint">{{ $settingsText('Settings_Legacy_Image_Note', 'A previously uploaded image. It is shown on the site until you choose an image from the media library.') }}</p>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="remove_legacy_logo" name="remove_legacy_logo" value="1" @checked(old('remove_legacy_logo'))>
+                                                <label class="form-check-label" for="remove_legacy_logo">{{ $settingsText('Settings_Legacy_Image_Remove', 'Remove the previously uploaded image (the file is kept)') }}</label>
+                                            </div>
+                                        </div>
                                     @endif
                                 </div>
 
                                 <div class="admin-cat-form-field">
-                                    <x-form.input type="file" name="favicon" label="{{ t('dashboard.Favicon', 'Favicon') }}" accept="image/*" />
-                                    @if ($setting->favicon)
-                                        <img src="{{ Storage::disk('public')->url($setting->favicon) }}" alt="{{ t('dashboard.Favicon', 'Favicon') }}" class="img-fluid mt-2" style="max-height: 48px">
+                                    <x-admin.media-picker name="favicon_media_id" remove-name="remove_favicon" :value="$setting->favicon_media_id" label-key="Favicon" label-default="Favicon"
+                                        removed-note-key="Settings_Favicon_Removed_Note" removed-note-default="The favicon will be removed from the site when you save. The file stays in the media library." />
+                                    @if (filled($setting->favicon) && ! $setting->favicon_media_id)
+                                        <div class="admin-settings-legacy-image" data-settings-legacy-image="favicon">
+                                            <img src="{{ App\Support\Storefront\HomepageMedia::url($setting->favicon) }}" alt="{{ t('dashboard.Favicon', 'Favicon') }}" class="img-fluid mt-2" style="max-height: 48px">
+                                            <p class="admin-media-hint">{{ $settingsText('Settings_Legacy_Image_Note', 'A previously uploaded image. It is shown on the site until you choose an image from the media library.') }}</p>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="remove_legacy_favicon" name="remove_legacy_favicon" value="1" @checked(old('remove_legacy_favicon'))>
+                                                <label class="form-check-label" for="remove_legacy_favicon">{{ $settingsText('Settings_Legacy_Image_Remove', 'Remove the previously uploaded image (the file is kept)') }}</label>
+                                            </div>
+                                        </div>
                                     @endif
                                 </div>
                             </div>

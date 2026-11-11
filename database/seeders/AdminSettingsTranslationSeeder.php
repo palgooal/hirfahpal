@@ -29,6 +29,11 @@ class AdminSettingsTranslationSeeder extends Seeder
      * @var array<string, array<string, string>>
      */
     public const TRANSLATIONS = [
+        // SETTINGS-MEDIA-01: the logo and favicon pickers (removal notes) and an image uploaded before the media library.
+        'dashboard.Settings_Logo_Removed_Note' => ['ar' => 'سيُزال الشعار من الموقع عند الحفظ، ويبقى الملف في مكتبة الوسائط.', 'en' => 'The logo will be removed from the site when you save. The file stays in the media library.'],
+        'dashboard.Settings_Favicon_Removed_Note' => ['ar' => 'ستُزال أيقونة الموقع عند الحفظ، ويبقى الملف في مكتبة الوسائط.', 'en' => 'The favicon will be removed from the site when you save. The file stays in the media library.'],
+        'dashboard.Settings_Legacy_Image_Note' => ['ar' => 'صورة مرفوعة سابقًا، تظهر في الموقع حتى تختار صورة من مكتبة الوسائط.', 'en' => 'A previously uploaded image. It is shown on the site until you choose an image from the media library.'],
+        'dashboard.Settings_Legacy_Image_Remove' => ['ar' => 'إزالة الصورة المرفوعة سابقًا (يبقى الملف محفوظًا)', 'en' => 'Remove the previously uploaded image (the file is kept)'],
         'dashboard.Settings_Footer_Title' => ['ar' => 'إعدادات التذييل', 'en' => 'Footer settings'],
         'dashboard.Settings_Footer_Hint' => ['ar' => 'هذه البيانات تظهر مباشرة في تذييل الموقع.', 'en' => 'These details appear directly in the site footer.'],
         // FOOTER-I18N-01C: the two languages of the footer texts, and how an empty English field behaves.

@@ -29,8 +29,14 @@ class UpdateSettingRequest extends FormRequest
         return $footer + [
             'site_name' => ['nullable', 'string', 'max:255'],
             'site_description' => ['nullable', 'string', 'max:2000'],
-            'logo' => ['nullable', 'image', 'max:2048'],
-            'favicon' => ['nullable', 'image', 'max:1024'],
+            // SETTINGS-MEDIA-01: the logo and favicon are chosen from the media library (SettingController checks the
+            // chosen item); the legacy upload fields are no longer accepted.
+            'logo_media_id' => ['nullable', 'integer', 'min:1'],
+            'remove_logo' => ['nullable', 'boolean'],
+            'remove_legacy_logo' => ['nullable', 'boolean'],
+            'favicon_media_id' => ['nullable', 'integer', 'min:1'],
+            'remove_favicon' => ['nullable', 'boolean'],
+            'remove_legacy_favicon' => ['nullable', 'boolean'],
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:30'],
             'address' => ['nullable', 'string'],
@@ -104,6 +110,11 @@ class UpdateSettingRequest extends FormRequest
             $attributes[$field] = $this->label($key, $default);
         }
 
+        // SETTINGS-MEDIA-01: shown only while an image uploaded before the media library is in use, so not listed in
+        // GENERAL_LABELS (the fields always on the page).
+        $attributes['remove_legacy_logo'] = $attributes['logo_media_id'];
+        $attributes['remove_legacy_favicon'] = $attributes['favicon_media_id'];
+
         foreach (self::FOOTER_LABELS as $field => $default) {
             // footer.x_url → dashboard.Settings_Footer_X_Url, as the settings page builds it.
             $key = 'Settings_Footer_'.implode('_', array_map('ucfirst', explode('_', $field)));
@@ -139,8 +150,10 @@ class UpdateSettingRequest extends FormRequest
     public const GENERAL_LABELS = [
         'site_name' => ['Site_Name', 'Site Name'],
         'site_description' => ['Site_Description', 'Site Description'],
-        'logo' => ['Logo', 'Logo'],
-        'favicon' => ['Favicon', 'Favicon'],
+        'logo_media_id' => ['Logo', 'Logo'],
+        'remove_logo' => ['Logo', 'Logo'],
+        'favicon_media_id' => ['Favicon', 'Favicon'],
+        'remove_favicon' => ['Favicon', 'Favicon'],
         'email' => ['Email', 'Email'],
         'phone' => ['Phone', 'Phone'],
         'address' => ['Address', 'Address'],

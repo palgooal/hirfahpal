@@ -137,7 +137,10 @@ class SiteAvailabilityMigrationTest extends TestCase
         Schema::table('settings', fn ($table) => $table->foreignId('site_availability_changed_by')->nullable()->constrained('admins')->nullOnDelete());
         $migration->down();
         $this->assertSame($baseline, collect(Schema::getColumns('settings'))->pluck('name')->all());
-        $this->assertSame([], Schema::getForeignKeys('settings'));
+        // SETTINGS-MEDIA-01: the logo and favicon keys belong to a later migration and stay.
+        $this->assertSame([], collect(Schema::getForeignKeys('settings'))
+            ->reject(fn (array $fk) => in_array($fk['columns'], [['logo_media_id'], ['favicon_media_id']], true))->values()->all());
+        $this->assertCount(2, Schema::getForeignKeys('settings'));
 
         // Nothing to remove: a no-op, twice.
         $migration->down();

@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use App\Support\Storefront\HomepageMedia;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Schema;
+use Palgoal\MediaLibrary\Models\Media;
 
 class Setting extends Model
 {
@@ -288,6 +291,81 @@ class Setting extends Model
         }
 
         return $saved;
+    }
+
+    /**
+     * SETTINGS-MEDIA-01: the logo and favicon from the media library (logo_media_id, favicon_media_id, ON DELETE
+     * RESTRICT). Not fillable: SettingController assigns them explicitly after checking the chosen media.
+     */
+    public function logoMedia(): BelongsTo
+    {
+        return $this->belongsTo(Media::class, 'logo_media_id');
+    }
+
+    public function faviconMedia(): BelongsTo
+    {
+        return $this->belongsTo(Media::class, 'favicon_media_id');
+    }
+
+    /**
+     * SETTINGS-MEDIA-01: loads both media relations with ONE query, none when neither is set, and only once per model:
+     * the storefront reads the logo three times and the favicon once per page, from whichever settings instance the
+     * page was given (the storefront context, or a controller's own).
+     */
+    private function ensureBrandMedia(): void
+    {
+        if ($this->relationLoaded('logoMedia') && $this->relationLoaded('faviconMedia')) {
+            return;
+        }
+
+        $ids = array_values(array_unique(array_filter([$this->logo_media_id, $this->favicon_media_id])));
+        $media = $ids === [] ? collect() : Media::query()->whereKey($ids)->get()->keyBy('id');
+
+        $this->setRelation('logoMedia', $media->get($this->logo_media_id));
+        $this->setRelation('faviconMedia', $media->get($this->favicon_media_id));
+    }
+
+    /**
+     * SETTINGS-MEDIA-01: the logo to show, in order: the linked media library image, the legacy uploaded path
+     * (settings.logo), else null (the caller's fallback, HomepageMedia::url()).
+     */
+    public function logoUrl(): ?string
+    {
+        $this->ensureBrandMedia();
+
+        return $this->logoMedia?->url ?: (filled($this->logo) ? $this->logo : null);
+    }
+
+    /**
+     * SETTINGS-MEDIA-01: the favicon to link, in the same order as the logo, with its MIME type: the media's own type,
+     * or for a legacy path the type of its extension (null when unknown, so no type is declared). Null when neither is
+     * set: the storefront layout then links its fallback icon.
+     *
+     * @return array{href: string, type: ?string}|null
+     */
+    public function faviconLink(): ?array
+    {
+        $this->ensureBrandMedia();
+
+        if ($this->faviconMedia?->url) {
+            return ['href' => HomepageMedia::url($this->faviconMedia->url), 'type' => $this->faviconMedia->mime_type ?: null];
+        }
+
+        if (! filled($this->favicon)) {
+            return null;
+        }
+
+        $type = match (strtolower(pathinfo(parse_url($this->favicon, PHP_URL_PATH) ?: '', PATHINFO_EXTENSION))) {
+            'png' => 'image/png',
+            'jpg', 'jpeg' => 'image/jpeg',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'svg' => 'image/svg+xml',
+            'ico' => 'image/x-icon',
+            default => null,
+        };
+
+        return ['href' => HomepageMedia::url($this->favicon), 'type' => $type];
     }
 
     public static function singleton(): self

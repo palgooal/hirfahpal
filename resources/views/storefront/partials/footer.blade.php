@@ -23,7 +23,7 @@
             <div class="col-span-2 flex flex-col items-start gap-4 text-start lg:col-span-2">
                 <div class="flex w-full items-center justify-start gap-3">
                     {{-- The site name is written right beside it: the logo adds nothing for assistive technology. --}}
-                    <span class="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[16px] bg-surface p-1 shadow-sm"><img src="{{ \App\Support\Storefront\HomepageMedia::url($siteSetting?->logo, 'assets/storefront/imgs/mcp/footer-logo.png') }}" alt="" class="h-[50px] w-[50px] object-cover"></span>
+                    <span class="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[16px] bg-surface p-1 shadow-sm"><img src="{{ \App\Support\Storefront\HomepageMedia::url($siteSetting?->logoUrl(), 'assets/storefront/imgs/mcp/footer-logo.png') }}" alt="" class="h-[50px] w-[50px] object-cover"></span>
                     <div class="flex flex-col items-start"><div class="flex items-center justify-start gap-1.5"><i class="h-1.5 w-1.5 rounded-full bg-copper"></i><strong class="text-2xl font-bold leading-8 text-[#fef3c7]" dir="auto">{{ $siteName }}</strong></div><p class="text-[10px] font-medium uppercase leading-[15px] tracking-[.5px] text-white/70"><span dir="auto">{{ $footer['tagline'] }}</span></p></div>
                 </div>
                 <p class="w-full max-w-[384px] text-start text-sm font-light leading-5 text-white/75"><span dir="auto">{{ $footer['description'] }}</span></p>

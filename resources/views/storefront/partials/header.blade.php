@@ -11,7 +11,7 @@
         <a href="{{ $onHome ? '#home' : route('home') }}" class="flex w-auto shrink-0 items-center justify-start gap-3 xl:w-[184px]" aria-label="حرفة الرئيسية"
           data-node-id="223:3474">
           <span class="flex h-[58px] w-[58px] items-center justify-center rounded-[16px] bg-surface p-1 shadow-sm"><img
-              src="{{ \App\Support\Storefront\HomepageMedia::url($siteSetting?->logo, 'assets/storefront/imgs/mcp/header-logo.png') }}" alt="شعار حرفة" class="h-[50px] w-[50px] object-cover"></span>
+              src="{{ \App\Support\Storefront\HomepageMedia::url($siteSetting?->logoUrl(), 'assets/storefront/imgs/mcp/header-logo.png') }}" alt="شعار حرفة" class="h-[50px] w-[50px] object-cover"></span>
           <div class="text-right">
             <div class="flex items-center justify-start gap-1.5"><span
                 class="h-1.5 w-1.5 rounded-full bg-copper"></span><strong
@@ -67,7 +67,7 @@
       <div class="flex h-full items-center justify-between lg:hidden">
         <a href="{{ $onHome ? '#home' : route('home') }}"
           class="flex h-[52px] w-[52px] items-center justify-center rounded-[16px] bg-surface p-1 shadow-sm"><img
-            src="{{ \App\Support\Storefront\HomepageMedia::url($siteSetting?->logo, 'assets/storefront/imgs/mcp/header-logo.png') }}" alt="شعار حرفة" class="h-11 w-11 object-cover"></a>
+            src="{{ \App\Support\Storefront\HomepageMedia::url($siteSetting?->logoUrl(), 'assets/storefront/imgs/mcp/header-logo.png') }}" alt="شعار حرفة" class="h-11 w-11 object-cover"></a>
         <div class="flex items-center gap-1"><button type="submit" form="locale-header-0"
             class="language-toggle flex h-9 items-center gap-1 rounded-full px-2 text-xs font-bold text-olive"
             aria-label="Switch to English"><span class="language-label" lang="en">{{ strtoupper($languages->firstWhere('code', '!=', app()->getLocale())?->code ?? app()->getLocale()) }}</span><img

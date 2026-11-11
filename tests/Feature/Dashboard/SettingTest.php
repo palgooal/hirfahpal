@@ -137,35 +137,11 @@ class SettingTest extends TestCase
         $this->get(route('dashboard.setting.index'))->assertRedirect(route('admin.login'));
     }
 
-    public function test_logo_upload_is_stored_on_public_disk(): void
-    {
-        Storage::fake('public');
-        $admin = $this->adminWithAbilities(['settings.edit']);
-
-        $this->actingAs($admin, 'admin')
-            ->put(route('dashboard.setting.update'), $this->validPayload([
-                'logo' => UploadedFile::fake()->image('logo.png'),
-            ]))
-            ->assertRedirect(route('dashboard.setting.index'));
-
-        Storage::disk('public')->assertExists(Setting::singleton()->logo);
-    }
-
-    public function test_favicon_upload_is_stored_on_public_disk(): void
-    {
-        Storage::fake('public');
-        $admin = $this->adminWithAbilities(['settings.edit']);
-
-        $this->actingAs($admin, 'admin')
-            ->put(route('dashboard.setting.update'), $this->validPayload([
-                'favicon' => UploadedFile::fake()->image('favicon.png'),
-            ]))
-            ->assertRedirect(route('dashboard.setting.index'));
-
-        Storage::disk('public')->assertExists(Setting::singleton()->favicon);
-    }
-
-    public function test_replacing_logo_deletes_old_file(): void
+    /**
+     * SETTINGS-MEDIA-01: the logo and favicon are chosen from the media library (SettingBrandMediaTest); a direct upload
+     * is no longer accepted: nothing is stored, the saved paths and their files stay as they were.
+     */
+    public function test_a_direct_logo_or_favicon_upload_is_ignored_and_changes_nothing(): void
     {
         Storage::fake('public');
         Storage::disk('public')->put('settings/old-logo.png', 'old');
@@ -175,12 +151,14 @@ class SettingTest extends TestCase
         $this->actingAs($admin, 'admin')
             ->put(route('dashboard.setting.update'), $this->validPayload([
                 'logo' => UploadedFile::fake()->image('new-logo.png'),
+                'favicon' => UploadedFile::fake()->image('favicon.png'),
             ]))
             ->assertRedirect(route('dashboard.setting.index'));
 
         $setting = Setting::singleton();
-        Storage::disk('public')->assertMissing('settings/old-logo.png');
-        Storage::disk('public')->assertExists($setting->logo);
+        $this->assertSame('settings/old-logo.png', $setting->logo);
+        $this->assertNull($setting->favicon);
+        $this->assertSame(['settings/old-logo.png'], Storage::disk('public')->allFiles());
     }
 
     public function test_update_without_replacement_keeps_old_logo(): void

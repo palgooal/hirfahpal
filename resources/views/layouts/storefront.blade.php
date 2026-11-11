@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="@yield('meta_description', 'حِرفة - سوق الصنعة الفلسطينية الأصيلة')">
     <title>@yield('title', 'حِرفة | سوق الصنعة الفلسطينية الأصيلة')</title>
+    {{-- SETTINGS-MEDIA-01: the site favicon (the media library image, else the one uploaded before it), else the brand
+         image; its MIME type when known (public/favicon.ico is an empty placeholder). --}}
+    @php($favicon = (($siteSetting ?? null) instanceof \App\Models\Setting ? $siteSetting->faviconLink() : null) ?? ['href' => asset('images/brand/hirfah-logo.png'), 'type' => 'image/png'])
+    <link rel="icon" href="{{ $favicon['href'] }}"@if ($favicon['type']) type="{{ $favicon['type'] }}"@endif>
 @hasSection('robots')
     <meta name="robots" content="@yield('robots')">
 @endif

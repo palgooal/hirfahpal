@@ -60,14 +60,20 @@ class MediaLibrarySafeDeletionTest extends TestCase
         foreach (Schema::getTableListing(schemaQualified: false) as $table) {
             foreach (Schema::getForeignKeys($table) as $key) {
                 if ($key['foreign_table'] === 'media') {
-                    $references[$table] = $key['columns'];
+                    $this->assertCount(1, $key['columns'], "{$table} must reference media.id with a single column.");
+                    $references[] = [$table, $key['columns'][0]];
                     $this->assertSame('restrict', $key['on_delete'], "{$table} must restrict deleting media.");
                 }
             }
         }
 
+        // SETTINGS-MEDIA-01: [table, column] pairs, as a table may hold several references.
+        $expected = MediaUsageGuard::REFERENCES;
+        sort($expected);
+        sort($references);
+
         $this->assertSame(
-            array_map(fn (string $column) => [$column], MediaUsageGuard::REFERENCES),
+            $expected,
             $references,
             'Every column referencing media.id must be listed in MediaUsageGuard::REFERENCES, and only those.'
         );

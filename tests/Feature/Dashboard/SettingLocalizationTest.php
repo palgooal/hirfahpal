@@ -37,7 +37,7 @@ class SettingLocalizationTest extends TestCase
 
     public function test_the_seeder_covers_exactly_the_keys_the_views_read_with_their_english_defaults(): void
     {
-        $this->assertCount(83, AdminSettingsTranslationSeeder::TRANSLATIONS);
+        $this->assertCount(87, AdminSettingsTranslationSeeder::TRANSLATIONS);
 
         // FOOTER-SOCIAL-02B: the social links manager is a partial of the page.
         $view = file_get_contents(resource_path('views/dashboard/settings/index.blade.php'))
@@ -48,6 +48,12 @@ class SettingLocalizationTest extends TestCase
             $defaults['dashboard.'.$key] = $default;
         }
         unset($defaults['dashboard.Site_Availability_Title']); // AdminSiteAvailabilityTranslationSeeder's key.
+        // SETTINGS-MEDIA-01: the logo and favicon pickers' removal notes, passed to the shared picker as props.
+        preg_match_all('/removed-note-key="([A-Za-z_]+)" removed-note-default="([^"]+)"/', $view, $matches, PREG_SET_ORDER);
+        $this->assertCount(2, $matches);
+        foreach ($matches as [, $key, $default]) {
+            $defaults['dashboard.'.$key] = $default;
+        }
         // SETTINGS-UX-01: the footer groups' legends ([legend key, English legend, [fields]]).
         preg_match_all("/\['(Settings_Group_[A-Za-z_]+)', '([^']+)', \[/", $view, $matches, PREG_SET_ORDER);
         foreach ($matches as [, $key, $default]) {
@@ -83,7 +89,7 @@ class SettingLocalizationTest extends TestCase
             $defaults['storefront.Footer_Social_'.$key] = $default;
         }
 
-        $this->assertCount(71, array_filter(array_keys($defaults), fn ($key) => str_starts_with($key, 'dashboard.')));
+        $this->assertCount(75, array_filter(array_keys($defaults), fn ($key) => str_starts_with($key, 'dashboard.')));
         $labels = array_map(
             fn ($key) => strtolower(substr($key, strlen('dashboard.Settings_Footer_'))),
             array_values(array_filter(array_keys($defaults), fn ($key) => str_starts_with($key, 'dashboard.Settings_Footer_') && ! in_array($key, ['dashboard.Settings_Footer_Title', 'dashboard.Settings_Footer_Hint', 'dashboard.Settings_Footer_Language_Hint'], true)))
@@ -146,7 +152,7 @@ class SettingLocalizationTest extends TestCase
         $this->seed(AdminSettingsTranslationSeeder::class);
 
         $this->assertSame($first, TranslationValue::orderBy('id')->get(['id', 'key', 'locale', 'value', 'updated_at'])->toArray());
-        $this->assertSame(195, TranslationValue::count(), '193 missing rows (97 keys in two languages, one existing) inserted, the two existing rows kept.');
+        $this->assertSame(203, TranslationValue::count(), '201 missing rows (101 keys in two languages, one existing) inserted, the two existing rows kept.');
         $this->assertSame('تذييل الموقع', TranslationValue::where('key', 'dashboard.Settings_Footer_Title')->where('locale', 'ar')->value('value'));
         $this->assertSame('قيمة أخرى', TranslationValue::where('key', 'dashboard.Something_else')->value('value'));
         $this->assertFalse(cache()->has('translation.en.dashboard.Settings_Footer_Hint'), 'A newly inserted row clears its stale cache entry.');

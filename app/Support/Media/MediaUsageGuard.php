@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\DB;
  * AD-UI-CAT-M2-C (finding M1-F2): which media items are referenced by application records, so they are not
  * deleted from under them.
  *
- * REFERENCES lists every column that holds a media.id. Each one must also have a foreign key to media.id ON
+ * REFERENCES lists every column that holds a media.id, as [table, column] pairs (a table may hold several:
+ * SETTINGS-MEDIA-01 adds the logo and the favicon of settings). Each one must also have a foreign key to media.id ON
  * DELETE RESTRICT (the database refuses what a race slips past this check); a test fails when a foreign key
  * to media exists that is not listed here. Legacy path columns such as categories.image are not references
  * (decision D4). The optional mediables table of the package is not used by this application.
@@ -27,9 +28,11 @@ use Illuminate\Support\Facades\DB;
  */
 class MediaUsageGuard
 {
-    /** @var array<string, string> table => column holding media.id */
+    /** @var list<array{0: string, 1: string}> [table, column holding media.id] */
     public const REFERENCES = [
-        'categories' => 'image_media_id',
+        ['categories', 'image_media_id'],
+        ['settings', 'logo_media_id'],
+        ['settings', 'favicon_media_id'],
     ];
 
     /**
@@ -48,7 +51,7 @@ class MediaUsageGuard
 
         $used = collect();
 
-        foreach (self::REFERENCES as $table => $column) {
+        foreach (self::REFERENCES as [$table, $column]) {
             $used = $used->merge(
                 DB::table($table)->whereIn($column, $ids)->sharedLock()->pluck($column)
             );

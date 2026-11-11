@@ -5,6 +5,10 @@
     'labelKey' => 'Category_Image',
     'labelDefault' => 'Image',
     'canRemove' => true,
+    // SETTINGS-MEDIA-01: the note shown once the admin asks to remove the image, as a dashboard key and its English
+    // default; null keeps the category text.
+    'removedNoteKey' => null,
+    'removedNoteDefault' => '',
     // PAGES-03B: "callback" renders only the working dialog for a page editor (initMediaPicker()->open()); the field
     // markup stays, hidden and without input names, so nothing is posted and the field code runs unchanged.
     'mode' => 'field',
@@ -96,7 +100,7 @@
                 @endif
             </p>
             <p class="admin-media-picker-note" data-picker-removed-note @unless ($pickerRemoved) hidden @endunless>
-                {{ $pickerText('Media_Picker_Removed_Note', 'The image will be removed from this category when you save. The file stays in the media library.') }}
+                {{ $removedNoteKey === null ? $pickerText('Media_Picker_Removed_Note', 'The image will be removed from this category when you save. The file stays in the media library.') : $pickerText($removedNoteKey, $removedNoteDefault) }}
             </p>
             <p class="admin-media-hint">{{ $pickerText('Media_Picker_Hint', 'Optional. A JPG, PNG, GIF or WebP image from the media library.') }}</p>
 
