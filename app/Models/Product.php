@@ -10,6 +10,8 @@ class Product extends Model
     protected $fillable = [
         'vendor_id',
         'category_id',
+        'city_id',
+        'governorate_id',
         'name',
         'slug',
         'short_description',
@@ -71,6 +73,16 @@ class Product extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function city()
+    {
+        return $this->belongsTo(City::class);
+    }
+
+    public function governorate()
+    {
+        return $this->belongsTo(Governorate::class);
     }
 
     public function reviews()

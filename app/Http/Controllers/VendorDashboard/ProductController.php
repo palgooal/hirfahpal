@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\VendorDashboard\StoreProductRequest;
 use App\Http\Requests\VendorDashboard\UpdateProductRequest;
 use App\Models\Category;
+use App\Models\City;
+use App\Models\Governorate;
 use App\Models\Product;
 use App\Rules\VendorLibraryImage;
 use App\Support\Products\ProductGallery;
@@ -55,6 +57,8 @@ class ProductController extends Controller
             'products' => $products,
             'filters' => [
                 'categories' => Category::query()->where('is_active', true)->orderBy('name')->get(),
+                'cities' => City::query()->where('status', 'active')->orderBy('name')->get(['id', 'name']),
+                'governorates' => Governorate::query()->where('status', 'active')->whereNotNull('city_id')->orderBy('name')->get(['id', 'city_id', 'name']),
                 'statuses' => $this->statuses(),
             ],
         ]);
@@ -117,7 +121,7 @@ class ProductController extends Controller
         $this->authorizeProduct($request, $product);
 
         return response()->json([
-            'product' => $product->load(['category', 'images', 'stockReservations']),
+            'product' => $product->load(['category', 'city', 'governorate', 'images', 'stockReservations']),
             'available_stock' => $product->availableStockQuantity(),
             'reserved_stock' => $product->reservedStockQuantity(),
             // VENDOR-PRODUCT-PUBLISH-UI-01C (DETAIL-02, DETAIL-03): the administrative state for the editor, read-only
@@ -166,7 +170,7 @@ class ProductController extends Controller
 
         return response()->json([
             'message' => 'Product updated successfully.',
-            'product' => $product->fresh(['category', 'images']),
+            'product' => $product->fresh(['category', 'city', 'governorate', 'images']),
         ]);
     }
 

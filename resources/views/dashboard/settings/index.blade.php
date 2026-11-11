@@ -166,6 +166,10 @@
                         <fieldset class="admin-cat-form-section">
                             <legend class="admin-cat-form-legend">{{ $settingsText('Settings_Group_Regional', 'Regional settings') }}</legend>
 
+                            <div class="admin-cat-form-field">
+                                <a class="btn btn-light-secondary" href="{{ route('dashboard.setting.locations.index') }}"><i class="ph-duotone ph-map-pin" aria-hidden="true"></i> {{ t('dashboard.Location_Management', 'Manage cities and governorates') }}</a>
+                            </div>
+
                             {{-- The required fields carry the category form's mark; their label is written here, the
                                  component draws the field. --}}
                             <div class="admin-cat-form-row">

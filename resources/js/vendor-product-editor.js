@@ -738,6 +738,9 @@ function initEditor(editor) {
     const categoryRetry = editor.querySelector('[data-product-category-retry]');
     const categoryTickets = createTickets();
     let activeCategories = null, categoryValue = '', ownCategory = null;
+    const cityField = form.querySelector('[name="city_id"]');
+    const governorateField = form.querySelector('[name="governorate_id"]');
+    let locations = null;
     const subtitle = editor.querySelector('[data-product-editor-subtitle]');
     const parseTexts = (raw) => { try { return JSON.parse(raw || '{}') ?? {}; } catch { return {}; } };
     const listTexts = parseTexts(list?.dataset.listTexts);
@@ -914,6 +917,9 @@ function initEditor(editor) {
         categoryValue = product.category_id === null || product.category_id === undefined ? '' : String(product.category_id);
         ownCategory = product.category?.id ? { id: String(product.category.id), name: String(product.category.name ?? '') } : null;
         renderCategories();
+        cityField.value = product.city_id ?? '';
+        governorateField.value = product.governorate_id ?? '';
+        renderLocations();
         showHeader(product, moderation); clearFieldErrors(); updateCounter(); markClean();
     };
     const load = (id) => fetchJson(`${endpoint}/${id}`, { credentials: 'same-origin', headers: headers(false) });
@@ -1026,10 +1032,10 @@ function initEditor(editor) {
         if (media[0] && await choose(media[0])) status(`${messages.added} ${format(messages.uploaded, { count: media.length })}`);
     };
 
-    const close = () => { begin(); editor.hidden = true; list.hidden = false; if (pageTitle) pageTitle.hidden = false; error.hidden = true; form.reset(); field('low_stock_threshold').value = '1'; setStatusField(field('status'), null); editingId = null; images = []; applyMode('editable'); clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.headingAdd; categoryValue = ''; ownCategory = null; renderCategories(); showHeader(null); clearFieldErrors(); updateCounter(); markClean(); };
+    const close = () => { begin(); editor.hidden = true; list.hidden = false; if (pageTitle) pageTitle.hidden = false; error.hidden = true; form.reset(); field('low_stock_threshold').value = '1'; setStatusField(field('status'), null); editingId = null; images = []; applyMode('editable'); clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.headingAdd; categoryValue = ''; ownCategory = null; renderCategories(); renderLocations(); showHeader(null); clearFieldErrors(); updateCounter(); markClean(); };
     // VPM-UX-01E: Cancel and "Back to products" ask first while there are unsaved changes.
     const leave = () => { if (isDirty() && !window.confirm(texts.discard)) return; close(); };
-    const payload = () => ({ name: field('name').value.trim(), category_id: categoryValue === '' ? null : Number(categoryValue), price: number('price'), stock_quantity: number('stock_quantity'), sku: value('sku'), compare_at_price: number('compare_at_price'), low_stock_threshold: number('low_stock_threshold'), weight: number('weight'), weight_unit: value('weight_unit'), dimensions: { length: number('dimensions[length]'), width: number('dimensions[width]'), height: number('dimensions[height]') }, material: value('material'), place_of_manufacture: value('place_of_manufacture'), preparation_days: number('preparation_days'), care_instructions: value('care_instructions'), shipping_details: value('shipping_details'), short_description: value('short_description'), description: value('description'), status: statusPayload(field('status').value), images: editingId ? undefined : images.map(({ path, alt_text, sort_order, is_primary }) => ({ path, alt_text, sort_order, is_primary })) });
+    const payload = () => ({ name: field('name').value.trim(), category_id: categoryValue === '' ? null : Number(categoryValue), price: number('price'), city_id: cityField.value === '' ? null : Number(cityField.value), governorate_id: governorateField.value === '' ? null : Number(governorateField.value), stock_quantity: number('stock_quantity'), sku: value('sku'), compare_at_price: number('compare_at_price'), low_stock_threshold: number('low_stock_threshold'), weight: number('weight'), weight_unit: value('weight_unit'), dimensions: { length: number('dimensions[length]'), width: number('dimensions[width]'), height: number('dimensions[height]') }, material: value('material'), place_of_manufacture: value('place_of_manufacture'), preparation_days: number('preparation_days'), care_instructions: value('care_instructions'), shipping_details: value('shipping_details'), short_description: value('short_description'), description: value('description'), status: statusPayload(field('status').value), images: editingId ? undefined : images.map(({ path, alt_text, sort_order, is_primary }) => ({ path, alt_text, sort_order, is_primary })) });
     /**
      * VPM-CATEGORY-RELIABILITY-01: the category field from the editor's state. Disabled until the categories are loaded
      * (the product's own category is shown meanwhile); a failed load shows its message and Retry.
@@ -1061,6 +1067,30 @@ function initEditor(editor) {
     categoryField.addEventListener('input', chooseCategory);
     categoryField.addEventListener('change', chooseCategory);
     categoryRetry.addEventListener('click', loadCategories);
+    function renderLocations() {
+        const selectedCity = String(cityField.value || '');
+        const selectedGovernorate = String(governorateField.value || '');
+        const cities = locations?.cities ?? [];
+        const governorates = (locations?.governorates ?? []).filter((governorate) => governorate.city_id === selectedCity);
+        cityField.replaceChildren(new Option(texts.cityPrompt || 'Choose a city', ''), ...cities.map((city) => new Option(city.name, city.id)));
+        cityField.value = selectedCity;
+        cityField.disabled = locations === null;
+        governorateField.replaceChildren(new Option(texts.governoratePrompt || 'Choose a governorate', ''), ...governorates.map((governorate) => new Option(governorate.name, governorate.id)));
+        governorateField.value = governorates.some((governorate) => governorate.id === selectedGovernorate) ? selectedGovernorate : '';
+        governorateField.disabled = locations === null || selectedCity === '';
+    }
+    cityField.addEventListener('change', () => { governorateField.value = ''; renderLocations(); });
+    const loadLocations = async () => {
+        const answer = await fetchJson(`${endpoint}?page=1&per_page=1`, { credentials: 'same-origin', headers: headers(false) });
+        const cities = answer.body?.filters?.cities;
+        const governorates = answer.body?.filters?.governorates;
+        if (answer.status !== 200 || !Array.isArray(cities) || !Array.isArray(governorates)) return;
+        locations = {
+            cities: cities.map((city) => ({ id: String(city.id), name: String(city.name ?? '') })),
+            governorates: governorates.map((governorate) => ({ id: String(governorate.id), city_id: String(governorate.city_id), name: String(governorate.name ?? '') })),
+        };
+        renderLocations();
+    };
     document.addEventListener('click', async (event) => { const button = event.target.closest('[data-product-action]'); if (!button) return; const id = button.dataset.productId; if (button.dataset.productAction === 'delete') { if (!window.confirm(texts.confirmDelete)) return; const response = await request(`${endpoint}/${id}`, 'DELETE'); if (!response.ok) { fail(texts.deleteFailed); showEditor(); return; } window.dispatchEvent(new CustomEvent('vendor-resource:refresh', { detail: { resource: 'products', reason: 'deleted' } })); return; }
         // UI-01D: a new ticket while it loads (nothing can be changed meanwhile); only the latest product opened is shown.
         const ticket = begin(); setBusy(true);
@@ -1130,8 +1160,10 @@ function initEditor(editor) {
     render();
     updateCounter();
     renderCategories();
+    renderLocations();
     markClean();
     loadCategories();
+    loadLocations();
 }
 
 if (typeof document !== 'undefined') {
