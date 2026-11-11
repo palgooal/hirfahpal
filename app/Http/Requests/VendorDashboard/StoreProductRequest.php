@@ -6,6 +6,7 @@ use App\Http\Controllers\VendorDashboard\ProductImageController;
 use App\Models\Governorate;
 use App\Rules\VendorLibraryImage;
 use App\Support\Products\VendorProductCategory;
+use App\Support\Products\VendorProductLocation;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreProductRequest extends FormRequest
@@ -24,7 +25,7 @@ class StoreProductRequest extends FormRequest
             'governorate_id' => ['nullable', 'required_with:city_id', 'integer', 'exists:governorates,id', function (string $attribute, mixed $value, \Closure $fail): void {
                 if ($value !== null && $this->input('city_id') !== null
                     && ! Governorate::query()->whereKey($value)->where('city_id', $this->input('city_id'))->exists()) {
-                    $fail('The selected governorate does not belong to the selected city.');
+                    $fail(VendorProductLocation::governorateMismatchMessage());
                 }
             }],
             'name' => ['required', 'string', 'max:255'],

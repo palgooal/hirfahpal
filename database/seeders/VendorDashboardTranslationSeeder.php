@@ -652,6 +652,12 @@ class VendorDashboardTranslationSeeder extends Seeder
         'vendor.Product_Category_Loading' => ['ar' => 'جارٍ تحميل التصنيفات…', 'en' => 'Loading categories…'],
         'vendor.Product_Category_Load_Failed' => ['ar' => 'تعذّر تحميل التصنيفات.', 'en' => 'The categories could not be loaded.'],
         'vendor.Product_Category_Inactive' => ['ar' => ':name (غير نشط)', 'en' => ':name (inactive)'],
+        // The product's city and governorate (optional, the governorate belongs to the chosen city) and their prompts.
+        'vendor.Product_City' => ['ar' => 'المدينة', 'en' => 'City'],
+        'vendor.Product_City_Select' => ['ar' => 'اختر المدينة', 'en' => 'Choose a city'],
+        'vendor.Product_Governorate' => ['ar' => 'المحافظة', 'en' => 'Governorate'],
+        'vendor.Product_Governorate_Select' => ['ar' => 'اختر المحافظة', 'en' => 'Choose a governorate'],
+        'vendor.Product_Governorate_Mismatch' => ['ar' => 'المحافظة المختارة لا تتبع المدينة المختارة.', 'en' => 'The selected governorate does not belong to the selected city.'],
         // VPM-UX-01E-POLISH-01: the editor's page heading (Add / Edit), separate from the list's "Add product" button.
         'vendor.Product_Heading_New' => ['ar' => 'إضافة منتج', 'en' => 'Add Product'],
         'vendor.Product_Heading_Edit' => ['ar' => 'تعديل منتج', 'en' => 'Edit Product'],

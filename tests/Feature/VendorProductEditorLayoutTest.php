@@ -96,7 +96,11 @@ class VendorProductEditorLayoutTest extends TestCase
         $xpath = $this->xpath($this->page('en'));
         $boxes = iterator_to_array($xpath->query('//form[@data-product-form]//p[@data-error-for]'));
 
-        $this->assertCount(19, $boxes, 'Every field the vendor types or chooses, except the publication status (a fixed list).');
+        $this->assertCount(21, $boxes, 'Every field the vendor types or chooses, except the publication status (a fixed list).');
+        // The product's city and governorate have their own messages too.
+        $names = array_map(fn ($box) => $box->getAttribute('data-error-for'), $boxes);
+        $this->assertContains('city_id', $names);
+        $this->assertContains('governorate_id', $names);
         foreach ($boxes as $box) {
             $name = $box->getAttribute('data-error-for');
             $this->assertTrue($box->hasAttribute('hidden'), $name);
@@ -136,7 +140,7 @@ class VendorProductEditorLayoutTest extends TestCase
         $this->assertStringContainsString('showHeader(product, moderation); clearFieldErrors(); updateCounter(); markClean();', $script, 'Opening a product is the baseline.');
         $this->assertStringContainsString('showHeader(null); clearFieldErrors(); updateCounter(); markClean(); };', $script, 'Closing (after a save, too) clears it.');
         // One save at a time; the request and its ticket check are unchanged.
-        $this->assertMatchesRegularExpression("/if \\(locked\\(\\)\\) return;\\s*\\/\\/[^\\n]*\\n\\s*if \\(saving\\) return;/", $script);
+        $this->assertMatchesRegularExpression('/if \\(locked\\(\\)\\) return;\\s*\\/\\/[^\\n]*\\n\\s*if \\(saving\\) return;/', $script);
         $this->assertStringContainsString("setSaving(true);\n        const answer = await send(editingId ? `\${endpoint}/\${editingId}` : endpoint, editingId ? 'PUT' : 'POST', payload());", $script);
         $this->assertStringContainsString('const begin = () => { session = tickets.next(); busy = false; setSaving(false); return session; };', $script);
         // Leaving: Cancel and Back ask first; the browser warns while the open editor has unsaved changes.

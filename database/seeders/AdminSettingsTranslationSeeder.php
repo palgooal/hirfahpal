@@ -125,6 +125,20 @@ class AdminSettingsTranslationSeeder extends Seeder
         'storefront.Footer_Nav_Links' => ['ar' => 'روابط مفيدة', 'en' => 'Useful links'],
         'storefront.Footer_Nav_Service' => ['ar' => 'خدمة العملاء', 'en' => 'Customer service'],
         'storefront.Footer_Social_New_Tab' => ['ar' => 'يُفتح في نافذة جديدة', 'en' => 'opens in a new tab'],
+        // The cities and governorates page (settings/locations) and its two notices (LocationManagementController).
+        'dashboard.Location_Cities' => ['ar' => 'المدن', 'en' => 'Cities'],
+        'dashboard.Location_Cities_Hint' => ['ar' => 'أضف المدينة أولًا، ثم أضف محافظاتها.', 'en' => 'Add a city before adding its governorates.'],
+        'dashboard.Location_Add_City' => ['ar' => 'إضافة مدينة', 'en' => 'Add city'],
+        'dashboard.Location_Governorates' => ['ar' => 'المحافظات', 'en' => 'Governorates'],
+        'dashboard.Location_Governorates_Hint' => ['ar' => 'اختر المدينة التي تتبع لها هذه المحافظة.', 'en' => 'Choose the city this governorate belongs to.'],
+        'dashboard.Location_Select_City' => ['ar' => 'اختر المدينة', 'en' => 'Choose a city'],
+        'dashboard.Location_Governorate' => ['ar' => 'المحافظة', 'en' => 'Governorate'],
+        'dashboard.Location_Add_Governorate' => ['ar' => 'إضافة محافظة', 'en' => 'Add governorate'],
+        'dashboard.Location_Existing' => ['ar' => 'المواقع المضافة', 'en' => 'Configured locations'],
+        'dashboard.Location_No_Governorates' => ['ar' => 'لم تُضف محافظات بعد.', 'en' => 'No governorates added yet.'],
+        'dashboard.Location_No_Cities' => ['ar' => 'لم تُضف مدن بعد.', 'en' => 'No cities added yet.'],
+        'dashboard.Location_City_Added' => ['ar' => 'تمت إضافة المدينة بنجاح.', 'en' => 'City added successfully.'],
+        'dashboard.Location_Governorate_Added' => ['ar' => 'تمت إضافة المحافظة بنجاح.', 'en' => 'Governorate added successfully.'],
     ];
 
     /**
@@ -150,6 +164,8 @@ class AdminSettingsTranslationSeeder extends Seeder
         // FOOTER-SOCIAL-02D: the notice after a save (SettingController::update(), read with auto-create, so the first
         // save stored the English default in Arabic too).
         'dashboard.Settings_updated_successfully' => ['from' => 'Settings updated successfully.', 'to' => 'تم حفظ الإعدادات بنجاح.'],
+        // The link to the cities and governorates (the regional settings), also the locations page's breadcrumb.
+        'dashboard.Location_Management' => ['from' => 'Manage cities and governorates', 'to' => 'إدارة المدن والمحافظات'],
     ];
 
     /**

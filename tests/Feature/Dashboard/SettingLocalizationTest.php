@@ -37,7 +37,7 @@ class SettingLocalizationTest extends TestCase
 
     public function test_the_seeder_covers_exactly_the_keys_the_views_read_with_their_english_defaults(): void
     {
-        $this->assertCount(87, AdminSettingsTranslationSeeder::TRANSLATIONS);
+        $this->assertCount(100, AdminSettingsTranslationSeeder::TRANSLATIONS);
 
         // FOOTER-SOCIAL-02B: the social links manager is a partial of the page.
         $view = file_get_contents(resource_path('views/dashboard/settings/index.blade.php'))
@@ -74,6 +74,17 @@ class SettingLocalizationTest extends TestCase
         foreach ($matches as [, $key, $default]) {
             $defaults['dashboard.'.$key] = $default;
         }
+        // The cities and governorates page, and the notices its controller sends back.
+        preg_match_all("/\\\$locationText\('([A-Za-z_]+)', '([^']+)'\)/", file_get_contents(resource_path('views/dashboard/settings/locations.blade.php')), $matches, PREG_SET_ORDER);
+        $this->assertCount(11, $matches);
+        foreach ($matches as [, $key, $default]) {
+            $defaults['dashboard.'.$key] = $default;
+        }
+        preg_match_all("/\\\$this->text\('([A-Za-z_]+)', '([^']+)'\)/", file_get_contents(app_path('Http/Controllers/Dashboard/LocationManagementController.php')), $matches, PREG_SET_ORDER);
+        $this->assertCount(2, $matches);
+        foreach ($matches as [, $key, $default]) {
+            $defaults['dashboard.'.$key] = $default;
+        }
         $footer = file_get_contents(resource_path('views/storefront/partials/footer.blade.php'));
         preg_match_all("/\\\$socialText\('([A-Za-z_]+)', '([^']+)'\)/", $footer, $matches, PREG_SET_ORDER);
         foreach ($matches as [, $key, $default]) {
@@ -89,7 +100,7 @@ class SettingLocalizationTest extends TestCase
             $defaults['storefront.Footer_Social_'.$key] = $default;
         }
 
-        $this->assertCount(75, array_filter(array_keys($defaults), fn ($key) => str_starts_with($key, 'dashboard.')));
+        $this->assertCount(88, array_filter(array_keys($defaults), fn ($key) => str_starts_with($key, 'dashboard.')));
         $labels = array_map(
             fn ($key) => strtolower(substr($key, strlen('dashboard.Settings_Footer_'))),
             array_values(array_filter(array_keys($defaults), fn ($key) => str_starts_with($key, 'dashboard.Settings_Footer_') && ! in_array($key, ['dashboard.Settings_Footer_Title', 'dashboard.Settings_Footer_Hint', 'dashboard.Settings_Footer_Language_Hint'], true)))
@@ -152,7 +163,7 @@ class SettingLocalizationTest extends TestCase
         $this->seed(AdminSettingsTranslationSeeder::class);
 
         $this->assertSame($first, TranslationValue::orderBy('id')->get(['id', 'key', 'locale', 'value', 'updated_at'])->toArray());
-        $this->assertSame(203, TranslationValue::count(), '201 missing rows (101 keys in two languages, one existing) inserted, the two existing rows kept.');
+        $this->assertSame(231, TranslationValue::count(), '229 missing rows (115 keys in two languages, one existing) inserted, the two existing rows kept.');
         $this->assertSame('تذييل الموقع', TranslationValue::where('key', 'dashboard.Settings_Footer_Title')->where('locale', 'ar')->value('value'));
         $this->assertSame('قيمة أخرى', TranslationValue::where('key', 'dashboard.Something_else')->value('value'));
         $this->assertFalse(cache()->has('translation.en.dashboard.Settings_Footer_Hint'), 'A newly inserted row clears its stale cache entry.');

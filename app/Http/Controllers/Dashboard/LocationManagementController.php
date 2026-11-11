@@ -6,12 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\City;
 use App\Models\Governorate;
 use App\Models\Setting;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class LocationManagementController extends Controller
 {
+    // The base controller has no authorize(): as SettingController, this one uses the trait itself.
+    use AuthorizesRequests;
+
     public function index(Request $request)
     {
         $this->authorize('view', Setting::class);
@@ -28,7 +32,7 @@ class LocationManagementController extends Controller
         $data = $request->validate(['name' => ['required', 'string', 'max:255', 'unique:cities,name']]);
         City::query()->create(['name' => $data['name'], 'slug' => $this->uniqueSlug(City::class, $data['name'])]);
 
-        return back()->with('success', 'City added successfully.');
+        return back()->with('success', $this->text('Location_City_Added', 'City added successfully.'));
     }
 
     public function storeGovernorate(Request $request): RedirectResponse
@@ -45,7 +49,20 @@ class LocationManagementController extends Controller
             'slug' => $this->uniqueSlug(Governorate::class, $data['name']),
         ]);
 
-        return back()->with('success', 'Governorate added successfully.');
+        return back()->with('success', $this->text('Location_Governorate_Added', 'Governorate added successfully.'));
+    }
+
+    /** A dashboard text in the page language (AdminSettingsTranslationSeeder), read without creating translation rows. */
+    private function text(string $key, string $default): string
+    {
+        $autoCreate = config('palgoals-locale.auto_create');
+        config(['palgoals-locale.auto_create' => false]);
+
+        try {
+            return t('dashboard.'.$key, $default);
+        } finally {
+            config(['palgoals-locale.auto_create' => $autoCreate]);
+        }
     }
 
     private function uniqueSlug(string $model, string $name): string

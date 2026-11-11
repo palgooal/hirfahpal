@@ -111,7 +111,8 @@ class VendorProductListModerationTest extends TestCase
         $this->assertSame([2, 4, 2, 2], [count($page->json('products.data')), $page->json('products.total'), $page->json('products.per_page'), $page->json('products.last_page')]);
         $this->assertStringContainsString('per_page=2', $page->json('products.next_page_url'), 'The query string is kept.');
         $this->assertSame([['archived' => true, 'suspended' => true], ['archived' => true, 'suspended' => false]], array_column($page->json('products.data'), 'moderation'), 'Newest first, as before.');
-        $this->assertSame(['categories', 'statuses'], array_keys($page->json('filters')));
+        // The cities and governorates are offered to the product editor's location fields.
+        $this->assertSame(['categories', 'cities', 'governorates', 'statuses'], array_keys($page->json('filters')));
 
         $this->assertSame([$ids['suspended']], array_column($this->list(['category_id' => $category->id])->json('products.data'), 'id'));
         $this->assertSame([$ids['archived']], array_column($this->list(['search' => 'Archived jug'])->json('products.data'), 'id'));

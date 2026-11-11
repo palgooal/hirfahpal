@@ -135,6 +135,8 @@ class VendorProductEditorUiTest extends TestCase
             'headingAdd' => 'Add Product',
             'headingEdit' => 'Edit Product',
             'noCategory' => 'Choose a category',
+            'cityPrompt' => 'Choose a city',
+            'governoratePrompt' => 'Choose a governorate',
             'categoriesLoading' => 'Loading categories…',
             'categoryInactive' => ':name (inactive)',
             'confirmDelete' => 'Delete this product? This cannot be undone.',

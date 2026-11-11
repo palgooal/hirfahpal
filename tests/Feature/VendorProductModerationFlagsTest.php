@@ -92,8 +92,12 @@ class VendorProductModerationFlagsTest extends TestCase
 
         $response = $this->show($product)->assertOk();
 
-        $expected = json_decode(json_encode(Product::findOrFail($product->id)->load(['category', 'images', 'stockReservations'])), true);
+        $expected = json_decode(json_encode(Product::findOrFail($product->id)->load(['category', 'city', 'governorate', 'images', 'stockReservations'])), true);
         $this->assertSame($expected, $response->json('product'));
+        // A product without a location carries its city and governorate as null.
+        $this->assertSame([null, null], [$response->json('product.city'), $response->json('product.governorate')]);
+        $this->assertArrayHasKey('city', $response->json('product'));
+        $this->assertArrayHasKey('governorate', $response->json('product'));
         $this->assertArrayNotHasKey('archived_at', $response->json('product'));
         $this->assertArrayNotHasKey('suspended_at', $response->json('product'));
         $this->assertArrayNotHasKey('moderation', $response->json('product'));
