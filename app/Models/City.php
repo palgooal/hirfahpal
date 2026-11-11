@@ -17,4 +17,10 @@ class City extends Model
     {
         return $this->belongsTo(Governorate::class);
     }
+
+    /** Governorates configured for this city in the dashboard locations settings. */
+    public function governorates()
+    {
+        return $this->hasMany(Governorate::class);
+    }
 }

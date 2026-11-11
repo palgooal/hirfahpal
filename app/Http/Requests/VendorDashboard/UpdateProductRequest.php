@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\VendorDashboard;
 
+use App\Models\Governorate;
 use App\Models\Product;
 use App\Support\Products\VendorProductCategory;
 use Closure;
@@ -22,6 +23,13 @@ class UpdateProductRequest extends FormRequest
         return [
             // VPM-CATEGORY-REQUIRED-01: a category is required (an active one, or the one the product already has).
             'category_id' => VendorProductCategory::rules($product instanceof Product ? $product : null, $this->user('vendor')?->id),
+            'city_id' => ['nullable', 'required_with:governorate_id', 'integer', 'exists:cities,id'],
+            'governorate_id' => ['nullable', 'required_with:city_id', 'integer', 'exists:governorates,id', function (string $attribute, mixed $value, Closure $fail): void {
+                if ($value !== null && $this->input('city_id') !== null
+                    && ! Governorate::query()->whereKey($value)->where('city_id', $this->input('city_id'))->exists()) {
+                    $fail('The selected governorate does not belong to the selected city.');
+                }
+            }],
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('products', 'slug')->ignore($product)],
             'short_description' => ['nullable', 'string', 'max:1000'],

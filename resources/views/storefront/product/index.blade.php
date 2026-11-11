@@ -83,7 +83,7 @@
                 class="ms-1 inline-block h-2 w-2 rounded-full bg-sage"></i>{{ $product->availableStockQuantity() > 0 ? 'متوفر وجاهز للطلب' : 'غير متوفر حالياً' }}</span><span
               class="rounded-full bg-copper/10 px-3 py-1 text-xs font-semibold text-copper">{{ $product->availableStockQuantity() }} قطعة متاحة</span></div>
         </div>
-        <p class="mt-6 text-sm leading-7 text-ink sm:text-[15px]">{{ $product->short_description ?: $product->description }}</p>
+        <p class="mt-6 text-sm leading-7 text-ink sm:text-[15px]">{{ $product->description ?: $product->short_description }}</p>
         @if (filled($product->craft_tags))<div class="mt-4 flex flex-wrap gap-2">@foreach ($product->craft_tags as $tag)<span class="rounded-full border border-copper/30 bg-copper/10 px-3 py-1 text-xs font-semibold text-copper">{{ $tag }}</span>@endforeach</div>@endif
         <div class="mt-6 grid grid-cols-[auto_1fr] items-center gap-3 text-xs sm:flex sm:flex-wrap sm:gap-4"><strong>الكمية المطلوبة:</strong>
           <div class="flex h-[42px] items-center overflow-hidden rounded-xl border border-line bg-surface shadow-sm" data-max-quantity="{{ $product->availableStockQuantity() }}">
