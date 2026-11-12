@@ -139,6 +139,22 @@ class AdminSettingsTranslationSeeder extends Seeder
         'dashboard.Location_No_Cities' => ['ar' => 'لم تُضف مدن بعد.', 'en' => 'No cities added yet.'],
         'dashboard.Location_City_Added' => ['ar' => 'تمت إضافة المدينة بنجاح.', 'en' => 'City added successfully.'],
         'dashboard.Location_Governorate_Added' => ['ar' => 'تمت إضافة المحافظة بنجاح.', 'en' => 'Governorate added successfully.'],
+        // LOC-UI-7B: the page's header, summary, search, unassigned governorates group and add dialogs.
+        'dashboard.Location_Intro' => ['ar' => 'أدر المدن والمحافظات المتاحة لمواقع المنتجات.', 'en' => 'Manage the cities and governorates available for product locations.'],
+        'dashboard.Location_Search_Label' => ['ar' => 'البحث في المواقع', 'en' => 'Search locations'],
+        'dashboard.Location_Search_Placeholder' => ['ar' => 'ابحث باسم المدينة أو المحافظة', 'en' => 'Search by city or governorate'],
+        'dashboard.Location_Search_Empty' => ['ar' => 'لا توجد مواقع مطابقة لبحثك.', 'en' => 'No locations match your search.'],
+        'dashboard.Location_Search_Results' => ['ar' => 'عدد النتائج: :count', 'en' => 'Results: :count'],
+        'dashboard.Location_City_Governorates_Count' => ['ar' => 'عدد المحافظات: :count', 'en' => 'Governorates: :count'],
+        'dashboard.Location_Add_Governorate_To' => ['ar' => 'إضافة محافظة إلى :name', 'en' => 'Add governorate to :name'],
+        'dashboard.Location_Unassigned_Title' => ['ar' => 'محافظات غير مرتبطة بمدينة', 'en' => 'Unassigned governorates'],
+        'dashboard.Location_Unassigned_Hint' => ['ar' => 'هذه المحافظات غير مرتبطة بأي مدينة، لذلك لا يمكن اختيارها للمنتجات.', 'en' => 'These governorates are not linked to a city, so they cannot be chosen for products.'],
+        'dashboard.Location_Unassigned_Count' => ['ar' => 'غير المرتبطة: :count', 'en' => 'Unassigned: :count'],
+        'dashboard.Location_Empty_Hint' => ['ar' => 'أضف أول مدينة للبدء.', 'en' => 'Add the first city to start.'],
+        'dashboard.Location_Cancel' => ['ar' => 'إلغاء', 'en' => 'Cancel'],
+        'dashboard.Location_Close' => ['ar' => 'إغلاق', 'en' => 'Close'],
+        'dashboard.Location_Saving' => ['ar' => 'جارٍ الحفظ…', 'en' => 'Saving…'],
+        'dashboard.Location_Dismiss' => ['ar' => 'إخفاء', 'en' => 'Dismiss'],
     ];
 
     /**

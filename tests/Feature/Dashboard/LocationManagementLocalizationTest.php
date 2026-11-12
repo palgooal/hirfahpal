@@ -45,8 +45,8 @@ class LocationManagementLocalizationTest extends TestCase
         $admin = $this->admin(['settings.view', 'settings.edit']);
 
         $pages = [
-            'ar' => ['rtl', ['إدارة المدن والمحافظات', 'المدن', 'أضف المدينة أولًا، ثم أضف محافظاتها.', 'المدينة', 'إضافة مدينة', 'المحافظات', 'اختر المدينة', 'المحافظة', 'إضافة محافظة', 'المواقع المضافة', 'لم تُضف محافظات بعد.', 'Rimal، Shati'], ['Add city', 'Configured locations', 'No governorates added yet.']],
-            'en' => ['ltr', ['Manage cities and governorates', 'Cities', 'Add a city before adding its governorates.', 'Add city', 'Governorates', 'Choose a city', 'Add governorate', 'Configured locations', 'No governorates added yet.', 'Rimal, Shati'], ['إضافة مدينة', 'المواقع المضافة']],
+            'ar' => ['rtl', ['إدارة المدن والمحافظات', 'المدن', 'أضف المدينة أولًا، ثم أضف محافظاتها.', 'المدينة', 'إضافة مدينة', 'المحافظات', 'اختر المدينة', 'المحافظة', 'إضافة محافظة', 'المواقع المضافة', 'لم تُضف محافظات بعد.', 'Rimal', 'Shati', 'عدد المحافظات: 2'], ['Add city', 'Configured locations', 'No governorates added yet.']],
+            'en' => ['ltr', ['Manage cities and governorates', 'Cities', 'Add a city before adding its governorates.', 'Add city', 'Governorates', 'Choose a city', 'Add governorate', 'Configured locations', 'No governorates added yet.', 'Rimal', 'Shati', 'Governorates: 2'], ['إضافة مدينة', 'المواقع المضافة']],
         ];
 
         foreach ($pages as $locale => [$direction, $seen, $unseen]) {

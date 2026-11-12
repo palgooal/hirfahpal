@@ -22,6 +22,8 @@ class LocationManagementController extends Controller
 
         return view('dashboard.settings.locations', [
             'cities' => City::query()->with(['governorates' => fn ($query) => $query->orderBy('name')])->orderBy('name')->get(),
+            // Governorates linked to no city (legacy rows, or their city deleted: nullOnDelete), listed on their own.
+            'unassignedGovernorates' => Governorate::query()->whereNull('city_id')->orderBy('name')->get(),
         ]);
     }
 

@@ -31,6 +31,7 @@ export default defineConfig({
                 'resources/js/admin-settings.js',
                 'resources/js/admin-content-editor.js',
                 'resources/js/admin-content-pages.js',
+                'resources/js/admin-locations.js',
                 'resources/css/storefront.css',
                 'resources/js/storefront.js',
                 'resources/js/storefront-browse.js',

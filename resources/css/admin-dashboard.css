@@ -4006,3 +4006,286 @@ html.admin-shell .admin-content-dialog-actions .btn,
 html.admin-shell .admin-content-dialog .form-control {
   min-height: 44px;
 }
+
+/* ---- Locations (LOC-UI-7B): resources/views/dashboard/settings/locations.blade.php ----
+ * Built on the media page pieces (head, alerts, panel, states, search box, dialog) and the category form fields. */
+
+/* Validation errors are shown in their dialog, under their field: not in the layout's raw list. */
+html.admin-shell .pc-content:has(#admin-locations) > .row > .alert-danger {
+  display: none;
+}
+
+html.admin-shell .admin-locations {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* What the script reveals (7B-2) stays hidden whatever its own display. */
+html.admin-shell .admin-locations [hidden] {
+  display: none;
+}
+
+html.admin-shell .admin-locations-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+html.admin-shell .admin-locations-actions .btn {
+  min-height: 44px;
+}
+
+html.admin-shell .admin-locations-needs-city {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+html.admin-shell .admin-locations-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 12rem));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+html.admin-shell .admin-locations-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 1rem 1.25rem;
+}
+
+html.admin-shell .admin-locations-stat dt {
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-locations-stat dd {
+  margin: 0;
+  color: var(--color-hf-ink);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+html.admin-shell .admin-locations-stat .admin-locations-stat-note {
+  color: var(--color-hf-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-locations-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-hf-line);
+}
+
+html.admin-shell .admin-locations-title {
+  margin: 0;
+  color: var(--color-hf-ink);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* The field and its result count in one row (the label is visually hidden, as in the media searches). */
+html.admin-shell .admin-locations-search {
+  display: flex;
+  flex: 1 1 16rem;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 24rem;
+}
+
+html.admin-shell .admin-locations-search .admin-media-search {
+  flex: 1 1 auto;
+}
+
+html.admin-shell .admin-locations-results {
+  flex-shrink: 0;
+  margin: 0;
+  color: var(--color-hf-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+html.admin-shell .admin-locations-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+html.admin-shell .admin-locations-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html.admin-shell .admin-locations-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 12px;
+  background-color: #fff;
+}
+
+html.admin-shell .admin-locations-unassigned {
+  border-style: dashed;
+  background-color: var(--color-hf-surface);
+}
+
+html.admin-shell .admin-locations-group-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+html.admin-shell .admin-locations-group-head > i {
+  flex-shrink: 0;
+  color: var(--color-hf-copper);
+  font-size: 1.25rem;
+}
+
+html.admin-shell .admin-locations-group-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  color: var(--color-hf-ink);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+html.admin-shell .admin-locations-count {
+  flex-shrink: 0;
+  color: var(--color-hf-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+html.admin-shell .admin-locations .admin-locations-shortcut {
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  font-size: 1.125rem;
+}
+
+html.admin-shell .admin-locations-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html.admin-shell .admin-locations-chips > li {
+  max-width: 100%;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 999px;
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-ink);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+html.admin-shell .admin-locations-unassigned .admin-locations-chips > li {
+  background-color: #fff;
+}
+
+html.admin-shell .admin-locations-empty-note {
+  margin: 0;
+  color: var(--color-hf-muted);
+  font-size: 0.8125rem;
+}
+
+html.admin-shell .admin-locations-dialog {
+  width: min(32rem, calc(100vw - 2rem));
+}
+
+/* Without JavaScript the server opens the dialog (open, not modal): it sits in the page flow, under the header. */
+html.admin-shell .admin-locations-dialog[open]:not(:modal) {
+  position: static;
+  width: 100%;
+  max-width: 40rem;
+  max-height: none;
+  margin: 0;
+  box-shadow: none;
+}
+
+html.admin-shell .admin-locations-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-width: none;
+}
+
+html.admin-shell .admin-locations-form .admin-media-dialog-form {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+html.admin-shell .admin-locations-dialog-hint {
+  margin: 0;
+  color: var(--color-hf-muted);
+  font-size: 0.875rem;
+}
+
+html.admin-shell .admin-locations-dialog .admin-media-dialog-footer .btn {
+  min-height: 44px;
+}
+
+/* The dialogs' Close: a 44px target here only; the shared icon button and the shell's focus ring are unchanged. */
+html.admin-shell .admin-locations-dialog .admin-media-icon-button {
+  width: 2.75rem;
+  height: 2.75rem;
+  font-size: 1.375rem;
+}
+
+@media (max-width: 575.98px) {
+  html.admin-shell .admin-locations-actions .btn {
+    flex: 1 1 100%;
+  }
+
+  html.admin-shell .admin-locations-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  html.admin-shell .admin-locations-panel-head,
+  html.admin-shell .admin-locations-body {
+    padding: 1rem;
+  }
+
+  /* Stacked: the heading, the field, then its count on a line of its own. */
+  html.admin-shell .admin-locations-search {
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    row-gap: 0.25rem;
+    max-width: none;
+  }
+
+  html.admin-shell .admin-locations-results {
+    flex-basis: 100%;
+    white-space: normal;
+  }
+
+  html.admin-shell .admin-locations-dialog .admin-media-dialog-footer .btn {
+    flex: 1 1 0;
+  }
+}
