@@ -143,6 +143,7 @@ class ProductManagementController extends Controller
 
         $this->returningErrorsTo(route('dashboard.products.create'), function () use ($request) {
             $data = $this->validatedData($request);
+            $data = $this->applyStoryImage($request, $data);
             $gallery = $this->validatedGallery($request, (int) $data['vendor_id']);
             $mediaIds = $this->validateImageUploads($request, (int) $data['vendor_id']);
 
@@ -232,6 +233,7 @@ class ProductManagementController extends Controller
 
         $this->returningErrorsTo(route('dashboard.products.edit', $product), function () use ($request, $product) {
             $data = $this->validatedData($request, $product);
+            $data = $this->applyStoryImage($request, $data);
             // P5-A: images are checked against the stored vendor, never the submitted one.
             $gallery = $this->validatedGallery($request, (int) $product->vendor_id, $product);
             $mediaIds = $this->validateImageUploads($request, (int) $product->vendor_id, $product);
@@ -473,9 +475,12 @@ class ProductManagementController extends Controller
             'place_of_manufacture' => ['dashboard.Products_Form_Field_Place_Of_Manufacture', 'Place of manufacture'],
             'preparation_days' => ['dashboard.Products_Form_Field_Preparation_Days', 'Preparation time (days)'],
             'care_instructions' => ['dashboard.Products_Form_Field_Care_Instructions', 'Care and storage instructions'],
+            'story_description' => ['dashboard.Products_Form_Field_Story_Description', 'Story description'],
+            'story_image' => ['dashboard.Products_Form_Field_Story_Image', 'Story image'],
             'shipping_details' => ['dashboard.Products_Form_Field_Shipping_Details', 'Packaging and shipping details'],
             'short_description' => ['dashboard.Products_Form_Field_Short_Description', 'Short description'],
             'description' => ['dashboard.Products_Form_Field_Description', 'Description'],
+            'usage_description' => ['dashboard.Products_Form_Field_Usage_Description', 'Description and uses'],
             'status' => ['dashboard.Products_Form_Field_Status', 'Status'],
             'is_featured' => ['dashboard.Products_Form_Field_Featured', 'Featured product'],
             'is_limited_edition' => ['dashboard.Products_Form_Field_Limited', 'Limited edition'],
@@ -538,6 +543,7 @@ class ProductManagementController extends Controller
             'slug' => ['nullable', 'string', 'max:255', 'not_regex:/[\s\/\\\\?#%]/u', Rule::unique('products', 'slug')->ignore($product)],
             'short_description' => ['nullable', 'string', 'max:1000'],
             'description' => ['nullable', 'string'],
+            'usage_description' => ['nullable', 'string', 'max:5000'],
             'price' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:'.self::MAX_PRICE],
             'compare_at_price' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:'.self::MAX_PRICE, 'lt:price'],
             'sku' => ['nullable', 'string', 'max:255', Rule::unique('products', 'sku')->ignore($product)],
@@ -554,6 +560,9 @@ class ProductManagementController extends Controller
             'preparation_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
             'care_instructions' => ['nullable', 'string', 'max:5000'],
             'shipping_details' => ['nullable', 'string', 'max:5000'],
+            'story_description' => ['nullable', 'string', 'max:5000'],
+            'story_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'remove_story_image' => ['nullable', 'boolean'],
             // The same four statuses as before, without reading their (shared) labels.
             'status' => ['required', Rule::in(array_keys($this->statusKeys()))],
             'is_featured' => ['nullable', 'boolean'],
@@ -578,6 +587,20 @@ class ProductManagementController extends Controller
         $data['weight_unit'] = ($data['weight'] ?? null) === null ? null : ($data['weight_unit'] ?? null);
         // A new product's date; an update works it out again from the locked row (update()).
         $data['published_at'] = $this->publishedAt($product?->exists ? $product : null, $data['status']);
+
+        return $data;
+    }
+
+    /** Store an optional, independent image used only by the product story section. */
+    private function applyStoryImage(Request $request, array $data): array
+    {
+        unset($data['story_image'], $data['remove_story_image']);
+
+        if ($request->hasFile('story_image')) {
+            $data['story_image_path'] = $request->file('story_image')->store('product-stories', 'public');
+        } elseif ($request->boolean('remove_story_image')) {
+            $data['story_image_path'] = null;
+        }
 
         return $data;
     }

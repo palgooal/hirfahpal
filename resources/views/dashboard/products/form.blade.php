@@ -26,8 +26,9 @@
         'name' => 'product-name', 'slug' => 'product-slug', 'vendor_id' => 'product-vendor', 'category_id' => 'product-category',
         'sku' => 'product-sku', 'price' => 'product-price', 'compare_at_price' => 'product-compare-price', 'stock_quantity' => 'product-stock',
         'low_stock_threshold' => 'product-low-stock', 'weight' => 'product-weight', 'weight_unit' => 'product-weight-unit', 'short_description' => 'product-short-description',
-        'description' => 'product-description', 'dimensions' => 'product-dimensions', 'material' => 'product-material', 'place_of_manufacture' => 'product-place-of-manufacture',
+        'description' => 'product-description', 'usage_description' => 'product-usage-description', 'dimensions' => 'product-dimensions', 'material' => 'product-material', 'place_of_manufacture' => 'product-place-of-manufacture',
         'preparation_days' => 'product-preparation-days', 'care_instructions' => 'product-care-instructions', 'shipping_details' => 'product-shipping-details',
+        'story_description' => 'product-story-description', 'story_image' => 'product-story-image',
         'images' => 'product-images', 'status' => 'product-status', 'is_featured' => 'product-featured',
         'gallery' => 'product-images', 'gallery_fingerprint' => 'product-images', 'gallery_sync' => 'product-images', 'media_image_ids' => 'product-images',
     ];
@@ -247,6 +248,14 @@
                     @error('description') <p class="admin-cat-form-error" id="product-description-error">{{ $message }}</p> @enderror
                 </div>
 
+                <div class="admin-cat-form-field">
+                    <label class="form-label" for="product-usage-description">{{ $fieldLabels['usage_description'] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
+                    <textarea @class(['form-control', 'is-invalid' => $errors->has('usage_description')]) id="product-usage-description" name="usage_description" rows="4" maxlength="5000" dir="auto"
+                        @error('usage_description') aria-invalid="true" aria-describedby="product-usage-description-error" @enderror>{{ old('usage_description', $product->usage_description) }}</textarea>
+                    <p class="admin-media-hint">{{ $prodText('Products_Form_Usage_Description_Hint', 'This text is shown only in the Description and uses section on the product page.') }}</p>
+                    @error('usage_description') <p class="admin-cat-form-error" id="product-usage-description-error">{{ $message }}</p> @enderror
+                </div>
+
                 <div class="admin-cat-form-field admin-cat-form-field-narrow admin-product-form-narrow">
                     <label class="form-label" for="product-weight">{{ $fieldLabels['weight'] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
                     <div class="input-group">
@@ -279,6 +288,23 @@
                     </div>
                 </div>
 
+                @foreach ([
+                    'shipping_details' => 'product-shipping-details',
+                ] as $field => $id)
+                    <div class="admin-cat-form-field">
+                        <label class="form-label" for="{{ $id }}">{{ $fieldLabels[$field] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
+                        <textarea @class(['form-control', 'is-invalid' => $errors->has($field)]) id="{{ $id }}" name="{{ $field }}" rows="3" maxlength="5000" dir="auto"
+                            @error($field) aria-invalid="true" aria-describedby="{{ $id }}-error" @enderror>{{ old($field, $product->{$field}) }}</textarea>
+                        @error($field) <p class="admin-cat-form-error" id="{{ $id }}-error">{{ $message }}</p> @enderror
+                    </div>
+                @endforeach
+
+            </fieldset>
+
+            <fieldset class="admin-cat-form-section">
+                <legend class="admin-cat-form-legend">{{ $prodText('Products_Form_Section_Story', 'Story') }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></legend>
+                <p class="admin-media-hint">{{ $prodText('Products_Form_Story_Hint', 'Add any details you would like to show in the product story. Leave this section empty to hide it from the storefront.') }}</p>
+
                 <div class="admin-cat-form-row">
                     @foreach ([
                         'material' => ['product-material', 'text', 255],
@@ -294,18 +320,34 @@
                     @endforeach
                 </div>
 
-                @foreach ([
-                    'care_instructions' => 'product-care-instructions',
-                    'shipping_details' => 'product-shipping-details',
-                ] as $field => $id)
-                    <div class="admin-cat-form-field">
-                        <label class="form-label" for="{{ $id }}">{{ $fieldLabels[$field] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
-                        <textarea @class(['form-control', 'is-invalid' => $errors->has($field)]) id="{{ $id }}" name="{{ $field }}" rows="3" maxlength="5000" dir="auto"
-                            @error($field) aria-invalid="true" aria-describedby="{{ $id }}-error" @enderror>{{ old($field, $product->{$field}) }}</textarea>
-                        @error($field) <p class="admin-cat-form-error" id="{{ $id }}-error">{{ $message }}</p> @enderror
-                    </div>
-                @endforeach
+                <div class="admin-cat-form-field">
+                    <label class="form-label" for="product-care-instructions">{{ $fieldLabels['care_instructions'] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
+                    <textarea @class(['form-control', 'is-invalid' => $errors->has('care_instructions')]) id="product-care-instructions" name="care_instructions" rows="3" maxlength="5000" dir="auto"
+                        @error('care_instructions') aria-invalid="true" aria-describedby="product-care-instructions-error" @enderror>{{ old('care_instructions', $product->care_instructions) }}</textarea>
+                    @error('care_instructions') <p class="admin-cat-form-error" id="product-care-instructions-error">{{ $message }}</p> @enderror
+                </div>
 
+                <div class="admin-cat-form-field">
+                    <label class="form-label" for="product-story-description">{{ $fieldLabels['story_description'] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
+                    <textarea @class(['form-control', 'is-invalid' => $errors->has('story_description')]) id="product-story-description" name="story_description" rows="5" maxlength="5000" dir="auto"
+                        @error('story_description') aria-invalid="true" aria-describedby="product-story-description-error" @enderror>{{ old('story_description', $product->story_description) }}</textarea>
+                    @error('story_description') <p class="admin-cat-form-error" id="product-story-description-error">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="admin-cat-form-field">
+                    <label class="form-label" for="product-story-image">{{ $fieldLabels['story_image'] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
+                    <input type="file" @class(['form-control', 'is-invalid' => $errors->has('story_image')]) id="product-story-image" name="story_image" accept="image/jpeg,image/png,image/webp"
+                        @error('story_image') aria-invalid="true" aria-describedby="product-story-image-error" @enderror>
+                    <p class="admin-media-hint">{{ $prodText('Products_Form_Story_Image_Hint', 'JPG, PNG, or WebP. Maximum 5 MB.') }}</p>
+                    @error('story_image') <p class="admin-cat-form-error" id="product-story-image-error">{{ $message }}</p> @enderror
+                    @if ($editing && $product->story_image_path)
+                        <label class="form-check-label mt-2"><input type="hidden" name="remove_story_image" value="0"><input type="checkbox" class="form-check-input" name="remove_story_image" value="1" @checked(old('remove_story_image'))> {{ $prodText('Products_Form_Remove_Story_Image', 'Remove current story image') }}</label>
+                    @endif
+                </div>
+            </fieldset>
+
+            <fieldset class="admin-cat-form-section">
+                <legend class="admin-cat-form-legend">{{ $prodText('Products_Form_Section_Images', 'Product images') }}</legend>
                 {{-- PRODUCT-MEDIA-01 P5-C: one vendor-scoped gallery editor instead of the six media pickers. --}}
                 @include('dashboard.products.partials.gallery', ['gallery' => $gallery, 'prodText' => $prodText, 'optionalMark' => $optionalMark])
                 @if ($editing && $product->images()->exists() && $canViewProducts)

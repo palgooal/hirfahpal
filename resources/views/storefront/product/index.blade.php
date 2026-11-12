@@ -3,9 +3,17 @@
   $preview = $preview ?? false;
   $dimensions = collect($product->dimensions ?? [])->only(['length', 'width', 'height'])->filter(fn ($value) => $value !== null && $value !== '');
   $weight = $product->weight === null ? null : rtrim(rtrim(number_format((float) $product->weight, 2, '.', ''), '0'), '.').' '.($product->weight_unit ?: 'kg');
-  // This section describes the product being viewed, not the vendor profile.
-  $productStoryImage = $product->primaryImage?->path ?? $product->images->first()?->path;
-  $productStoryDescription = $product->short_description ?: $product->description;
+  // The story is deliberately independent from the main product description. It remains entirely absent until at
+  // least one optional story value has been supplied.
+  $hasProductStory = collect([
+    $product->material,
+    $product->place_of_manufacture,
+    $product->preparation_days,
+    $product->care_instructions,
+    $product->story_description,
+    $product->story_image_path,
+  ])->contains(fn ($value) => filled($value));
+  $productStoryImage = $product->story_image_path ?: ($product->primaryImage?->path ?? $product->images->first()?->path);
   $productStoryLocation = $product->place_of_manufacture ?: $product->vendor->profile->location_name;
 @endphp
 <main>
@@ -142,6 +150,7 @@
     </div>
   </section>
 
+  @if ($hasProductStory)
   <section class="relative overflow-hidden bg-olive px-4 py-16 text-white lg:px-8 lg:pb-16 lg:pt-[104px]"
     data-node-id="223:2894">
     <div class="mx-auto grid max-w-[1216px] gap-10 lg:grid-cols-2 lg:items-center">
@@ -162,7 +171,9 @@
         <p class="text-xs font-medium text-[#fcd34d]">حكاية صانع وميراث وطن <i data-lucide="badge-help"
             class="inline h-3 w-3"></i></p>
         <blockquote class="mt-5 text-[24px] font-bold leading-9 sm:mt-6 sm:text-[30px]">{{ $product->name }}</blockquote>
-        <p class="mt-5 text-[13px] font-light leading-6 text-surface sm:mt-6 sm:text-sm">{{ $productStoryDescription }}</p>
+        @if (filled($product->story_description))
+          <p class="mt-5 text-[13px] font-light leading-6 text-surface sm:mt-6 sm:text-sm">{{ $product->story_description }}</p>
+        @endif
         <div class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
           <div class="rounded-2xl border border-white/15 bg-white/10 p-4"><span
               class="text-[11px] text-[#fde68a]/80">نوع الحرفة</span><strong class="mt-1 block text-sm">{{ $product->category?->name }}</strong></div>
@@ -179,6 +190,7 @@
       </div>
     </div>
   </section>
+  @endif
 
   <section class="bg-canvas px-4 py-12 lg:px-8" data-node-id="223:2947">
     <div class="mx-auto max-w-[768px]">
@@ -198,7 +210,7 @@
           <div id="spec-description" aria-hidden="false"
             class="accordion-content grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-300 ease-out">
             <div class="min-h-0 overflow-hidden">
-              <p class="px-4 pb-5 text-sm leading-6 text-muted sm:px-6">{{ $product->description }}</p>
+              <p class="px-4 pb-5 text-sm leading-6 text-muted sm:px-6">{{ $product->usage_description }}</p>
             </div>
           </div>
         </article>
