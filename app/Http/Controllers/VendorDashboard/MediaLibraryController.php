@@ -4,6 +4,7 @@ namespace App\Http\Controllers\VendorDashboard;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\VendorDashboard\ListMediaLibraryRequest;
+use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\VendorProfile;
 use App\Support\Media\VendorMediaPath;
@@ -107,6 +108,9 @@ class MediaLibraryController extends Controller
             abort_if(ProductImage::query()->where('path', $locked->file_path)->sharedLock()->exists(), 409, 'This image is currently used by a product.');
             // MYSTORE-MEDIA-01: nor a store logo (ProfileLogoController sets it under a shared lock on this same row).
             abort_if(VendorProfile::query()->where('logo', $locked->file_path)->sharedLock()->exists(), 409, self::USED_AS_LOGO);
+            // PRODUCT-STORY-MEDIA: nor a product's story image (the admin product form sets it under a shared lock on
+            // this same row, ProductManagementController::storyImagePath()).
+            abort_if(Product::query()->where('story_image_path', $locked->file_path)->sharedLock()->exists(), 409, 'This image is currently used by a product.');
 
             $locked->delete();
 

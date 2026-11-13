@@ -29,6 +29,7 @@
         'description' => 'product-description', 'usage_description' => 'product-usage-description', 'dimensions' => 'product-dimensions', 'material' => 'product-material', 'place_of_manufacture' => 'product-place-of-manufacture',
         'preparation_days' => 'product-preparation-days', 'care_instructions' => 'product-care-instructions', 'shipping_details' => 'product-shipping-details',
         'story_description' => 'product-story-description', 'story_image' => 'product-story-image',
+        'story_image_media_id' => 'product-story-image', 'remove_story_image' => 'product-story-image',
         'images' => 'product-images', 'status' => 'product-status', 'is_featured' => 'product-featured',
         'gallery' => 'product-images', 'gallery_fingerprint' => 'product-images', 'gallery_sync' => 'product-images', 'media_image_ids' => 'product-images',
     ];
@@ -48,6 +49,41 @@
     $optionalMark = $prodText('Products_Form_Optional', 'Optional');
     $selectedCategory = (string) old('category_id', $product->category_id);
     $selectedStatus = (string) old('status', $product->status);
+
+    // PRODUCT-STORY-MEDIA (7B-4F-2): the story image field (below, in the Story section) and its script config.
+    $storyShown = $storyImage['chosen'] ?? ($storyImage['removed'] ? null : $storyImage['current']);
+    $storyErrors = collect(['story_image', 'story_image_media_id', 'remove_story_image'])
+        ->flatMap(fn (string $field) => $errors->get($field))->unique()->values();
+    $storyConfig = [
+        'editing' => $storyImage['editing'],
+        'current' => $storyImage['current'],
+        'chosen' => $storyImage['chosen'],
+        'removed' => $storyImage['removed'],
+        'mediaUrl' => $storyImage['mediaUrl'],
+        'perPage' => 24,
+        'labels' => [
+            'choose' => $prodText('Products_Form_Story_Image_Choose', 'Choose image'),
+            'replace' => $prodText('Products_Form_Story_Image_Replace', 'Replace image'),
+            'added' => $prodText('Products_Gallery_Added', ':name was added.'),
+            'replaced' => $prodText('Products_Gallery_Replaced', ':name was replaced.'),
+            'removed' => $prodText('Products_Gallery_Removed', ':name was removed from the product. The file stays in the media library.'),
+            'cleared' => $prodText('Products_Gallery_Cleared', 'The chosen images were cleared because the vendor changed.'),
+        ],
+        // The chooser's texts, under the names the gallery helpers read.
+        'messages' => [
+            'dialogTitle' => $prodText('Products_Gallery_Dialog_Title', 'Choose an image'),
+            'dialogReplaceTitle' => $prodText('Products_Gallery_Dialog_Replace_Title', 'Choose a replacement image'),
+            'choose' => $prodText('Products_Gallery_Choose', 'Choose :name'),
+            'inGallery' => $prodText('Products_Gallery_In_Gallery', 'Already added'),
+            'libraryEmpty' => $prodText('Products_Gallery_Library_Empty', 'There are no images in this vendor\'s media library yet.'),
+            'libraryEmptySearch' => $prodText('Products_Gallery_Library_Empty_Search', 'No images match your search.'),
+            'loadError' => $prodText('Products_Gallery_Load_Error', 'The images could not be loaded.'),
+            'forbidden' => $prodText('Products_Gallery_Forbidden', 'You do not have permission to do this.'),
+            'network' => $prodText('Products_Gallery_Network', 'The connection failed. Check the network and try again.'),
+            'session' => $prodText('Products_Gallery_Session', 'Your session has ended. Sign in again to continue.'),
+            'invalid' => $prodText('Products_Gallery_Invalid_Request', 'The request could not be processed. Change the search and try again.'),
+        ],
+    ];
 @endphp
 
 <x-dashboard-layout>
@@ -113,9 +149,13 @@
                 <input type="hidden" name="stock_version" value="{{ old('stock_version', \App\Http\Controllers\Dashboard\ProductManagementController::stockVersion($product)) }}">
             @endif
 
+            {{-- 7B-8A: the vendor editor's composition. Two columns (main, side) from a content width of 880px, one
+                 below it (main first); each fieldset is a card whose legend starts with an icon chip. The six fieldsets
+                 keep their order, legends, fields and ids. --}}
+            <div class="admin-product-column is-main">
             {{-- 1. Basic details --}}
             <fieldset class="admin-cat-form-section">
-                <legend class="admin-cat-form-legend">{{ $prodText('Products_Form_Section_Basics', 'Basic details') }}</legend>
+                <legend class="admin-cat-form-legend"><span class="admin-product-chip" aria-hidden="true"><i class="ph-duotone ph-tag"></i></span><span>{{ $prodText('Products_Form_Section_Basics', 'Basic details') }}</span></legend>
 
                 <div class="admin-cat-form-field">
                     <label class="form-label" for="product-name">{{ $fieldLabels['name'] }} <span class="admin-cat-form-mark">({{ $requiredMark }})</span></label>
@@ -190,7 +230,7 @@
 
             {{-- 2. Price and stock --}}
             <fieldset class="admin-cat-form-section">
-                <legend class="admin-cat-form-legend">{{ $prodText('Products_Form_Section_Pricing', 'Price and stock') }}</legend>
+                <legend class="admin-cat-form-legend"><span class="admin-product-chip" aria-hidden="true"><i class="ph-duotone ph-coins"></i></span><span>{{ $prodText('Products_Form_Section_Pricing', 'Price and stock') }}</span></legend>
 
                 <div class="admin-cat-form-row">
                     <div class="admin-cat-form-field">
@@ -231,7 +271,7 @@
 
             {{-- 3. Description and details --}}
             <fieldset class="admin-cat-form-section">
-                <legend class="admin-cat-form-legend">{{ $prodText('Products_Form_Section_Details', 'Description and details') }}</legend>
+                <legend class="admin-cat-form-legend"><span class="admin-product-chip" aria-hidden="true"><i class="ph-duotone ph-article"></i></span><span>{{ $prodText('Products_Form_Section_Details', 'Description and details') }}</span></legend>
 
                 <div class="admin-cat-form-field">
                     <label class="form-label" for="product-short-description">{{ $fieldLabels['short_description'] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
@@ -302,7 +342,7 @@
             </fieldset>
 
             <fieldset class="admin-cat-form-section">
-                <legend class="admin-cat-form-legend">{{ $prodText('Products_Form_Section_Story', 'Story') }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></legend>
+                <legend class="admin-cat-form-legend"><span class="admin-product-chip" aria-hidden="true"><i class="ph-duotone ph-hand-heart"></i></span><span>{{ $prodText('Products_Form_Section_Story', 'Story') }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></span></legend>
                 <p class="admin-media-hint">{{ $prodText('Products_Form_Story_Hint', 'Add any details you would like to show in the product story. Leave this section empty to hide it from the storefront.') }}</p>
 
                 <div class="admin-cat-form-row">
@@ -334,20 +374,58 @@
                     @error('story_description') <p class="admin-cat-form-error" id="product-story-description-error">{{ $message }}</p> @enderror
                 </div>
 
-                <div class="admin-cat-form-field">
-                    <label class="form-label" for="product-story-image">{{ $fieldLabels['story_image'] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></label>
-                    <input type="file" @class(['form-control', 'is-invalid' => $errors->has('story_image')]) id="product-story-image" name="story_image" accept="image/jpeg,image/png,image/webp"
-                        @error('story_image') aria-invalid="true" aria-describedby="product-story-image-error" @enderror>
-                    <p class="admin-media-hint">{{ $prodText('Products_Form_Story_Image_Hint', 'JPG, PNG, or WebP. Maximum 5 MB.') }}</p>
-                    @error('story_image') <p class="admin-cat-form-error" id="product-story-image-error">{{ $message }}</p> @enderror
-                    @if ($editing && $product->story_image_path)
-                        <label class="form-check-label mt-2"><input type="hidden" name="remove_story_image" value="0"><input type="checkbox" class="form-check-input" name="remove_story_image" value="1" @checked(old('remove_story_image'))> {{ $prodText('Products_Form_Remove_Story_Image', 'Remove current story image') }}</label>
-                    @endif
+                {{-- PRODUCT-STORY-MEDIA (7B-4F-2): one image of the product vendor's own media library, chosen in the story
+                     chooser (partials/story-image-dialog.blade.php, resources/js/admin-product-story-image.js); no upload and
+                     no path. Two hidden fields, never both set: story_image_media_id (a new choice) and remove_story_image (1
+                     clears the current image); both empty keep it. Without the script the current image is shown and kept.
+                     $storyImage comes from ProductManagementController::storyImageFormData(). --}}
+                <div class="admin-cat-form-field admin-product-story-image" id="product-story-image" data-product-story-image tabindex="-1" aria-labelledby="product-story-image-label">
+                    <span class="form-label" id="product-story-image-label">{{ $fieldLabels['story_image'] }} <span class="admin-cat-form-mark">({{ $optionalMark }})</span></span>
+                    <p class="admin-media-hint" id="product-story-image-hint">{{ $prodText('Products_Form_Story_Image_Hint', 'Choose an image from this vendor\'s media library.') }}</p>
+
+                    <div class="admin-product-gallery-item" id="product-story-image-preview" @if (! $storyShown) hidden @endif>
+                        <div class="admin-product-gallery-thumb" id="product-story-image-thumb">
+                            @if ($storyShown && $storyShown['url'])
+                                <img src="{{ $storyShown['url'] }}" alt="{{ $storyShown['name'] }}" loading="lazy">
+                            @else
+                                <i class="ph-duotone ph-image-broken" aria-hidden="true"></i>
+                            @endif
+                        </div>
+                        <div class="admin-product-gallery-meta">
+                            <bdi class="admin-product-gallery-name" id="product-story-image-name">{{ $storyShown['name'] ?? '' }}</bdi>
+                        </div>
+                    </div>
+                    <p class="admin-product-gallery-empty" id="product-story-image-empty" @if ($storyShown) hidden @endif>{{ $prodText('Products_Form_Story_Image_Empty', 'No story image.') }}</p>
+
+                    {{-- Revealed by the script. --}}
+                    <div class="admin-product-gallery-actions" id="product-story-image-actions" hidden>
+                        <button type="button" class="btn btn-sm btn-light-secondary" id="product-story-image-choose" aria-describedby="product-story-image-hint">
+                            <i class="ph-duotone ph-image" aria-hidden="true"></i>
+                            <span>{{ $storyShown ? $prodText('Products_Form_Story_Image_Replace', 'Replace image') : $prodText('Products_Form_Story_Image_Choose', 'Choose image') }}</span>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-light-secondary" id="product-story-image-remove" aria-describedby="product-story-image-name" @if (! $storyShown) hidden @endif>
+                            <i class="ph-duotone ph-x" aria-hidden="true"></i>
+                            <span>{{ $prodText('Products_Form_Remove_Story_Image', 'Remove image') }}</span>
+                        </button>
+                    </div>
+                    <p class="admin-product-gallery-note" id="product-story-image-vendor-first" hidden>{{ $prodText('Products_Gallery_Vendor_First', 'Choose the vendor first to add its images.') }}</p>
+                    <noscript><p class="admin-media-hint">{{ $prodText('Products_Form_Story_Image_No_Script', 'Turn on JavaScript to choose the story image. The current image is kept when you save.') }}</p></noscript>
+
+                    @foreach ($storyErrors as $message)
+                        <p class="admin-cat-form-error"@if ($loop->first) id="product-story-image-error"@endif>{{ $message }}</p>
+                    @endforeach
+
+                    <input type="hidden" name="story_image_media_id" id="product-story-image-media-id" value="{{ $storyImage['chosen']['id'] ?? '' }}">
+                    <input type="hidden" name="remove_story_image" id="product-story-image-remove-flag" value="{{ $storyImage['removed'] ? '1' : '' }}">
+                    <p class="visually-hidden" id="product-story-image-status" role="status" aria-live="polite"></p>
+                    <script type="application/json" id="product-story-image-config">@json($storyConfig)</script>
                 </div>
             </fieldset>
+            </div>
 
+            <div class="admin-product-column is-side">
             <fieldset class="admin-cat-form-section">
-                <legend class="admin-cat-form-legend">{{ $prodText('Products_Form_Section_Images', 'Product images') }}</legend>
+                <legend class="admin-cat-form-legend"><span class="admin-product-chip" aria-hidden="true"><i class="ph-duotone ph-images"></i></span><span>{{ $prodText('Products_Form_Section_Images', 'Product images') }}</span></legend>
                 {{-- PRODUCT-MEDIA-01 P5-C: one vendor-scoped gallery editor instead of the six media pickers. --}}
                 @include('dashboard.products.partials.gallery', ['gallery' => $gallery, 'prodText' => $prodText, 'optionalMark' => $optionalMark])
                 @if ($editing && $product->images()->exists() && $canViewProducts)
@@ -357,7 +435,7 @@
 
             {{-- 4. Status and settings --}}
             <fieldset class="admin-cat-form-section">
-                <legend class="admin-cat-form-legend">{{ $prodText('Products_Form_Section_Status', 'Status and settings') }}</legend>
+                <legend class="admin-cat-form-legend"><span class="admin-product-chip" aria-hidden="true"><i class="ph-duotone ph-eye"></i></span><span>{{ $prodText('Products_Form_Section_Status', 'Status and settings') }}</span></legend>
 
                 <div class="admin-cat-form-field admin-product-form-narrow">
                     <label class="form-label" for="product-status">{{ $fieldLabels['status'] }} <span class="admin-cat-form-mark">({{ $requiredMark }})</span></label>
@@ -393,7 +471,7 @@
                         'highlight_tags' => ['highlight', 'Products_Form_Highlight_Tags', 'Top tags', 'Products_Form_Highlight_Tag_Label', 'Top tag :number', 'Products_Form_Highlight_Tag_Placeholder', 'New'],
                         'craft_tags' => ['craft', 'Products_Form_Craft_Tags', 'Craft tags', 'Products_Form_Craft_Tag_Label', 'Craft tag :number', 'Products_Form_Craft_Tag_Placeholder', 'Hand painted'],
                     ] as $tagField => [$tagSlug, $groupKey, $groupDefault, $labelKey, $labelDefault, $firstKey, $firstDefault])
-                        <div class="admin-cat-form-field" role="group" aria-labelledby="product-{{ $tagSlug }}-tags-label">
+                        <div class="admin-cat-form-field admin-product-tags" role="group" aria-labelledby="product-{{ $tagSlug }}-tags-label">
                             <span class="form-label" id="product-{{ $tagSlug }}-tags-label">{{ $prodText($groupKey, $groupDefault) }}</span>
                             @foreach (range(0, 4) as $tagIndex)
                                 <label class="visually-hidden" for="product-{{ $tagSlug }}-tag-{{ $tagIndex + 1 }}">{{ str_replace(':number', $tagIndex + 1, $prodText($labelKey, $labelDefault)) }}</label>
@@ -404,8 +482,10 @@
                     @endforeach
                 </div>
             </fieldset>
+            </div>
 
-            <div class="admin-cat-form-actions">
+            {{-- 7B-8A: the vendor editor's sticky save bar (across both columns). --}}
+            <div class="admin-cat-form-actions admin-product-form-actions">
                 <button type="submit" class="btn btn-primary">
                     <i class="ph-duotone ph-floppy-disk" aria-hidden="true"></i>
                     <span>{{ $prodText('Products_Form_Save', 'Save product') }}</span>
@@ -416,9 +496,12 @@
 
         {{-- Outside the form: the vendor image chooser of the gallery (read only, no upload). --}}
         @include('dashboard.products.partials.gallery-dialog', ['prodText' => $prodText])
+        {{-- Outside the form too: the story image chooser (read only, no upload), its own ids and state. --}}
+        @include('dashboard.products.partials.story-image-dialog', ['prodText' => $prodText])
     </div>
 
     @push('scripts')
         @vite('resources/js/admin-product-gallery.js')
+        @vite('resources/js/admin-product-story-image.js')
     @endpush
 </x-dashboard-layout>

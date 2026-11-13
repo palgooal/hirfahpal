@@ -431,6 +431,34 @@ class AdminProductTranslationSeeder extends Seeder
         // Used by the products controller since before M3, auto-created on the development server with the English
         // text in Arabic (see CORRECTIONS). Product-specific, not shared.
         'dashboard.Product_saved' => ['ar' => 'تم حفظ المنتج بنجاح.', 'en' => 'Product saved successfully.'],
+
+        // PRODUCT-STORY: the "Description and uses" text, the Story section and the Product images section of the form.
+        'dashboard.Products_Form_Field_Usage_Description' => ['ar' => 'الوصف والاستخدامات', 'en' => 'Description and uses'],
+        'dashboard.Products_Form_Usage_Description_Hint' => [
+            'ar' => 'يظهر هذا النص في قسم «الوصف والاستخدامات» في صفحة المنتج فقط.',
+            'en' => 'This text is shown only in the Description and uses section on the product page.',
+        ],
+        'dashboard.Products_Form_Section_Story' => ['ar' => 'القصة', 'en' => 'Story'],
+        'dashboard.Products_Form_Story_Hint' => [
+            'ar' => 'أضف التفاصيل التي تريد عرضها في قصة المنتج. اترك هذا القسم فارغًا لإخفائه من المتجر.',
+            'en' => 'Add any details you would like to show in the product story. Leave this section empty to hide it from the storefront.',
+        ],
+        'dashboard.Products_Form_Field_Story_Description' => ['ar' => 'وصف القصة', 'en' => 'Story description'],
+        'dashboard.Products_Form_Section_Images' => ['ar' => 'صور المنتج', 'en' => 'Product images'],
+        // PRODUCT-STORY-MEDIA (7B-4F-2): the story image, chosen from the product vendor's own media library.
+        'dashboard.Products_Form_Field_Story_Image' => ['ar' => 'صورة القصة', 'en' => 'Story image'],
+        'dashboard.Products_Form_Story_Image_Hint' => [
+            'ar' => 'اختر صورة من مكتبة وسائط هذا البائع.',
+            'en' => 'Choose an image from this vendor\'s media library.',
+        ],
+        'dashboard.Products_Form_Story_Image_Choose' => ['ar' => 'اختيار صورة', 'en' => 'Choose image'],
+        'dashboard.Products_Form_Story_Image_Replace' => ['ar' => 'استبدال الصورة', 'en' => 'Replace image'],
+        'dashboard.Products_Form_Remove_Story_Image' => ['ar' => 'إزالة الصورة', 'en' => 'Remove image'],
+        'dashboard.Products_Form_Story_Image_Empty' => ['ar' => 'لا توجد صورة للقصة.', 'en' => 'No story image.'],
+        'dashboard.Products_Form_Story_Image_No_Script' => [
+            'ar' => 'فعّل JavaScript لاختيار صورة القصة. تبقى الصورة الحالية عند الحفظ.',
+            'en' => 'Turn on JavaScript to choose the story image. The current image is kept when you save.',
+        ],
     ];
 
     /**

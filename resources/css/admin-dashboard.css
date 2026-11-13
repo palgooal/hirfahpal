@@ -2881,6 +2881,326 @@ html.admin-shell .admin-product-form-check .form-label {
   }
 }
 
+/* 7B-8A: the vendor product editor's composition (vendor-dashboard.css, VPM-UX-01E), on this form only (#admin-product-form;
+ * the category form shares the admin-cat-form pieces and is left alone). The form draws no box of its own: two columns
+ * (main 2fr, side at least 19rem) from a content width of 880px, one below it (main first); each fieldset is a card whose
+ * legend starts with an icon chip; the save bar sticks to the bottom across both columns. The cards are drawn with an
+ * outer ring, not a border, so the rendered legend keeps its place (a fieldset border would be cut by it). */
+html.admin-shell #admin-product-form {
+  container: admin-product-form / inline-size;
+  max-width: none;
+}
+
+html.admin-shell #admin-product-form > form.admin-cat-form-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 1rem;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+@container admin-product-form (min-width: 880px) {
+  html.admin-shell #admin-product-form > form.admin-cat-form-card {
+    grid-template-columns: minmax(0, 2fr) minmax(19rem, 1fr);
+  }
+
+  html.admin-shell #admin-product-form > form.admin-cat-form-card > .admin-product-form-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+html.admin-shell #admin-product-form .admin-product-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+html.admin-shell #admin-product-form .admin-cat-form-section {
+  border: 0;
+  border-radius: 14px;
+  background-color: #fff;
+  box-shadow: 0 0 0 1px var(--color-hf-line);
+}
+
+html.admin-shell #admin-product-form .admin-cat-form-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+}
+
+html.admin-shell #admin-product-form .admin-product-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 9px;
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-olive);
+  font-size: 1.0625rem;
+}
+
+html.admin-shell #admin-product-form .admin-product-chip i {
+  display: inline-block;
+  direction: ltr;
+  unicode-bidi: isolate;
+  line-height: 1;
+}
+
+/* The save bar: on top while the form scrolls under it, in its own place once the end is reached (it never covers
+ * the last fields there). Focus moved to a field near the bottom stops above it (scroll-padding). */
+html.admin-shell #admin-product-form .admin-product-form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 14px;
+  background-color: #fff;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -6px 16px rgb(43 43 38 / 8%);
+}
+
+html.admin-shell:has(#admin-product-form) {
+  scroll-padding-bottom: 7rem;
+}
+
+/* 7B-8B: the fields in the vendor editor's language (vendor-dashboard.css: vendor-field, vendor-input, vendor-field-hint,
+ * the weight and dimension controls). The markup keeps its rows: a row becomes a grid of two fields where the card
+ * is wide enough (at least 15rem each), one below; textareas, the story image and the gallery stay full width
+ * (they are not in rows). The 44px control height and the shell's focus ring are kept; the vendor's olive border
+ * and soft ring are added on focus. Logical properties only (RTL and LTR). */
+html.admin-shell #admin-product-form .admin-cat-form-section {
+  gap: 0.875rem;
+}
+
+html.admin-shell #admin-product-form .admin-cat-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 0.875rem 1rem;
+}
+
+html.admin-shell #admin-product-form .admin-cat-form-field .form-label {
+  margin-bottom: 0.375rem;
+  font-size: 0.875rem;
+}
+
+html.admin-shell #admin-product-form .form-control,
+html.admin-shell #admin-product-form .form-select {
+  border: 1px solid var(--color-hf-line);
+  border-radius: 10px;
+  background-color: #fff;
+  color: var(--color-hf-ink);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+html.admin-shell #admin-product-form .form-control {
+  padding: 0.5rem 0.75rem;
+}
+
+/* The select keeps the theme's arrow and its end padding; only the start side follows the inputs. */
+html.admin-shell #admin-product-form .form-select {
+  padding-block: 0.5rem;
+  padding-inline-start: 0.75rem;
+}
+
+html.admin-shell #admin-product-form .form-control:focus,
+html.admin-shell #admin-product-form .form-select:focus {
+  border-color: var(--color-hf-olive);
+  box-shadow: 0 0 0 3px rgb(61 71 43 / 12%);
+}
+
+html.admin-shell #admin-product-form .form-control.is-invalid:focus,
+html.admin-shell #admin-product-form .form-select.is-invalid:focus {
+  border-color: var(--color-hf-error);
+  box-shadow: 0 0 0 3px rgb(161 61 43 / 14%);
+}
+
+html.admin-shell #admin-product-form .form-control:disabled,
+html.admin-shell #admin-product-form .form-select:disabled {
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-muted);
+  cursor: not-allowed;
+}
+
+/* Helper texts: the vendor's size and line height (the wording is unchanged). */
+html.admin-shell #admin-product-form .admin-media-hint {
+  margin: 0.125rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+/* Weight and its unit as one control, as the vendor's (the unit keeps its own width). */
+html.admin-shell #admin-product-form .input-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 7.5rem;
+}
+
+html.admin-shell #admin-product-form .input-group > .form-control,
+html.admin-shell #admin-product-form .input-group > .form-select {
+  width: 100%;
+  max-width: none;
+  border-radius: 10px;
+}
+
+html.admin-shell #admin-product-form .input-group > :first-child {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+html.admin-shell #admin-product-form .input-group > :last-child {
+  margin-inline-start: -1px;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+
+html.admin-shell #admin-product-form .input-group > :focus {
+  position: relative;
+  z-index: 1;
+}
+
+html.admin-shell #admin-product-form .admin-product-form-narrow:has(.input-group) {
+  max-width: 22rem;
+}
+
+/* Dimensions: three short fields side by side, whatever the card's width. */
+html.admin-shell #admin-product-form #product-dimensions > .admin-cat-form-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.625rem;
+}
+
+/* The side column's tags: each list's five fields two per row under its heading (same number, order and names). */
+html.admin-shell #admin-product-form .admin-product-tags {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+html.admin-shell #admin-product-form .admin-product-tags > .form-label {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+}
+
+html.admin-shell #admin-product-form .admin-product-tags > .form-control {
+  margin-bottom: 0;
+}
+
+/* 7B-8C: the head, the side gallery, the story image preview and the save bar on small screens.
+ * Head: the layout's header keeps the page's only h1; Back is the vendor editor's bordered button (vendor-product-back),
+ * then the product name and the introduction. The arrow keeps its existing RTL flip. */
+html.admin-shell #admin-product-form .admin-product-form-head {
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+html.admin-shell #admin-product-form .admin-product-back {
+  min-height: 44px;
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--color-hf-line);
+  border-radius: 10px;
+  background-color: #fff;
+  color: var(--color-hf-ink);
+  font-size: 0.875rem;
+}
+
+html.admin-shell #admin-product-form .admin-product-back:hover,
+html.admin-shell #admin-product-form .admin-product-back:focus-visible {
+  border-color: var(--color-hf-sage);
+  background-color: var(--color-hf-surface);
+  color: var(--color-hf-ink);
+}
+
+html.admin-shell #admin-product-form .admin-product-title {
+  margin-top: 0.25rem;
+  line-height: 1.4;
+}
+
+html.admin-shell #admin-product-form .admin-product-form-head .admin-media-intro {
+  max-width: 62ch;
+  line-height: 1.7;
+}
+
+/* The gallery in the side column: the add button across, each image's four actions two per row (they wrap,
+ * never overlap; long Arabic labels break inside their button). Names keep their single-line ellipsis; the whole
+ * name stays in the page for assistive technology. */
+html.admin-shell #admin-product-form .is-side .admin-product-gallery-bar {
+  align-items: stretch;
+}
+
+html.admin-shell #admin-product-form .is-side .admin-product-gallery-add {
+  flex: 1 1 100%;
+  justify-content: center;
+  min-height: 44px;
+}
+
+html.admin-shell #admin-product-form .is-side .admin-product-gallery-item {
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  align-items: center;
+}
+
+html.admin-shell #admin-product-form .is-side .admin-product-gallery-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+html.admin-shell #admin-product-form .is-side .admin-product-gallery-actions .btn {
+  justify-content: center;
+  min-width: 0;
+  min-height: 40px;
+  white-space: normal;
+  text-align: center;
+}
+
+html.admin-shell #admin-product-form .admin-product-gallery-meta {
+  max-width: 100%;
+}
+
+/* The story image: one preview card (a larger thumbnail, the name beside it, cut with an ellipsis), then its
+ * actions; Choose / Replace and Remove keep a 44px target. */
+html.admin-shell #admin-product-form .admin-product-story-image > .admin-product-gallery-item {
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  align-items: center;
+  max-width: 32rem;
+}
+
+/* hidden wins over the gallery pieces' own display (as .admin-product-gallery [hidden] does for the gallery): the empty
+ * preview, the actions before the script, Remove with nothing to remove, the vendor-first note. */
+html.admin-shell #admin-product-form .admin-product-story-image [hidden] {
+  display: none;
+}
+
+html.admin-shell #admin-product-form .admin-product-story-image .admin-product-gallery-actions {
+  gap: 0.5rem;
+}
+
+html.admin-shell #admin-product-form .admin-product-story-image .admin-product-gallery-actions .btn {
+  min-height: 44px;
+}
+
+html.admin-shell #admin-product-form .admin-product-story-image > .admin-product-gallery-empty {
+  max-width: 32rem;
+}
+
+/* Small screens: Save and Cancel stay on one row, so the sticky bar stays short (the shared rule stacks them, which
+ * would make it taller than the room kept for it, scroll-padding-bottom above). */
+@media (max-width: 575.98px) {
+  html.admin-shell #admin-product-form .admin-product-form-actions {
+    flex-wrap: nowrap;
+  }
+
+  html.admin-shell #admin-product-form .admin-product-form-actions .btn {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
 /* ---- Media picker (AD-UI-CAT-M4-B): resources/views/components/admin/media-picker.blade.php ---- */
 html.admin-shell .admin-media-picker {
   gap: 0.5rem;

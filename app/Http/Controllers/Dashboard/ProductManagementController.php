@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductAdminAction;
 use App\Models\ProductImage;
 use App\Models\Vendor;
+use App\Rules\VendorLibraryImage;
 use App\Support\Media\VendorMediaPath;
 use Carbon\CarbonInterface;
 use Closure;
@@ -143,17 +144,18 @@ class ProductManagementController extends Controller
 
         $this->returningErrorsTo(route('dashboard.products.create'), function () use ($request) {
             $data = $this->validatedData($request);
-            $data = $this->applyStoryImage($request, $data);
+            $story = $this->storyImageChoice($request, $data);
             $gallery = $this->validatedGallery($request, (int) $data['vendor_id']);
             $mediaIds = $this->validateImageUploads($request, (int) $data['vendor_id']);
 
             // P5-A: with images, the product and its links are written together, so a refused image leaves no
             // product. Without images the single insert stays as it was (no transaction around it).
             try {
-                $mediaIds === [] && ($gallery['refs'] ?? []) === []
-                    ? Product::create($data)
-                    : DB::transaction(function () use ($data, $mediaIds, $gallery): void {
-                        $product = Product::create($data);
+                $mediaIds === [] && ($gallery['refs'] ?? []) === [] && ($story['media'] ?? null) === null
+                    ? Product::create($data + $this->storyImagePath($story, (int) $data['vendor_id']))
+                    : DB::transaction(function () use ($data, $mediaIds, $gallery, $story): void {
+                        // The story image of the validated vendor: its media row is locked before the product is written.
+                        $product = Product::create($data + $this->storyImagePath($story, (int) $data['vendor_id']));
                         $gallery === null ? $this->storeImageUploads($product, $mediaIds) : $this->syncGallery($product, $gallery['refs'], null);
                     });
             } catch (QueryException $exception) {
@@ -233,7 +235,7 @@ class ProductManagementController extends Controller
 
         $this->returningErrorsTo(route('dashboard.products.edit', $product), function () use ($request, $product) {
             $data = $this->validatedData($request, $product);
-            $data = $this->applyStoryImage($request, $data);
+            $story = $this->storyImageChoice($request, $data);
             // P5-A: images are checked against the stored vendor, never the submitted one.
             $gallery = $this->validatedGallery($request, (int) $product->vendor_id, $product);
             $mediaIds = $this->validateImageUploads($request, (int) $product->vendor_id, $product);
@@ -251,7 +253,10 @@ class ProductManagementController extends Controller
             // PRD-02 (VEN-BE-019, as in the vendor update): lock the product row first, the order checkout and
             // vendor accept use, then compare and re-read under that lock before writing.
             try {
-                DB::transaction(function () use ($request, $product, $data, $basis, $changesStock, $mediaIds, $gallery): void {
+                DB::transaction(function () use ($request, $product, $data, $basis, $changesStock, $mediaIds, $gallery, $story): void {
+                    // PRODUCT-STORY-MEDIA: the story image of the stored vendor, its media row locked first (the order of a
+                    // library deletion), then the product row.
+                    $data += $this->storyImagePath($story, (int) $product->vendor_id);
                     $locked = Product::query()->whereKey($product->id)->lockForUpdate()->firstOrFail();
 
                     if ($changesStock) {
@@ -341,6 +346,45 @@ class ProductManagementController extends Controller
             'statusKeys' => $this->statusKeys(),
             'fieldLabels' => $this->formAttributes(),
             'gallery' => $this->galleryFormData($product),
+            'storyImage' => $this->storyImageFormData($product),
+        ];
+    }
+
+    /**
+     * PRODUCT-STORY-MEDIA (7B-4F-2): what the story image field starts from. current is the stored image (named by its
+     * vendor library entry when it has one, else by its file name; no path is shown). After a refused save, the
+     * admin's choice comes back: a media id resolved in the vendor's own library only (an unknown one is dropped),
+     * or the removal of the current image. The two are never both set.
+     *
+     * @return array{editing: bool, current: ?array{url: ?string, name: string}, chosen: ?array{id: int, url: ?string, name: string}, removed: bool, mediaUrl: string}
+     */
+    private function storyImageFormData(Product $product): array
+    {
+        $editing = $product->exists;
+        $vendorId = (int) ($editing ? $product->vendor_id : old('vendor_id'));
+        $path = $editing ? $product->story_image_path : null;
+        $current = null;
+
+        if (is_string($path) && $path !== '') {
+            $original = VendorMediaPath::scopeToVendor(Media::query()->images(), (int) $product->vendor_id)
+                ->where('file_path', $path)->value('file_original_name');
+            $current = ['url' => $this->safeImageUrl($path), 'name' => trim((string) $original) !== '' ? trim((string) $original) : basename($path)];
+        }
+
+        $chosen = null;
+        $oldId = old('story_image_media_id');
+
+        if (is_scalar($oldId) && preg_match('/^[1-9][0-9]{0,18}$/', (string) $oldId) === 1 && $vendorId > 0) {
+            $media = $this->vendorImages($vendorId, [(int) $oldId])->first();
+            $chosen = $media ? ['id' => (int) $media->id, 'url' => $media->url, 'name' => (string) ($media->file_original_name ?: '#'.$media->id)] : null;
+        }
+
+        return [
+            'editing' => $editing,
+            'current' => $current,
+            'chosen' => $chosen,
+            'removed' => $chosen === null && $current !== null && filter_var(old('remove_story_image'), FILTER_VALIDATE_BOOLEAN),
+            'mediaUrl' => $editing ? route('dashboard.products.vendor-media.edit', $product) : route('dashboard.products.vendor-media.create'),
         ];
     }
 
@@ -477,6 +521,7 @@ class ProductManagementController extends Controller
             'care_instructions' => ['dashboard.Products_Form_Field_Care_Instructions', 'Care and storage instructions'],
             'story_description' => ['dashboard.Products_Form_Field_Story_Description', 'Story description'],
             'story_image' => ['dashboard.Products_Form_Field_Story_Image', 'Story image'],
+            'story_image_media_id' => ['dashboard.Products_Form_Field_Story_Image', 'Story image'],
             'shipping_details' => ['dashboard.Products_Form_Field_Shipping_Details', 'Packaging and shipping details'],
             'short_description' => ['dashboard.Products_Form_Field_Short_Description', 'Short description'],
             'description' => ['dashboard.Products_Form_Field_Description', 'Description'],
@@ -561,7 +606,10 @@ class ProductManagementController extends Controller
             'care_instructions' => ['nullable', 'string', 'max:5000'],
             'shipping_details' => ['nullable', 'string', 'max:5000'],
             'story_description' => ['nullable', 'string', 'max:5000'],
-            'story_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            // PRODUCT-STORY-MEDIA: the story image is chosen from the product vendor's own library by media id, like
+            // the gallery (P5-A); a file is never uploaded here, and the path is resolved on the server.
+            'story_image' => ['prohibited'],
+            'story_image_media_id' => ['nullable', 'integer', 'min:1'],
             'remove_story_image' => ['nullable', 'boolean'],
             // The same four statuses as before, without reading their (shared) labels.
             'status' => ['required', Rule::in(array_keys($this->statusKeys()))],
@@ -576,6 +624,7 @@ class ProductManagementController extends Controller
             'vendor_id.in' => $this->untranslatedDefault('dashboard.Products_Form_Vendor_Immutable', 'The vendor of an existing product cannot be changed.'),
             'vendor_id.exists' => $this->untranslatedDefault('dashboard.Products_Form_Vendor_Ineligible', 'Choose an active vendor whose store is approved.'),
             'category_id.exists' => $this->untranslatedDefault('dashboard.Products_Form_Category_Ineligible', 'Choose an active category.'),
+            'story_image.prohibited' => $this->untranslatedDefault('dashboard.Products_Form_Images_Upload_Disabled', 'Images cannot be uploaded here. Choose them from the vendor\'s media library.'),
         ], $this->messageAttributes());
 
         $data['slug'] = ($data['slug'] ?? null) ?: $this->uniqueSlug($data['name'], $product);
@@ -591,18 +640,56 @@ class ProductManagementController extends Controller
         return $data;
     }
 
-    /** Store an optional, independent image used only by the product story section. */
-    private function applyStoryImage(Request $request, array $data): array
+    /**
+     * PRODUCT-STORY-MEDIA: what the form asks of the story image, taken out of $data (neither field is a column):
+     * null leaves it as it is, remove clears it, media uses that image of the product vendor's own library. Asking
+     * for both at once is refused (the form never sends both).
+     *
+     * @return array{remove: bool, media: ?int}|null
+     */
+    private function storyImageChoice(Request $request, array &$data): ?array
     {
-        unset($data['story_image'], $data['remove_story_image']);
+        $media = isset($data['story_image_media_id']) ? (int) $data['story_image_media_id'] : null;
+        $remove = $request->boolean('remove_story_image');
+        unset($data['story_image'], $data['story_image_media_id'], $data['remove_story_image']);
 
-        if ($request->hasFile('story_image')) {
-            $data['story_image_path'] = $request->file('story_image')->store('product-stories', 'public');
-        } elseif ($request->boolean('remove_story_image')) {
-            $data['story_image_path'] = null;
+        if ($remove && $media !== null) {
+            throw ValidationException::withMessages([
+                'story_image_media_id' => $this->untranslatedDefault('dashboard.Products_Form_Gallery_Invalid', 'The image list could not be read. Reload the page and try again.'),
+            ]);
         }
 
-        return $data;
+        return $remove || $media !== null ? ['remove' => $remove, 'media' => $media] : null;
+    }
+
+    /**
+     * PRODUCT-STORY-MEDIA: the story_image_path to write for $choice, as the store logo (MYSTORE-MEDIA-01). A chosen
+     * image is resolved inside the caller's transaction with a shared lock on its media row
+     * (VendorLibraryImage::lockedPathOf(), the attaching rule of product images), so a library deletion of that
+     * image (which locks the row first and refuses a story image) is serialised with this save. Another vendor's or
+     * an admin image, a non-image and a missing id are refused with the gallery's message; the browser never sends a
+     * path. Nothing is uploaded, copied or deleted: removing only empties the column.
+     *
+     * @param  array{remove: bool, media: ?int}|null  $choice
+     * @return array{story_image_path?: ?string}
+     */
+    private function storyImagePath(?array $choice, int $vendorId): array
+    {
+        if ($choice === null) {
+            return [];
+        }
+
+        if ($choice['remove']) {
+            return ['story_image_path' => null];
+        }
+
+        $path = VendorLibraryImage::lockedPathOf($vendorId, (int) $choice['media']);
+
+        if ($path === null) {
+            throw ValidationException::withMessages(['story_image_media_id' => $this->vendorImagesOnlyMessage()]);
+        }
+
+        return ['story_image_path' => $path];
     }
 
     /**

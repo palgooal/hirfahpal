@@ -191,8 +191,14 @@ class AdminProductFormTest extends TestCase
         $xpath = $this->xpath($html);
 
         $fields = $xpath->query('//form[@novalidate]//*[self::input[not(@type="hidden")] or self::select or self::textarea]');
-        // The original fields, ten tag inputs, and the eight vendor craft-detail inputs are each labelled.
-        $this->assertSame(34, $fields->length);
+        // The original fields, ten tag inputs, and the eight vendor craft-detail inputs are each labelled; PRODUCT-STORY
+        // adds two labelled texts ("Description and uses", the story description). The story image is chosen from the
+        // vendor's library (two hidden fields and buttons), so it adds no input, and never a file input.
+        $this->assertSame(36, $fields->length);
+        foreach (['product-usage-description', 'product-story-description'] as $id) {
+            $this->assertSame(1, $xpath->query('//form[@novalidate]//textarea[@id="'.$id.'"]')->length, $id);
+        }
+        $this->assertSame(0, $xpath->query('//form[@novalidate]//input[@type="file"]')->length);
         foreach ($fields as $field) {
             $id = $field->getAttribute('id');
             $this->assertNotSame('', $id, $field->getAttribute('name'));
@@ -203,8 +209,11 @@ class AdminProductFormTest extends TestCase
             $this->assertSame('true', $xpath->query('//*[@id="'.$id.'"]')->item(0)->getAttribute('aria-required'), $id);
             $this->assertStringContainsString('(Required)', $xpath->query('//label[@for="'.$id.'"]')->item(0)->textContent);
         }
-        $this->assertSame(4, $xpath->query('//form//fieldset/legend')->length);
-        $this->assertSame(['Basic details', 'Price and stock', 'Description and details', 'Status and settings'], array_map(fn ($node) => trim($node->textContent), iterator_to_array($xpath->query('//form//fieldset/legend'))));
+        $this->assertSame(6, $xpath->query('//form//fieldset/legend')->length);
+        $this->assertSame(
+            ['Basic details', 'Price and stock', 'Description and details', 'Story (Optional)', 'Product images', 'Status and settings'],
+            array_map(fn ($node) => preg_replace('/\s+/u', ' ', trim($node->textContent)), iterator_to_array($xpath->query('//form//fieldset/legend')))
+        );
     }
 
     public function test_errors_are_shown_at_their_fields_with_translated_names_and_the_typed_values_are_kept(): void
@@ -441,8 +450,10 @@ class AdminProductFormTest extends TestCase
     {
         $this->seed(AdminProductTranslationSeeder::class);
         $admin = $this->admin(super: true);
+        // Found by its legend, not its position (PRODUCT-STORY added sections before it).
+        $legends = ['ar' => 'الحالة والإعدادات', 'en' => 'Status and settings'];
         $section = fn (string $locale) => $this->xpath($this->page($admin, route('dashboard.products.create'), $locale))
-            ->query('//form//fieldset[4]')->item(0);
+            ->query('//form//fieldset[normalize-space(legend)="'.$legends[$locale].'"]')->item(0);
 
         $ar = $section('ar');
         $text = preg_replace('/\s+/u', ' ', $ar->textContent);
