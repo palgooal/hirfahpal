@@ -15,6 +15,7 @@
   ])->contains(fn ($value) => filled($value));
   $productStoryImage = $product->story_image_path ?: ($product->primaryImage?->path ?? $product->images->first()?->path);
   $productStoryLocation = $product->place_of_manufacture ?: $product->vendor->profile->location_name;
+  $storeLogoUrl = $product->vendor->profile->publicLogoUrl();
 @endphp
 <main>
   <section class="border-b border-line/60 bg-canvas px-4 py-3 lg:px-8" data-node-id="223:2698">
@@ -162,7 +163,7 @@
         <div
           class="absolute -bottom-5 right-3 flex max-w-[320px] items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-ink shadow-xl sm:-right-5">
           <span
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-copper/10 text-lg font-bold text-copper">—</span>
+            class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-copper/10 text-lg font-bold text-copper">@if ($storeLogoUrl)<img src="{{ $storeLogoUrl }}" alt="شعار {{ $product->vendor->profile->store_name }}" width="40" height="40" loading="lazy" class="h-full w-full object-cover">@else{{ $product->vendor->profile->publicInitial() }}@endif</span>
           <p class="text-xs"><strong class="block">{{ $product->vendor->profile->store_name }}</strong><span class="text-[11px] text-muted">في
               {{ $product->category?->name }}</span></p>
         </div>

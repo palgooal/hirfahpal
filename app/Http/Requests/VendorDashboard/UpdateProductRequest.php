@@ -4,6 +4,7 @@ namespace App\Http\Requests\VendorDashboard;
 
 use App\Models\Governorate;
 use App\Models\Product;
+use App\Rules\VendorLibraryImage;
 use App\Support\Products\VendorProductCategory;
 use App\Support\Products\VendorProductLocation;
 use Closure;
@@ -51,6 +52,9 @@ class UpdateProductRequest extends FormRequest
             'preparation_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
             'care_instructions' => ['nullable', 'string', 'max:5000'],
             'shipping_details' => ['nullable', 'string', 'max:5000'],
+            // Keeping a legacy story image is allowed, but every newly selected image must be the vendor's own media.
+            'story_description' => ['nullable', 'string', 'max:5000'],
+            'story_image_path' => ['nullable', 'string', 'max:2048', new VendorLibraryImage((int) $this->user('vendor')->id, $product instanceof Product ? $product->story_image_path : null)],
             // VENDOR-PRODUCT-PUBLISH-DECISION-01 (OPEN-PROD-19, 20; DETAIL-01): draft, active or inactive; omitted keeps
             // the stored status, a historical out_of_stock included. out_of_stock is never a manual choice.
             'status' => ['nullable', Rule::in(['draft', 'active', 'inactive'])],

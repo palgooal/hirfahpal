@@ -719,7 +719,12 @@ function initEditor(editor) {
     const galleryCount = editor.querySelector('[data-product-gallery-count]');
     const primaryOpen = editor.querySelector('[data-product-primary-open]');
     const galleryOpen = editor.querySelector('[data-product-gallery-open]');
-    let editingId = null, images = [], mode = 'gallery', target = null, busy = false, picker = null, readOnly = false;
+    const storyOpen = editor.querySelector('[data-product-story-image-open]');
+    const storyRemove = editor.querySelector('[data-product-story-image-remove]');
+    const storyPreview = editor.querySelector('[data-product-story-image-preview]');
+    const storyEmpty = editor.querySelector('[data-product-story-image-empty]');
+    const storyOpenLabel = editor.querySelector('[data-product-story-image-open-label]');
+    let editingId = null, images = [], storyImage = null, mode = 'gallery', target = null, busy = false, picker = null, readOnly = false;
     // VENDOR-PRODUCT-PUBLISH-UI-01D: the notices, the save button, and the product the editor is on (createTickets()).
     const notices = { archived: editor.querySelector('[data-product-notice="archived"]'), suspended: editor.querySelector('[data-product-notice="suspended"]') };
     const saveButton = editor.querySelector('[data-product-save]');
@@ -854,6 +859,27 @@ function initEditor(editor) {
     };
     const focusCard = (key, action) => focusAfterMove(gallery, key, action);
 
+    const renderStoryImage = () => {
+        storyPreview.hidden = !storyImage;
+        storyEmpty.hidden = Boolean(storyImage);
+        storyRemove.hidden = !storyImage;
+        storyOpenLabel.textContent = storyImage ? texts.storyReplace : texts.storyChoose;
+        storyOpen.disabled = readOnly || busy;
+        storyRemove.disabled = readOnly || busy;
+
+        if (!storyImage) {
+            storyPreview.replaceChildren();
+            return;
+        }
+
+        const image = document.createElement('img');
+        image.src = productImageUrl(storyImage);
+        image.alt = storyImage.alt_text || messages.imageAlt;
+        image.loading = 'lazy';
+        image.className = 'h-full w-full object-cover';
+        storyPreview.replaceChildren(image);
+    };
+
     const render = () => {
         images = orderImages(images);
         const primary = images[0] ?? null;
@@ -878,6 +904,7 @@ function initEditor(editor) {
         galleryLimit.dataset.state = note ?? 'none';
         // VPM-UX-01E: when image changes are saved: with the product (new) or right away (saved product).
         mediaMode.textContent = editingId ? texts.mediaEdit : texts.mediaAdd;
+        renderStoryImage();
         setBusy(busy);
         if (baseline !== null) updateSaveBar();
     };
@@ -905,10 +932,11 @@ function initEditor(editor) {
     // UI-01D: the product as the server has it, its mode included (opening, and after an archived refusal).
     const fill = ({ product, moderation }) => {
         form.reset();
-        ['name', 'price', 'stock_quantity', 'sku', 'compare_at_price', 'low_stock_threshold', 'weight', 'weight_unit', 'material', 'place_of_manufacture', 'preparation_days', 'care_instructions', 'shipping_details', 'short_description', 'description'].forEach((name) => { field(name).value = product[name] ?? ''; });
+        ['name', 'price', 'stock_quantity', 'sku', 'compare_at_price', 'low_stock_threshold', 'weight', 'weight_unit', 'material', 'place_of_manufacture', 'preparation_days', 'care_instructions', 'shipping_details', 'story_description', 'short_description', 'description'].forEach((name) => { field(name).value = product[name] ?? ''; });
         ['length', 'width', 'height'].forEach((name) => { field(`dimensions[${name}]`).value = product.dimensions?.[name] ?? ''; });
         setStatusField(field('status'), product.status);
         images = product.images || [];
+        storyImage = product.story_image_path ? { path: product.story_image_path, alt_text: product.name } : null;
         clearGalleryError(); status(''); picker.close();
         applyMode(editorMode(moderation));
         render();
@@ -979,6 +1007,11 @@ function initEditor(editor) {
     // Returns whether the image was added or replaced; the picker closes then (VPM-01B).
     const choose = async (medium) => {
         if (locked()) return false;
+        if (mode === 'story') {
+            storyImage = { path: medium.path, url: medium.url, alt_text: medium.alt_text };
+            picker.close(); clearGalleryError(); render(); status(texts.storySelected);
+            return true;
+        }
         // VPM-01C: an image another slot has is not chosen (the picker disables it; the server refuses it with 409).
         if (choiceState(images, medium, target) === 'attached') { galleryFail('duplicate'); return false; }
         const plan = planChoice(images, { mode, target });
@@ -1004,12 +1037,12 @@ function initEditor(editor) {
     const openMedia = (nextMode, image = null, from = null) => {
         if (locked()) return;
         mode = nextMode; target = image; clearGalleryError();
-        if (!target && images.length >= MAX_IMAGES) { galleryFail('limit'); return; }
+        if (nextMode !== 'story' && !target && images.length >= MAX_IMAGES) { galleryFail('limit'); return; }
         const shown = (node) => Boolean(node?.isConnected && !node.disabled && node.getClientRects().length);
         picker.open({
-            title: pickerTitle(messages, { mode, target }),
+            title: nextMode === 'story' ? texts.storyPickerTitle : pickerTitle(messages, { mode, target }),
             from,
-            fallback: () => [mode === 'primary' ? primaryOpen : galleryOpen, primaryOpen, primaryBox().querySelector('[data-action="change"]'), galleryOpen].find(shown) ?? null,
+            fallback: () => [mode === 'story' ? storyOpen : mode === 'primary' ? primaryOpen : galleryOpen, primaryOpen, primaryBox().querySelector('[data-action="change"]'), galleryOpen].find(shown) ?? null,
         });
     };
 
@@ -1032,10 +1065,10 @@ function initEditor(editor) {
         if (media[0] && await choose(media[0])) status(`${messages.added} ${format(messages.uploaded, { count: media.length })}`);
     };
 
-    const close = () => { begin(); editor.hidden = true; list.hidden = false; if (pageTitle) pageTitle.hidden = false; error.hidden = true; form.reset(); field('low_stock_threshold').value = '1'; setStatusField(field('status'), null); editingId = null; images = []; applyMode('editable'); clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.headingAdd; categoryValue = ''; ownCategory = null; renderCategories(); renderLocations(); showHeader(null); clearFieldErrors(); updateCounter(); markClean(); };
+    const close = () => { begin(); editor.hidden = true; list.hidden = false; if (pageTitle) pageTitle.hidden = false; error.hidden = true; form.reset(); field('low_stock_threshold').value = '1'; setStatusField(field('status'), null); editingId = null; images = []; storyImage = null; applyMode('editable'); clearGalleryError(); status(''); picker.close(); render(); title.textContent = texts.headingAdd; categoryValue = ''; ownCategory = null; renderCategories(); renderLocations(); showHeader(null); clearFieldErrors(); updateCounter(); markClean(); };
     // VPM-UX-01E: Cancel and "Back to products" ask first while there are unsaved changes.
     const leave = () => { if (isDirty() && !window.confirm(texts.discard)) return; close(); };
-    const payload = () => ({ name: field('name').value.trim(), category_id: categoryValue === '' ? null : Number(categoryValue), price: number('price'), city_id: cityField.value === '' ? null : Number(cityField.value), governorate_id: governorateField.value === '' ? null : Number(governorateField.value), stock_quantity: number('stock_quantity'), sku: value('sku'), compare_at_price: number('compare_at_price'), low_stock_threshold: number('low_stock_threshold'), weight: number('weight'), weight_unit: value('weight_unit'), dimensions: { length: number('dimensions[length]'), width: number('dimensions[width]'), height: number('dimensions[height]') }, material: value('material'), place_of_manufacture: value('place_of_manufacture'), preparation_days: number('preparation_days'), care_instructions: value('care_instructions'), shipping_details: value('shipping_details'), short_description: value('short_description'), description: value('description'), status: statusPayload(field('status').value), images: editingId ? undefined : images.map(({ path, alt_text, sort_order, is_primary }) => ({ path, alt_text, sort_order, is_primary })) });
+    const payload = () => ({ name: field('name').value.trim(), category_id: categoryValue === '' ? null : Number(categoryValue), price: number('price'), city_id: cityField.value === '' ? null : Number(cityField.value), governorate_id: governorateField.value === '' ? null : Number(governorateField.value), stock_quantity: number('stock_quantity'), sku: value('sku'), compare_at_price: number('compare_at_price'), low_stock_threshold: number('low_stock_threshold'), weight: number('weight'), weight_unit: value('weight_unit'), dimensions: { length: number('dimensions[length]'), width: number('dimensions[width]'), height: number('dimensions[height]') }, material: value('material'), place_of_manufacture: value('place_of_manufacture'), preparation_days: number('preparation_days'), care_instructions: value('care_instructions'), shipping_details: value('shipping_details'), story_description: value('story_description'), story_image_path: storyImage?.path ?? null, short_description: value('short_description'), description: value('description'), status: statusPayload(field('status').value), images: editingId ? undefined : images.map(({ path, alt_text, sort_order, is_primary }) => ({ path, alt_text, sort_order, is_primary })) });
     /**
      * VPM-CATEGORY-RELIABILITY-01: the category field from the editor's state. Disabled until the categories are loaded
      * (the product's own category is shown meanwhile); a failed load shows its message and Retry.
@@ -1149,12 +1182,14 @@ function initEditor(editor) {
     picker = initPicker(editor.querySelector('[data-product-media-library]'), {
         url: editor.dataset.mediaLibraryUrl,
         messages,
-        stateOf: (medium) => choiceState(images, medium, target),
+        stateOf: (medium) => mode === 'story' && storyImage?.path === medium?.path ? 'current' : choiceState(images, medium, target),
         onChoose: choose,
         onUpload: upload,
     });
     primaryOpen.onclick = () => openMedia('primary', images[0] ?? null, primaryOpen);
     galleryOpen.onclick = () => openMedia('gallery', null, galleryOpen);
+    storyOpen.onclick = () => openMedia('story', storyImage, storyOpen);
+    storyRemove.onclick = () => { if (!locked()) { storyImage = null; render(); status(texts.storyRemoved); } };
     const add = document.createElement('button'); add.type = 'button'; add.className = 'btn btn-primary'; add.textContent = texts.add; add.onclick = () => { close(); showEditor(); }; document.querySelector('[data-vendor-resource-list] [data-resource-retry]').before(add);
     applyMode('editable');
     render();

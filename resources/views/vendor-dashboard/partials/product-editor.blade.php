@@ -185,6 +185,32 @@
                     </div>
                 </div>
             </section>
+
+            <section class="card vendor-form-card" data-product-section="story" aria-labelledby="vendor-product-story-title">
+                <div class="card-body">
+                    <h2 class="vendor-section-title" id="vendor-product-story-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-hand-heart"></i></span><span>{{ t('vendor.Product_Section_Story', 'Product story') }}</span></h2>
+                    <p class="vendor-product-hint">{{ t('vendor.Product_Story_Hint', 'Add details to show in the product story. Leave this section empty to hide it from the storefront.') }}</p>
+                    <div class="vendor-product-fields">
+                        <div class="vendor-field is-wide">
+                            <label class="vendor-label" for="vendor-product-story-description">{{ t('vendor.Product_Story_Description', 'Story description') }}</label>
+                            <textarea id="vendor-product-story-description" class="vendor-input vendor-product-textarea-sm" name="story_description" rows="5" maxlength="5000" dir="auto" aria-describedby="vendor-product-story-description-error"></textarea>
+                            <p class="vendor-field-error" id="vendor-product-story-description-error" data-error-for="story_description" hidden></p>
+                        </div>
+                        <div class="vendor-field is-wide">
+                            <span class="vendor-label">{{ t('vendor.Product_Story_Image', 'Story image') }}</span>
+                            <p class="vendor-product-hint">{{ t('vendor.Product_Story_Image_Hint', 'Choose an image from your media library.') }}</p>
+                            <input type="hidden" name="story_image_path" data-product-story-image-path>
+                            <div class="vendor-product-gallery-box" data-product-story-image-preview hidden></div>
+                            <p class="vendor-product-gallery-empty" data-product-story-image-empty>{{ t('vendor.Product_Story_Image_Empty', 'No story image selected.') }}</p>
+                            <div class="vendor-product-gallery-actions">
+                                <button class="btn btn-light-secondary" type="button" data-product-story-image-open><i class="ph-duotone ph-image" aria-hidden="true"></i><span data-product-story-image-open-label>{{ t('vendor.Product_Story_Image_Choose', 'Choose image') }}</span></button>
+                                <button class="btn btn-light-secondary" type="button" data-product-story-image-remove hidden><i class="ph-duotone ph-x" aria-hidden="true"></i><span>{{ t('vendor.Product_Story_Image_Remove', 'Remove image') }}</span></button>
+                            </div>
+                            <p class="vendor-field-error" data-error-for="story_image_path" hidden></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </fieldset>
 
         @php
@@ -282,6 +308,11 @@
                 'back' => t('vendor.Product_Back_To_List', 'Back to products'),
                 'mediaAdd' => t('vendor.Product_Media_Hint_Add', 'Images are saved with the product when you select “Save product”.'),
                 'mediaEdit' => t('vendor.Product_Media_Hint_Edit', 'Image changes are saved right away; you do not need to select “Save product”.'),
+                'storyChoose' => t('vendor.Product_Story_Image_Choose', 'Choose image'),
+                'storyReplace' => t('vendor.Product_Story_Image_Replace', 'Replace image'),
+                'storyPickerTitle' => t('vendor.Product_Story_Image_Picker', 'Choose story image'),
+                'storySelected' => t('vendor.Product_Story_Image_Selected', 'Story image selected.'),
+                'storyRemoved' => t('vendor.Product_Story_Image_Removed', 'Story image removed.'),
             ];
         @endphp
         <fieldset class="vendor-product-column is-side">

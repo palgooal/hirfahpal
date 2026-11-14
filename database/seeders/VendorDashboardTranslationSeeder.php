@@ -627,6 +627,18 @@ class VendorDashboardTranslationSeeder extends Seeder
         'vendor.Product_Save_Invalid' => ['ar' => 'تعذّر حفظ المنتج. راجع هذه التفاصيل:', 'en' => 'The product could not be saved. Check these details:'],
         'vendor.Save' => ['ar' => 'حفظ', 'en' => 'Save'],
         'vendor.Cancel' => ['ar' => 'إلغاء', 'en' => 'Cancel'],
+        'vendor.Product_Section_Story' => ['ar' => 'قصة المنتج', 'en' => 'Product story'],
+        'vendor.Product_Story_Hint' => ['ar' => 'أضف التفاصيل التي تريد عرضها في قصة المنتج. اترك هذا القسم فارغًا لإخفائه من المتجر.', 'en' => 'Add details to show in the product story. Leave this section empty to hide it from the storefront.'],
+        'vendor.Product_Story_Description' => ['ar' => 'وصف القصة', 'en' => 'Story description'],
+        'vendor.Product_Story_Image' => ['ar' => 'صورة القصة', 'en' => 'Story image'],
+        'vendor.Product_Story_Image_Hint' => ['ar' => 'اختر صورة من مكتبة الوسائط الخاصة بك.', 'en' => 'Choose an image from your media library.'],
+        'vendor.Product_Story_Image_Empty' => ['ar' => 'لم يتم اختيار صورة للقصة.', 'en' => 'No story image selected.'],
+        'vendor.Product_Story_Image_Choose' => ['ar' => 'اختيار صورة', 'en' => 'Choose image'],
+        'vendor.Product_Story_Image_Replace' => ['ar' => 'استبدال الصورة', 'en' => 'Replace image'],
+        'vendor.Product_Story_Image_Remove' => ['ar' => 'إزالة الصورة', 'en' => 'Remove image'],
+        'vendor.Product_Story_Image_Picker' => ['ar' => 'اختر صورة القصة', 'en' => 'Choose story image'],
+        'vendor.Product_Story_Image_Selected' => ['ar' => 'تم اختيار صورة القصة.', 'en' => 'Story image selected.'],
+        'vendor.Product_Story_Image_Removed' => ['ar' => 'تمت إزالة صورة القصة.', 'en' => 'Story image removed.'],
         // VPM-UX-01E: the product editor's card titles, header, notices, units, hints and save bar (the approved
         // prototype's new texts; the save bar's other lines reuse My Store's texts).
         'vendor.Product_Section_Basic' => ['ar' => 'المعلومات الأساسية', 'en' => 'Basic information'],

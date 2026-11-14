@@ -75,6 +75,8 @@ class ProductController extends Controller
                 $images = $data['images'] ?? [];
                 unset($data['images']);
 
+                $this->assertStoryImageIsAvailable((int) $vendor->id, $data['story_image_path'] ?? null);
+
                 $product = $vendor->products()->create($data);
 
                 // G7-C2-3 (V4): the sent order (sort_order, then the list order) with the first image sent as the main
@@ -160,6 +162,10 @@ class ProductController extends Controller
                     ]);
                 }
 
+                if (($data['story_image_path'] ?? null) !== $lockedProduct->story_image_path) {
+                    $this->assertStoryImageIsAvailable((int) $request->user('vendor')->id, $data['story_image_path'] ?? null);
+                }
+
                 $lockedProduct->update($data);
 
                 return $lockedProduct;
@@ -204,6 +210,18 @@ class ProductController extends Controller
         $data['craft_tags'] = $product?->craft_tags ?? [];
 
         return $data;
+    }
+
+    /** The request validates ownership early; lock a newly selected story image again while saving. */
+    private function assertStoryImageIsAvailable(int $vendorId, mixed $path): void
+    {
+        if ($path === null || $path === '') {
+            return;
+        }
+
+        if (! is_string($path) || ! VendorLibraryImage::lockedInLibrary($vendorId, $path)) {
+            throw ValidationException::withMessages(['story_image_path' => VendorLibraryImage::MESSAGE]);
+        }
     }
 
     /**

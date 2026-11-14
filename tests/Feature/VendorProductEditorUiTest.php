@@ -153,6 +153,11 @@ class VendorProductEditorUiTest extends TestCase
             'back' => 'Back to products',
             'mediaAdd' => 'Images are saved with the product when you select “Save product”.',
             'mediaEdit' => 'Image changes are saved right away; you do not need to select “Save product”.',
+            'storyChoose' => 'Choose image',
+            'storyReplace' => 'Replace image',
+            'storyPickerTitle' => 'Choose story image',
+            'storySelected' => 'Story image selected.',
+            'storyRemoved' => 'Story image removed.',
         ], $this->editorMessages($html));
     }
 

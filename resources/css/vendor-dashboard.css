@@ -228,6 +228,9 @@ html.vendor-shell .vendor-product-gallery-box[data-product-primary-image] .vendo
 html.vendor-shell .vendor-product-gallery-box[data-product-primary-image] .vendor-product-gallery-actions .btn span { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: nowrap; }
 html.vendor-shell .vendor-product-gallery-box[data-product-primary-image] .vendor-product-gallery-actions .btn[data-action="remove"] { color: #a13d2b; }
 html.vendor-shell .vendor-product-gallery-box[data-product-primary-image] [data-action="up"] { display: none; }
+/* The optional story image uses the same prominent, cropped treatment as the main product image. */
+html.vendor-shell .vendor-product-gallery-box[data-product-story-image-preview] { aspect-ratio: 4 / 3; max-inline-size: 22rem; overflow: hidden; border: 1px solid var(--color-hf-line); border-radius: 12px; background-color: var(--color-hf-surface); }
+html.vendor-shell .vendor-product-gallery-box[data-product-story-image-preview] img { display: block; width: 100%; height: 100%; object-fit: cover; }
 html.vendor-shell .vendor-product-gallery-status { margin: 0; color: var(--color-hf-olive); font-size: .8125rem; font-weight: 600; }
 html.vendor-shell .vendor-product-gallery-status:empty { display: none; }
 /* Opened by the Upload button only; kept out of sight and out of the tab order. */
