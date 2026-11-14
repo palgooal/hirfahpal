@@ -141,28 +141,6 @@
                 <div class="card-body">
                     <h2 class="vendor-section-title" id="vendor-product-craft-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-hand-heart"></i></span><span>{{ t('vendor.Product_Section_Craft', 'Craft, care and delivery') }}</span></h2>
                     <div class="vendor-product-fields">
-                        <div class="vendor-field">
-                            <label class="vendor-label" for="vendor-product-material">{{ t('vendor.Product_Material', 'Main material') }}</label>
-                            <input id="vendor-product-material" class="vendor-input" name="material" maxlength="255" dir="auto" aria-describedby="vendor-product-material-error">
-                            <p class="vendor-field-error" id="vendor-product-material-error" data-error-for="material" hidden></p>
-                        </div>
-                        <div class="vendor-field">
-                            <label class="vendor-label" for="vendor-product-place">{{ t('vendor.Product_Place_Of_Manufacture', 'Place of manufacture') }}</label>
-                            <input id="vendor-product-place" class="vendor-input" name="place_of_manufacture" maxlength="255" dir="auto" aria-describedby="vendor-product-place-error">
-                            <p class="vendor-field-error" id="vendor-product-place-error" data-error-for="place_of_manufacture" hidden></p>
-                        </div>
-                        <div class="vendor-field vendor-field-narrow is-wide">
-                            <label class="vendor-label" for="vendor-product-preparation-days">{{ t('vendor.Product_Preparation_Days', 'Preparation time (days)') }}</label>
-                            <input id="vendor-product-preparation-days" class="vendor-input" name="preparation_days" type="number" min="0" max="3650" step="1" inputmode="numeric" dir="ltr" aria-describedby="vendor-product-preparation-days-hint vendor-product-preparation-days-error">
-                            {{-- The product page shows the product's own preparation time, else the store's. --}}
-                            <p class="vendor-field-hint" id="vendor-product-preparation-days-hint">{{ t('vendor.Product_Preparation_Days_Hint', 'Leave empty to use your store’s preparation time.') }}</p>
-                            <p class="vendor-field-error" id="vendor-product-preparation-days-error" data-error-for="preparation_days" hidden></p>
-                        </div>
-                        <div class="vendor-field is-wide">
-                            <label class="vendor-label" for="vendor-product-care">{{ t('vendor.Product_Care_Instructions', 'Care and storage instructions') }}</label>
-                            <textarea id="vendor-product-care" class="vendor-input vendor-product-textarea-sm" name="care_instructions" rows="3" maxlength="5000" dir="auto" aria-describedby="vendor-product-care-error"></textarea>
-                            <p class="vendor-field-error" id="vendor-product-care-error" data-error-for="care_instructions" hidden></p>
-                        </div>
                         <div class="vendor-field is-wide">
                             <label class="vendor-label" for="vendor-product-shipping">{{ t('vendor.Product_Shipping_Details', 'Packaging and shipping details') }}</label>
                             <textarea id="vendor-product-shipping" class="vendor-input vendor-product-textarea-sm" name="shipping_details" rows="3" maxlength="5000" dir="auto" aria-describedby="vendor-product-shipping-error"></textarea>
@@ -177,6 +155,27 @@
                     <h2 class="vendor-section-title" id="vendor-product-story-title"><span class="vendor-product-chip" aria-hidden="true"><i class="ph-duotone ph-hand-heart"></i></span><span>{{ t('vendor.Product_Section_Story', 'Product story') }}</span></h2>
                     <p class="vendor-product-hint">{{ t('vendor.Product_Story_Hint', 'Add details to show in the product story. Leave this section empty to hide it from the storefront.') }}</p>
                     <div class="vendor-product-fields">
+                        <div class="vendor-field vendor-field-narrow">
+                            <label class="vendor-label" for="vendor-product-preparation-days">{{ t('vendor.Product_Preparation_Days', 'Preparation time (days)') }}</label>
+                            <input id="vendor-product-preparation-days" class="vendor-input" name="preparation_days" type="number" min="0" max="3650" step="1" inputmode="numeric" dir="ltr" aria-describedby="vendor-product-preparation-days-hint vendor-product-preparation-days-error">
+                            <p class="vendor-field-hint" id="vendor-product-preparation-days-hint">{{ t('vendor.Product_Preparation_Days_Hint', 'Leave empty to use your store’s preparation time.') }}</p>
+                            <p class="vendor-field-error" id="vendor-product-preparation-days-error" data-error-for="preparation_days" hidden></p>
+                        </div>
+                        <div class="vendor-field">
+                            <label class="vendor-label" for="vendor-product-place">{{ t('vendor.Product_Place_Of_Manufacture', 'Place of manufacture') }}</label>
+                            <input id="vendor-product-place" class="vendor-input" name="place_of_manufacture" maxlength="255" dir="auto" aria-describedby="vendor-product-place-error">
+                            <p class="vendor-field-error" id="vendor-product-place-error" data-error-for="place_of_manufacture" hidden></p>
+                        </div>
+                        <div class="vendor-field">
+                            <label class="vendor-label" for="vendor-product-material">{{ t('vendor.Product_Material', 'Main material') }}</label>
+                            <input id="vendor-product-material" class="vendor-input" name="material" maxlength="255" dir="auto" aria-describedby="vendor-product-material-error">
+                            <p class="vendor-field-error" id="vendor-product-material-error" data-error-for="material" hidden></p>
+                        </div>
+                        <div class="vendor-field is-wide">
+                            <label class="vendor-label" for="vendor-product-care">{{ t('vendor.Product_Care_Instructions', 'Care and storage instructions') }}</label>
+                            <textarea id="vendor-product-care" class="vendor-input vendor-product-textarea-sm" name="care_instructions" rows="3" maxlength="5000" dir="auto" aria-describedby="vendor-product-care-error"></textarea>
+                            <p class="vendor-field-error" id="vendor-product-care-error" data-error-for="care_instructions" hidden></p>
+                        </div>
                         <div class="vendor-field is-wide">
                             <label class="vendor-label" for="vendor-product-story-description">{{ t('vendor.Product_Story_Description', 'Story description') }}</label>
                             <textarea id="vendor-product-story-description" class="vendor-input vendor-product-textarea-sm" name="story_description" rows="5" maxlength="5000" dir="auto" aria-describedby="vendor-product-story-description-error"></textarea>
