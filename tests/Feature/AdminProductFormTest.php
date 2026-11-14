@@ -216,6 +216,43 @@ class AdminProductFormTest extends TestCase
         );
     }
 
+    public function test_the_error_summary_takes_focus_only_when_the_page_comes_back_with_errors(): void
+    {
+        $admin = $this->admin(super: true);
+        $product = $this->product();
+
+        // A clean create and edit page: no summary, and nothing asks for focus.
+        foreach ([route('dashboard.products.create'), route('dashboard.products.edit', $product)] as $url) {
+            $xpath = $this->xpath($this->page($admin, $url));
+            $this->assertSame(0, $xpath->query('//*[@id="product-form-errors"]')->length, $url);
+            $this->assertSame(0, $xpath->query('//*[@autofocus]')->length, $url);
+        }
+
+        // A refused create and a refused edit: the summary takes focus, and it is the only element that asks for it.
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])->post(route('dashboard.products.store'), [
+            'vendor_id' => $this->vendor->id, 'name' => '', 'price' => '10', 'stock_quantity' => '1', 'status' => 'draft',
+        ])->assertRedirect(route('dashboard.products.create'));
+        $refusedCreate = $this->page($admin, route('dashboard.products.create'));
+
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])->put(route('dashboard.products.update', $product), [
+            'vendor_id' => (string) $product->vendor_id, 'category_id' => (string) $product->category_id, 'name' => '', 'price' => '10',
+            'stock_quantity' => (string) $product->stock_quantity, 'status' => 'draft',
+            'stock_quantity_original' => (string) $product->stock_quantity, 'stock_version' => ProductManagementController::stockVersion($product),
+        ])->assertRedirect(route('dashboard.products.edit', $product));
+        $refusedEdit = $this->page($admin, route('dashboard.products.edit', $product));
+
+        foreach (['create' => $refusedCreate, 'edit' => $refusedEdit] as $case => $html) {
+            $xpath = $this->xpath($html);
+            $summary = $xpath->query('//*[@id="product-form-errors"]')->item(0);
+            $this->assertNotNull($summary, $case);
+            $this->assertTrue($summary->hasAttribute('autofocus'), $case);
+            $this->assertSame('alert', $summary->getAttribute('role'), $case);
+            $this->assertSame('-1', $summary->getAttribute('tabindex'), $case);
+            $this->assertSame(1, $xpath->query('//*[@autofocus]')->length, "{$case}: the summary is the only autofocus.");
+            $this->assertSame(1, $xpath->query('//*[@id="product-form-errors"]//a[@href="#product-name"]')->length, "{$case}: its links are kept.");
+        }
+    }
+
     public function test_errors_are_shown_at_their_fields_with_translated_names_and_the_typed_values_are_kept(): void
     {
         $admin = $this->admin(super: true);

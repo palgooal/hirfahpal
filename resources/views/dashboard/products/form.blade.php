@@ -126,8 +126,11 @@
         @endif
 
         @if ($errors->any())
-            {{-- Error summary: translated field names, each linked to its field. --}}
-            <div class="admin-media-alert is-error admin-cat-form-summary" role="alert" tabindex="-1" id="product-form-errors">
+            {{-- Error summary: translated field names, each linked to its field. 7B-8F-3: it takes focus when the page
+                 comes back with errors, so keyboard and screen reader users start at the list: admin-product-form.js
+                 focuses it once the page is ready; autofocus is the fallback without the script (browsers may skip it).
+                 It exists only then, and nothing else on the page asks for focus. --}}
+            <div class="admin-media-alert is-error admin-cat-form-summary" role="alert" tabindex="-1" id="product-form-errors" autofocus>
                 <i class="ph-duotone ph-warning" aria-hidden="true"></i>
                 <div class="admin-media-alert-content">
                     <p>{{ $prodText('Products_Form_Errors', 'Please correct the following:') }}</p>
@@ -503,5 +506,6 @@
     @push('scripts')
         @vite('resources/js/admin-product-gallery.js')
         @vite('resources/js/admin-product-story-image.js')
+        @vite('resources/js/admin-product-form.js')
     @endpush
 </x-dashboard-layout>

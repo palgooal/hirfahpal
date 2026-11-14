@@ -2923,7 +2923,8 @@ html.admin-shell #admin-product-form .admin-cat-form-section {
   border: 0;
   border-radius: 14px;
   background-color: #fff;
-  box-shadow: 0 0 0 1px var(--color-hf-line);
+  /* 7B-8E: the ring, and a faint shadow in the ink colour so the white cards stand off the page a little more. */
+  box-shadow: 0 0 0 1px var(--color-hf-line), 0 1px 3px rgb(43 43 38 / 6%);
 }
 
 html.admin-shell #admin-product-form .admin-cat-form-legend {
@@ -3009,6 +3010,10 @@ html.admin-shell #admin-product-form .form-control {
 html.admin-shell #admin-product-form .form-select {
   padding-block: 0.5rem;
   padding-inline-start: 0.75rem;
+  /* 7B-8F-2: room for the theme's arrow on the end side in both directions. The theme pads physically (left .75rem,
+   * right 2rem) while it moves the 16px arrow to "left 1rem" in RTL, so Arabic text ran under it; the arrow covers
+   * 16-32px from the end edge, and 2.75rem keeps text 12px clear of it, in LTR as in RTL. */
+  padding-inline-end: 2.75rem;
 }
 
 html.admin-shell #admin-product-form .form-control:focus,
@@ -3030,10 +3035,12 @@ html.admin-shell #admin-product-form .form-select:disabled {
   cursor: not-allowed;
 }
 
-/* Helper texts: the vendor's size and line height (the wording is unchanged). */
+/* Helper texts (7B-8E): easier to read (14px, a little darker: the muted token with a fifth of the ink token, about
+ * 6.6:1 on white) and still below the labels (600, ink). The wording is unchanged. */
 html.admin-shell #admin-product-form .admin-media-hint {
-  margin: 0.125rem 0 0;
-  font-size: 0.8125rem;
+  margin: 0.25rem 0 0;
+  color: color-mix(in srgb, var(--color-hf-muted) 80%, var(--color-hf-ink));
+  font-size: 0.875rem;
   line-height: 1.6;
 }
 
@@ -3117,13 +3124,17 @@ html.admin-shell #admin-product-form .admin-product-back:focus-visible {
   color: var(--color-hf-ink);
 }
 
+/* 7B-8E: the product name leads the head (below the layout's h1), the introduction follows it in a quieter size. */
 html.admin-shell #admin-product-form .admin-product-title {
-  margin-top: 0.25rem;
+  margin-top: 0.375rem;
+  font-size: 1.375rem;
   line-height: 1.4;
 }
 
 html.admin-shell #admin-product-form .admin-product-form-head .admin-media-intro {
   max-width: 62ch;
+  color: color-mix(in srgb, var(--color-hf-muted) 80%, var(--color-hf-ink));
+  font-size: 0.9375rem;
   line-height: 1.7;
 }
 
@@ -3186,6 +3197,30 @@ html.admin-shell #admin-product-form .admin-product-story-image .admin-product-g
 
 html.admin-shell #admin-product-form .admin-product-story-image > .admin-product-gallery-empty {
   max-width: 32rem;
+}
+
+/* 7B-8E: textarea starting heights, the vendor editor's two sizes (vendor-product-textarea-sm, vendor-textarea): short
+ * texts about three lines, the longer story and usage texts about four; the description keeps its rows. Every one
+ * can still be dragged taller (vertical only). */
+html.admin-shell #admin-product-form textarea.form-control {
+  min-height: 4.75rem;
+  resize: vertical;
+}
+
+html.admin-shell #admin-product-form :is(#product-short-description, #product-care-instructions, #product-shipping-details) {
+  height: 4.75rem;
+}
+
+html.admin-shell #admin-product-form :is(#product-story-description, #product-usage-description) {
+  height: 7.25rem;
+}
+
+/* 7B-8F-1: placeholders readable. The theme's (.form-control::placeholder, rgb(190 200 208)) is about 1.7:1 on the
+ * fields' white; the muted token is about 5.5:1 (WCAG 1.4.3). It covers the tag examples and the search fields of
+ * both image choosers (#product-gallery-dialog, #product-story-dialog), which sit inside #admin-product-form. */
+html.admin-shell #admin-product-form .form-control::placeholder {
+  color: var(--color-hf-muted);
+  opacity: 1;
 }
 
 /* Small screens: Save and Cancel stay on one row, so the sticky bar stays short (the shared rule stacks them, which
