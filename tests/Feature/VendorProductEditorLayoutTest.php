@@ -61,11 +61,11 @@ class VendorProductEditorLayoutTest extends TestCase
         $xpath = $this->xpath($this->page('ar'));
         $sections = fn (string $column) => array_map(fn ($node) => $node->getAttribute('data-product-section'), iterator_to_array($xpath->query("//form[@data-product-form]/fieldset[contains(@class, '{$column}')]/section[@data-product-section]")));
 
-        $this->assertSame(['basic', 'pricing', 'shipping', 'craft'], $sections('is-main'));
+        $this->assertSame(['basic', 'pricing', 'shipping', 'craft', 'story'], $sections('is-main'));
         $this->assertSame(['images', 'status'], $sections('is-side'));
         // VPM-UX-01E-POLISH-01: the editor title is an h1 (the page heading while the editor is open; the script hides
         // the layout's "Products" h1 meanwhile), the cards are h2, the image groups h3; Back sits on the title's row.
-        $this->assertSame(['h1' => 1, 'h2' => 6, 'h3' => 2, 'h4' => 0], [
+        $this->assertSame(['h1' => 1, 'h2' => 7, 'h3' => 2, 'h4' => 0], [
             'h1' => $xpath->query('//*[@data-product-editor]/div[@class="vendor-product-editor-head"]/h1[@data-product-editor-title]')->length,
             'h2' => $xpath->query('//form[@data-product-form]//h2[@class="vendor-section-title"]')->length,
             'h3' => $xpath->query('//*[@data-product-gallery]//h3')->length,
@@ -96,11 +96,11 @@ class VendorProductEditorLayoutTest extends TestCase
         $xpath = $this->xpath($this->page('en'));
         $boxes = iterator_to_array($xpath->query('//form[@data-product-form]//p[@data-error-for]'));
 
-        $this->assertCount(21, $boxes, 'Every field the vendor types or chooses, except the publication status (a fixed list).');
-        // The product's city and governorate have their own messages too.
+        $this->assertCount(21, $boxes, 'Every product field the vendor types or chooses, except the publication status (a fixed list).');
+        // Location is selected once for the store, rather than per product.
         $names = array_map(fn ($box) => $box->getAttribute('data-error-for'), $boxes);
-        $this->assertContains('city_id', $names);
-        $this->assertContains('governorate_id', $names);
+        $this->assertNotContains('city_id', $names);
+        $this->assertNotContains('governorate_id', $names);
         foreach ($boxes as $box) {
             $name = $box->getAttribute('data-error-for');
             $this->assertTrue($box->hasAttribute('hidden'), $name);

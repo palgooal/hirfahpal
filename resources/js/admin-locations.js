@@ -171,6 +171,27 @@ export function initLocationsPage(doc = document, win = typeof window !== 'undef
         }
     }
 
+    page.querySelectorAll('[data-add-governorate-row]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const field = button.closest('.admin-cat-form-field');
+            const inputs = field?.querySelector('[data-governorate-inputs]');
+            const template = field?.querySelector('template[data-governorate-row-template]');
+
+            if (!inputs || !template) {
+                return;
+            }
+
+            const row = template.content.firstElementChild?.cloneNode(true);
+
+            if (!(row instanceof Element)) {
+                return;
+            }
+
+            inputs.insertBefore(row, button);
+            row.querySelector('input')?.focus();
+        });
+    });
+
     const forms = Array.from(page.querySelectorAll('form[data-location-form]')).map((form) => {
         const button = form.querySelector('button[type="submit"]');
         const label = button?.querySelector('span');

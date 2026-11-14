@@ -68,7 +68,11 @@
 
     $scalar = fn ($value): string => is_scalar($value) ? (string) $value : '';
     $cityName = $failedForm === 'city' ? $scalar(old('name')) : '';
-    $governorateName = $failedForm === 'governorate' ? $scalar(old('name')) : '';
+    $governorateNames = $failedForm === 'governorate' && is_array(old('governorates')) && old('governorates') !== []
+        ? array_map($scalar, old('governorates'))
+        : ($failedForm === 'governorate' && old('name') !== null ? [$scalar(old('name'))] : []);
+    $governorateNames = array_values(array_filter($governorateNames, fn ($name) => $name !== ''));
+    $governorateNames = array_pad($governorateNames, 3, '');
     $selectedCityId = match (true) {
         $failedForm === 'governorate' => $scalar(old('city_id')),
         $requestedForm === 'governorate' => $scalar(request()->query('city')),
@@ -76,12 +80,12 @@
     };
     $cityErrors = $failedForm === 'city' ? ['name' => $errors->first('name')] : ['name' => ''];
     $governorateErrors = $failedForm === 'governorate'
-        ? ['city_id' => $errors->first('city_id'), 'name' => $errors->first('name')]
-        : ['city_id' => '', 'name' => ''];
+        ? ['city_id' => $errors->first('city_id'), 'names' => $errors->get('governorates.*'), 'list' => $errors->first('governorates')]
+        : ['city_id' => '', 'names' => [], 'list' => ''];
     // The field that takes focus when the page opens with a dialog: the first error, else the first field.
     $focusField = match ($openForm) {
         'city' => 'location-city-name',
-        'governorate' => $governorateErrors['city_id'] !== '' || ($governorateErrors['name'] === '' && $selectedCityId === '') ? 'location-governorate-city' : 'location-governorate-name',
+        'governorate' => $governorateErrors['city_id'] !== '' || ($governorateErrors['names'] === [] && $selectedCityId === '') ? 'location-governorate-city' : 'location-governorate-name',
         default => null,
     };
 
@@ -194,13 +198,27 @@
                                 @endif
                             </div>
                             <div class="admin-cat-form-field">
-                                <label class="form-label" for="location-governorate-name">{{ $text['governorate'] }}</label>
-                                <input id="location-governorate-name" class="form-control @if ($governorateErrors['name'] !== '') is-invalid @endif" name="name" value="{{ $governorateName }}" required maxlength="255" autocomplete="off"
-                                    @if ($governorateErrors['name'] !== '') aria-invalid="true" aria-describedby="location-governorate-name-error" @endif
-                                    @if ($focusField === 'location-governorate-name') autofocus @endif>
-                                @if ($governorateErrors['name'] !== '')
-                                    <p class="admin-cat-form-error" id="location-governorate-name-error">{{ $governorateErrors['name'] }}</p>
-                                @endif
+                                <label class="form-label">{{ $text['governorates'] }}</label>
+                                <div class="admin-locations-governorate-inputs" data-governorate-inputs>
+                                    @foreach ($governorateNames as $index => $governorateName)
+                                        @php($inputId = $index === 0 ? 'location-governorate-name' : 'location-governorate-name-'.$index)
+                                        @php($error = $errors->first('governorates.'.$index) ?: ($index === 0 ? $governorateErrors['list'] : ''))
+                                        <div class="admin-locations-governorate-row" data-governorate-row>
+                                            <input id="{{ $inputId }}" class="form-control @if ($error !== '') is-invalid @endif" name="governorates[]" value="{{ $governorateName }}" maxlength="255" autocomplete="off" aria-label="{{ $text['governorate'] }}"
+                                                @if ($error !== '') aria-invalid="true" aria-describedby="{{ $inputId }}-error" @endif
+                                                @if ($focusField === 'location-governorate-name' && $index === 0) autofocus @endif>
+                                            @if ($error !== '') <p class="admin-cat-form-error" id="{{ $inputId }}-error">{{ $error }}</p> @endif
+                                        </div>
+                                    @endforeach
+                                    <button type="button" class="btn btn-light-secondary admin-locations-add-governorate-row" data-add-governorate-row aria-label="{{ $text['addGovernorate'] }}">
+                                        <i class="ph-duotone ph-plus" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                                <template data-governorate-row-template>
+                                    <div class="admin-locations-governorate-row" data-governorate-row>
+                                        <input class="form-control" name="governorates[]" maxlength="255" autocomplete="off" aria-label="{{ $text['governorate'] }}">
+                                    </div>
+                                </template>
                             </div>
                         </div>
                         <div class="admin-media-dialog-footer">

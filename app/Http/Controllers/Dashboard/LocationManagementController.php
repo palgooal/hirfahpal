@@ -9,6 +9,7 @@ use App\Models\Setting;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class LocationManagementController extends Controller
@@ -41,17 +42,39 @@ class LocationManagementController extends Controller
     {
         $this->authorize('edit', Setting::class);
 
+        // Blank rows are allowed in the form so an admin can fill as many governorates as needed.
+        // Keep the old single `name` payload working for forms saved before the multi-row form.
+        $names = $request->input('governorates');
+        if (! is_array($names)) {
+            $names = $request->has('name') ? [$request->input('name')] : [];
+        }
+        $names = array_values(array_filter($names, fn ($name) => $name !== null && (! is_string($name) || trim($name) !== '')));
+        $request->merge(['governorates' => $names]);
+
         $data = $request->validate([
             'city_id' => ['required', 'integer', 'exists:cities,id'],
-            'name' => ['required', 'string', 'max:255', 'unique:governorates,name'],
-        ]);
-        Governorate::query()->create([
-            'city_id' => $data['city_id'],
-            'name' => $data['name'],
-            'slug' => $this->uniqueSlug(Governorate::class, $data['name']),
+            'governorates' => ['required', 'array', 'min:1'],
+            'governorates.*' => ['required', 'string', 'max:255', 'distinct', 'unique:governorates,name'],
+        ], [], [
+            'governorates' => $this->text('Location_Governorate', 'Governorate'),
+            'governorates.*' => $this->text('Location_Governorate', 'Governorate'),
         ]);
 
-        return back()->with('success', $this->text('Location_Governorate_Added', 'Governorate added successfully.'));
+        DB::transaction(function () use ($data): void {
+            foreach ($data['governorates'] as $name) {
+                Governorate::query()->create([
+                    'city_id' => $data['city_id'],
+                    'name' => $name,
+                    'slug' => $this->uniqueSlug(Governorate::class, $name),
+                ]);
+            }
+        });
+
+        $message = count($data['governorates']) === 1
+            ? $this->text('Location_Governorate_Added', 'Governorate added successfully.')
+            : $this->text('Location_Governorates_Added', 'Governorates added successfully.');
+
+        return back()->with('success', $message);
     }
 
     /** A dashboard text in the page language (AdminSettingsTranslationSeeder), read without creating translation rows. */

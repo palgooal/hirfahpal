@@ -35,11 +35,11 @@ class UpdateProfileRequest extends FormRequest
             'avatar' => ['missing'],
             'store_name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', Rule::unique('vendor_profiles', 'slug')->ignore($profile)],
-            'governorate_id' => ['nullable', 'required_with:city_id', 'integer', 'exists:governorates,id'],
-            'city_id' => [
+            'city_id' => ['nullable', 'required_with:governorate_id', 'integer', 'exists:cities,id'],
+            'governorate_id' => [
                 'nullable',
                 'integer',
-                Rule::exists('cities', 'id')->where(fn ($query) => $query->where('governorate_id', $this->input('governorate_id'))),
+                Rule::exists('governorates', 'id')->where(fn ($query) => $query->where('city_id', $this->input('city_id'))),
             ],
             'short_description' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],

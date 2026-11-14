@@ -297,7 +297,7 @@ class LocationManagementPageTest extends TestCase
             'unknown city' => [['city_id' => 999, 'name' => 'Rimal'], ['city'], []],
         ];
 
-        foreach (['ar' => ['name' => 'الاسم', 'city' => 'المدينة'], 'en' => ['name' => 'name', 'city' => 'city']] as $locale => $attributes) {
+        foreach (['ar' => ['name' => 'المحافظة', 'city' => 'المدينة'], 'en' => ['name' => 'Governorate', 'city' => 'city']] as $locale => $attributes) {
             foreach ($cases as $case => [$input, $errors, $selected]) {
                 $html = $this->submit($editor, $locale, 'governorates', ['location_form' => 'governorate'] + $input);
                 $xpath = $this->xpath($html);

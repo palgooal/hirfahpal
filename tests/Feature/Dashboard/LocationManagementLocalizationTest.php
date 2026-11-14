@@ -108,6 +108,24 @@ class LocationManagementLocalizationTest extends TestCase
         $this->assertSame([$city->id, $city->id], Governorate::query()->pluck('city_id')->all());
     }
 
+    public function test_multiple_governorates_are_saved_for_the_same_city_in_one_submission(): void
+    {
+        $this->seed(AdminSettingsTranslationSeeder::class);
+        $admin = $this->admin(['settings.view', 'settings.edit']);
+        $city = City::query()->create(['name' => 'Gaza', 'slug' => 'gaza']);
+
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])
+            ->post(route('dashboard.setting.locations.governorates.store'), [
+                'city_id' => $city->id,
+                'governorates' => ['Rimal', 'Shati', ''],
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Governorates added successfully.');
+
+        $this->assertSame(['Rimal', 'Shati'], Governorate::query()->orderBy('name')->pluck('name')->all());
+        $this->assertSame([$city->id, $city->id], Governorate::query()->orderBy('name')->pluck('city_id')->all());
+    }
+
     public function test_the_page_needs_settings_view_and_adding_needs_settings_edit(): void
     {
         $this->get(route('dashboard.setting.locations.index'))->assertRedirect(route('admin.login'));

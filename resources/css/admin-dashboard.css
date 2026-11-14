@@ -4397,6 +4397,31 @@ html.admin-shell .admin-locations-needs-city {
   margin: 0;
 }
 
+html.admin-shell .admin-locations-governorate-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+  padding-inline-end: 3.25rem;
+}
+
+html.admin-shell .admin-locations-governorate-row {
+  width: 100%;
+}
+
+html.admin-shell .admin-locations-add-governorate-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  position: absolute;
+  inset-inline-end: 0;
+  bottom: 0;
+  padding: 0;
+}
+
 html.admin-shell .admin-locations-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 12rem));

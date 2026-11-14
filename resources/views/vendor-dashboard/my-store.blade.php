@@ -25,6 +25,8 @@
         'required' => t('vendor.My_Store_Error_Required', 'This field is required.'),
         'tooLong' => t('vendor.My_Store_Error_Too_Long', 'This text is longer than allowed.'),
         'invalid' => t('vendor.My_Store_Error_Invalid', 'Please check this value.'),
+        'selectCity' => t('vendor.Product_City_Select', 'Choose a city'),
+        'selectGovernorate' => t('vendor.Product_Governorate_Select', 'Choose a governorate'),
         // MYSTORE-UX-01D: shown in the save bar while profile changes are unsaved.
         'unsaved' => t('vendor.My_Store_Unsaved', 'You have unsaved changes'),
         // MYSTORE-UI-01C: the logo section's messages ("Uploading…" and "Saving…" are the product gallery's).
@@ -152,19 +154,16 @@
                         <div class="card-body">
                             <h2 id="vendor-store-location-title" class="vendor-section-title">{{ t('vendor.My_Store_Location', 'Location') }}</h2>
 
-                            {{-- Display only (VEN-BE-024). --}}
-                            <dl class="vendor-readonly vendor-readonly-pair">
-                                <div class="vendor-readonly-row">
-                                    <dt>{{ t('vendor.My_Store_Governorate', 'Governorate') }}</dt>
-                                    <dd data-readonly="governorate"><span class="vendor-skeleton vendor-skeleton-meta"></span></dd>
-                                </div>
-                                <div class="vendor-readonly-row">
-                                    <dt>{{ t('vendor.My_Store_City', 'City') }}</dt>
-                                    <dd data-readonly="city"><span class="vendor-skeleton vendor-skeleton-meta"></span></dd>
-                                </div>
-                            </dl>
-                            {{-- MYSTORE-UX-01E: once per read-only block (location here, account below: separate cards). --}}
-                            <p class="vendor-readonly-hint"><i class="ph-duotone ph-lock-simple" aria-hidden="true"></i><span>{{ t('vendor.My_Store_Readonly_Hint', 'These details cannot be edited on this page.') }}</span></p>
+                            <div class="vendor-field">
+                                <label class="vendor-label" for="vendor-field-city">{{ t('vendor.My_Store_City', 'City') }}</label>
+                                <select class="vendor-input" id="vendor-field-city" name="city_id" disabled aria-describedby="vendor-error-city_id"></select>
+                                <p class="vendor-field-error" id="vendor-error-city_id" data-error-for="city_id" hidden></p>
+                            </div>
+                            <div class="vendor-field">
+                                <label class="vendor-label" for="vendor-field-governorate">{{ t('vendor.My_Store_Governorate', 'Governorate') }}</label>
+                                <select class="vendor-input" id="vendor-field-governorate" name="governorate_id" disabled aria-describedby="vendor-error-governorate_id"></select>
+                                <p class="vendor-field-error" id="vendor-error-governorate_id" data-error-for="governorate_id" hidden></p>
+                            </div>
 
                             <div class="vendor-field">
                                 <label class="vendor-label" for="vendor-field-address-line">{{ t('vendor.My_Store_Address', 'Address') }}</label>

@@ -5,8 +5,9 @@
  *   PUT vendor.dashboard.profile.update - replacement-style update
  *
  * The update replaces fields that are omitted (and regenerates the slug), so
- * every save sends the five editable fields plus the current email, phone,
- * slug, governorate_id and city_id, kept in memory from the initial read.
+ * every save sends the editable fields plus the current email, phone and slug,
+ * kept in memory from the initial read. Cities and governorates are supplied by
+ * the administrator and selected together on this page.
  * avatar/logo/cover_image are never sent: the backend keeps them when omitted.
  * Save stays disabled until that read succeeded. Nothing is stored, logged or
  * written into DOM attributes, and values are set with value/textContent only.
@@ -31,6 +32,8 @@ const EDITABLE = {
     description: { required: false, max: null },
     address_line: { required: false, max: 255 },
     preparation_days: { required: false, max: 3 },
+    city_id: { required: false, max: null },
+    governorate_id: { required: false, max: null },
 };
 
 const isString = (value) => typeof value === 'string';
@@ -90,11 +93,13 @@ function pickProfile(payload) {
             governorate_id: governorateId,
             city_id: cityId,
         },
+        locations: {
+            cities: Array.isArray(payload?.locations?.cities) ? payload.locations.cities : [],
+            governorates: Array.isArray(payload?.locations?.governorates) ? payload.locations.governorates : [],
+        },
         display: {
             email: vendor.email ?? null,
             phone: vendor.phone,
-            governorate: isString(profile.governorate?.name) ? profile.governorate.name : null,
-            city: isString(profile.city?.name) ? profile.city.name : null,
         },
     };
 }
@@ -124,6 +129,7 @@ function initMyStore() {
     let logoBusy = false;
     // The stored path of the current logo (from the profile read), to mark it in the picker.
     let logoPath = null;
+    let locations = { cities: [], governorates: [] };
 
     // MYSTORE-UX-01D: unsaved changes are the editable profile fields that differ from the values read (or last
     // saved). The logo (its own endpoint) and the media picker are not form fields and never count. The indicator is
@@ -150,9 +156,32 @@ function initMyStore() {
         Object.keys(EDITABLE).forEach((name) => {
             field(name).disabled = !enabled;
         });
+        renderLocations();
         saveButton.disabled = !enabled || preserved === null;
         setLogoEnabled(enabled);
     };
+
+    const renderLocations = () => {
+        const city = field('city_id');
+        const governorate = field('governorate_id');
+        const selectedCity = city.value;
+        const selectedGovernorate = governorate.value;
+        const cities = locations.cities.filter((item) => Number.isInteger(toId(item?.id)) && isString(item?.name));
+        const governorates = locations.governorates.filter((item) => Number.isInteger(toId(item?.id)) && String(item?.city_id) === selectedCity && isString(item?.name));
+
+        city.replaceChildren(new Option(i18n.selectCity, ''), ...cities.map((item) => new Option(item.name, String(item.id))));
+        city.value = cities.some((item) => String(item.id) === selectedCity) ? selectedCity : '';
+        governorate.replaceChildren(new Option(i18n.selectGovernorate, ''), ...governorates.map((item) => new Option(item.name, String(item.id))));
+        governorate.value = governorates.some((item) => String(item.id) === selectedGovernorate) ? selectedGovernorate : '';
+        governorate.disabled = !city.value || city.disabled;
+    };
+
+    field('city_id').addEventListener('change', () => {
+        field('governorate_id').value = '';
+        renderLocations();
+        updateUnsaved();
+    });
+    field('governorate_id').addEventListener('change', updateUnsaved);
 
     // MYSTORE-UI-01: the logo controls follow the form (usable once the profile is loaded, not while saving)
     // and are also locked while a logo upload or deletion is in progress.
@@ -256,6 +285,10 @@ function initMyStore() {
             Object.entries(profile.editable).forEach(([name, value]) => {
                 field(name).value = value;
             });
+            locations = profile.locations;
+            field('city_id').value = profile.preserved.city_id ?? '';
+            field('governorate_id').value = profile.preserved.governorate_id ?? '';
+            renderLocations();
             Object.entries(profile.display).forEach(([key, value]) => setReadonly(key, value));
             showLogo(responsePayload?.media?.logo_url ?? null);
             logoPath = isString(responsePayload?.vendor?.profile?.logo) ? responsePayload.vendor.profile.logo : null;
@@ -300,8 +333,8 @@ function initMyStore() {
             email: preserved.email,
             phone: preserved.phone,
             slug: preserved.slug,
-            governorate_id: preserved.governorate_id,
-            city_id: preserved.city_id,
+            city_id: field('city_id').value === '' ? null : Number(field('city_id').value),
+            governorate_id: field('governorate_id').value === '' ? null : Number(field('governorate_id').value),
         };
     };
 

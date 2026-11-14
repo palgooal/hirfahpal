@@ -139,6 +139,7 @@ class AdminSettingsTranslationSeeder extends Seeder
         'dashboard.Location_No_Cities' => ['ar' => 'لم تُضف مدن بعد.', 'en' => 'No cities added yet.'],
         'dashboard.Location_City_Added' => ['ar' => 'تمت إضافة المدينة بنجاح.', 'en' => 'City added successfully.'],
         'dashboard.Location_Governorate_Added' => ['ar' => 'تمت إضافة المحافظة بنجاح.', 'en' => 'Governorate added successfully.'],
+        'dashboard.Location_Governorates_Added' => ['ar' => 'تمت إضافة المحافظات بنجاح.', 'en' => 'Governorates added successfully.'],
         // LOC-UI-7B: the page's header, summary, search, unassigned governorates group and add dialogs.
         'dashboard.Location_Intro' => ['ar' => 'أدر المدن والمحافظات المتاحة لمواقع المنتجات.', 'en' => 'Manage the cities and governorates available for product locations.'],
         'dashboard.Location_Search_Label' => ['ar' => 'البحث في المواقع', 'en' => 'Search locations'],

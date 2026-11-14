@@ -54,20 +54,6 @@
                             <p class="vendor-field-error" id="vendor-product-category-error" data-error-for="category_id" hidden></p>
                         </div>
                         <div class="vendor-field">
-                            <label class="vendor-label" for="vendor-product-city">{{ t('vendor.Product_City', 'City') }}</label>
-                            <select id="vendor-product-city" class="vendor-input" name="city_id" disabled aria-describedby="vendor-product-city-error">
-                                <option value="">{{ t('vendor.Product_City_Select', 'Choose a city') }}</option>
-                            </select>
-                            <p class="vendor-field-error" id="vendor-product-city-error" data-error-for="city_id" hidden></p>
-                        </div>
-                        <div class="vendor-field">
-                            <label class="vendor-label" for="vendor-product-governorate">{{ t('vendor.Product_Governorate', 'Governorate') }}</label>
-                            <select id="vendor-product-governorate" class="vendor-input" name="governorate_id" disabled aria-describedby="vendor-product-governorate-error">
-                                <option value="">{{ t('vendor.Product_Governorate_Select', 'Choose a governorate') }}</option>
-                            </select>
-                            <p class="vendor-field-error" id="vendor-product-governorate-error" data-error-for="governorate_id" hidden></p>
-                        </div>
-                        <div class="vendor-field">
                             <label class="vendor-label" for="vendor-product-sku">{{ t('vendor.Product_Sku', 'SKU') }}</label>
                             <input id="vendor-product-sku" class="vendor-input" name="sku" maxlength="255" dir="ltr" autocomplete="off" aria-describedby="vendor-product-sku-error">
                             <p class="vendor-field-error" id="vendor-product-sku-error" data-error-for="sku" hidden></p>
@@ -289,8 +275,6 @@
                 'headingAdd' => t('vendor.Product_Heading_New', 'Add Product'),
                 'headingEdit' => t('vendor.Product_Heading_Edit', 'Edit Product'),
                 'noCategory' => t('vendor.Product_Category_Choose', 'Choose a category'),
-                'cityPrompt' => t('vendor.Product_City_Select', 'Choose a city'),
-                'governoratePrompt' => t('vendor.Product_Governorate_Select', 'Choose a governorate'),
                 // VPM-CATEGORY-RELIABILITY-01: the category field while loading, and a product's own inactive category.
                 'categoriesLoading' => t('vendor.Product_Category_Loading', 'Loading categories…'),
                 'categoryInactive' => t('vendor.Product_Category_Inactive', ':name (inactive)'),

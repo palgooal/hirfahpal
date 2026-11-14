@@ -26,9 +26,9 @@ class VendorMyStorePageTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const EDITABLE = ['address_line', 'description', 'name', 'preparation_days', 'short_description', 'store_name'];
+    private const EDITABLE = ['address_line', 'city_id', 'description', 'governorate_id', 'name', 'preparation_days', 'short_description', 'store_name'];
 
-    private const PRESERVED = ['city_id', 'email', 'governorate_id', 'phone', 'slug'];
+    private const PRESERVED = ['email', 'phone', 'slug'];
 
     private string $hotFile;
 
@@ -126,7 +126,7 @@ class VendorMyStorePageTest extends TestCase
         sort($names);
 
         $this->assertSame(self::EDITABLE, $names);
-        $this->assertStringNotContainsString('<select', $html);
+        $this->assertSame(2, substr_count($html, '<select'));
         $this->assertStringContainsString('data-store-logo-pick', $html);
         $this->assertStringNotContainsString('type="password"', $html);
     }
@@ -144,12 +144,15 @@ class VendorMyStorePageTest extends TestCase
         $this->assertStringContainsString('data-counter-for="short_description"', $html);
     }
 
-    public function test_email_phone_and_location_are_display_only(): void
+    public function test_email_and_phone_are_display_only_while_location_is_editable(): void
     {
         $html = $this->actingAs($this->vendor(), 'vendor')->page()->getContent();
 
-        foreach (['email', 'phone', 'governorate', 'city'] as $key) {
+        foreach (['email', 'phone'] as $key) {
             $this->assertStringContainsString('<dd data-readonly="'.$key.'">', $html);
+        }
+        foreach (['city_id', 'governorate_id'] as $name) {
+            $this->assertStringContainsString('name="'.$name.'"', $html);
         }
         foreach (self::PRESERVED as $name) {
             $this->assertStringNotContainsString('name="'.$name.'"', $html);
@@ -188,7 +191,7 @@ class VendorMyStorePageTest extends TestCase
             ->assertSee('متجري')
             ->assertSee('هوية المتجر')
             ->assertSeeInOrder(['معلومات المتجر', 'اسم المتجر', 'وصف مختصر', 'الوصف'])
-            ->assertSeeInOrder(['الموقع', 'المحافظة', 'المدينة', 'العنوان'])
+            ->assertSeeInOrder(['الموقع', 'المدينة', 'المحافظة', 'العنوان'])
             ->assertSeeInOrder(['بيانات الحساب', 'الاسم الكامل', 'البريد الإلكتروني', 'رقم الهاتف'])
             ->assertSee('حفظ التغييرات')
             ->assertSee('تعذّر تحميل بيانات المتجر.')
@@ -205,7 +208,7 @@ class VendorMyStorePageTest extends TestCase
             ->assertSee('My Store')
             ->assertSee('Store identity')
             ->assertSeeInOrder(['Store information', 'Store name', 'Short description', 'Description'])
-            ->assertSeeInOrder(['Location', 'Governorate', 'City', 'Address'])
+            ->assertSeeInOrder(['Location', 'City', 'Governorate', 'Address'])
             ->assertSeeInOrder(['Account information', 'Full name', 'Email', 'Phone'])
             ->assertSee('Save changes')
             ->assertSee('Store details could not be loaded.')
@@ -218,7 +221,7 @@ class VendorMyStorePageTest extends TestCase
 
         $this->assertSame([
             'saving', 'saved', 'notSpecified', 'fixErrors', 'saveError', 'sessionError', 'accessError', 'required', 'tooLong', 'invalid',
-            'unsaved', 'logoUploading', 'logoSaving', 'logoUploaded', 'logoUploadFailed', 'logoConfirmDelete', 'logoDeleted', 'logoDeleteFailed',
+            'selectCity', 'selectGovernorate', 'unsaved', 'logoUploading', 'logoSaving', 'logoUploaded', 'logoUploadFailed', 'logoConfirmDelete', 'logoDeleted', 'logoDeleteFailed',
         ], array_keys($i18n));
         $this->assertSame('غير محدد', $i18n['notSpecified']);
         $this->assertSame('تم حفظ التغييرات بنجاح.', $i18n['saved']);
@@ -355,11 +358,11 @@ class VendorMyStorePageTest extends TestCase
         $this->assertStringNotContainsString('vendor-welcome-card', $html);
 
         // Preparation days: inside Store information, after the description, as a narrow field; location keeps the
-        // read-only governorate and city together, then the address.
+        // City first, then its matching governorate, then the address.
         preg_match('/aria-labelledby="vendor-store-info-title".*?<\/section>/s', $main, $info);
         $this->assertMatchesRegularExpression('/name="description".*<div class="vendor-field vendor-field-narrow">.*name="preparation_days"/s', $info[0]);
         preg_match('/aria-labelledby="vendor-store-location-title".*?<\/section>/s', $main, $location);
-        $this->assertMatchesRegularExpression('/<dl class="vendor-readonly vendor-readonly-pair">.*data-readonly="governorate".*data-readonly="city".*<\/dl>.*name="address_line"/s', $location[0]);
+        $this->assertMatchesRegularExpression('/name="city_id".*name="governorate_id".*name="address_line"/s', $location[0]);
         $this->assertStringNotContainsString('preparation_days', $location[0]);
 
         $css = file_get_contents(resource_path('css/vendor-dashboard.css'));
@@ -461,10 +464,9 @@ class VendorMyStorePageTest extends TestCase
         }
         $this->assertSame(2, preg_match_all('/<input\b[^>]*\brequired\b/', $html));
 
-        // The read-only hint once under each read-only block (location, account), never with a support instruction.
+        // The account's read-only hint remains; location is editable on this page.
         $hint = '<p class="vendor-readonly-hint"><i class="ph-duotone ph-lock-simple" aria-hidden="true"></i><span>هذه البيانات غير قابلة للتعديل من هذه الصفحة.</span></p>';
-        $this->assertSame(2, substr_count($html, $hint));
-        $this->assertMatchesRegularExpression('/data-readonly="city".*?<\/dl>\s*'.preg_quote($hint, '/').'/su', $html);
+        $this->assertSame(1, substr_count($html, $hint));
         $this->assertMatchesRegularExpression('/data-readonly="phone".*?<\/dl>\s*'.preg_quote($hint, '/').'/su', $html);
         $this->assertStringNotContainsString('الدعم', $html);
 
@@ -479,7 +481,7 @@ class VendorMyStorePageTest extends TestCase
 
         $this->page()
             ->assertSee('Fields marked * are required.')
-            ->assertSeeInOrder(['Location', 'Governorate', 'City', 'These details cannot be edited on this page.', 'Address'])
+            ->assertSeeInOrder(['Location', 'City', 'Governorate', 'Address'])
             ->assertSeeInOrder(['Account information', 'Email', 'Phone', 'These details cannot be edited on this page.']);
     }
 
@@ -636,7 +638,7 @@ class VendorMyStorePageTest extends TestCase
             ->assertJsonValidationErrors(['name', 'store_name', 'city_id']);
     }
 
-    public function test_profile_update_rejects_a_city_that_does_not_belong_to_the_selected_governorate(): void
+    public function test_profile_update_rejects_a_governorate_that_does_not_belong_to_the_selected_city(): void
     {
         [$vendor, $governorate] = $this->vendorWithLocation();
         $otherGovernorate = Governorate::query()->create(['name' => 'Hebron', 'slug' => 'hebron', 'status' => 'active']);
@@ -651,7 +653,7 @@ class VendorMyStorePageTest extends TestCase
                 'city_id' => $otherCity->id,
             ])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['city_id']);
+            ->assertJsonValidationErrors(['governorate_id']);
     }
 
     public function test_profile_update_enforces_the_database_short_description_limit(): void
@@ -682,9 +684,12 @@ class VendorMyStorePageTest extends TestCase
 
         $this->assertSame(['address_line', 'city_id', 'description', 'email', 'governorate_id', 'name', 'phone', 'preparation_days', 'short_description', 'slug', 'store_name'], $sent);
 
-        // Preserved values come from the in-memory state set by the read, never from the form.
+        // Account values come from the in-memory state set by the read; location values come from the store form.
         foreach (self::PRESERVED as $name) {
             $this->assertStringContainsString("$name: preserved.$name", $match[1]);
+        }
+        foreach (['city_id', 'governorate_id'] as $name) {
+            $this->assertStringContainsString("$name: field('$name').value", $match[1]);
         }
     }
 
@@ -717,8 +722,8 @@ class VendorMyStorePageTest extends TestCase
      */
     private function vendorWithLocation(): array
     {
-        $governorate = Governorate::query()->create(['name' => 'Nablus Governorate', 'slug' => 'nablus', 'status' => 'active']);
-        $city = City::query()->create(['governorate_id' => $governorate->id, 'name' => 'Nablus City', 'slug' => 'nablus-city', 'status' => 'active']);
+        $city = City::query()->create(['name' => 'Nablus City', 'slug' => 'nablus-city', 'status' => 'active']);
+        $governorate = Governorate::query()->create(['city_id' => $city->id, 'name' => 'Nablus Governorate', 'slug' => 'nablus', 'status' => 'active']);
 
         $vendor = Vendor::factory()->create(['name' => 'Owner Name', 'email' => 'owner.private@example.com', 'phone' => '0599123123']);
         $vendor->profile()->create([

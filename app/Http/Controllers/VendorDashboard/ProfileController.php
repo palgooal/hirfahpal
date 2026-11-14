@@ -4,6 +4,8 @@ namespace App\Http\Controllers\VendorDashboard;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\VendorDashboard\UpdateProfileRequest;
+use App\Models\City;
+use App\Models\Governorate;
 use App\Models\VendorProfile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,6 +24,11 @@ class ProfileController extends Controller
             'media' => [
                 'logo_url' => $vendor->profile?->logo ? Storage::disk('public')->url($vendor->profile->logo) : null,
                 'cover_url' => $vendor->profile?->cover_image ? Storage::disk('public')->url($vendor->profile->cover_image) : null,
+            ],
+            // Locations are configured by the admin. Governorates are grouped by their selected city in the store form.
+            'locations' => [
+                'cities' => City::query()->where('status', 'active')->orderBy('name')->get(['id', 'name']),
+                'governorates' => Governorate::query()->where('status', 'active')->whereNotNull('city_id')->orderBy('name')->get(['id', 'city_id', 'name']),
             ],
         ]);
     }

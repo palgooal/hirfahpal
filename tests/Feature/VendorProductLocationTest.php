@@ -13,7 +13,7 @@ class VendorProductLocationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_vendor_can_save_a_product_with_a_governorate_belonging_to_its_city(): void
+    public function test_product_location_fields_are_ignored_when_a_vendor_saves_a_product(): void
     {
         $vendor = Vendor::factory()->approved()->create();
         $category = Category::query()->create(['name' => 'Crafts', 'slug' => 'crafts', 'is_active' => true]);
@@ -23,13 +23,13 @@ class VendorProductLocationTest extends TestCase
         $this->actingAs($vendor, 'vendor')
             ->postJson(route('vendor.dashboard.products.store'), $this->productData($category, $city, $governorate))
             ->assertCreated()
-            ->assertJsonPath('product.city_id', $city->id)
-            ->assertJsonPath('product.governorate_id', $governorate->id);
+            ->assertJsonPath('product.city_id', null)
+            ->assertJsonPath('product.governorate_id', null);
 
-        $this->assertDatabaseHas('products', ['city_id' => $city->id, 'governorate_id' => $governorate->id]);
+        $this->assertDatabaseHas('products', ['city_id' => null, 'governorate_id' => null]);
     }
 
-    public function test_vendor_cannot_save_a_governorate_from_a_different_city(): void
+    public function test_product_saves_even_when_a_submitted_location_pair_does_not_match(): void
     {
         $vendor = Vendor::factory()->approved()->create();
         $category = Category::query()->create(['name' => 'Crafts', 'slug' => 'crafts', 'is_active' => true]);
@@ -39,10 +39,9 @@ class VendorProductLocationTest extends TestCase
 
         $this->actingAs($vendor, 'vendor')
             ->postJson(route('vendor.dashboard.products.store'), $this->productData($category, $city, $governorate))
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('governorate_id');
+            ->assertCreated();
 
-        $this->assertDatabaseCount('products', 0);
+        $this->assertDatabaseCount('products', 1);
     }
 
     /** @return array<string, int|string> */

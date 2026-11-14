@@ -3,10 +3,8 @@
 namespace App\Http\Requests\VendorDashboard;
 
 use App\Http\Controllers\VendorDashboard\ProductImageController;
-use App\Models\Governorate;
 use App\Rules\VendorLibraryImage;
 use App\Support\Products\VendorProductCategory;
-use App\Support\Products\VendorProductLocation;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreProductRequest extends FormRequest
@@ -21,13 +19,6 @@ class StoreProductRequest extends FormRequest
         return [
             // VPM-CATEGORY-REQUIRED-01: an active category is required.
             'category_id' => VendorProductCategory::rules(),
-            'city_id' => ['nullable', 'required_with:governorate_id', 'integer', 'exists:cities,id'],
-            'governorate_id' => ['nullable', 'required_with:city_id', 'integer', 'exists:governorates,id', function (string $attribute, mixed $value, \Closure $fail): void {
-                if ($value !== null && $this->input('city_id') !== null
-                    && ! Governorate::query()->whereKey($value)->where('city_id', $this->input('city_id'))->exists()) {
-                    $fail(VendorProductLocation::governorateMismatchMessage());
-                }
-            }],
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:products,slug'],
             'short_description' => ['nullable', 'string', 'max:1000'],
