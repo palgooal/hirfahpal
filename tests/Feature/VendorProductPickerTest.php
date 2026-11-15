@@ -158,7 +158,13 @@ class VendorProductPickerTest extends TestCase
         $this->assertStringContainsString("fetchJson(editor.dataset.mediaStoreUrl, { method: 'POST'", $source, 'Uploads go to the vendor library, as before.');
         $this->assertStringContainsString("data.append('files[]', file)", $source);
         $this->assertStringContainsString('export const MAX_UPLOAD_FILES = 10;', $source);
-        $this->assertStringContainsString("if (!target && images.length >= MAX_IMAGES) { galleryFail('limit'); return; }", $source, 'The six-image limit before the picker opens.');
+        $this->assertStringContainsString('export const MAX_IMAGES = 6;', $source);
+        $this->assertStringContainsString("if (nextMode !== 'story' && !target && images.length >= MAX_IMAGES) { galleryFail('limit'); return; }", $source, 'The six-image limit before the picker opens; the story image is not one of the six.');
+        // Choosing the story image only sets the story image and returns: the gallery images are not touched.
+        $story = substr($source, strpos($source, "if (mode === 'story') {"));
+        $story = substr($story, 0, strpos($story, 'return true;'));
+        $this->assertStringContainsString('storyImage = { path: medium.path, url: medium.url, alt_text: medium.alt_text };', $story);
+        $this->assertDoesNotMatchRegularExpression('/\bimages\b/', $story, 'The story image is kept apart from the gallery.');
         $this->assertDoesNotMatchRegularExpression('#/dashboard/products/vendor-media|dashboard\.products\.vendor-media|admin-product-gallery|vendor_id=#', $source, 'No admin endpoint or script, no vendor chosen by the page.');
         $this->assertDoesNotMatchRegularExpression('/innerHTML|outerHTML|insertAdjacentHTML/', $source);
         $this->assertDoesNotMatchRegularExpression('/\p{Arabic}/u', $source);
