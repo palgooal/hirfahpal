@@ -1,9 +1,15 @@
 @php
   $showRegister = request()->routeIs('customer.register') || old('_auth_panel') === 'register';
-  $registerErrors = collect(['full_name', 'phone', 'email', 'password', 'terms'])
-      ->map(fn ($field) => $errors->first($field))
-      ->first();
-  $loginError = $errors->first('login') ?: $errors->first('password');
+  // Each form's errors stay in its own panel: the register form posts _auth_panel=register, the login form does not
+  // (both have a password field).
+  $registerSubmitted = old('_auth_panel') === 'register';
+  $registerErrors = $registerSubmitted
+      ? collect(['full_name', 'phone', 'email', 'password', 'terms'])
+          ->map(fn ($field) => $errors->first($field))
+          ->filter()
+          ->first()
+      : null;
+  $loginError = $registerSubmitted ? null : ($errors->first('login') ?: $errors->first('password'));
 @endphp
 
 <main data-auth-page data-initial-auth-tab="{{ $showRegister ? 'register' : 'login' }}">
