@@ -5,11 +5,13 @@ namespace Tests\Feature;
 use App\Models\City;
 use App\Models\Governorate;
 use App\Models\Language;
+use App\Models\TranslationValue;
 use App\Models\Vendor;
 use Database\Seeders\AdminAuthTranslationSeeder;
 use Database\Seeders\VendorAuthTranslationSeeder;
 use Database\Seeders\VendorDashboardTranslationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Vite;
@@ -191,7 +193,7 @@ class VendorMyStorePageTest extends TestCase
             ->assertSee('متجري')
             ->assertSee('هوية المتجر')
             ->assertSeeInOrder(['معلومات المتجر', 'اسم المتجر', 'وصف مختصر', 'الوصف'])
-            ->assertSeeInOrder(['الموقع', 'المدينة', 'المحافظة', 'العنوان'])
+            ->assertSeeInOrder(['الموقع', 'المحافظة', 'المدينة', 'العنوان'])
             ->assertSeeInOrder(['بيانات الحساب', 'الاسم الكامل', 'البريد الإلكتروني', 'رقم الهاتف'])
             ->assertSee('حفظ التغييرات')
             ->assertSee('تعذّر تحميل بيانات المتجر.')
@@ -208,7 +210,7 @@ class VendorMyStorePageTest extends TestCase
             ->assertSee('My Store')
             ->assertSee('Store identity')
             ->assertSeeInOrder(['Store information', 'Store name', 'Short description', 'Description'])
-            ->assertSeeInOrder(['Location', 'City', 'Governorate', 'Address'])
+            ->assertSeeInOrder(['Location', 'Governorate', 'City', 'Address'])
             ->assertSeeInOrder(['Account information', 'Full name', 'Email', 'Phone'])
             ->assertSee('Save changes')
             ->assertSee('Store details could not be loaded.')
@@ -221,7 +223,7 @@ class VendorMyStorePageTest extends TestCase
 
         $this->assertSame([
             'saving', 'saved', 'notSpecified', 'fixErrors', 'saveError', 'sessionError', 'accessError', 'required', 'tooLong', 'invalid',
-            'selectCity', 'selectGovernorate', 'unsaved', 'logoUploading', 'logoSaving', 'logoUploaded', 'logoUploadFailed', 'logoConfirmDelete', 'logoDeleted', 'logoDeleteFailed',
+            'selectCity', 'selectGovernorate', 'cityMismatch', 'locationUnavailable', 'unsaved', 'logoUploading', 'logoSaving', 'logoUploaded', 'logoUploadFailed', 'logoConfirmDelete', 'logoDeleted', 'logoDeleteFailed',
         ], array_keys($i18n));
         $this->assertSame('غير محدد', $i18n['notSpecified']);
         $this->assertSame('تم حفظ التغييرات بنجاح.', $i18n['saved']);
@@ -358,11 +360,11 @@ class VendorMyStorePageTest extends TestCase
         $this->assertStringNotContainsString('vendor-welcome-card', $html);
 
         // Preparation days: inside Store information, after the description, as a narrow field; location keeps the
-        // City first, then its matching governorate, then the address.
+        // governorate first, then its city (Governorate → City), then the address.
         preg_match('/aria-labelledby="vendor-store-info-title".*?<\/section>/s', $main, $info);
         $this->assertMatchesRegularExpression('/name="description".*<div class="vendor-field vendor-field-narrow">.*name="preparation_days"/s', $info[0]);
         preg_match('/aria-labelledby="vendor-store-location-title".*?<\/section>/s', $main, $location);
-        $this->assertMatchesRegularExpression('/name="city_id".*name="governorate_id".*name="address_line"/s', $location[0]);
+        $this->assertMatchesRegularExpression('/name="governorate_id".*name="city_id".*name="address_line"/s', $location[0]);
         $this->assertStringNotContainsString('preparation_days', $location[0]);
 
         $css = file_get_contents(resource_path('css/vendor-dashboard.css'));
@@ -481,7 +483,7 @@ class VendorMyStorePageTest extends TestCase
 
         $this->page()
             ->assertSee('Fields marked * are required.')
-            ->assertSeeInOrder(['Location', 'City', 'Governorate', 'Address'])
+            ->assertSeeInOrder(['Location', 'Governorate', 'City', 'Address'])
             ->assertSeeInOrder(['Account information', 'Email', 'Phone', 'These details cannot be edited on this page.']);
     }
 
@@ -638,22 +640,243 @@ class VendorMyStorePageTest extends TestCase
             ->assertJsonValidationErrors(['name', 'store_name', 'city_id']);
     }
 
-    public function test_profile_update_rejects_a_governorate_that_does_not_belong_to_the_selected_city(): void
+    public function test_profile_update_rejects_a_city_that_does_not_belong_to_the_selected_governorate(): void
     {
-        [$vendor, $governorate] = $this->vendorWithLocation();
+        [$vendor, $governorate, $city] = $this->vendorWithLocation();
         $otherGovernorate = Governorate::query()->create(['name' => 'Hebron', 'slug' => 'hebron', 'status' => 'active']);
         $otherCity = City::query()->create(['governorate_id' => $otherGovernorate->id, 'name' => 'Hebron City', 'slug' => 'hebron-city', 'status' => 'active']);
 
+        // H1-J: Governorate → City; the mismatch is the city's error, with the translated text. The JSON endpoint has no
+        // setLocale middleware, so it answers in the default language; the page shows its own text (i18n.cityMismatch).
         $this->actingAs($vendor, 'vendor')
-            ->putJson(route('vendor.dashboard.profile.update'), [
-                'name' => 'Owner Name',
-                'store_name' => 'Olive Workshop',
-                'phone' => '0599123123',
-                'governorate_id' => $governorate->id,
-                'city_id' => $otherCity->id,
-            ])
+            ->putJson(route('vendor.dashboard.profile.update'), $this->storePayload(['governorate_id' => $governorate->id, 'city_id' => $otherCity->id]))
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['governorate_id']);
+            ->assertJsonValidationErrors(['city_id' => 'المدينة المختارة لا تتبع المحافظة المحددة.'])
+            ->assertJsonMissingValidationErrors('governorate_id');
+
+        $this->assertStoredLocation($vendor, $governorate->id, $city->id);
+    }
+
+    // ---- Store location (H1-J: Governorate → City, effective pair through LocationPair) ----
+
+    public function test_location_a_both_omitted_keep_the_stored_pair_and_b_both_null_clear_it(): void
+    {
+        [$vendor, $governorate, $city] = $this->vendorWithLocation();
+
+        $this->saveStore($vendor, ['address_line' => 'New address'], omitLocation: true)->assertOk();
+        $this->assertStoredLocation($vendor, $governorate->id, $city->id);
+
+        $this->saveStore($vendor, ['governorate_id' => null, 'city_id' => null])->assertOk()
+            ->assertJsonPath('vendor.profile.governorate_id', null)->assertJsonPath('vendor.profile.city_id', null);
+        $this->assertStoredLocation($vendor, null, null);
+        $this->assertSame('New address', $vendor->profile()->first()->address_line, 'The rest is saved as before.');
+    }
+
+    public function test_location_c_d_changing_one_field_is_checked_against_the_stored_other(): void
+    {
+        [$vendor, $governorate, $city] = $this->vendorWithLocation();
+        $sebastia = City::query()->create(['governorate_id' => $governorate->id, 'name' => 'Sebastia', 'slug' => 'sebastia', 'status' => 'active']);
+        $hebron = Governorate::query()->create(['name' => 'Hebron', 'slug' => 'hebron', 'status' => 'active']);
+        $dura = City::query()->create(['governorate_id' => $hebron->id, 'name' => 'Dura', 'slug' => 'dura', 'status' => 'active']);
+
+        // The governorate alone, against the stored city; the city alone, against the stored governorate.
+        $this->saveStore($vendor, ['governorate_id' => $hebron->id], omitLocation: true)->assertUnprocessable()
+            ->assertJsonValidationErrors('city_id')->assertJsonMissingValidationErrors('governorate_id');
+        $this->saveStore($vendor, ['city_id' => $dura->id], omitLocation: true)->assertUnprocessable()->assertJsonValidationErrors('city_id');
+        $this->assertStoredLocation($vendor, $governorate->id, $city->id);
+
+        $this->saveStore($vendor, ['city_id' => $sebastia->id], omitLocation: true)->assertOk();
+        $this->assertStoredLocation($vendor, $governorate->id, $sebastia->id);
+    }
+
+    public function test_location_e_f_clearing_one_field(): void
+    {
+        [$vendor, $governorate, $city] = $this->vendorWithLocation();
+
+        // F: the governorate cannot be cleared under the city.
+        $this->saveStore($vendor, ['governorate_id' => null, 'city_id' => $city->id])->assertUnprocessable()
+            ->assertJsonValidationErrors('governorate_id')->assertJsonMissingValidationErrors('city_id');
+        $this->assertStoredLocation($vendor, $governorate->id, $city->id);
+
+        // E: the city cleared, the governorate kept; a governorate without a city is valid.
+        $this->saveStore($vendor, ['governorate_id' => $governorate->id, 'city_id' => null])->assertOk();
+        $this->assertStoredLocation($vendor, $governorate->id, null);
+    }
+
+    public function test_location_g_h_legacy_and_inactive_pairs_survive_unrelated_saves(): void
+    {
+        $nablus = Governorate::query()->create(['name' => 'Nablus Governorate', 'slug' => 'nablus', 'status' => 'active']);
+        $gaza = Governorate::query()->create(['name' => 'Gaza Governorate', 'slug' => 'gaza', 'status' => 'active']);
+        $gazaCity = City::query()->create(['governorate_id' => $gaza->id, 'name' => 'Gaza', 'slug' => 'gaza-city', 'status' => 'active']);
+        $closedGovernorate = Governorate::query()->create(['name' => 'Closed', 'slug' => 'closed', 'status' => 'inactive']);
+        $closedCity = City::query()->create(['governorate_id' => $closedGovernorate->id, 'name' => 'Closed Town', 'slug' => 'closed-town', 'status' => 'inactive']);
+        // The local data shape before the hierarchy fix: a city with no governorate, a governorate pointing to it.
+        $orphan = City::query()->create(['governorate_id' => null, 'name' => 'Orphan', 'slug' => 'orphan', 'status' => 'active']);
+        $inverted = Governorate::query()->create(['city_id' => $orphan->id, 'name' => 'Inverted', 'slug' => 'inverted', 'status' => 'active']);
+
+        foreach ([
+            'mismatched' => [$nablus->id, $gazaCity->id],
+            'inactive' => [$closedGovernorate->id, $closedCity->id],
+            'city without governorate' => [null, $orphan->id],
+            'reverse-linked pair' => [$inverted->id, $orphan->id],
+        ] as $label => [$governorateId, $cityId]) {
+            $vendor = $this->vendorWith($governorateId, $cityId);
+
+            // What the script sends (the stored pair as read), and a save with the location omitted.
+            $this->saveStore($vendor, ['store_name' => 'Renamed '.$label, 'governorate_id' => $governorateId, 'city_id' => $cityId])->assertOk();
+            $this->saveStore($vendor, ['short_description' => 'Kept'], omitLocation: true)->assertOk();
+
+            $this->assertStoredLocation($vendor, $governorateId, $cityId, $label);
+            $this->assertSame('Renamed '.$label, $vendor->profile()->first()->store_name, $label);
+        }
+    }
+
+    public function test_location_i_j_new_values_must_be_active_existing_and_matching(): void
+    {
+        $vendor = $this->vendorWith(null, null);
+        $gaza = Governorate::query()->create(['name' => 'Gaza Governorate', 'slug' => 'gaza', 'status' => 'active']);
+        $gazaCity = City::query()->create(['governorate_id' => $gaza->id, 'name' => 'Gaza', 'slug' => 'gaza-city', 'status' => 'active']);
+        $nablus = Governorate::query()->create(['name' => 'Nablus Governorate', 'slug' => 'nablus', 'status' => 'active']);
+        $closedGovernorate = Governorate::query()->create(['name' => 'Closed', 'slug' => 'closed', 'status' => 'inactive']);
+        $closedCity = City::query()->create(['governorate_id' => $gaza->id, 'name' => 'Closed City', 'slug' => 'closed-city', 'status' => 'inactive']);
+
+        foreach ([
+            'city only' => [['governorate_id' => null, 'city_id' => $gazaCity->id], 'governorate_id'],
+            'mismatched' => [['governorate_id' => $nablus->id, 'city_id' => $gazaCity->id], 'city_id'],
+            'inactive governorate' => [['governorate_id' => $closedGovernorate->id, 'city_id' => null], 'governorate_id'],
+            'inactive city' => [['governorate_id' => $gaza->id, 'city_id' => $closedCity->id], 'city_id'],
+            'unknown governorate' => [['governorate_id' => 999, 'city_id' => null], 'governorate_id'],
+            'malformed city' => [['governorate_id' => $gaza->id, 'city_id' => 'abc'], 'city_id'],
+        ] as $label => [$location, $field]) {
+            $response = $this->saveStore($vendor, $location)->assertUnprocessable();
+            $this->assertSame([$field], array_keys($response->json('errors')), $label);
+            $this->assertCount(1, $response->json("errors.{$field}"), "{$label}: one message.");
+        }
+        $this->assertStoredLocation($vendor, null, null, 'Nothing refused is saved.');
+
+        $this->saveStore($vendor, ['governorate_id' => $nablus->id, 'city_id' => null])->assertOk();
+        $this->assertStoredLocation($vendor, $nablus->id, null, 'A governorate without a city.');
+        $this->saveStore($vendor, ['governorate_id' => (string) $gaza->id, 'city_id' => (string) $gazaCity->id])->assertOk();
+        $this->assertStoredLocation($vendor, $gaza->id, $gazaCity->id);
+    }
+
+    public function test_location_validation_reads_the_signed_in_vendors_own_stored_pair(): void
+    {
+        [$vendor, $governorate, $city] = $this->vendorWithLocation();
+        $hebron = Governorate::query()->create(['name' => 'Hebron', 'slug' => 'hebron', 'status' => 'active']);
+        $dura = City::query()->create(['governorate_id' => $hebron->id, 'name' => 'Dura', 'slug' => 'dura', 'status' => 'active']);
+        $other = $this->vendorWith($hebron->id, $dura->id);
+
+        // Hebron fits the other vendor's stored city, not this one's.
+        $this->saveStore($vendor, ['governorate_id' => $hebron->id], omitLocation: true)->assertUnprocessable()->assertJsonValidationErrors('city_id');
+        $this->saveStore($other, ['governorate_id' => $hebron->id], omitLocation: true)->assertOk();
+        $this->assertStoredLocation($vendor, $governorate->id, $city->id);
+    }
+
+    public function test_the_location_texts_are_translated_and_unseeded_keys_create_no_rows(): void
+    {
+        foreach (['ar' => ['المدينة المختارة لا تتبع المحافظة المحددة.', ':name (غير متاح)'], 'en' => ['The selected city does not belong to the selected governorate.', ':name (unavailable)']] as $locale => [$mismatch, $unavailable]) {
+            $this->assertSame(VendorDashboardTranslationSeeder::TRANSLATIONS['vendor.My_Store_Error_City_Governorate'][$locale], $mismatch);
+            $this->assertSame(VendorDashboardTranslationSeeder::TRANSLATIONS['vendor.My_Store_Location_Unavailable'][$locale], $unavailable);
+
+            $this->actingAs($this->vendor(), 'vendor');
+            $this->get(route('vendor.dashboard.my-store').'?change-locale='.$locale);
+            $i18n = $this->i18n($this->page());
+            $this->assertSame([$mismatch, $unavailable], [$i18n['cityMismatch'], $i18n['locationUnavailable']], $locale);
+        }
+
+        // Not seeded yet (as before a deployment's seeder run): the English defaults, and no row is created by the page
+        // or by a refused save.
+        $keys = ['vendor.My_Store_Error_City_Governorate', 'vendor.My_Store_Location_Unavailable'];
+        TranslationValue::query()->whereIn('key', $keys)->delete();
+        cache()->flush();
+        $before = TranslationValue::count();
+        [$vendor, $governorate] = $this->vendorWithLocation();
+        $foreign = City::query()->create(['governorate_id' => Governorate::query()->create(['name' => 'Hebron', 'slug' => 'hebron', 'status' => 'active'])->id, 'name' => 'Dura', 'slug' => 'dura', 'status' => 'active']);
+
+        $this->actingAs($vendor, 'vendor');
+        $this->get(route('vendor.dashboard.my-store').'?change-locale=ar');
+        $i18n = $this->i18n($this->page());
+        $this->assertSame(['The selected city does not belong to the selected governorate.', ':name (unavailable)'], [$i18n['cityMismatch'], $i18n['locationUnavailable']]);
+        $this->saveStore($vendor, ['governorate_id' => $governorate->id, 'city_id' => $foreign->id])->assertUnprocessable()
+            ->assertJsonValidationErrors(['city_id' => 'The selected city does not belong to the selected governorate.']);
+
+        $this->assertSame(0, TranslationValue::query()->whereIn('key', $keys)->count());
+        $this->assertSame($before, TranslationValue::count());
+    }
+
+    public function test_the_profile_read_gives_active_governorates_with_their_active_cities(): void
+    {
+        $nablus = Governorate::query()->create(['name' => 'Nablus Governorate', 'slug' => 'nablus', 'status' => 'active']);
+        $gaza = Governorate::query()->create(['name' => 'Gaza Governorate', 'slug' => 'gaza', 'status' => 'active']);
+        $rafah = City::query()->create(['governorate_id' => $gaza->id, 'name' => 'Rafah', 'slug' => 'rafah', 'status' => 'active']);
+        $gazaCity = City::query()->create(['governorate_id' => $gaza->id, 'name' => 'Gaza', 'slug' => 'gaza-city', 'status' => 'active']);
+        City::query()->create(['governorate_id' => $gaza->id, 'name' => 'Closed City', 'slug' => 'closed-city', 'status' => 'inactive']);
+        $closedGovernorate = Governorate::query()->create(['name' => 'Closed', 'slug' => 'closed', 'status' => 'inactive']);
+        $closedTown = City::query()->create(['governorate_id' => $closedGovernorate->id, 'name' => 'Closed Town', 'slug' => 'closed-town', 'status' => 'inactive']);
+        $vendor = $this->vendorWith($closedGovernorate->id, $closedTown->id);
+
+        $queries = 0;
+        DB::listen(function () use (&$queries) {
+            $queries++;
+        });
+        $response = $this->actingAs($vendor, 'vendor')->getJson(route('vendor.dashboard.profile.show'))->assertOk();
+
+        $this->assertSame(['vendor', 'media', 'locations'], array_keys($response->json()));
+        $this->assertSame(['governorates'], array_keys($response->json('locations')));
+        $this->assertSame([
+            ['id' => $gaza->id, 'name' => 'Gaza Governorate', 'cities' => [
+                ['id' => $gazaCity->id, 'governorate_id' => $gaza->id, 'name' => 'Gaza'],
+                ['id' => $rafah->id, 'governorate_id' => $gaza->id, 'name' => 'Rafah'],
+            ]],
+            ['id' => $nablus->id, 'name' => 'Nablus Governorate', 'cities' => []],
+        ], $response->json('locations.governorates'), 'Active only, by name, through cities.governorate_id.');
+
+        // The stored inactive pair stays readable through the profile, with the city's own governorate.
+        $this->assertSame([$closedGovernorate->id, 'Closed', $closedTown->id, 'Closed Town', $closedGovernorate->id], [
+            $response->json('vendor.profile.governorate_id'), $response->json('vendor.profile.governorate.name'),
+            $response->json('vendor.profile.city_id'), $response->json('vendor.profile.city.name'), $response->json('vendor.profile.city.governorate_id'),
+        ]);
+        $this->assertLessThanOrEqual(8, $queries, 'Two queries for the locations, as before.');
+    }
+
+    public function test_the_location_script_passes_its_node_tests(): void
+    {
+        $node = trim((string) shell_exec(PHP_OS_FAMILY === 'Windows' ? 'where node 2>NUL' : 'command -v node 2>/dev/null'));
+        $node = strtok($node, "\r\n");
+        if ($node === false || $node === '') {
+            $this->markTestSkipped('Node is not available.');
+        }
+
+        $process = proc_open([$node, '--test', 'tests/js/vendor-my-store-locations.test.mjs'], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, base_path());
+        $output = stream_get_contents($pipes[1]).stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+
+        $this->assertSame(0, proc_close($process), $output);
+        $this->assertMatchesRegularExpression('/^(?:ℹ|#) fail 0$/m', $output);
+        $this->assertDoesNotMatchRegularExpression('/^(?:ℹ|#) pass 0$/m', $output);
+    }
+
+    public function test_the_script_never_clears_the_location_and_uses_the_location_module(): void
+    {
+        $script = file_get_contents(resource_path('js/vendor-my-store.js'));
+        $module = file_get_contents(resource_path('js/vendor-my-store-locations.js'));
+
+        $this->assertStringContainsString("import { locationOptions, locationProblem, normalizeLocations, storedLocation, toId } from './vendor-my-store-locations.js';", $script);
+        $this->assertStringNotContainsString('function toId', $script);
+        // The selection is held in the script and is always among the options; the governorate change keeps the city.
+        $this->assertMatchesRegularExpression("/field\('governorate_id'\)\.addEventListener\('change', \(\) => \{\s*selection = \{ governorateId: selectedId\('governorate_id'\), cityId: selection\.cityId \};/", $script);
+        $this->assertStringNotContainsString("field('governorate_id').value = '';", $script);
+        $this->assertStringNotContainsString("field('city_id').value = '';", $script);
+        $this->assertMatchesRegularExpression('/selection = \{ governorateId: stored\.governorateId, cityId: stored\.cityId \};\s*renderLocations\(\);/', $script);
+        // A newly incompatible pair is not sent; the mismatch text only where the selection shows a mismatch.
+        $this->assertMatchesRegularExpression("/if \(problem === 'mismatch'\) \{\s*showFieldError\('city_id', i18n\.cityMismatch\);\s*invalid\.push\('city_id'\);/", $script);
+        $this->assertMatchesRegularExpression("/if \(name === 'city_id' && problem === 'mismatch'\) \{\s*return i18n\.cityMismatch;/", $script);
+        foreach ([$script, $module] as $source) {
+            $this->assertDoesNotMatchRegularExpression('/innerHTML|outerHTML|insertAdjacentHTML/', $source);
+        }
+        $this->assertDoesNotMatchRegularExpression('/\p{Arabic}|document\.|window\.|fetch\(/u', $module, 'The module holds rules only: no texts, DOM or requests.');
     }
 
     public function test_profile_update_enforces_the_database_short_description_limit(): void
@@ -722,8 +945,9 @@ class VendorMyStorePageTest extends TestCase
      */
     private function vendorWithLocation(): array
     {
-        $city = City::query()->create(['name' => 'Nablus City', 'slug' => 'nablus-city', 'status' => 'active']);
-        $governorate = Governorate::query()->create(['city_id' => $city->id, 'name' => 'Nablus Governorate', 'slug' => 'nablus', 'status' => 'active']);
+        // Governorate → City (cities.governorate_id).
+        $governorate = Governorate::query()->create(['name' => 'Nablus Governorate', 'slug' => 'nablus', 'status' => 'active']);
+        $city = City::query()->create(['governorate_id' => $governorate->id, 'name' => 'Nablus City', 'slug' => 'nablus-city', 'status' => 'active']);
 
         $vendor = Vendor::factory()->create(['name' => 'Owner Name', 'email' => 'owner.private@example.com', 'phone' => '0599123123']);
         $vendor->profile()->create([
@@ -742,6 +966,42 @@ class VendorMyStorePageTest extends TestCase
         ]);
 
         return [$vendor->load('profile'), $governorate, $city];
+    }
+
+    /** An approved vendor whose store holds this pair, written as stored data (legacy or inactive values included). */
+    private function vendorWith(?int $governorateId, ?int $cityId): Vendor
+    {
+        $vendor = Vendor::factory()->approved()->create();
+        $vendor->profile()->update(['governorate_id' => $governorateId, 'city_id' => $cityId]);
+
+        return $vendor;
+    }
+
+    /** The script's replacement payload for the vendor's current values, with $changes applied. */
+    private function storePayload(array $changes = [], ?Vendor $vendor = null, bool $omitLocation = false): array
+    {
+        $profile = $vendor?->profile()->first();
+        $payload = $changes + [
+            'name' => $vendor?->fresh()->name ?? 'Owner Name',
+            'store_name' => $profile?->store_name ?? 'Olive Workshop',
+            'phone' => $vendor?->fresh()->phone ?? '0599123123',
+            'governorate_id' => $profile?->governorate_id,
+            'city_id' => $profile?->city_id,
+        ];
+
+        return $omitLocation ? array_diff_key($payload, array_diff_key(['governorate_id' => true, 'city_id' => true], $changes)) : $payload;
+    }
+
+    private function saveStore(Vendor $vendor, array $changes, bool $omitLocation = false): TestResponse
+    {
+        return $this->actingAs($vendor, 'vendor')->putJson(route('vendor.dashboard.profile.update'), $this->storePayload($changes, $vendor, $omitLocation));
+    }
+
+    private function assertStoredLocation(Vendor $vendor, ?int $governorateId, ?int $cityId, string $message = ''): void
+    {
+        $profile = $vendor->profile()->first();
+
+        $this->assertSame([$governorateId, $cityId], [$profile->governorate_id, $profile->city_id], $message);
     }
 
     private function page(): TestResponse

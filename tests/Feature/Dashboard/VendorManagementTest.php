@@ -695,6 +695,85 @@ class VendorManagementTest extends TestCase
         $this->assertSame($southCity->id, Vendor::sole()->profile->city_id);
     }
 
+    // ---------------------------------------------------------------- the new store's location (H1-H, Governorate → City)
+
+    public function test_create_accepts_no_location_a_governorate_only_or_a_valid_pair(): void
+    {
+        $admin = $this->superAdmin();
+        [$gaza, $gazaCity] = $this->vendorLocations();
+
+        foreach ([
+            'no location' => [[], [null, null]],
+            'empty values' => [['governorate_id' => '', 'city_id' => ''], [null, null]],
+            'governorate only' => [['governorate_id' => $gaza->id], [$gaza->id, null]],
+            'valid pair' => [['governorate_id' => (string) $gaza->id, 'city_id' => (string) $gazaCity->id], [$gaza->id, $gazaCity->id]],
+        ] as $label => [$location, $expected]) {
+            $phone = '05970'.str_pad((string) Vendor::count(), 5, '0', STR_PAD_LEFT);
+            $this->actingAs($admin, 'admin')->post(route('dashboard.vendors.store'), $location + $this->vendorInput($phone, ''))
+                ->assertSessionHasNoErrors()->assertRedirect();
+
+            $profile = Vendor::query()->where('phone', $phone)->sole()->profile;
+            $this->assertSame($expected, [$profile->governorate_id, $profile->city_id], $label);
+        }
+    }
+
+    public function test_create_refuses_an_invalid_location_on_the_right_field_and_creates_nothing(): void
+    {
+        $admin = $this->superAdmin();
+        [$gaza, $gazaCity, $nablus, $nablusCity] = $this->vendorLocations();
+        $closedGovernorate = Governorate::query()->create(['name' => 'Closed', 'slug' => 'closed', 'status' => 'inactive']);
+        $closedCity = City::query()->create(['governorate_id' => $gaza->id, 'name' => 'Closed City', 'slug' => 'closed-city', 'status' => 'inactive']);
+        $orphan = City::query()->create(['governorate_id' => null, 'name' => 'Orphan', 'slug' => 'orphan', 'status' => 'active']);
+        $create = route('dashboard.vendors.create');
+
+        foreach ([
+            'city without governorate' => [['city_id' => $gazaCity->id], 'governorate_id', 'A governorate is required when a city is selected.'],
+            'city of another governorate' => [['governorate_id' => $nablus->id, 'city_id' => $gazaCity->id], 'city_id', 'The selected city does not belong to the selected governorate.'],
+            'city with no governorate under a governorate' => [['governorate_id' => $gaza->id, 'city_id' => $orphan->id], 'city_id', 'The selected city does not belong to the selected governorate.'],
+            'inactive governorate' => [['governorate_id' => $closedGovernorate->id], 'governorate_id', 'The selected governorate is not available.'],
+            'inactive city' => [['governorate_id' => $gaza->id, 'city_id' => $closedCity->id], 'city_id', 'The selected city is not available.'],
+            'unknown governorate' => [['governorate_id' => 999], 'governorate_id', null],
+            'unknown city' => [['governorate_id' => $gaza->id, 'city_id' => 999], 'city_id', null],
+            'malformed governorate' => [['governorate_id' => 'abc', 'city_id' => $nablusCity->id], 'governorate_id', null],
+            'malformed city' => [['governorate_id' => $gaza->id, 'city_id' => '1.5'], 'city_id', null],
+        ] as $label => [$location, $field, $message]) {
+            $input = $location + $this->vendorInput('0597222333', '');
+            $response = $this->actingAs($admin, 'admin')->from($create)->post(route('dashboard.vendors.store'), $input)
+                ->assertRedirect($create)->assertSessionHasInput('store_name', $input['store_name']);
+
+            $errors = session('errors')->getBag('default');
+            $this->assertSame([$field], $errors->keys(), "{$label}: one field only.");
+            $this->assertCount(1, $errors->get($field), "{$label}: one message.");
+            if ($message !== null) {
+                $response->assertSessionHasErrors([$field => $message]);
+            }
+            $this->assertSame(0, Vendor::count(), $label);
+        }
+
+        $this->assertSame(0, TranslationValue::where('key', 'like', 'dashboard.Vendors\_Error\_%')->count(), 'No translation row is created.');
+    }
+
+    public function test_create_location_errors_keep_the_translated_mismatch_message_and_the_basic_rules(): void
+    {
+        $this->seed(LanguageSeeder::class);
+        $this->seed(AdminVendorTranslationSeeder::class);
+        $admin = $this->superAdmin();
+        [$gaza, $gazaCity, $nablus] = $this->vendorLocations();
+        $before = TranslationValue::count();
+
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.vendors.store'), ['governorate_id' => $nablus->id, 'city_id' => $gazaCity->id] + $this->vendorInput('0597444555', ''))
+            ->assertSessionHasErrors(['city_id' => 'المدينة المختارة لا تتبع المحافظة المختارة.']);
+
+        // The other rules run first, as before: no location error is added on top of them.
+        $this->actingAs($admin, 'admin')->post(route('dashboard.vendors.store'), ['governorate_id' => $nablus->id, 'city_id' => $gazaCity->id, 'store_name' => ''] + $this->vendorInput('0597444555', ''))
+            ->assertSessionHasErrors('store_name')->assertSessionDoesntHaveErrors('city_id');
+
+        $this->assertSame(0, Vendor::count());
+        $this->assertSame($before, TranslationValue::count());
+        $this->actingAs($admin, 'admin')->post(route('dashboard.vendors.store'), ['governorate_id' => $gaza->id, 'city_id' => $gazaCity->id] + $this->vendorInput('0597444555', ''))->assertSessionHasNoErrors();
+        $this->assertSame([$gaza->id, $gazaCity->id], [Vendor::sole()->profile->governorate_id, Vendor::sole()->profile->city_id]);
+    }
+
     public function test_index_uses_the_admin_shell_and_shows_the_add_button_by_ability(): void
     {
         $this->actingAs($this->superAdmin(), 'admin')->get(route('dashboard.vendors.index'))
@@ -900,6 +979,24 @@ class VendorManagementTest extends TestCase
             'store_name' => 'Rate Store '.$phone,
             'approval_status' => 'pending',
             'commission_rate' => $commissionRate,
+        ];
+    }
+
+    /**
+     * Governorate → City fixtures: Gaza with Gaza City, Nablus with Nablus City.
+     *
+     * @return array{0: Governorate, 1: City, 2: Governorate, 3: City}
+     */
+    private function vendorLocations(): array
+    {
+        $gaza = Governorate::query()->create(['name' => 'Gaza', 'slug' => 'gaza', 'status' => 'active']);
+        $nablus = Governorate::query()->create(['name' => 'Nablus', 'slug' => 'nablus', 'status' => 'active']);
+
+        return [
+            $gaza,
+            City::query()->create(['governorate_id' => $gaza->id, 'name' => 'Gaza City', 'slug' => 'gaza-city', 'status' => 'active']),
+            $nablus,
+            City::query()->create(['governorate_id' => $nablus->id, 'name' => 'Nablus City', 'slug' => 'nablus-city', 'status' => 'active']),
         ];
     }
 }

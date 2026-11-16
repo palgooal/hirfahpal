@@ -4,7 +4,6 @@ namespace App\Http\Controllers\VendorDashboard;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\VendorDashboard\UpdateProfileRequest;
-use App\Models\City;
 use App\Models\Governorate;
 use App\Models\VendorProfile;
 use Illuminate\Http\JsonResponse;
@@ -25,10 +24,15 @@ class ProfileController extends Controller
                 'logo_url' => $vendor->profile?->logo ? Storage::disk('public')->url($vendor->profile->logo) : null,
                 'cover_url' => $vendor->profile?->cover_image ? Storage::disk('public')->url($vendor->profile->cover_image) : null,
             ],
-            // Locations are configured by the admin. Governorates are grouped by their selected city in the store form.
+            // Locations are configured by the admin: the active governorates, each with its active cities
+            // (cities.governorate_id, Governorate → City). The stored pair, even inactive, is vendor.profile.governorate
+            // and vendor.profile.city above.
             'locations' => [
-                'cities' => City::query()->where('status', 'active')->orderBy('name')->get(['id', 'name']),
-                'governorates' => Governorate::query()->where('status', 'active')->whereNotNull('city_id')->orderBy('name')->get(['id', 'city_id', 'name']),
+                'governorates' => Governorate::query()
+                    ->where('status', 'active')
+                    ->with(['cities' => fn ($query) => $query->where('status', 'active')->orderBy('name')->select(['id', 'governorate_id', 'name'])])
+                    ->orderBy('name')
+                    ->get(['id', 'name']),
             ],
         ]);
     }

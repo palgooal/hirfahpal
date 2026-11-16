@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\City;
 use App\Models\Customer;
 use App\Models\DeliveryAssignment;
 use App\Models\DeliveryDriver;
+use App\Models\Governorate;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\Vendor;
@@ -125,10 +127,125 @@ class DeliveryDriverDashboardTest extends TestCase
             ->assertNotFound();
     }
 
-    private function approvedDriver(): DeliveryDriver
+    // ---------------------------------------------------------------- the profile location (H1-E, Governorate → City)
+
+    public function test_profile_location_omitted_or_cleared(): void
+    {
+        [$gaza, $gazaCity] = $this->locations();
+        $driver = $this->approvedDriver(['governorate_id' => $gaza->id, 'city_id' => $gazaCity->id, 'vehicle_type' => 'Van', 'vehicle_plate' => 'P-1']);
+
+        $this->updateProfile($driver, ['name' => 'Renamed'])->assertOk()
+            ->assertJsonPath('delivery_driver.profile.governorate_id', $gaza->id)
+            ->assertJsonPath('delivery_driver.profile.city_id', $gazaCity->id);
+        $this->assertLocation($driver, $gaza->id, $gazaCity->id, 'Both omitted: kept.');
+
+        $this->updateProfile($driver, ['governorate_id' => null, 'city_id' => null])->assertOk()
+            ->assertJsonPath('delivery_driver.profile.governorate_id', null)
+            ->assertJsonPath('delivery_driver.profile.city_id', null);
+        $this->assertLocation($driver, null, null, 'Both null: cleared.');
+
+        $profile = $driver->profile()->first();
+        $this->assertSame(['Renamed', 'Van', 'P-1', true], [$driver->fresh()->name, $profile->vehicle_type, $profile->vehicle_plate, $profile->is_available], 'Nothing else changed.');
+    }
+
+    public function test_profile_location_changing_one_field_checks_the_stored_other(): void
+    {
+        [$gaza, $gazaCity, $rafah, $nablus, $nablusCity] = $this->locations();
+        $driver = $this->approvedDriver(['governorate_id' => $gaza->id, 'city_id' => $gazaCity->id]);
+
+        // The governorate alone, against the stored city: refused, nothing saved.
+        $this->updateProfile($driver, ['governorate_id' => $nablus->id])->assertUnprocessable()
+            ->assertJsonValidationErrors(['city_id' => 'The selected city does not belong to the selected governorate.'])
+            ->assertJsonMissingValidationErrors('governorate_id');
+        $this->assertLocation($driver, $gaza->id, $gazaCity->id);
+
+        // The city alone, against the stored governorate.
+        $this->updateProfile($driver, ['city_id' => $nablusCity->id])->assertUnprocessable()->assertJsonValidationErrors('city_id');
+        $this->assertLocation($driver, $gaza->id, $gazaCity->id);
+        $this->updateProfile($driver, ['city_id' => $rafah->id])->assertOk();
+        $this->assertLocation($driver, $gaza->id, $rafah->id);
+
+        // The city cleared, the governorate kept; then, with no stored city, the governorate can change alone.
+        $this->updateProfile($driver, ['city_id' => null])->assertOk();
+        $this->assertLocation($driver, $gaza->id, null);
+        $this->updateProfile($driver, ['governorate_id' => $nablus->id])->assertOk();
+        $this->assertLocation($driver, $nablus->id, null);
+    }
+
+    public function test_profile_location_governorate_cannot_be_cleared_under_a_city(): void
+    {
+        [$gaza, $gazaCity] = $this->locations();
+        $driver = $this->approvedDriver(['governorate_id' => $gaza->id, 'city_id' => $gazaCity->id]);
+
+        $this->updateProfile($driver, ['governorate_id' => null])->assertUnprocessable()
+            ->assertJsonValidationErrors('governorate_id')->assertJsonMissingValidationErrors('city_id');
+        $this->updateProfile($driver, ['governorate_id' => null, 'city_id' => $gazaCity->id])->assertUnprocessable()->assertJsonValidationErrors('governorate_id');
+        $this->assertLocation($driver, $gaza->id, $gazaCity->id);
+    }
+
+    public function test_profile_location_legacy_and_inactive_stored_pairs_survive_unrelated_updates(): void
+    {
+        [, $gazaCity, , $nablus] = $this->locations();
+        $closedGovernorate = Governorate::query()->create(['name' => 'Closed Governorate', 'slug' => 'closed-governorate', 'status' => 'inactive']);
+        $closedCity = City::query()->create(['governorate_id' => $closedGovernorate->id, 'name' => 'Closed', 'slug' => 'closed', 'status' => 'inactive']);
+        $orphan = City::query()->create(['governorate_id' => null, 'name' => 'Orphan', 'slug' => 'orphan']);
+
+        foreach ([
+            'mismatched' => [$nablus->id, $gazaCity->id],
+            'inactive' => [$closedGovernorate->id, $closedCity->id],
+            'city without governorate' => [null, $orphan->id],
+        ] as $label => [$governorateId, $cityId]) {
+            $driver = $this->approvedDriver(['governorate_id' => $governorateId, 'city_id' => $cityId]);
+
+            $this->updateProfile($driver, ['vehicle_type' => 'Bike', 'is_available' => false])->assertOk();
+            $this->updateProfile($driver, ['vehicle_plate' => 'X-9', 'governorate_id' => $governorateId, 'city_id' => $cityId])->assertOk();
+
+            $this->assertLocation($driver, $governorateId, $cityId, $label);
+            $profile = $driver->profile()->first();
+            $this->assertSame(['Bike', 'X-9', false], [$profile->vehicle_type, $profile->vehicle_plate, $profile->is_available], $label);
+        }
+    }
+
+    public function test_profile_location_newly_selected_values_must_be_active_and_match(): void
+    {
+        [$gaza, $gazaCity, , $nablus] = $this->locations();
+        $closedGovernorate = Governorate::query()->create(['name' => 'Closed Governorate', 'slug' => 'closed-governorate', 'status' => 'inactive']);
+        $closedCity = City::query()->create(['governorate_id' => $gaza->id, 'name' => 'Closed', 'slug' => 'closed', 'status' => 'inactive']);
+        $driver = $this->approvedDriver();
+
+        $this->updateProfile($driver, ['governorate_id' => $closedGovernorate->id])->assertUnprocessable()->assertJsonValidationErrors('governorate_id');
+        $this->updateProfile($driver, ['governorate_id' => $gaza->id, 'city_id' => $closedCity->id])->assertUnprocessable()
+            ->assertJsonValidationErrors('city_id')->assertJsonMissingValidationErrors('governorate_id');
+        $this->updateProfile($driver, ['governorate_id' => $nablus->id, 'city_id' => $gazaCity->id])->assertUnprocessable()
+            ->assertJsonValidationErrors(['city_id' => 'The selected city does not belong to the selected governorate.']);
+        $this->updateProfile($driver, ['city_id' => $gazaCity->id])->assertUnprocessable()->assertJsonValidationErrors('governorate_id');
+        $this->updateProfile($driver, ['governorate_id' => 999, 'city_id' => 'abc'])->assertUnprocessable()->assertJsonValidationErrors(['governorate_id', 'city_id']);
+        $this->assertLocation($driver, null, null, 'Nothing refused is saved.');
+
+        $this->updateProfile($driver, ['governorate_id' => $gaza->id, 'city_id' => $gazaCity->id])->assertOk()
+            ->assertJsonPath('message', 'Delivery driver profile updated successfully.')
+            ->assertJsonPath('delivery_driver.profile.city.name', 'Gaza');
+        $this->assertLocation($driver, $gaza->id, $gazaCity->id);
+    }
+
+    public function test_profile_location_uses_the_signed_in_drivers_own_stored_pair(): void
+    {
+        [$gaza, $gazaCity, , $nablus, $nablusCity] = $this->locations();
+        $driver = $this->approvedDriver(['governorate_id' => $gaza->id, 'city_id' => $gazaCity->id]);
+        $other = $this->approvedDriver(['governorate_id' => $nablus->id, 'city_id' => $nablusCity->id]);
+
+        // Nablus fits the other driver's stored city, not this driver's.
+        $this->updateProfile($driver, ['governorate_id' => $nablus->id])->assertUnprocessable()->assertJsonValidationErrors('city_id');
+        $this->updateProfile($other, ['name' => 'Other'])->assertOk();
+
+        $this->assertLocation($driver, $gaza->id, $gazaCity->id);
+        $this->assertLocation($other, $nablus->id, $nablusCity->id);
+    }
+
+    private function approvedDriver(array $profile = []): DeliveryDriver
     {
         $driver = DeliveryDriver::factory()->create();
-        $driver->profile()->create(['approval_status' => 'approved', 'approved_at' => now(), 'is_available' => true]);
+        $driver->profile()->create(['approval_status' => 'approved', 'approved_at' => now(), 'is_available' => true] + $profile);
 
         return $driver;
     }
@@ -165,5 +282,36 @@ class DeliveryDriverDashboardTest extends TestCase
             'status' => $assignmentStatus,
             'assigned_at' => now(),
         ]);
+    }
+
+    private function updateProfile(DeliveryDriver $driver, array $payload)
+    {
+        return $this->actingAs($driver, 'delivery_driver')->putJson(route('delivery-driver.dashboard.profile.update'), $payload);
+    }
+
+    private function assertLocation(DeliveryDriver $driver, ?int $governorateId, ?int $cityId, string $message = ''): void
+    {
+        $profile = $driver->profile()->first();
+
+        $this->assertSame([$governorateId, $cityId], [$profile->governorate_id, $profile->city_id], $message);
+    }
+
+    /**
+     * Governorate → City fixtures: Gaza Governorate with Gaza and Rafah, Nablus Governorate with Nablus.
+     *
+     * @return array{0: Governorate, 1: City, 2: City, 3: Governorate, 4: City}
+     */
+    private function locations(): array
+    {
+        $gaza = Governorate::query()->create(['name' => 'Gaza Governorate', 'slug' => 'gaza-governorate']);
+        $nablus = Governorate::query()->create(['name' => 'Nablus Governorate', 'slug' => 'nablus-governorate']);
+
+        return [
+            $gaza,
+            City::query()->create(['governorate_id' => $gaza->id, 'name' => 'Gaza', 'slug' => 'gaza']),
+            City::query()->create(['governorate_id' => $gaza->id, 'name' => 'Rafah', 'slug' => 'rafah']),
+            $nablus,
+            City::query()->create(['governorate_id' => $nablus->id, 'name' => 'Nablus', 'slug' => 'nablus']),
+        ];
     }
 }

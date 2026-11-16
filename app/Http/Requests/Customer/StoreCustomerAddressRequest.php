@@ -2,7 +2,8 @@
 
 namespace App\Http\Requests\Customer;
 
-use App\Models\City;
+use App\Models\CustomerAddress;
+use App\Support\Locations\LocationPair;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -29,22 +30,22 @@ class StoreCustomerAddressRequest extends FormRequest
         ];
     }
 
+    /**
+     * The pair the address will hold follows Governorate → City: a new address has no stored pair, an update keeps the
+     * stored values of omitted fields. Another customer's address is never read here; the controller refuses it (403).
+     */
     public function after(): array
     {
         return [
             function (Validator $validator): void {
-                if (! $this->filled(['governorate_id', 'city_id'])) {
+                $address = $this->route('address');
+                $address = $address instanceof CustomerAddress ? $address : null;
+
+                if ($address !== null && (int) $address->customer_id !== (int) $this->user('customer')->id) {
                     return;
                 }
 
-                $belongsToGovernorate = City::query()
-                    ->whereKey($this->integer('city_id'))
-                    ->where('governorate_id', $this->integer('governorate_id'))
-                    ->exists();
-
-                if (! $belongsToGovernorate) {
-                    $validator->errors()->add('city_id', 'The selected city does not belong to the selected governorate.');
-                }
+                LocationPair::validate($validator, $this->all(), $address?->governorate_id, $address?->city_id);
             },
         ];
     }

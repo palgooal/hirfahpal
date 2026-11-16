@@ -320,6 +320,16 @@ class VendorDashboardTranslationSeeder extends Seeder
             'ar' => 'يرجى مراجعة هذه القيمة.',
             'en' => 'Please check this value.',
         ],
+        // H1-J: the store location (Governorate → City): a city outside the chosen governorate, and a stored value the
+        // active lists no longer offer (":name" is its name).
+        'vendor.My_Store_Error_City_Governorate' => [
+            'ar' => 'المدينة المختارة لا تتبع المحافظة المحددة.',
+            'en' => 'The selected city does not belong to the selected governorate.',
+        ],
+        'vendor.My_Store_Location_Unavailable' => [
+            'ar' => ':name (غير متاح)',
+            'en' => ':name (unavailable)',
+        ],
         // MYSTORE-UI-01, MYSTORE-UI-01C: the My Store logo section (chosen from the media library; removing it keeps
         // the image) and preparation days. The picker's own texts are the product gallery's (Product_Gallery_*).
         'vendor.My_Store_Logo' => ['ar' => 'شعار المتجر', 'en' => 'Store logo'],
