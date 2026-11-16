@@ -18,8 +18,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * The cities and governorates page (dashboard/settings/locations) and its two notices: in the page language, from the
- * seeders, without creating translation rows; the page's authorization unchanged. Products inherit the store's location,
+ * The governorates and cities page (dashboard/settings/locations, Governorate → City) and its notices: in the page
+ * language, from the seeders, without creating translation rows; the page's authorization unchanged. Products inherit the store's location,
  * so the vendor product endpoints ignore a submitted city or governorate.
  */
 class LocationManagementLocalizationTest extends TestCase
@@ -38,15 +38,16 @@ class LocationManagementLocalizationTest extends TestCase
     {
         $this->seed(AdminSettingsTranslationSeeder::class);
         $this->seed(AdminHomeTranslationSeeder::class);
-        $city = City::query()->create(['name' => 'Gaza', 'slug' => 'gaza']);
-        Governorate::query()->create(['city_id' => $city->id, 'name' => 'Rimal', 'slug' => 'rimal']);
-        Governorate::query()->create(['city_id' => $city->id, 'name' => 'Shati', 'slug' => 'shati']);
-        City::query()->create(['name' => 'Nablus', 'slug' => 'nablus']);
+        $gaza = Governorate::query()->create(['name' => 'Gaza', 'slug' => 'gaza']);
+        City::query()->create(['governorate_id' => $gaza->id, 'name' => 'Rimal', 'slug' => 'rimal']);
+        City::query()->create(['governorate_id' => $gaza->id, 'name' => 'Shati', 'slug' => 'shati']);
+        Governorate::query()->create(['name' => 'Nablus', 'slug' => 'nablus']);
+        City::query()->create(['name' => 'Legacy', 'slug' => 'legacy']);
         $admin = $this->admin(['settings.view', 'settings.edit']);
 
         $pages = [
-            'ar' => ['rtl', ['إدارة المدن والمحافظات', 'المدن', 'أضف المدينة أولًا، ثم أضف محافظاتها.', 'المدينة', 'إضافة مدينة', 'المحافظات', 'اختر المدينة', 'المحافظة', 'إضافة محافظة', 'المواقع المضافة', 'لم تُضف محافظات بعد.', 'Rimal', 'Shati', 'عدد المحافظات: 2'], ['Add city', 'Configured locations', 'No governorates added yet.']],
-            'en' => ['ltr', ['Manage cities and governorates', 'Cities', 'Add a city before adding its governorates.', 'Add city', 'Governorates', 'Choose a city', 'Add governorate', 'Configured locations', 'No governorates added yet.', 'Rimal', 'Shati', 'Governorates: 2'], ['إضافة مدينة', 'المواقع المضافة']],
+            'ar' => ['rtl', ['إدارة المدن والمحافظات', 'أدر المحافظات والمدن التابعة لها.', 'المحافظات', 'أضف المحافظة أولًا، ثم أضف مدنها.', 'المحافظة', 'إضافة محافظة', 'المدن', 'اختر المحافظة التي تتبع لها هذه المدن.', 'اختر المحافظة', 'إضافة مدينة', 'المواقع المضافة', 'لم تُضف مدن بعد.', 'Rimal', 'Shati', 'عدد المدن: 2', 'إضافة مدينة إلى Gaza', 'مدن غير مرتبطة بمحافظة', 'غير المرتبطة: 1'], ['Add city', 'Add governorate', 'Configured locations', 'No cities added yet.', 'Cities without a governorate']],
+            'en' => ['ltr', ['Manage cities and governorates', 'Manage the governorates and the cities that belong to them.', 'Governorates', 'Add a governorate before adding its cities.', 'Add governorate', 'Cities', 'Choose the governorate these cities belong to.', 'Choose a governorate', 'Add city', 'Configured locations', 'No cities added yet.', 'Rimal', 'Shati', 'Cities: 2', 'Add city to Gaza', 'Cities without a governorate', 'Unassigned: 1'], ['إضافة مدينة', 'المواقع المضافة']],
         ];
 
         foreach ($pages as $locale => [$direction, $seen, $unseen]) {
@@ -60,6 +61,10 @@ class LocationManagementLocalizationTest extends TestCase
             foreach ($unseen as $text) {
                 $this->assertStringNotContainsString(e($text), $html, "{$locale}: {$text}");
             }
+            // None of the reverse hierarchy's wording is left.
+            foreach (['Add a city before adding its governorates.', 'Choose the city this governorate belongs to.', 'Unassigned governorates', 'product locations', 'أضف المدينة أولًا، ثم أضف محافظاتها.', 'اختر المدينة التي تتبع لها هذه المحافظة.'] as $old) {
+                $this->assertStringNotContainsString(e($old), $html, "{$locale}: {$old}");
+            }
         }
     }
 
@@ -69,19 +74,30 @@ class LocationManagementLocalizationTest extends TestCase
         $admin = $this->admin(['settings.view']);
 
         $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->get(route('dashboard.setting.locations.index'))
-            ->assertOk()->assertSee('لم تُضف مدن بعد.')->assertDontSee('No cities added yet.');
+            ->assertOk()->assertSee('لم تُضف محافظات بعد.')->assertDontSee('No governorates added yet.');
         $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])->get(route('dashboard.setting.locations.index'))
-            ->assertOk()->assertSee('No cities added yet.');
+            ->assertOk()->assertSee('No governorates added yet.');
     }
 
     public function test_the_page_and_its_notices_create_no_translation_row_before_the_seeder_runs(): void
     {
         $admin = $this->admin(['settings.view', 'settings.edit']);
+        $closed = Governorate::query()->create(['name' => 'Closed', 'slug' => 'closed', 'status' => 'inactive']);
 
         $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->get(route('dashboard.setting.locations.index'))
-            ->assertOk()->assertSee('Add city');
-        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.cities.store'), ['name' => 'Gaza'])
+            ->assertOk()->assertSee('Add governorate')->assertSee('Add a governorate before adding its cities.');
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.governorates.store'), ['name' => 'Gaza'])
+            ->assertSessionHas('success', 'Governorate added successfully.');
+        $gaza = Governorate::query()->where('name', 'Gaza')->sole();
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.cities.store'), ['governorate_id' => $gaza->id, 'cities' => ['Rimal']])
             ->assertSessionHas('success', 'City added successfully.');
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.cities.store'), ['governorate_id' => $gaza->id, 'cities' => ['Shati', 'Tal al-Hawa']])
+            ->assertSessionHas('success', 'Cities added successfully.');
+        // A refused submission reads the field names without creating rows either.
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.cities.store'), ['governorate_id' => $closed->id, 'cities' => ['']])
+            ->assertSessionHasErrors(['governorate_id', 'cities']);
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->get(route('dashboard.setting.locations.index'))
+            ->assertOk()->assertSee('Cities: 3')->assertSee('Add city to Gaza');
 
         // Location_Management is the breadcrumb shared with the settings page (a CORRECTIONS key, read with t()).
         $this->assertSame(0, TranslationValue::query()->where('key', 'like', 'dashboard.Location\_%')
@@ -93,53 +109,60 @@ class LocationManagementLocalizationTest extends TestCase
         $this->seed(AdminSettingsTranslationSeeder::class);
         $admin = $this->admin(['settings.view', 'settings.edit']);
 
-        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.cities.store'), ['name' => 'Gaza'])
-            ->assertRedirect()->assertSessionHas('success', 'تمت إضافة المدينة بنجاح.');
-        $city = City::query()->where('name', 'Gaza')->firstOrFail();
-        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.governorates.store'), ['city_id' => $city->id, 'name' => 'Rimal'])
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.governorates.store'), ['name' => 'Gaza'])
             ->assertRedirect()->assertSessionHas('success', 'تمت إضافة المحافظة بنجاح.');
+        $gaza = Governorate::query()->where('name', 'Gaza')->firstOrFail();
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.cities.store'), ['governorate_id' => $gaza->id, 'cities' => ['Rimal']])
+            ->assertRedirect()->assertSessionHas('success', 'تمت إضافة المدينة بنجاح.');
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.cities.store'), ['governorate_id' => $gaza->id, 'cities' => ['Shati', 'Zeitoun']])
+            ->assertRedirect()->assertSessionHas('success', 'تمت إضافة المدن بنجاح.');
 
-        $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])->post(route('dashboard.setting.locations.cities.store'), ['name' => 'Nablus'])
-            ->assertRedirect()->assertSessionHas('success', 'City added successfully.');
-        $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])->post(route('dashboard.setting.locations.governorates.store'), ['city_id' => $city->id, 'name' => 'Shati'])
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])->post(route('dashboard.setting.locations.governorates.store'), ['name' => 'Nablus'])
             ->assertRedirect()->assertSessionHas('success', 'Governorate added successfully.');
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])->post(route('dashboard.setting.locations.cities.store'), ['governorate_id' => $gaza->id, 'cities' => ['Tal al-Hawa']])
+            ->assertRedirect()->assertSessionHas('success', 'City added successfully.');
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])->post(route('dashboard.setting.locations.cities.store'), ['governorate_id' => $gaza->id, 'cities' => ['Daraj', 'Tuffah']])
+            ->assertRedirect()->assertSessionHas('success', 'Cities added successfully.');
 
-        $this->assertSame(['Gaza', 'Nablus'], City::query()->orderBy('name')->pluck('name')->all());
-        $this->assertSame([$city->id, $city->id], Governorate::query()->pluck('city_id')->all());
+        $this->assertSame(['Gaza', 'Nablus'], Governorate::query()->orderBy('name')->pluck('name')->all());
+        $this->assertSame([null, null], Governorate::query()->pluck('city_id')->all(), 'A governorate is never linked to a city.');
+        $this->assertSame(array_fill(0, 6, $gaza->id), City::query()->pluck('governorate_id')->all());
     }
 
-    public function test_multiple_governorates_are_saved_for_the_same_city_in_one_submission(): void
+    public function test_multiple_cities_are_saved_for_the_same_governorate_in_one_submission(): void
     {
         $this->seed(AdminSettingsTranslationSeeder::class);
         $admin = $this->admin(['settings.view', 'settings.edit']);
-        $city = City::query()->create(['name' => 'Gaza', 'slug' => 'gaza']);
+        $gaza = Governorate::query()->create(['name' => 'Gaza', 'slug' => 'gaza']);
 
         $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])
-            ->post(route('dashboard.setting.locations.governorates.store'), [
-                'city_id' => $city->id,
-                'governorates' => ['Rimal', 'Shati', ''],
+            ->post(route('dashboard.setting.locations.cities.store'), [
+                'governorate_id' => $gaza->id,
+                'cities' => ['Rimal', 'Shati', ''],
             ])
             ->assertRedirect()
-            ->assertSessionHas('success', 'Governorates added successfully.');
+            ->assertSessionHas('success', 'Cities added successfully.');
 
-        $this->assertSame(['Rimal', 'Shati'], Governorate::query()->orderBy('name')->pluck('name')->all());
-        $this->assertSame([$city->id, $city->id], Governorate::query()->orderBy('name')->pluck('city_id')->all());
+        $this->assertSame(['Rimal', 'Shati'], City::query()->orderBy('name')->pluck('name')->all());
+        $this->assertSame([$gaza->id, $gaza->id], City::query()->orderBy('name')->pluck('governorate_id')->all());
+        $this->assertNull($gaza->fresh()->city_id);
     }
 
     public function test_the_page_needs_settings_view_and_adding_needs_settings_edit(): void
     {
         $this->get(route('dashboard.setting.locations.index'))->assertRedirect(route('admin.login'));
+        $this->post(route('dashboard.setting.locations.governorates.store'), ['name' => 'Gaza'])->assertRedirect(route('admin.login'));
 
         $this->actingAs($this->admin([]), 'admin')->get(route('dashboard.setting.locations.index'))->assertForbidden();
 
         $viewer = $this->admin(['settings.view']);
         $this->actingAs($viewer, 'admin')->get(route('dashboard.setting.locations.index'))->assertOk();
-        $this->actingAs($viewer, 'admin')->post(route('dashboard.setting.locations.cities.store'), ['name' => 'Gaza'])->assertForbidden();
-        $city = City::query()->create(['name' => 'Nablus', 'slug' => 'nablus']);
-        $this->actingAs($viewer, 'admin')->post(route('dashboard.setting.locations.governorates.store'), ['city_id' => $city->id, 'name' => 'Old City'])->assertForbidden();
+        $this->actingAs($viewer, 'admin')->post(route('dashboard.setting.locations.governorates.store'), ['name' => 'Gaza'])->assertForbidden();
+        $nablus = Governorate::query()->create(['name' => 'Nablus', 'slug' => 'nablus']);
+        $this->actingAs($viewer, 'admin')->post(route('dashboard.setting.locations.cities.store'), ['governorate_id' => $nablus->id, 'cities' => ['Old City']])->assertForbidden();
 
-        $this->assertSame(['Nablus'], City::query()->pluck('name')->all());
-        $this->assertSame(0, Governorate::query()->count());
+        $this->assertSame(['Nablus'], Governorate::query()->pluck('name')->all());
+        $this->assertSame(0, City::query()->count());
     }
 
     /**

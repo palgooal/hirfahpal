@@ -4,12 +4,13 @@
  * - The add links ([data-location-open]) open their dialog as a modal instead of loading ?add=…; Cancel and Close
  *   ([data-location-close]) close it instead of loading the page. Escape closes it (native); a click on the
  *   backdrop does not (D4), so typed text is not lost. Focus goes to the first field to fill and comes back to the
- *   link that opened the dialog. A city's shortcut (data-city-id) chooses that city first (D3).
+ *   link that opened the dialog. A governorate's shortcut (data-governorate-id) chooses that governorate first (D3),
+ *   in the cities form (Governorate → City); the extra city rows ([data-add-city-row]) keep what was typed.
  * - A dialog the server opened (after a failed save, or an add link opened in a new tab) becomes a modal, focus on
  *   its first invalid field; its values and messages stay the server's.
  * - Each form posts once (createSubmitGuard), showing its saving label; a page restored from the back/forward cache
  *   can be submitted again.
- * - The search filters the cities and the unassigned group by city or governorate name, in the page (no request):
+ * - The search filters the governorates and the unassigned cities by governorate or city name, in the page (no request):
  *   letter case, diacritics and the Arabic letter variants are ignored. The count is announced in the status line.
  *
  * Without this script (or without <dialog> support) every link still works through the server.
@@ -34,7 +35,7 @@ export function normalizeSearch(value) {
         .trim();
 }
 
-/** Whether one of the names (one per line: a city and its governorates) contains the query; an empty query matches. */
+/** Whether one of the names (one per line: a governorate and its cities) contains the query; an empty query matches. */
 export function matchesSearch(names, query) {
     const needle = normalizeSearch(query);
 
@@ -119,10 +120,10 @@ export function initLocationsPage(doc = document, win = typeof window !== 'undef
 
                 event.preventDefault();
 
-                const select = dialog.querySelector('select[name="city_id"]');
+                const select = dialog.querySelector('select[name="governorate_id"]');
 
-                if (select && trigger.dataset.cityId) {
-                    select.value = trigger.dataset.cityId;
+                if (select && trigger.dataset.governorateId) {
+                    select.value = trigger.dataset.governorateId;
                 }
 
                 open(dialog, trigger);
@@ -171,11 +172,11 @@ export function initLocationsPage(doc = document, win = typeof window !== 'undef
         }
     }
 
-    page.querySelectorAll('[data-add-governorate-row]').forEach((button) => {
+    page.querySelectorAll('[data-add-city-row]').forEach((button) => {
         button.addEventListener('click', () => {
             const field = button.closest('.admin-cat-form-field');
-            const inputs = field?.querySelector('[data-governorate-inputs]');
-            const template = field?.querySelector('template[data-governorate-row-template]');
+            const inputs = field?.querySelector('[data-city-inputs]');
+            const template = field?.querySelector('template[data-city-row-template]');
 
             if (!inputs || !template) {
                 return;
