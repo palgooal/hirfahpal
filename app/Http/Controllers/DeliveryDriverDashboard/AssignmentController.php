@@ -121,8 +121,12 @@ class AssignmentController extends Controller
         $data = $request->validate(['failure_reason' => ['required', 'string', 'max:1000']]);
 
         DB::transaction(function () use ($request, $assignment, $data): void {
-            [, $lockedAssignment] = $this->lockForDriver($request, $assignment);
+            [$vendorOrder, $lockedAssignment] = $this->lockForDriver($request, $assignment);
             abort_unless(in_array($lockedAssignment->status, ['accepted', 'picked_up', 'out_for_delivery'], true), 422, 'Only active deliveries can be reported as failed.');
+
+            // Older rows created before picked_up_at existed may carry the pickup state without its timestamp.
+            $hadPickedUp = $lockedAssignment->picked_up_at !== null
+                || in_array($lockedAssignment->status, ['picked_up', 'out_for_delivery'], true);
 
             $lockedAssignment->update([
                 'status' => 'failed',
@@ -130,9 +134,44 @@ class AssignmentController extends Controller
                 'failure_reason' => $data['failure_reason'],
             ]);
             $this->recordHistory($lockedAssignment, 'delivery_failed', $data['failure_reason']);
+
+            // No package has left the vendor yet: reopen the order immediately for a new assignment.
+            if (! $hadPickedUp) {
+                $vendorOrder->update([
+                    'status' => 'ready_for_delivery',
+                    'delivery_driver_id' => null,
+                ]);
+            }
         });
 
         return $this->assignmentResponse($request, $assignment, 'Delivery failure reported.');
+    }
+
+    /**
+     * A failed delivery after pickup remains in the driver's custody until it is returned to the vendor.
+     * Only then may the order be put back in the assignment queue.
+     */
+    public function returnToVendor(Request $request, DeliveryAssignment $assignment, OrderStatusLifecycle $orders): JsonResponse|RedirectResponse
+    {
+        $this->authorizeAssignment($request, $assignment);
+
+        DB::transaction(function () use ($request, $assignment, $orders): void {
+            [$vendorOrder, $lockedAssignment] = $this->lockForDriver($request, $assignment);
+            abort_unless($lockedAssignment->status === 'failed' && $vendorOrder->status === 'out_for_delivery', 422, 'Only a picked-up failed delivery can be returned.');
+
+            $lockedAssignment->update([
+                'status' => 'cancelled',
+                'returned_at' => $lockedAssignment->returned_at ?? now(),
+            ]);
+            $vendorOrder->update([
+                'status' => 'ready_for_delivery',
+                'delivery_driver_id' => null,
+            ]);
+            $this->recordHistory($lockedAssignment, 'returned_to_vendor');
+            $orders->syncParentForVendorOrder($vendorOrder);
+        });
+
+        return $this->assignmentResponse($request, $assignment, 'Shipment returned to vendor and ready for reassignment.');
     }
 
     private function authorizeAssignment(Request $request, DeliveryAssignment $assignment): void

@@ -16,6 +16,7 @@ class DeliveryAssignment extends Model
         'delivered_at',
         'failed_at',
         'failure_reason',
+        'returned_at',
         'notes',
     ];
 
@@ -26,6 +27,7 @@ class DeliveryAssignment extends Model
             'picked_up_at' => 'datetime',
             'delivered_at' => 'datetime',
             'failed_at' => 'datetime',
+            'returned_at' => 'datetime',
         ];
     }
 

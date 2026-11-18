@@ -319,6 +319,8 @@ foreach (AccountGuard::all() as $accountType => $account) {
                                 ->name('dashboard.assignments.delivered');
                             Route::patch('assignments/{assignment}/failed', [DeliveryDriverAssignmentController::class, 'markFailed'])
                                 ->name('dashboard.assignments.failed');
+                            Route::patch('assignments/{assignment}/return-to-vendor', [DeliveryDriverAssignmentController::class, 'returnToVendor'])
+                                ->name('dashboard.assignments.return-to-vendor');
                         });
 
                         return;

@@ -70,6 +70,9 @@
                         @elseif (in_array($assignment->status, ['picked_up', 'out_for_delivery'], true))
                             <form method="POST" action="{{ route('delivery-driver.dashboard.assignments.delivered', $assignment) }}">@csrf @method('PATCH')<button class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white">تم التسليم</button></form>
                             <form method="POST" action="{{ route('delivery-driver.dashboard.assignments.failed', $assignment) }}" class="flex flex-wrap gap-2">@csrf @method('PATCH')<input name="failure_reason" required maxlength="1000" class="rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="سبب تعذر التوصيل"><button class="rounded-xl border border-red-200 px-4 py-2 text-sm font-bold text-red-700">تعذر التوصيل</button></form>
+                        @elseif ($assignment->status === 'failed' && $vendorOrder->status === 'out_for_delivery')
+                            <div class="w-full rounded-xl bg-amber-50 p-3 text-sm text-amber-900">يجب إعادة الشحنة إلى البائع قبل إسنادها إلى سائق آخر.</div>
+                            <form method="POST" action="{{ route('delivery-driver.dashboard.assignments.return-to-vendor', $assignment) }}">@csrf @method('PATCH')<button class="rounded-xl border border-amber-300 px-4 py-2 text-sm font-bold text-amber-900">تمت إعادة الشحنة إلى البائع</button></form>
                         @endif
                     </div>
                 </article>

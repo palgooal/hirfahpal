@@ -30,6 +30,10 @@ class AdminVendorOrderTranslationSeeder extends Seeder
             'ar' => 'تم تسليم هذا الطلب، لذلك لم يعد بالإمكان إسناد مندوب توصيل له.',
             'en' => 'This order has been delivered, so a driver can no longer be assigned.',
         ],
+        'dashboard.Vendor_Order_Assignment_In_Custody' => [
+            'ar' => 'هذه الشحنة في حيازة التوصيل. عند تعذر التسليم بعد الاستلام، يجب أن يعيدها المندوب إلى البائع قبل إسنادها من جديد.',
+            'en' => 'This shipment is in delivery custody. If delivery failed after pickup, the driver must return it to the vendor before a new driver can be assigned.',
+        ],
     ];
 
     public function run(): void

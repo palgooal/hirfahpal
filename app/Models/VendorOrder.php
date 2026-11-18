@@ -65,7 +65,13 @@ class VendorOrder extends Model
 
     public function deliveryAssignment()
     {
-        return $this->hasOne(DeliveryAssignment::class);
+        return $this->hasOne(DeliveryAssignment::class)->latestOfMany();
+    }
+
+    /** Every delivery attempt is retained; deliveryAssignment() is the current/latest one. */
+    public function deliveryAssignments()
+    {
+        return $this->hasMany(DeliveryAssignment::class);
     }
 
     public function stockReservations()

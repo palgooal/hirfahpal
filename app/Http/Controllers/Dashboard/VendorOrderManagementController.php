@@ -22,7 +22,7 @@ class VendorOrderManagementController extends Controller
      * for Delivery, plus the current reassignment from Assigned and Out for Delivery, kept for now as the only recovery
      * paths (reassignment rules and assignment history are not decided yet). Every other status is refused with 422.
      */
-    public const ASSIGNABLE_STATUSES = ['ready_for_delivery', 'assigned', 'out_for_delivery'];
+    public const ASSIGNABLE_STATUSES = ['ready_for_delivery', 'assigned'];
 
     /** VEN-BE-020 (slice 2A): statuses before Ready for Delivery, explained on the order page instead of the form. */
     public const NOT_READY_STATUSES = ['pending', 'accepted', 'preparing'];
@@ -156,22 +156,38 @@ class VendorOrderManagementController extends Controller
             abort_unless(in_array($lockedOrder->status, self::ASSIGNABLE_STATUSES, true), 422);
             // VEN-BE-020 (slice 2B-1): then its assignment row, the same vendor order → assignment order the driver actions
             // use, so a reassignment and a driver action wait for each other instead of deadlocking.
-            DeliveryAssignment::query()->where('vendor_order_id', $lockedOrder->id)->lockForUpdate()->get();
+            $currentAssignment = DeliveryAssignment::query()
+                ->where('vendor_order_id', $lockedOrder->id)
+                ->latest('id')
+                ->lockForUpdate()
+                ->first();
 
-            DeliveryAssignment::updateOrCreate(
-                ['vendor_order_id' => $lockedOrder->id],
-                [
-                    'delivery_driver_id' => $data['delivery_driver_id'],
-                    'assigned_by' => $request->user('admin')->id,
-                    'status' => 'assigned',
-                    'assigned_at' => now(),
-                    'notes' => $data['notes'] ?? null,
-                ]
-            );
+            $assignmentData = [
+                'delivery_driver_id' => $data['delivery_driver_id'],
+                'assigned_by' => $request->user('admin')->id,
+                'status' => 'assigned',
+                'assigned_at' => now(),
+                'notes' => $data['notes'] ?? null,
+            ];
+
+            // A task merely assigned (not accepted) can be corrected in place. Once a driver has accepted it,
+            // retain that attempt and start a new one instead of silently changing custody history.
+            if ($currentAssignment?->status === 'assigned') {
+                $currentAssignment->update($assignmentData);
+            } else {
+                if ($lockedOrder->status === 'assigned' && $currentAssignment?->status === 'accepted') {
+                    $currentAssignment->update(['status' => 'cancelled']);
+                }
+
+                DeliveryAssignment::query()->create([
+                    'vendor_order_id' => $lockedOrder->id,
+                    ...$assignmentData,
+                ]);
+            }
 
             $lockedOrder->update([
                 'delivery_driver_id' => $data['delivery_driver_id'],
-                'status' => $lockedOrder->status === 'ready_for_delivery' ? 'assigned' : $lockedOrder->status,
+                'status' => 'assigned',
             ]);
         });
 

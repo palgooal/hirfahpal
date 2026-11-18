@@ -44,9 +44,9 @@ class AdminVendorOrderAssignmentTest extends TestCase
 
     // ---------------------------------------------------------------- the rule
 
-    public function test_the_assignable_statuses_are_ready_assigned_and_out_for_delivery(): void
+    public function test_the_assignable_statuses_are_ready_and_assigned(): void
     {
-        $this->assertSame(['ready_for_delivery', 'assigned', 'out_for_delivery'], VendorOrderManagementController::ASSIGNABLE_STATUSES);
+        $this->assertSame(['ready_for_delivery', 'assigned'], VendorOrderManagementController::ASSIGNABLE_STATUSES);
         $this->assertSame(['pending', 'accepted', 'preparing'], VendorOrderManagementController::NOT_READY_STATUSES);
     }
 
@@ -82,7 +82,7 @@ class AdminVendorOrderAssignmentTest extends TestCase
 
         $this->assertSame([
             'pending' => 422, 'accepted' => 422, 'preparing' => 422, 'ready_for_delivery' => 302, 'assigned' => 302,
-            'out_for_delivery' => 302, 'delivered' => 422, 'completed' => 422, 'rejected' => 422, 'cancelled' => 422,
+            'out_for_delivery' => 422, 'delivered' => 422, 'completed' => 422, 'rejected' => 422, 'cancelled' => 422,
         ], $outcomes);
     }
 
@@ -101,7 +101,7 @@ class AdminVendorOrderAssignmentTest extends TestCase
 
     // ---------------------------------------------------------------- kept for now (transitional)
 
-    public function test_reassignment_from_assigned_is_kept_and_reuses_the_row(): void
+    public function test_reassignment_after_acceptance_preserves_the_previous_attempt(): void
     {
         $first = $this->driver();
         $second = $this->driver();
@@ -110,12 +110,14 @@ class AdminVendorOrderAssignmentTest extends TestCase
 
         $this->assign($order, $second)->assertRedirect()->assertSessionHas('success');
 
-        $this->assertSame(1, DeliveryAssignment::count(), 'The row is overwritten (no history yet: slice 2D).');
-        $this->assertSame([$assignment->id, $second->id, 'assigned'], [DeliveryAssignment::sole()->id, DeliveryAssignment::sole()->delivery_driver_id, DeliveryAssignment::sole()->status]);
+        $this->assertSame(2, DeliveryAssignment::count());
+        $this->assertSame('cancelled', $assignment->fresh()->status);
+        $current = DeliveryAssignment::latest('id')->firstOrFail();
+        $this->assertSame([$second->id, 'assigned'], [$current->delivery_driver_id, $current->status]);
         $this->assertSame(['assigned', $second->id], [$order->fresh()->status, $order->fresh()->delivery_driver_id]);
     }
 
-    public function test_reassignment_from_out_for_delivery_is_kept_as_today_including_its_known_risks(): void
+    public function test_reassignment_from_out_for_delivery_is_refused_to_protect_custody(): void
     {
         // The recovery path after a failed delivery (slice 2C is not decided).
         $first = $this->driver();
@@ -123,21 +125,10 @@ class AdminVendorOrderAssignmentTest extends TestCase
         $failed = $this->vendorOrder('out_for_delivery', $first);
         $this->assignmentRow($failed, $first, 'failed', ['picked_up_at' => '2026-10-02 10:00:00', 'failed_at' => '2026-10-02 11:00:00', 'failure_reason' => 'Customer unreachable.']);
 
-        $this->assign($failed, $second)->assertRedirect()->assertSessionHas('success');
-
+        $this->assign($failed, $second)->assertStatus(422);
         $row = DeliveryAssignment::where('vendor_order_id', $failed->id)->sole();
-        $this->assertSame([$second->id, 'assigned', 'Customer unreachable.'], [$row->delivery_driver_id, $row->status, $row->failure_reason], 'The failure fields are left as they were.');
-        $this->assertNotNull($row->failed_at);
-        $this->assertSame(['out_for_delivery', $second->id], [$failed->fresh()->status, $failed->fresh()->delivery_driver_id]);
-
-        // UNRESOLVED (slice 2B): a picked-up delivery can still be moved to another driver; the goods are with the first.
-        $pickedUp = $this->vendorOrder('out_for_delivery', $first);
-        $this->assignmentRow($pickedUp, $first, 'picked_up', ['picked_up_at' => '2026-10-02 10:00:00']);
-
-        $this->assign($pickedUp, $second)->assertRedirect();
-
-        $this->assertSame([$second->id, 'assigned'], [DeliveryAssignment::where('vendor_order_id', $pickedUp->id)->sole()->delivery_driver_id, DeliveryAssignment::where('vendor_order_id', $pickedUp->id)->sole()->status]);
-        $this->assertSame('out_for_delivery', $pickedUp->fresh()->status);
+        $this->assertSame([$first->id, 'failed', 'Customer unreachable.'], [$row->delivery_driver_id, $row->status, $row->failure_reason]);
+        $this->assertSame(['out_for_delivery', $first->id], [$failed->fresh()->status, $failed->fresh()->delivery_driver_id]);
     }
 
     public function test_an_early_assigned_order_is_refused_until_ready_then_assigned(): void
@@ -239,7 +230,7 @@ class AdminVendorOrderAssignmentTest extends TestCase
         $this->seedTexts();
         $expected = [
             'pending' => 'not_ready', 'accepted' => 'not_ready', 'preparing' => 'not_ready', 'ready_for_delivery' => 'form', 'assigned' => 'form',
-            'out_for_delivery' => 'form', 'delivered' => 'delivered', 'completed' => 'closed', 'rejected' => 'closed', 'cancelled' => 'closed',
+            'out_for_delivery' => 'custody', 'delivered' => 'delivered', 'completed' => 'closed', 'rejected' => 'closed', 'cancelled' => 'closed',
         ];
 
         foreach ($expected as $status => $shown) {
@@ -249,6 +240,7 @@ class AdminVendorOrderAssignmentTest extends TestCase
                 str_contains($html, 'action="'.e(route('dashboard.vendor-orders.assign-driver', $order)).'"') => 'form',
                 str_contains($html, 'A driver can be assigned once the vendor marks this order ready for delivery.') => 'not_ready',
                 str_contains($html, 'This order has been delivered, so a driver can no longer be assigned.') => 'delivered',
+                str_contains($html, 'This shipment is in delivery custody.') => 'custody',
                 str_contains($html, 'Closed orders cannot be assigned to a driver.') => 'closed',
                 default => 'none',
             };
@@ -264,6 +256,7 @@ class AdminVendorOrderAssignmentTest extends TestCase
         foreach (['ar', 'en'] as $locale) {
             $this->assertStringContainsString(e($t['dashboard.Vendor_Order_Assignment_Not_Ready'][$locale]), $this->page($this->vendorOrder('accepted'), $locale), $locale);
             $this->assertStringContainsString(e($t['dashboard.Vendor_Order_Assignment_Delivered'][$locale]), $this->page($this->vendorOrder('delivered'), $locale), $locale);
+            $this->assertStringContainsString(e($t['dashboard.Vendor_Order_Assignment_In_Custody'][$locale]), $this->page($this->vendorOrder('out_for_delivery'), $locale), $locale);
         }
     }
 
@@ -281,7 +274,7 @@ class AdminVendorOrderAssignmentTest extends TestCase
 
     // ---------------------------------------------------------------- the texts
 
-    public function test_the_seeder_holds_exactly_the_two_texts_with_the_pages_english_defaults(): void
+    public function test_the_seeder_holds_the_assignment_texts_with_the_pages_english_defaults(): void
     {
         $view = file_get_contents(resource_path('views/dashboard/vendor-orders/show.blade.php'));
         preg_match_all("/t\\('(dashboard\\.Vendor_Order_Assignment_[A-Za-z_]+)', '([^']+)'\\)/", $view, $matches, PREG_SET_ORDER);
@@ -305,7 +298,7 @@ class AdminVendorOrderAssignmentTest extends TestCase
         $this->seed(AdminVendorOrderTranslationSeeder::class);
         $this->seed(AdminVendorOrderTranslationSeeder::class);
 
-        $this->assertSame(4, TranslationValue::where('key', 'like', 'dashboard.Vendor_Order_Assignment_%')->count());
+        $this->assertSame(6, TranslationValue::where('key', 'like', 'dashboard.Vendor_Order_Assignment_%')->count());
         $this->assertSame('نص معدّل', TranslationValue::where('key', 'dashboard.Vendor_Order_Assignment_Not_Ready')->where('locale', 'ar')->value('value'), 'An edited value is kept.');
         $this->assertStringNotContainsString('AdminVendorOrderTranslationSeeder', file_get_contents((new \ReflectionClass(DatabaseSeeder::class))->getFileName()));
     }

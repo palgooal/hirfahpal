@@ -104,6 +104,9 @@
                     <div class="alert alert-info">
                         <div class="fw-semibold">{{ $assignment->deliveryDriver?->name }}</div>
                         <div>{{ t('dashboard.Assigned', 'Assigned') }}: {{ $assignment->assigned_at?->format('Y-m-d H:i') ?? '-' }}</div>
+                        @if ($assignment->status === 'failed' && $vendorOrder->status === 'out_for_delivery')
+                            <div class="mt-2 text-warning">{{ t('dashboard.Return_required_before_reassignment', 'The shipment must be returned to the vendor before it can be assigned again.') }}</div>
+                        @endif
                     </div>
                 @endif
 
@@ -111,6 +114,8 @@
                     <p class="text-muted mb-0">{{ t('dashboard.Vendor_Order_Assignment_Not_Ready', 'A driver can be assigned once the vendor marks this order ready for delivery.') }}</p>
                 @elseif ($vendorOrder->status === 'delivered')
                     <p class="text-muted mb-0">{{ t('dashboard.Vendor_Order_Assignment_Delivered', 'This order has been delivered, so a driver can no longer be assigned.') }}</p>
+                @elseif ($vendorOrder->status === 'out_for_delivery')
+                    <p class="text-muted mb-0">{{ t('dashboard.Vendor_Order_Assignment_In_Custody', 'This shipment is in delivery custody. If delivery failed after pickup, the driver must return it to the vendor before a new driver can be assigned.') }}</p>
                 @elseif ($canAssign && $assignable)
                     <form action="{{ route('dashboard.vendor-orders.assign-driver', $vendorOrder) }}" method="POST">
                         @csrf

@@ -97,7 +97,7 @@ class DeliveryAssignmentIntegrityTest extends TestCase
 
         $failing = $this->assignment($driver, 'accepted', 'assigned');
         $this->act($driver, 'failed', $failing, ['failure_reason' => 'Vehicle broke down.'])->assertOk();
-        $this->assertSame(['failed', 'Vehicle broke down.', 'assigned'], [$failing->fresh()->status, $failing->fresh()->failure_reason, $failing->vendorOrder->fresh()->status], 'Failure still leaves the vendor order as it was.');
+        $this->assertSame(['failed', 'Vehicle broke down.', 'ready_for_delivery'], [$failing->fresh()->status, $failing->fresh()->failure_reason, $failing->vendorOrder->fresh()->status], 'A failure before pickup reopens the order for a new assignment.');
     }
 
     // ---------------------------------------------------------------- ownership
@@ -150,9 +150,10 @@ class DeliveryAssignmentIntegrityTest extends TestCase
 
         $this->actingAs($admin, 'admin')->patch(route('dashboard.vendor-orders.assign-driver', $assignment->vendorOrder), ['delivery_driver_id' => $replacement->id])->assertRedirect();
 
-        $this->act($original, 'pick-up', $assignment)->assertNotFound();
-        $this->act($replacement, 'pick-up', $assignment)->assertOk();
-        $this->assertSame([$replacement->id, 'picked_up'], [$assignment->fresh()->delivery_driver_id, $assignment->fresh()->status]);
+        $replacementAssignment = DeliveryAssignment::latest('id')->firstOrFail();
+        $this->act($original, 'pick-up', $assignment)->assertUnprocessable();
+        $this->act($replacement, 'pick-up', $replacementAssignment)->assertOk();
+        $this->assertSame([$replacement->id, 'picked_up'], [$replacementAssignment->fresh()->delivery_driver_id, $replacementAssignment->fresh()->status]);
         $this->assertSame([$replacement->id], OrderStatusHistory::pluck('actor_id')->all());
     }
 

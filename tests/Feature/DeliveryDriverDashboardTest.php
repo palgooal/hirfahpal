@@ -115,6 +115,28 @@ class DeliveryDriverDashboardTest extends TestCase
         $this->assertSame(1, OrderStatusHistory::count());
     }
 
+    public function test_failed_delivery_after_pickup_must_be_returned_before_reassignment(): void
+    {
+        $driver = $this->approvedDriver();
+        $assignment = $this->assignmentFor($driver, 'picked_up', 'out_for_delivery');
+        $assignment->update(['picked_up_at' => now()]);
+
+        $this->actingAs($driver, 'delivery_driver')
+            ->patchJson(route('delivery-driver.dashboard.assignments.failed', $assignment), ['failure_reason' => 'Customer unavailable.'])
+            ->assertOk();
+
+        $this->assertSame('out_for_delivery', $assignment->vendorOrder->fresh()->status);
+
+        $this->actingAs($driver, 'delivery_driver')
+            ->patchJson(route('delivery-driver.dashboard.assignments.return-to-vendor', $assignment))
+            ->assertOk()
+            ->assertJsonPath('assignment.status', 'cancelled');
+
+        $this->assertNotNull($assignment->fresh()->returned_at);
+        $this->assertSame(['ready_for_delivery', null], [$assignment->vendorOrder->fresh()->status, $assignment->vendorOrder->fresh()->delivery_driver_id]);
+        $this->assertDatabaseHas('order_status_histories', ['vendor_order_id' => $assignment->vendor_order_id, 'status' => 'returned_to_vendor']);
+    }
+
     public function test_driver_cannot_change_another_drivers_assignment(): void
     {
         $driver = $this->approvedDriver();
