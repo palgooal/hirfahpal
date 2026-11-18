@@ -64,6 +64,26 @@ class AdminLocationsScriptTest extends TestCase
         $this->assertSame(4, substr_count($view, 'href="{{ $locationsUrl }}" data-location-close'));
     }
 
+    public function test_the_page_and_the_script_share_the_governorate_to_city_hooks(): void
+    {
+        $view = file_get_contents(resource_path('views/dashboard/settings/locations.blade.php'));
+        $source = file_get_contents(base_path(self::SCRIPT));
+
+        // H2-C: a governorate's shortcut preselects it in the cities form (&governorate= without the script), and the
+        // extra rows belong to the cities form.
+        $this->assertStringContainsString("\$addUrl(['add' => 'city', 'governorate' => \$governorate->id], 'location-city-dialog')", $view);
+        $this->assertStringContainsString('data-governorate-id="{{ $governorate->id }}"', $view);
+        $this->assertStringContainsString("dialog.querySelector('select[name=\"governorate_id\"]')", $source);
+        $this->assertStringContainsString('trigger.dataset.governorateId', $source);
+        foreach (['data-add-city-row', 'data-city-inputs', 'data-city-row-template'] as $hook) {
+            $this->assertStringContainsString($hook, $view, $hook);
+            $this->assertStringContainsString($hook, $source, $hook);
+        }
+        foreach (['data-city-id', 'cityId', 'select[name="city_id"]', 'data-add-governorate-row', 'data-governorate-inputs', 'data-governorate-row-template', 'name="governorates[]"', 'name="city_id"'] as $old) {
+            $this->assertStringNotContainsString($old, $view.$source, $old);
+        }
+    }
+
     private function node(): string
     {
         foreach (['node', 'node.exe'] as $candidate) {

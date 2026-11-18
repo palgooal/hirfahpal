@@ -83,10 +83,27 @@
         <input type="tel" name="phone" value="{{ old('phone', $editingAddress?->phone) }}" required placeholder="05xxxxxxxx"
           class="h-12 w-full rounded-[14px] border border-line bg-canvas px-4 text-sm outline-none transition-colors focus:border-olive">
       </label>
+      @php
+        // Governorate → City. Nothing is preselected unless submitted or stored, and a stored value the active lists no
+        // longer offer (inactive, or a city outside them) stays as a selected option, never disabled: disabled options
+        // are not submitted, and the stored pair must survive unrelated edits. Every option is rendered, so the form works
+        // without JavaScript; storefront-addresses.js narrows the cities to the chosen governorate (data-governorate-id).
+        $selectedGovernorate = (string) old('governorate_id', $editingAddress?->governorate_id);
+        $selectedCity = (string) old('city_id', $editingAddress?->city_id);
+        $unavailableGovernorate = $editingAddress?->governorate_id && ! $governorates->contains('id', $editingAddress->governorate_id) ? $editingAddress->governorate : null;
+        $unavailableCity = $editingAddress?->city_id && ! $governorates->pluck('cities')->flatten()->contains('id', $editingAddress->city_id) ? $editingAddress->city : null;
+      @endphp
       <label class="text-start sm:col-span-2">
         <span class="mb-2 block text-sm font-semibold leading-5 text-ink">المحافظة</span>
-        <select name="governorate_id"
-          class="h-12 w-full rounded-[14px] border border-line bg-canvas px-4 text-sm outline-none transition-colors focus:border-olive">@foreach ($governorates as $governorate)<option value="{{ $governorate->id }}" @selected(old('governorate_id', $editingAddress?->governorate_id) == $governorate->id)>{{ $governorate->name }}</option>@endforeach</select>
+        <select id="address-governorate" name="governorate_id" @error('governorate_id') aria-invalid="true" aria-describedby="address-governorate-error" @enderror
+          class="h-12 w-full rounded-[14px] border @error('governorate_id') border-[#A13D2B]/60 @else border-line @enderror bg-canvas px-4 text-sm outline-none transition-colors focus:border-olive"><option value="" @selected($selectedGovernorate === '')>— اختر المحافظة —</option>@if ($unavailableGovernorate)<option value="{{ $unavailableGovernorate->id }}" @selected($selectedGovernorate === (string) $unavailableGovernorate->id)>{{ $unavailableGovernorate->name }} (غير متاحة)</option>@endif @foreach ($governorates as $governorate)<option value="{{ $governorate->id }}" @selected($selectedGovernorate === (string) $governorate->id)>{{ $governorate->name }}</option>@endforeach</select>
+        @error('governorate_id')<p id="address-governorate-error" class="mt-1.5 text-xs font-semibold text-[#A13D2B]">{{ $message }}</p>@enderror
+      </label>
+      <label class="text-start sm:col-span-2">
+        <span class="mb-2 block text-sm font-semibold leading-5 text-ink">المدينة <span class="font-normal text-muted">(اختياري)</span></span>
+        <select id="address-city" name="city_id" @error('city_id') aria-invalid="true" aria-describedby="address-city-error" @enderror
+          class="h-12 w-full rounded-[14px] border @error('city_id') border-[#A13D2B]/60 @else border-line @enderror bg-canvas px-4 text-sm outline-none transition-colors focus:border-olive"><option value="" @selected($selectedCity === '')>— بدون مدينة —</option>@if ($unavailableCity)<option value="{{ $unavailableCity->id }}" data-governorate-id="{{ $unavailableCity->governorate_id }}" @selected($selectedCity === (string) $unavailableCity->id)>{{ $unavailableCity->name }} (غير متاحة)</option>@endif @foreach ($governorates as $governorate)@if ($governorate->cities->isNotEmpty())<optgroup label="{{ $governorate->name }}" data-governorate-id="{{ $governorate->id }}">@foreach ($governorate->cities as $city)<option value="{{ $city->id }}" @selected($selectedCity === (string) $city->id)>{{ $city->name }}</option>@endforeach</optgroup>@endif @endforeach</select>
+        @error('city_id')<p id="address-city-error" class="mt-1.5 text-xs font-semibold text-[#A13D2B]">{{ $message }}</p>@enderror
       </label>
       <label class="text-start sm:col-span-2">
         <span class="mb-2 block text-sm font-semibold leading-5 text-ink">الشارع ووصف العنوان</span>

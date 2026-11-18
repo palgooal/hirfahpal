@@ -27,6 +27,9 @@
         'invalid' => t('vendor.My_Store_Error_Invalid', 'Please check this value.'),
         'selectCity' => t('vendor.Product_City_Select', 'Choose a city'),
         'selectGovernorate' => t('vendor.Product_Governorate_Select', 'Choose a governorate'),
+        // H1-J: read without creating translation rows while the keys are not seeded yet.
+        'cityMismatch' => \App\Http\Requests\VendorDashboard\UpdateProfileRequest::cityGovernorateMismatchMessage(),
+        'locationUnavailable' => \App\Http\Requests\VendorDashboard\UpdateProfileRequest::locationUnavailableLabel(),
         // MYSTORE-UX-01D: shown in the save bar while profile changes are unsaved.
         'unsaved' => t('vendor.My_Store_Unsaved', 'You have unsaved changes'),
         // MYSTORE-UI-01C: the logo section's messages ("Uploading…" and "Saving…" are the product gallery's).
@@ -154,15 +157,16 @@
                         <div class="card-body">
                             <h2 id="vendor-store-location-title" class="vendor-section-title">{{ t('vendor.My_Store_Location', 'Location') }}</h2>
 
-                            <div class="vendor-field">
-                                <label class="vendor-label" for="vendor-field-city">{{ t('vendor.My_Store_City', 'City') }}</label>
-                                <select class="vendor-input" id="vendor-field-city" name="city_id" disabled aria-describedby="vendor-error-city_id"></select>
-                                <p class="vendor-field-error" id="vendor-error-city_id" data-error-for="city_id" hidden></p>
-                            </div>
+                            {{-- Governorate → City: the city list follows the chosen governorate. --}}
                             <div class="vendor-field">
                                 <label class="vendor-label" for="vendor-field-governorate">{{ t('vendor.My_Store_Governorate', 'Governorate') }}</label>
                                 <select class="vendor-input" id="vendor-field-governorate" name="governorate_id" disabled aria-describedby="vendor-error-governorate_id"></select>
                                 <p class="vendor-field-error" id="vendor-error-governorate_id" data-error-for="governorate_id" hidden></p>
+                            </div>
+                            <div class="vendor-field">
+                                <label class="vendor-label" for="vendor-field-city">{{ t('vendor.My_Store_City', 'City') }}</label>
+                                <select class="vendor-input" id="vendor-field-city" name="city_id" disabled aria-describedby="vendor-error-city_id"></select>
+                                <p class="vendor-field-error" id="vendor-error-city_id" data-error-for="city_id" hidden></p>
                             </div>
 
                             <div class="vendor-field">

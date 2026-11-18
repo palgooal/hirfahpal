@@ -129,14 +129,14 @@ class VendorProductEditorUiTest extends TestCase
         foreach (['Add product', 'Basic information', 'Pricing and inventory', 'Shipping and dimensions', 'Craft, care and delivery', 'Back to products', '>kg<', '>ton<', '>cm<', 'SKU', 'Regular price', 'Must be lower than the regular price.', 'Product images', 'Main product image', 'Choose from media', 'Product gallery', 'Add gallery image', 'Choose an image from media', 'Upload new image', 'Save product', 'Cancel'] as $text) {
             $this->assertStringContainsString($text, $html, $text);
         }
+        // Products inherit the store's location: the editor has no city or governorate selector.
+        $this->assertDoesNotMatchRegularExpression('/name="(city_id|governorate_id)"|id="vendor-product-(city|governorate)"|data-error-for="(city_id|governorate_id)"/', $html);
         $this->assertSame([
             'add' => 'Add product',
             'edit' => 'Edit product',
             'headingAdd' => 'Add Product',
             'headingEdit' => 'Edit Product',
             'noCategory' => 'Choose a category',
-            'cityPrompt' => 'Choose a city',
-            'governoratePrompt' => 'Choose a governorate',
             'categoriesLoading' => 'Loading categories…',
             'categoryInactive' => ':name (inactive)',
             'confirmDelete' => 'Delete this product? This cannot be undone.',

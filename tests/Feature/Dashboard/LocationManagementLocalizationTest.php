@@ -18,9 +18,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * The cities and governorates page (dashboard/settings/locations), its two notices, and the vendor product's
- * governorate/city mismatch message: in the page language, from the seeders, without creating translation rows;
- * the page's authorization and the product validation unchanged.
+ * The governorates and cities page (dashboard/settings/locations, Governorate → City) and its notices: in the page
+ * language, from the seeders, without creating translation rows; the page's authorization unchanged. Products inherit the store's location,
+ * so the vendor product endpoints ignore a submitted city or governorate.
  */
 class LocationManagementLocalizationTest extends TestCase
 {
@@ -38,15 +38,16 @@ class LocationManagementLocalizationTest extends TestCase
     {
         $this->seed(AdminSettingsTranslationSeeder::class);
         $this->seed(AdminHomeTranslationSeeder::class);
-        $city = City::query()->create(['name' => 'Gaza', 'slug' => 'gaza']);
-        Governorate::query()->create(['city_id' => $city->id, 'name' => 'Rimal', 'slug' => 'rimal']);
-        Governorate::query()->create(['city_id' => $city->id, 'name' => 'Shati', 'slug' => 'shati']);
-        City::query()->create(['name' => 'Nablus', 'slug' => 'nablus']);
+        $gaza = Governorate::query()->create(['name' => 'Gaza', 'slug' => 'gaza']);
+        City::query()->create(['governorate_id' => $gaza->id, 'name' => 'Rimal', 'slug' => 'rimal']);
+        City::query()->create(['governorate_id' => $gaza->id, 'name' => 'Shati', 'slug' => 'shati']);
+        Governorate::query()->create(['name' => 'Nablus', 'slug' => 'nablus']);
+        City::query()->create(['name' => 'Legacy', 'slug' => 'legacy']);
         $admin = $this->admin(['settings.view', 'settings.edit']);
 
         $pages = [
-            'ar' => ['rtl', ['إدارة المدن والمحافظات', 'المدن', 'أضف المدينة أولًا، ثم أضف محافظاتها.', 'المدينة', 'إضافة مدينة', 'المحافظات', 'اختر المدينة', 'المحافظة', 'إضافة محافظة', 'المواقع المضافة', 'لم تُضف محافظات بعد.', 'Rimal', 'Shati', 'عدد المحافظات: 2'], ['Add city', 'Configured locations', 'No governorates added yet.']],
-            'en' => ['ltr', ['Manage cities and governorates', 'Cities', 'Add a city before adding its governorates.', 'Add city', 'Governorates', 'Choose a city', 'Add governorate', 'Configured locations', 'No governorates added yet.', 'Rimal', 'Shati', 'Governorates: 2'], ['إضافة مدينة', 'المواقع المضافة']],
+            'ar' => ['rtl', ['إدارة المدن والمحافظات', 'أدر المحافظات والمدن التابعة لها.', 'المحافظات', 'أضف المحافظة أولًا، ثم أضف مدنها.', 'المحافظة', 'إضافة محافظة', 'المدن', 'اختر المحافظة التي تتبع لها هذه المدن.', 'اختر المحافظة', 'إضافة مدينة', 'المواقع المضافة', 'لم تُضف مدن بعد.', 'Rimal', 'Shati', 'عدد المدن: 2', 'إضافة مدينة إلى Gaza', 'مدن غير مرتبطة بمحافظة', 'غير المرتبطة: 1'], ['Add city', 'Add governorate', 'Configured locations', 'No cities added yet.', 'Cities without a governorate']],
+            'en' => ['ltr', ['Manage cities and governorates', 'Manage the governorates and the cities that belong to them.', 'Governorates', 'Add a governorate before adding its cities.', 'Add governorate', 'Cities', 'Choose the governorate these cities belong to.', 'Choose a governorate', 'Add city', 'Configured locations', 'No cities added yet.', 'Rimal', 'Shati', 'Cities: 2', 'Add city to Gaza', 'Cities without a governorate', 'Unassigned: 1'], ['إضافة مدينة', 'المواقع المضافة']],
         ];
 
         foreach ($pages as $locale => [$direction, $seen, $unseen]) {
@@ -60,6 +61,10 @@ class LocationManagementLocalizationTest extends TestCase
             foreach ($unseen as $text) {
                 $this->assertStringNotContainsString(e($text), $html, "{$locale}: {$text}");
             }
+            // None of the reverse hierarchy's wording is left.
+            foreach (['Add a city before adding its governorates.', 'Choose the city this governorate belongs to.', 'Unassigned governorates', 'product locations', 'أضف المدينة أولًا، ثم أضف محافظاتها.', 'اختر المدينة التي تتبع لها هذه المحافظة.'] as $old) {
+                $this->assertStringNotContainsString(e($old), $html, "{$locale}: {$old}");
+            }
         }
     }
 
@@ -69,19 +74,30 @@ class LocationManagementLocalizationTest extends TestCase
         $admin = $this->admin(['settings.view']);
 
         $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->get(route('dashboard.setting.locations.index'))
-            ->assertOk()->assertSee('لم تُضف مدن بعد.')->assertDontSee('No cities added yet.');
+            ->assertOk()->assertSee('لم تُضف محافظات بعد.')->assertDontSee('No governorates added yet.');
         $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])->get(route('dashboard.setting.locations.index'))
-            ->assertOk()->assertSee('No cities added yet.');
+            ->assertOk()->assertSee('No governorates added yet.');
     }
 
     public function test_the_page_and_its_notices_create_no_translation_row_before_the_seeder_runs(): void
     {
         $admin = $this->admin(['settings.view', 'settings.edit']);
+        $closed = Governorate::query()->create(['name' => 'Closed', 'slug' => 'closed', 'status' => 'inactive']);
 
         $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->get(route('dashboard.setting.locations.index'))
-            ->assertOk()->assertSee('Add city');
-        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.cities.store'), ['name' => 'Gaza'])
+            ->assertOk()->assertSee('Add governorate')->assertSee('Add a governorate before adding its cities.');
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.governorates.store'), ['name' => 'Gaza'])
+            ->assertSessionHas('success', 'Governorate added successfully.');
+        $gaza = Governorate::query()->where('name', 'Gaza')->sole();
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.cities.store'), ['governorate_id' => $gaza->id, 'cities' => ['Rimal']])
             ->assertSessionHas('success', 'City added successfully.');
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.cities.store'), ['governorate_id' => $gaza->id, 'cities' => ['Shati', 'Tal al-Hawa']])
+            ->assertSessionHas('success', 'Cities added successfully.');
+        // A refused submission reads the field names without creating rows either.
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.cities.store'), ['governorate_id' => $closed->id, 'cities' => ['']])
+            ->assertSessionHasErrors(['governorate_id', 'cities']);
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->get(route('dashboard.setting.locations.index'))
+            ->assertOk()->assertSee('Cities: 3')->assertSee('Add city to Gaza');
 
         // Location_Management is the breadcrumb shared with the settings page (a CORRECTIONS key, read with t()).
         $this->assertSame(0, TranslationValue::query()->where('key', 'like', 'dashboard.Location\_%')
@@ -93,145 +109,172 @@ class LocationManagementLocalizationTest extends TestCase
         $this->seed(AdminSettingsTranslationSeeder::class);
         $admin = $this->admin(['settings.view', 'settings.edit']);
 
-        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.cities.store'), ['name' => 'Gaza'])
-            ->assertRedirect()->assertSessionHas('success', 'تمت إضافة المدينة بنجاح.');
-        $city = City::query()->where('name', 'Gaza')->firstOrFail();
-        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.governorates.store'), ['city_id' => $city->id, 'name' => 'Rimal'])
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.governorates.store'), ['name' => 'Gaza'])
             ->assertRedirect()->assertSessionHas('success', 'تمت إضافة المحافظة بنجاح.');
+        $gaza = Governorate::query()->where('name', 'Gaza')->firstOrFail();
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.cities.store'), ['governorate_id' => $gaza->id, 'cities' => ['Rimal']])
+            ->assertRedirect()->assertSessionHas('success', 'تمت إضافة المدينة بنجاح.');
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'ar'])->post(route('dashboard.setting.locations.cities.store'), ['governorate_id' => $gaza->id, 'cities' => ['Shati', 'Zeitoun']])
+            ->assertRedirect()->assertSessionHas('success', 'تمت إضافة المدن بنجاح.');
 
-        $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])->post(route('dashboard.setting.locations.cities.store'), ['name' => 'Nablus'])
-            ->assertRedirect()->assertSessionHas('success', 'City added successfully.');
-        $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])->post(route('dashboard.setting.locations.governorates.store'), ['city_id' => $city->id, 'name' => 'Shati'])
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])->post(route('dashboard.setting.locations.governorates.store'), ['name' => 'Nablus'])
             ->assertRedirect()->assertSessionHas('success', 'Governorate added successfully.');
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])->post(route('dashboard.setting.locations.cities.store'), ['governorate_id' => $gaza->id, 'cities' => ['Tal al-Hawa']])
+            ->assertRedirect()->assertSessionHas('success', 'City added successfully.');
+        $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])->post(route('dashboard.setting.locations.cities.store'), ['governorate_id' => $gaza->id, 'cities' => ['Daraj', 'Tuffah']])
+            ->assertRedirect()->assertSessionHas('success', 'Cities added successfully.');
 
-        $this->assertSame(['Gaza', 'Nablus'], City::query()->orderBy('name')->pluck('name')->all());
-        $this->assertSame([$city->id, $city->id], Governorate::query()->pluck('city_id')->all());
+        $this->assertSame(['Gaza', 'Nablus'], Governorate::query()->orderBy('name')->pluck('name')->all());
+        $this->assertSame([null, null], Governorate::query()->pluck('city_id')->all(), 'A governorate is never linked to a city.');
+        $this->assertSame(array_fill(0, 6, $gaza->id), City::query()->pluck('governorate_id')->all());
     }
 
-    public function test_multiple_governorates_are_saved_for_the_same_city_in_one_submission(): void
+    public function test_multiple_cities_are_saved_for_the_same_governorate_in_one_submission(): void
     {
         $this->seed(AdminSettingsTranslationSeeder::class);
         $admin = $this->admin(['settings.view', 'settings.edit']);
-        $city = City::query()->create(['name' => 'Gaza', 'slug' => 'gaza']);
+        $gaza = Governorate::query()->create(['name' => 'Gaza', 'slug' => 'gaza']);
 
         $this->actingAs($admin, 'admin')->withSession(['locale' => 'en'])
-            ->post(route('dashboard.setting.locations.governorates.store'), [
-                'city_id' => $city->id,
-                'governorates' => ['Rimal', 'Shati', ''],
+            ->post(route('dashboard.setting.locations.cities.store'), [
+                'governorate_id' => $gaza->id,
+                'cities' => ['Rimal', 'Shati', ''],
             ])
             ->assertRedirect()
-            ->assertSessionHas('success', 'Governorates added successfully.');
+            ->assertSessionHas('success', 'Cities added successfully.');
 
-        $this->assertSame(['Rimal', 'Shati'], Governorate::query()->orderBy('name')->pluck('name')->all());
-        $this->assertSame([$city->id, $city->id], Governorate::query()->orderBy('name')->pluck('city_id')->all());
+        $this->assertSame(['Rimal', 'Shati'], City::query()->orderBy('name')->pluck('name')->all());
+        $this->assertSame([$gaza->id, $gaza->id], City::query()->orderBy('name')->pluck('governorate_id')->all());
+        $this->assertNull($gaza->fresh()->city_id);
     }
 
     public function test_the_page_needs_settings_view_and_adding_needs_settings_edit(): void
     {
         $this->get(route('dashboard.setting.locations.index'))->assertRedirect(route('admin.login'));
+        $this->post(route('dashboard.setting.locations.governorates.store'), ['name' => 'Gaza'])->assertRedirect(route('admin.login'));
 
         $this->actingAs($this->admin([]), 'admin')->get(route('dashboard.setting.locations.index'))->assertForbidden();
 
         $viewer = $this->admin(['settings.view']);
         $this->actingAs($viewer, 'admin')->get(route('dashboard.setting.locations.index'))->assertOk();
-        $this->actingAs($viewer, 'admin')->post(route('dashboard.setting.locations.cities.store'), ['name' => 'Gaza'])->assertForbidden();
-        $city = City::query()->create(['name' => 'Nablus', 'slug' => 'nablus']);
-        $this->actingAs($viewer, 'admin')->post(route('dashboard.setting.locations.governorates.store'), ['city_id' => $city->id, 'name' => 'Old City'])->assertForbidden();
+        $this->actingAs($viewer, 'admin')->post(route('dashboard.setting.locations.governorates.store'), ['name' => 'Gaza'])->assertForbidden();
+        $nablus = Governorate::query()->create(['name' => 'Nablus', 'slug' => 'nablus']);
+        $this->actingAs($viewer, 'admin')->post(route('dashboard.setting.locations.cities.store'), ['governorate_id' => $nablus->id, 'cities' => ['Old City']])->assertForbidden();
 
-        $this->assertSame(['Nablus'], City::query()->pluck('name')->all());
-        $this->assertSame(0, Governorate::query()->count());
+        $this->assertSame(['Nablus'], Governorate::query()->pluck('name')->all());
+        $this->assertSame(0, City::query()->count());
     }
 
-    public function test_the_governorate_mismatch_is_reported_in_the_page_language_on_create_and_update(): void
+    /**
+     * Products inherit the store's location: the vendor product endpoints never take a city or a governorate. A
+     * submitted pair (matching or not) is dropped, the product is saved, and no location message is shown.
+     */
+    public function test_a_new_product_ignores_a_submitted_location_in_either_language(): void
     {
         $this->seed(VendorDashboardTranslationSeeder::class);
         $vendor = Vendor::factory()->approved()->create();
         $category = Category::query()->create(['name' => 'Crafts', 'slug' => 'crafts', 'is_active' => true]);
-        $city = City::query()->create(['name' => 'Gaza', 'slug' => 'gaza']);
-        $other = City::query()->create(['name' => 'Nablus', 'slug' => 'nablus']);
-        $foreign = Governorate::query()->create(['city_id' => $other->id, 'name' => 'Old City', 'slug' => 'old-city']);
-        $own = Governorate::query()->create(['city_id' => $city->id, 'name' => 'Rimal', 'slug' => 'rimal']);
-        $product = Product::create(['vendor_id' => $vendor->id, 'category_id' => $category->id, 'name' => 'Jug', 'slug' => 'jug', 'price' => 10, 'stock_quantity' => 5, 'status' => 'draft']);
-        $body = ['category_id' => $category->id, 'name' => 'Bowl', 'price' => 25, 'stock_quantity' => 4, 'city_id' => $city->id, 'governorate_id' => $foreign->id];
+        [$governorate, $city, $foreign] = $this->locations();
+        $pairs = ['matching' => [$city->id, $governorate->id], 'mismatched' => [$city->id, $foreign->id]];
 
-        foreach (['ar' => 'المحافظة المختارة لا تتبع المدينة المختارة.', 'en' => 'The selected governorate does not belong to the selected city.'] as $locale => $message) {
-            $this->actingAs($vendor, 'vendor')->withSession(['locale' => $locale])
-                ->postJson(route('vendor.dashboard.products.store'), $body)
-                ->assertUnprocessable()->assertJsonPath('errors.governorate_id', [$message]);
-            $this->actingAs($vendor, 'vendor')->withSession(['locale' => $locale])
-                ->putJson(route('vendor.dashboard.products.update', $product), $body)
-                ->assertUnprocessable()->assertJsonPath('errors.governorate_id', [$message]);
+        foreach (['ar', 'en'] as $locale) {
+            foreach ($pairs as $label => [$cityId, $governorateId]) {
+                $response = $this->actingAs($vendor, 'vendor')->withSession(['locale' => $locale])
+                    ->postJson(route('vendor.dashboard.products.store'), ['category_id' => $category->id, 'name' => "Bowl {$locale} {$label}", 'price' => 25, 'stock_quantity' => 4, 'city_id' => $cityId, 'governorate_id' => $governorateId])
+                    ->assertCreated()
+                    ->assertJsonMissingPath('errors')
+                    ->assertJsonPath('product.city_id', null)
+                    ->assertJsonPath('product.governorate_id', null);
+
+                $product = Product::query()->findOrFail($response->json('product.id'));
+                $this->assertSame([null, null], [$product->city_id, $product->governorate_id], "{$locale} {$label}");
+            }
         }
 
-        $this->assertSame(1, Product::query()->count());
-        $this->assertNull($product->fresh()->governorate_id);
-
-        // The governorate of the chosen city is still accepted.
-        $this->actingAs($vendor, 'vendor')->withSession(['locale' => 'ar'])
-            ->putJson(route('vendor.dashboard.products.update', $product), ['governorate_id' => $own->id] + $body)->assertOk();
-        $this->assertSame([$city->id, $own->id], [$product->fresh()->city_id, $product->fresh()->governorate_id]);
+        $this->assertSame(4, Product::query()->count());
+        $this->assertSame(0, Product::query()->whereNotNull('city_id')->orWhereNotNull('governorate_id')->count());
     }
 
-    public function test_the_mismatch_message_creates_no_translation_row(): void
-    {
-        $vendor = Vendor::factory()->approved()->create();
-        $category = Category::query()->create(['name' => 'Crafts', 'slug' => 'crafts', 'is_active' => true]);
-        $city = City::query()->create(['name' => 'Gaza', 'slug' => 'gaza']);
-        $other = City::query()->create(['name' => 'Nablus', 'slug' => 'nablus']);
-        $foreign = Governorate::query()->create(['city_id' => $other->id, 'name' => 'Old City', 'slug' => 'old-city']);
-
-        $this->actingAs($vendor, 'vendor')->withSession(['locale' => 'ar'])
-            ->postJson(route('vendor.dashboard.products.store'), ['category_id' => $category->id, 'name' => 'Bowl', 'price' => 25, 'stock_quantity' => 4, 'city_id' => $city->id, 'governorate_id' => $foreign->id])
-            ->assertUnprocessable()->assertJsonPath('errors.governorate_id', ['The selected governorate does not belong to the selected city.']);
-
-        $this->assertSame(0, TranslationValue::query()->where('key', 'vendor.Product_Governorate_Mismatch')->count());
-    }
-
-    public function test_the_location_fields_are_named_in_the_page_language_on_create_and_update(): void
+    public function test_an_update_never_sets_changes_or_clears_the_product_location(): void
     {
         $this->seed(VendorDashboardTranslationSeeder::class);
         $vendor = Vendor::factory()->approved()->create();
         $category = Category::query()->create(['name' => 'Crafts', 'slug' => 'crafts', 'is_active' => true]);
-        $city = City::query()->create(['name' => 'Gaza', 'slug' => 'gaza']);
-        $other = City::query()->create(['name' => 'Nablus', 'slug' => 'nablus']);
-        $own = Governorate::query()->create(['city_id' => $city->id, 'name' => 'Rimal', 'slug' => 'rimal']);
-        $foreign = Governorate::query()->create(['city_id' => $other->id, 'name' => 'Old City', 'slug' => 'old-city']);
-        $product = Product::create(['vendor_id' => $vendor->id, 'category_id' => $category->id, 'name' => 'Jug', 'slug' => 'jug', 'price' => 10, 'stock_quantity' => 5, 'status' => 'draft']);
-        $body = ['category_id' => $category->id, 'name' => 'Bowl', 'price' => 25, 'stock_quantity' => 4];
-
-        // [payload, field, Arabic message, English message]: the first message of the field.
-        $cases = [
-            'governorate without its city' => [['governorate_id' => $own->id], 'city_id', 'حقل المدينة مطلوب عند وجود المحافظة.', 'The city field is required when governorate is present.'],
-            'city without its governorate' => [['city_id' => $city->id], 'governorate_id', 'حقل المحافظة مطلوب عند وجود المدينة.', 'The governorate field is required when city is present.'],
-            'city not an integer' => [['city_id' => 'gaza', 'governorate_id' => $own->id], 'city_id', 'يجب أن يكون حقل المدينة عددًا صحيحًا.', 'The city field must be an integer.'],
-            'governorate not an integer' => [['city_id' => $city->id, 'governorate_id' => 'rimal'], 'governorate_id', 'يجب أن يكون حقل المحافظة عددًا صحيحًا.', 'The governorate field must be an integer.'],
-            'unknown city' => [['city_id' => 999, 'governorate_id' => $own->id], 'city_id', 'قيمة المدينة المختارة غير صالحة.', 'The selected city is invalid.'],
-            'unknown governorate' => [['city_id' => $city->id, 'governorate_id' => 999], 'governorate_id', 'قيمة المحافظة المختارة غير صالحة.', 'The selected governorate is invalid.'],
-            // The custom mismatch message is kept as it is.
-            'governorate of another city' => [['city_id' => $city->id, 'governorate_id' => $foreign->id], 'governorate_id', 'المحافظة المختارة لا تتبع المدينة المختارة.', 'The selected governorate does not belong to the selected city.'],
+        [$governorate, $city, $foreign, $otherCity] = $this->locations();
+        // A product without a location, and one holding a location saved before the store-level decision.
+        $plain = Product::create(['vendor_id' => $vendor->id, 'category_id' => $category->id, 'name' => 'Jug', 'slug' => 'jug', 'price' => 10, 'stock_quantity' => 5, 'status' => 'draft']);
+        $legacy = Product::create(['vendor_id' => $vendor->id, 'category_id' => $category->id, 'city_id' => $otherCity->id, 'governorate_id' => $foreign->id, 'name' => 'Vase', 'slug' => 'vase', 'price' => 10, 'stock_quantity' => 5, 'status' => 'draft']);
+        $body = ['category_id' => $category->id, 'price' => 25, 'stock_quantity' => 4];
+        $payloads = [
+            'a matching pair' => ['city_id' => $city->id, 'governorate_id' => $governorate->id],
+            'a mismatched pair' => ['city_id' => $city->id, 'governorate_id' => $foreign->id],
+            'empty values' => ['city_id' => null, 'governorate_id' => null],
         ];
 
-        foreach ($cases as $label => [$location, $field, $ar, $en]) {
-            foreach (['ar' => $ar, 'en' => $en] as $locale => $message) {
-                $this->actingAs($vendor, 'vendor')->withSession(['locale' => $locale])
-                    ->postJson(route('vendor.dashboard.products.store'), $location + $body)
-                    ->assertUnprocessable()->assertJsonPath("errors.{$field}.0", $message);
-                $this->actingAs($vendor, 'vendor')->withSession(['locale' => $locale])
-                    ->putJson(route('vendor.dashboard.products.update', $product), $location + $body)
-                    ->assertUnprocessable()->assertJsonPath("errors.{$field}.0", $message);
-            }
-
-            $this->assertSame(1, Product::query()->count(), $label);
-            $this->assertSame(['Jug', null, null], [$product->fresh()->name, $product->fresh()->city_id, $product->fresh()->governorate_id], $label);
-        }
-
-        // No raw field name reaches either language.
         foreach (['ar', 'en'] as $locale) {
-            $content = $this->actingAs($vendor, 'vendor')->withSession(['locale' => $locale])
-                ->postJson(route('vendor.dashboard.products.store'), ['city_id' => 'x', 'governorate_id' => 'y'] + $body)->assertUnprocessable()->getContent();
-            $this->assertStringNotContainsString('city id', $content, $locale);
-            $this->assertStringNotContainsString('governorate id', $content, $locale);
+            foreach ($payloads as $label => $location) {
+                foreach ([[$plain, [null, null]], [$legacy, [$otherCity->id, $foreign->id]]] as [$product, $kept]) {
+                    $this->actingAs($vendor, 'vendor')->withSession(['locale' => $locale])
+                        ->putJson(route('vendor.dashboard.products.update', $product), $location + $body + ['name' => $product->name])
+                        ->assertOk()
+                        ->assertJsonMissingPath('errors');
+
+                    $fresh = $product->fresh();
+                    $this->assertSame($kept, [$fresh->city_id, $fresh->governorate_id], "{$locale}, {$label}, {$product->name}");
+                    $this->assertEquals(25, $fresh->price, 'The rest of the update is saved.');
+                }
+            }
         }
+    }
+
+    public function test_malformed_location_values_are_ignored_and_create_no_translation_rows(): void
+    {
+        $vendor = Vendor::factory()->approved()->create();
+        $category = Category::query()->create(['name' => 'Crafts', 'slug' => 'crafts', 'is_active' => true]);
+        [$governorate, $city] = $this->locations();
+        $product = Product::create(['vendor_id' => $vendor->id, 'category_id' => $category->id, 'name' => 'Jug', 'slug' => 'jug', 'price' => 10, 'stock_quantity' => 5, 'status' => 'draft']);
+        $locationRows = fn () => TranslationValue::query()->where(fn ($query) => $query->where('key', 'like', '%Governorate%')->orWhere('key', 'like', '%City%'))->count();
+        $before = $locationRows();
+        // Values the old product rules refused: none of them can reach the product or produce a message now.
+        $cases = [
+            'governorate without its city' => ['governorate_id' => $governorate->id],
+            'city without its governorate' => ['city_id' => $city->id],
+            'not integers' => ['city_id' => 'gaza', 'governorate_id' => 'rimal'],
+            'unknown ids' => ['city_id' => 999, 'governorate_id' => 999],
+        ];
+
+        foreach (['ar', 'en'] as $locale) {
+            foreach ($cases as $label => $location) {
+                $created = $this->actingAs($vendor, 'vendor')->withSession(['locale' => $locale])
+                    ->postJson(route('vendor.dashboard.products.store'), $location + ['category_id' => $category->id, 'name' => "Bowl {$locale} {$label}", 'price' => 25, 'stock_quantity' => 4])
+                    ->assertCreated()->assertJsonMissingPath('errors');
+                $this->actingAs($vendor, 'vendor')->withSession(['locale' => $locale])
+                    ->putJson(route('vendor.dashboard.products.update', $product), $location + ['category_id' => $category->id, 'name' => 'Jug', 'price' => 25, 'stock_quantity' => 4])
+                    ->assertOk()->assertJsonMissingPath('errors');
+
+                $new = Product::query()->findOrFail($created->json('product.id'));
+                $this->assertSame([null, null, null, null], [$new->city_id, $new->governorate_id, $product->fresh()->city_id, $product->fresh()->governorate_id], "{$locale}, {$label}");
+            }
+        }
+
+        $this->assertSame(0, TranslationValue::query()->where('key', 'vendor.Product_Governorate_Mismatch')->count());
+        $this->assertSame($before, $locationRows(), 'No location text is created by the product endpoints.');
+    }
+
+    /**
+     * Fixtures in the approved hierarchy (a governorate holds its cities): a governorate and its city, and another
+     * governorate with its own city.
+     *
+     * @return array{0: Governorate, 1: City, 2: Governorate, 3: City}
+     */
+    private function locations(): array
+    {
+        $governorate = Governorate::query()->create(['name' => 'Gaza Governorate', 'slug' => 'gaza-governorate']);
+        $city = City::query()->create(['governorate_id' => $governorate->id, 'name' => 'Gaza', 'slug' => 'gaza']);
+        $foreign = Governorate::query()->create(['name' => 'Nablus Governorate', 'slug' => 'nablus-governorate']);
+        $otherCity = City::query()->create(['governorate_id' => $foreign->id, 'name' => 'Nablus', 'slug' => 'nablus']);
+
+        return [$governorate, $city, $foreign, $otherCity];
     }
 
     /** @param  list<string>  $abilities */

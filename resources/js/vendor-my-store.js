@@ -6,8 +6,8 @@
  *
  * The update replaces fields that are omitted (and regenerates the slug), so
  * every save sends the editable fields plus the current email, phone and slug,
- * kept in memory from the initial read. Cities and governorates are supplied by
- * the administrator and selected together on this page.
+ * kept in memory from the initial read. Governorates and their cities are supplied
+ * by the administrator (H1-J: Governorate → City, vendor-my-store-locations.js).
  * avatar/logo/cover_image are never sent: the backend keeps them when omitted.
  * Save stays disabled until that read succeeded. Nothing is stored, logged or
  * written into DOM attributes, and values are set with value/textContent only.
@@ -21,6 +21,7 @@
 
 import { request } from './admin-media/shared.js';
 import { initPicker, uploadError, uploadPlan } from './vendor-product-editor.js';
+import { locationOptions, locationProblem, normalizeLocations, storedLocation, toId } from './vendor-my-store-locations.js';
 
 const root = document.querySelector('[data-vendor-my-store]');
 
@@ -38,17 +39,6 @@ const EDITABLE = {
 
 const isString = (value) => typeof value === 'string';
 const isStringOrNull = (value) => value === null || isString(value);
-
-/** A foreign key as an integer, or null; numeric strings are accepted, anything else is invalid. */
-function toId(value) {
-    if (value === null) {
-        return null;
-    }
-
-    const id = typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : value;
-
-    return Number.isInteger(id) ? id : undefined;
-}
 
 /** Reads only the approved subset of the profile response; returns null if anything required is missing. */
 function pickProfile(payload) {
@@ -90,13 +80,10 @@ function pickProfile(payload) {
             email: vendor.email ?? null,
             phone: vendor.phone,
             slug: profile.slug,
-            governorate_id: governorateId,
-            city_id: cityId,
         },
-        locations: {
-            cities: Array.isArray(payload?.locations?.cities) ? payload.locations.cities : [],
-            governorates: Array.isArray(payload?.locations?.governorates) ? payload.locations.governorates : [],
-        },
+        // The stored pair (kept as it is until the vendor changes it) and the active governorates with their cities.
+        stored: storedLocation(profile),
+        locations: normalizeLocations(payload?.locations),
         display: {
             email: vendor.email ?? null,
             phone: vendor.phone,
@@ -129,7 +116,10 @@ function initMyStore() {
     let logoBusy = false;
     // The stored path of the current logo (from the profile read), to mark it in the picker.
     let logoPath = null;
-    let locations = { cities: [], governorates: [] };
+    // H1-J: the location options and the selection, held here because a select drops a value it has no option for.
+    let locations = [];
+    let stored = storedLocation(null);
+    let selection = { governorateId: null, cityId: null };
 
     // MYSTORE-UX-01D: unsaved changes are the editable profile fields that differ from the values read (or last
     // saved). The logo (its own endpoint) and the media picker are not form fields and never count. The indicator is
@@ -161,27 +151,52 @@ function initMyStore() {
         setLogoEnabled(enabled);
     };
 
+    // Governorate first, then the cities of the chosen governorate. Nothing is cleared for the vendor: the selection
+    // is always among the options, and an unavailable stored value stays listed, selected and marked.
     const renderLocations = () => {
-        const city = field('city_id');
         const governorate = field('governorate_id');
-        const selectedCity = city.value;
-        const selectedGovernorate = governorate.value;
-        const cities = locations.cities.filter((item) => Number.isInteger(toId(item?.id)) && isString(item?.name));
-        const governorates = locations.governorates.filter((item) => Number.isInteger(toId(item?.id)) && String(item?.city_id) === selectedCity && isString(item?.name));
+        const city = field('city_id');
+        const options = locationOptions(locations, stored, selection, {
+            selectGovernorate: i18n.selectGovernorate,
+            selectCity: i18n.selectCity,
+            unavailable: i18n.locationUnavailable,
+        });
 
-        city.replaceChildren(new Option(i18n.selectCity, ''), ...cities.map((item) => new Option(item.name, String(item.id))));
-        city.value = cities.some((item) => String(item.id) === selectedCity) ? selectedCity : '';
-        governorate.replaceChildren(new Option(i18n.selectGovernorate, ''), ...governorates.map((item) => new Option(item.name, String(item.id))));
-        governorate.value = governorates.some((item) => String(item.id) === selectedGovernorate) ? selectedGovernorate : '';
-        governorate.disabled = !city.value || city.disabled;
+        governorate.replaceChildren(...options.governorates.map(({ value, label }) => new Option(label, value)));
+        governorate.value = selection.governorateId === null ? '' : String(selection.governorateId);
+        city.replaceChildren(...options.cities.map(({ value, label }) => new Option(label, value)));
+        city.value = selection.cityId === null ? '' : String(selection.cityId);
+        city.disabled = governorate.disabled || (selection.governorateId === null && selection.cityId === null);
     };
 
-    field('city_id').addEventListener('change', () => {
-        field('governorate_id').value = '';
+    const selectedId = (name) => toId(field(name).value === '' ? null : field(name).value) ?? null;
+
+    // A changed pair the server would refuse is flagged at once: a city outside the governorate, or no governorate.
+    const flagLocation = () => {
+        const problem = locationProblem(locations, stored, selection);
+
+        clearFieldError('city_id');
+        clearFieldError('governorate_id');
+        if (problem === 'mismatch') {
+            showFieldError('city_id', i18n.cityMismatch);
+        } else if (problem === 'governorate') {
+            showFieldError('governorate_id', i18n.required);
+        }
+    };
+
+    // The city is kept when the governorate changes (flagged if it no longer fits), never cleared automatically.
+    field('governorate_id').addEventListener('change', () => {
+        selection = { governorateId: selectedId('governorate_id'), cityId: selection.cityId };
         renderLocations();
+        flagLocation();
         updateUnsaved();
     });
-    field('governorate_id').addEventListener('change', updateUnsaved);
+    field('city_id').addEventListener('change', () => {
+        selection = { governorateId: selection.governorateId, cityId: selectedId('city_id') };
+        renderLocations();
+        flagLocation();
+        updateUnsaved();
+    });
 
     // MYSTORE-UI-01: the logo controls follow the form (usable once the profile is loaded, not while saving)
     // and are also locked while a logo upload or deletion is in progress.
@@ -190,12 +205,14 @@ function initMyStore() {
         logoDelete.disabled = logoPick.disabled;
     }
 
+    const clearFieldError = (name) => {
+        field(name).removeAttribute('aria-invalid');
+        errorFor(name).hidden = true;
+        errorFor(name).textContent = '';
+    };
+
     const clearErrors = () => {
-        Object.keys(EDITABLE).forEach((name) => {
-            field(name).removeAttribute('aria-invalid');
-            errorFor(name).hidden = true;
-            errorFor(name).textContent = '';
-        });
+        Object.keys(EDITABLE).forEach(clearFieldError);
     };
 
     const showFieldError = (name, message) => {
@@ -215,6 +232,15 @@ function initMyStore() {
 
         if (rules.max !== null && value.length > rules.max) {
             return i18n.tooLong;
+        }
+
+        // The location wording only where the selection shows that problem; any other location error stays neutral.
+        const problem = locationProblem(locations, stored, selection);
+        if (name === 'city_id' && problem === 'mismatch') {
+            return i18n.cityMismatch;
+        }
+        if (name === 'governorate_id' && problem === 'governorate') {
+            return i18n.required;
         }
 
         return i18n.invalid;
@@ -286,8 +312,8 @@ function initMyStore() {
                 field(name).value = value;
             });
             locations = profile.locations;
-            field('city_id').value = profile.preserved.city_id ?? '';
-            field('governorate_id').value = profile.preserved.governorate_id ?? '';
+            stored = profile.stored;
+            selection = { governorateId: stored.governorateId, cityId: stored.cityId };
             renderLocations();
             Object.entries(profile.display).forEach(([key, value]) => setReadonly(key, value));
             showLogo(responsePayload?.media?.logo_url ?? null);
@@ -314,6 +340,16 @@ function initMyStore() {
         });
 
         invalid.forEach((name) => showFieldError(name, messageFor(name)));
+
+        // A newly incompatible location is not sent: the vendor chooses a city of the governorate, or no city.
+        const problem = locationProblem(locations, stored, selection);
+        if (problem === 'mismatch') {
+            showFieldError('city_id', i18n.cityMismatch);
+            invalid.push('city_id');
+        } else if (problem === 'governorate') {
+            showFieldError('governorate_id', i18n.required);
+            invalid.push('governorate_id');
+        }
 
         return invalid;
     };

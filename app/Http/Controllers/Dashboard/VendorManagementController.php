@@ -10,12 +10,14 @@ use App\Models\DeliveryDriver;
 use App\Models\Governorate;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Support\Locations\LocationPair;
 use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -88,9 +90,13 @@ class VendorManagementController extends Controller
         ]);
 
         $avatarExtension = $request->hasFile('avatar') ? $this->safeImageExtension($request->file('avatar')) : null;
-        if (filled($data['city_id'] ?? null) && filled($data['governorate_id'] ?? null)
-            && ! City::query()->whereKey($data['city_id'])->where('governorate_id', $data['governorate_id'])->exists()) {
-            return back()->withInput()->withErrors(['city_id' => $this->untranslatedDefault('dashboard.Vendors_Error_City_Governorate', 'The selected city does not belong to the selected governorate.')]);
+        // A new store has no stored location: the submitted pair follows Governorate → City (LocationPair).
+        $location = Validator::make([], []);
+        $location->after(fn ($validator) => LocationPair::validate($validator, $data, null, null, [
+            'mismatch' => $this->untranslatedDefault('dashboard.Vendors_Error_City_Governorate', 'The selected city does not belong to the selected governorate.'),
+        ]));
+        if ($location->fails()) {
+            return back()->withInput()->withErrors($location);
         }
 
         $vendor = DB::transaction(function () use ($request, $data, $avatarExtension) {

@@ -2,9 +2,10 @@
 
 namespace App\Http\Requests\DeliveryDriverDashboard;
 
-use App\Models\City;
+use App\Support\Locations\LocationPair;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateProfileRequest extends FormRequest
 {
@@ -23,19 +24,21 @@ class UpdateProfileRequest extends FormRequest
             'vehicle_type' => ['nullable', 'string', 'max:255'],
             'vehicle_plate' => ['nullable', 'string', 'max:255'],
             'governorate_id' => ['nullable', 'integer', Rule::exists('governorates', 'id')],
-            'city_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('cities', 'id'),
-                function (string $attribute, mixed $value, \Closure $fail): void {
-                    $governorateId = $this->input('governorate_id');
-
-                    if ($value !== null && $governorateId !== null && ! City::query()->whereKey($value)->where('governorate_id', $governorateId)->exists()) {
-                        $fail('The selected city does not belong to the selected governorate.');
-                    }
-                },
-            ],
+            'city_id' => ['nullable', 'integer', Rule::exists('cities', 'id')],
             'is_available' => ['sometimes', 'boolean'],
+        ];
+    }
+
+    /** The pair the driver's profile will hold (omitted fields keep the stored values) follows Governorate → City. */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                // Read from the database, not a relation cached on the signed-in driver.
+                $profile = $this->user('delivery_driver')->profile()->first(['governorate_id', 'city_id']);
+
+                LocationPair::validate($validator, $this->all(), $profile?->governorate_id, $profile?->city_id);
+            },
         ];
     }
 }
