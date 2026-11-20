@@ -1,30 +1,119 @@
+@php
+    // The delivery driver "forgot password" page, in the vendor portal's design (auth/vendor/forgot-password). Direction
+    // comes from the current Language row (is_rtl); a locale with no Language row falls back to the HTML default (ltr).
+    $pageDirection = $currentLanguage?->is_rtl ? 'rtl' : 'ltr';
+    // Driver strings: seeded by DeliveryDriverAuthTranslationSeeder, with the same text as the default until it runs.
+    $driverText = fn (string $key): string => t($key, \Database\Seeders\DeliveryDriverAuthTranslationSeeder::fallback($key));
+@endphp
 <!doctype html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ $pageDirection }}">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ $account['label'] }} Password Reset</title>
-  @vite(['resources/css/app.css', 'resources/js/app.js'])
+  <title>{{ $driverText('driver.Forgot_Title') }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  @vite(['resources/css/vendor-auth.css', 'resources/js/admin-auth.js'])
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
-  <main class="mx-auto flex min-h-screen max-w-xl items-center px-4 py-10">
-    <section class="w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h1 class="text-3xl font-extrabold">Reset Password</h1>
-      <form class="mt-6 grid gap-5" action="{{ route($account['route'].'.password.email') }}" method="post">
-        @csrf
-        @if (session('status'))
-          <div class="rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-700">{{ session('status') }}</div>
-        @endif
-        @error('email')
-          <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{{ $message }}</div>
-        @enderror
-        <div>
-          <label for="email" class="text-sm font-bold">Email</label>
-          <input id="email" name="email" type="email" value="{{ old('email') }}" required class="mt-2 h-12 w-full rounded-xl border border-slate-200 px-4" />
+<body class="min-h-screen overflow-x-hidden bg-canvas font-cairo text-ink antialiased">
+  {{-- The form is the first grid column, so it sits on the start side: right in RTL, left in LTR. --}}
+  <div class="grid min-h-screen lg:grid-cols-2">
+    <main class="flex min-w-0 items-center justify-center px-4 py-10 sm:px-8 sm:py-16 lg:px-12">
+      <div class="w-full max-w-[480px] lg:max-w-[520px]">
+        <x-lang.language-switcher-admin-auth class="mb-6 flex justify-end lg:mb-4" />
+
+        {{-- Compact brand lockup for mobile and tablet --}}
+        <div class="mb-8 flex items-center justify-center gap-3 lg:hidden">
+          <span class="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] bg-surface p-1 shadow-sm sm:h-[58px] sm:w-[58px]">
+            <img src="{{ asset('images/brand/hirfah-logo.png') }}" alt="{{ t('dashboard.Hirfah_Logo', 'Hirfah logo') }}" width="50" height="50" class="h-12 w-12 object-contain sm:h-[50px] sm:w-[50px]" />
+          </span>
+          <div class="min-w-0 text-start">
+            <div class="flex items-center gap-1.5">
+              <span class="h-1.5 w-1.5 rounded-full bg-copper" aria-hidden="true"></span>
+              <span class="text-2xl font-bold leading-8 tracking-[-.6px] text-olive">{{ t('dashboard.Brand_Name', 'Hirfah') }}</span>
+            </div>
+            <p class="text-[10px] font-medium leading-[15px] tracking-[.5px] text-olive sm:text-xs">{{ t('dashboard.Brand_Tagline', 'Palestinian craft marketplace') }}</p>
+          </div>
         </div>
-        <button type="submit" class="h-12 rounded-xl bg-blue-600 px-5 font-extrabold text-white">Send reset link</button>
-      </form>
-    </section>
-  </main>
+
+        <section class="rounded-[20px] border border-line bg-surface p-5 shadow-card sm:p-8" aria-labelledby="driver-forgot-title">
+          <p class="mb-3 inline-flex items-center gap-2 rounded-full bg-sage/20 px-3 py-1 text-xs font-bold leading-5 text-olive">
+            <svg class="h-4 w-4 shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" /><path d="M15 18H9" /><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" /><circle cx="17" cy="18" r="2" /><circle cx="7" cy="18" r="2" /></svg>
+            {{ $driverText('driver.Portal') }}
+          </p>
+          <h1 id="driver-forgot-title" class="text-2xl font-bold leading-8 text-ink">{{ t('dashboard.Forgot_Password', 'Forgot your password?') }}</h1>
+          <p class="mt-2 text-sm leading-6 text-muted">{{ $driverText('driver.Forgot_Description') }}</p>
+
+          {{-- The broker's own message (link sent), as the controller returns it. --}}
+          @if (session('status'))
+            <div role="status" class="mt-6 flex items-start gap-3 rounded-[14px] border border-sage/40 bg-sage/10 px-4 py-3 text-start">
+              <svg class="mt-0.5 h-5 w-5 shrink-0 text-olive" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></svg>
+              <p class="text-sm font-semibold leading-6 text-olive">{{ session('status') }}</p>
+            </div>
+          @endif
+
+          <form method="POST" action="{{ route($account['route'].'.password.email') }}" class="mt-6 flex flex-col gap-5" novalidate data-submit-lock>
+            @csrf
+
+            <div>
+              <label for="email" class="mb-2 block text-sm font-semibold leading-5 text-ink">{{ $driverText('driver.Email') }}</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                dir="ltr"
+                value="{{ old('email') }}"
+                required
+                autofocus
+                autocomplete="email"
+                placeholder="name@example.com"
+                @error('email') aria-invalid="true" aria-describedby="email-error" @enderror
+                class="h-12 w-full rounded-[14px] border border-line bg-canvas px-4 text-start text-sm text-ink transition-colors placeholder:text-muted/70 focus:border-olive focus:outline-none focus-visible:ring-4 focus-visible:ring-olive/20 aria-[invalid=true]:border-error"
+              />
+              @error('email')
+                <p id="email-error" role="alert" class="mt-2 text-start text-sm font-semibold leading-6 text-error">{{ $message }}</p>
+              @enderror
+            </div>
+
+            <button type="submit" data-loading-label="{{ $driverText('driver.Sending_Reset_Link') }}" class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[16px] bg-olive text-sm font-bold text-surface shadow-sm transition-colors hover:bg-olive-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive focus-visible:ring-offset-2 focus-visible:ring-offset-surface aria-disabled:cursor-wait aria-disabled:opacity-80">
+              <span>{{ $driverText('driver.Send_Reset_Link') }}</span>
+              {{-- The icon follows the reading direction, so it is mirrored in RTL. --}}
+              <svg class="h-4 w-4 rtl:-scale-x-100" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" /><path d="m21.854 2.147-10.94 10.939" /></svg>
+            </button>
+            {{-- Filled by admin-auth.js while submitting; screen readers only, the button shows the same text. --}}
+            <p data-submit-status role="status" aria-live="polite" class="sr-only"></p>
+          </form>
+
+          <p class="mt-6 flex flex-wrap items-center justify-center gap-x-1.5 border-t border-line pt-5 text-center text-sm leading-6 text-muted">
+            <span>{{ $driverText('driver.Remembered_Password') }}</span>
+            <a href="{{ route($account['route'].'.login') }}" class="inline-flex min-h-11 items-center rounded-md font-bold text-olive underline decoration-copper decoration-2 underline-offset-4 hover:text-olive-hover hover:decoration-olive focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-olive">{{ t('dashboard.Sign_In', 'Sign in') }}</a>
+          </p>
+        </section>
+      </div>
+    </main>
+
+    {{-- Brand panel: desktop only, colors and CSS shapes, no photos --}}
+    <aside class="relative hidden min-w-0 overflow-hidden bg-olive lg:flex lg:items-center lg:justify-center lg:px-12" aria-label="{{ t('dashboard.Hirfah', 'Hirfah') }}">
+      <div class="pointer-events-none absolute -top-28 -end-28 h-80 w-80 rounded-full border border-sage/25" aria-hidden="true"></div>
+      <div class="pointer-events-none absolute -top-12 -end-12 h-48 w-48 rounded-full border border-sage/15" aria-hidden="true"></div>
+      <div class="pointer-events-none absolute -bottom-40 -start-24 h-[26rem] w-[26rem] rounded-full bg-sage/10" aria-hidden="true"></div>
+      <div class="pointer-events-none absolute bottom-24 end-20 h-3 w-3 rounded-full bg-copper" aria-hidden="true"></div>
+      <div class="pointer-events-none absolute top-28 start-16 h-2 w-2 rounded-full bg-gold" aria-hidden="true"></div>
+
+      <div class="relative flex max-w-md flex-col items-center text-center">
+        <span class="flex h-[112px] w-[112px] items-center justify-center rounded-[24px] bg-surface p-2 shadow-soft">
+          <img src="{{ asset('images/brand/hirfah-logo.png') }}" alt="{{ t('dashboard.Hirfah_Logo', 'Hirfah logo') }}" width="96" height="96" class="h-24 w-24 object-contain" />
+        </span>
+        <div class="mt-6 flex items-center gap-2">
+          <span class="h-2 w-2 rounded-full bg-copper" aria-hidden="true"></span>
+          <span class="text-4xl font-bold leading-[3rem] tracking-[-.6px] text-surface">{{ t('dashboard.Brand_Name', 'Hirfah') }}</span>
+        </div>
+        <p class="mt-1 text-sm font-medium tracking-[.5px] text-sage">{{ t('dashboard.Brand_Tagline', 'Palestinian craft marketplace') }}</p>
+        <span class="my-8 h-px w-16 bg-sage/40" aria-hidden="true"></span>
+        <p class="text-lg font-semibold leading-8 text-surface">{{ $driverText('driver.Login_Panel_Line') }}</p>
+      </div>
+    </aside>
+  </div>
 </body>
 </html>

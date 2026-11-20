@@ -10,6 +10,11 @@
 @source "../views/auth/vendor/forgot-password.blade.php";
 @source "../views/auth/vendor/reset-password.blade.php";
 @source "../views/auth/vendor/approval-status.blade.php";
+/* The delivery driver auth pages share this design (auth/accounts/* are the driver's only). */
+@source "../views/auth/accounts/login.blade.php";
+@source "../views/auth/accounts/register.blade.php";
+@source "../views/auth/accounts/forgot-password.blade.php";
+@source "../views/auth/accounts/reset-password.blade.php";
 @source "../views/components/lang/language-switcher-admin-auth.blade.php";
 @source "../js/admin-auth.js";
 

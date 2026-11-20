@@ -164,7 +164,7 @@ class AdminAuthTranslationFoundationTest extends TestCase
         $this->assertSame(0, TranslationValue::where('locale', 'fr')->count());
     }
 
-    public function test_middleware_alias_is_registered_and_applied_only_to_admin_and_vendor_auth_pages(): void
+    public function test_middleware_alias_is_registered_and_applied_only_to_admin_vendor_and_delivery_driver_auth_pages(): void
     {
         $aliases = app(HttpKernel::class)->getMiddlewareAliases();
         $this->assertSame(DisableTranslationAutoCreate::class, $aliases['disableTranslationAutoCreate'] ?? null);
@@ -186,6 +186,15 @@ class AdminAuthTranslationFoundationTest extends TestCase
             'admin.password.update',
             // PAGES-03A: the dashboard's private preview of a content page.
             'dashboard.content-pages.preview',
+            // The delivery driver guest pages (vendor portal design); not the driver's logout or dashboard.
+            'delivery-driver.login',
+            'delivery-driver.login.store',
+            'delivery-driver.password.email',
+            'delivery-driver.password.request',
+            'delivery-driver.password.reset',
+            'delivery-driver.password.update',
+            'delivery-driver.register',
+            'delivery-driver.register.store',
             'vendor.approval-status',
             'vendor.dashboard',
             'vendor.dashboard.commissions.page',

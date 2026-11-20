@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Http\Controllers\Dashboard\MediaLibraryController;
 use App\Models\Admin;
 use App\Models\Customer;
+use App\Models\DeliveryDriver;
 use App\Models\Language;
 use App\Models\Setting;
 use App\Models\StorefrontContentPage;
@@ -119,7 +120,7 @@ class AppServiceProvider extends ServiceProvider
      * ARCH-03 / VEN-BE-002 / ADM-BE-001: the default reset email links to Fortify's
      * password.reset, which resets the web "users" broker. Vendor and customer
      * links go to their own reset routes so the token reaches the "vendors" /
-     * "customers" broker. Admins and delivery drivers still keep the framework
+     * "customers" / "delivery_drivers" broker. Admins still keep the framework
      * default (ADM-BE-001, open for them).
      */
     private function configurePasswordResetLinks(): void
@@ -128,6 +129,7 @@ class AppServiceProvider extends ServiceProvider
             $route = match (true) {
                 $notifiable instanceof Vendor => 'vendor.password.reset',
                 $notifiable instanceof Customer => 'customer.password.reset',
+                $notifiable instanceof DeliveryDriver => 'delivery-driver.password.reset',
                 default => 'password.reset',
             };
 

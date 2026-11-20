@@ -172,18 +172,19 @@ class VendorPasswordResetFlowTest extends TestCase
 
     public function test_other_account_types_keep_their_current_reset_link(): void
     {
-        // Compatibility only: admins and delivery drivers are still on Fortify's link (ADM-BE-001, open for them).
-        $accounts = [
-            'admins' => Admin::create($this->accountData('0599000001')),
-            'delivery_drivers' => DeliveryDriver::create($this->accountData('0591000003')),
-        ];
+        // Compatibility only: admins are still on Fortify's link (ADM-BE-001, open for them).
+        $admin = Admin::create($this->accountData('0599000001'));
+        $this->assertSame(Password::RESET_LINK_SENT, Password::broker('admins')->sendResetLink(['email' => self::EMAIL]));
+        [$token, $link] = $this->sentLink($admin);
 
-        foreach ($accounts as $broker => $account) {
-            $this->assertSame(Password::RESET_LINK_SENT, Password::broker($broker)->sendResetLink(['email' => self::EMAIL]));
-            [$token, $link] = $this->sentLink($account);
+        $this->assertSame(url(route('password.reset', ['token' => $token, 'email' => self::EMAIL], false)), $link, 'admins');
 
-            $this->assertSame(url(route('password.reset', ['token' => $token, 'email' => self::EMAIL], false)), $link, $broker);
-        }
+        // Delivery drivers are fixed: their link opens their own reset route.
+        $driver = DeliveryDriver::create($this->accountData('0591000003'));
+        $this->assertSame(Password::RESET_LINK_SENT, Password::broker('delivery_drivers')->sendResetLink(['email' => self::EMAIL]));
+        [$token, $link] = $this->sentLink($driver);
+
+        $this->assertSame(url(route('delivery-driver.password.reset', ['token' => $token, 'email' => self::EMAIL], false)), $link, 'delivery_drivers');
     }
 
     public function test_customer_reset_link_now_uses_its_own_route_and_the_vendor_link_is_unchanged(): void

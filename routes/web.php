@@ -149,9 +149,9 @@ foreach (AccountGuard::all() as $accountType => $account) {
         ->group(function () use ($accountType, $account): void {
             $guestMiddleware = ['guest:'.$account['guard']];
 
-            // Vendor auth pages use seeded translations only,
+            // Vendor and delivery driver auth pages use seeded translations only,
             // so t() must not insert keys here.
-            if ($accountType === 'vendor') {
+            if (in_array($accountType, ['vendor', 'delivery_driver'], true)) {
                 $guestMiddleware = ['setLocale', ...$guestMiddleware, 'disableTranslationAutoCreate'];
             }
 

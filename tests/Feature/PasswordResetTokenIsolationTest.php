@@ -324,18 +324,24 @@ class PasswordResetTokenIsolationTest extends TestCase
         $this->assertSame('/customer/reset-password/'.$token, parse_url($link, PHP_URL_PATH));
     }
 
-    public function test_admin_and_delivery_driver_emailed_links_are_still_the_known_arch_03_route(): void
+    public function test_admin_emailed_link_is_still_the_known_arch_03_route_and_the_driver_link_is_fixed(): void
     {
-        // Compatibility only, not the intended behaviour: ADM-BE-001 is still open for these types,
+        // Compatibility only, not the intended behaviour: ADM-BE-001 is still open for admins,
         // whose emails point at Fortify's reset route. Update this test when they are fixed.
-        foreach (['admin' => 'admins', 'delivery_driver' => 'delivery_drivers'] as $type => $broker) {
-            $account = $this->account($type);
-            $token = $this->issue($broker, $account);
+        $admin = $this->account('admin');
+        $token = $this->issue('admins', $admin);
 
-            $link = Notification::sent($account, ResetPassword::class)->last()->toMail($account)->actionUrl;
+        $link = Notification::sent($admin, ResetPassword::class)->last()->toMail($admin)->actionUrl;
 
-            $this->assertSame('/reset-password/'.$token, parse_url($link, PHP_URL_PATH), $type);
-        }
+        $this->assertSame('/reset-password/'.$token, parse_url($link, PHP_URL_PATH), 'admin');
+
+        // ADM-BE-001 (fixed for delivery drivers): the driver email opens the driver reset flow.
+        $driver = $this->account('delivery_driver');
+        $token = $this->issue('delivery_drivers', $driver);
+
+        $link = Notification::sent($driver, ResetPassword::class)->last()->toMail($driver)->actionUrl;
+
+        $this->assertSame('/delivery-driver/reset-password/'.$token, parse_url($link, PHP_URL_PATH), 'delivery_driver');
     }
 
     public function test_sec_03_http_limits_still_apply_on_top_of_broker_isolation(): void
