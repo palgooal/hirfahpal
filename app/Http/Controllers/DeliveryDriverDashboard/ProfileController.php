@@ -4,6 +4,7 @@ namespace App\Http\Controllers\DeliveryDriverDashboard;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\DeliveryDriverDashboard\UpdateProfileRequest;
+use App\Support\Orders\DeliveryDriverAssignmentJson;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,8 +13,9 @@ class ProfileController extends Controller
 {
     public function show(Request $request): JsonResponse
     {
+        // DRIVER-E1: the driver's own account and operational profile, never their approval records.
         return response()->json([
-            'delivery_driver' => $request->user('delivery_driver')->load(['profile.governorate', 'profile.city']),
+            'delivery_driver' => DeliveryDriverAssignmentJson::driver($request->user('delivery_driver')->load(['profile.governorate', 'profile.city'])),
         ]);
     }
 
@@ -42,7 +44,8 @@ class ProfileController extends Controller
 
         return response()->json([
             'message' => 'Delivery driver profile updated successfully.',
-            'delivery_driver' => $driver->fresh(['profile.governorate', 'profile.city']),
+            // DRIVER-E1: the driver's own account and operational profile, never their approval records.
+            'delivery_driver' => DeliveryDriverAssignmentJson::driver($driver->fresh(['profile.governorate', 'profile.city'])),
         ]);
     }
 }

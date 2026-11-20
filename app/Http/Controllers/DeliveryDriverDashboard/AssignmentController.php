@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DeliveryAssignment;
 use App\Models\OrderStatusHistory;
 use App\Models\VendorOrder;
+use App\Support\Orders\DeliveryDriverAssignmentJson;
 use App\Support\Orders\OrderStatusLifecycle;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -32,7 +33,8 @@ class AssignmentController extends Controller
         // ORD-BE-001: the order's delivery address is the checkout snapshot.
         $assignments->getCollection()->each(fn (DeliveryAssignment $assignment) => $assignment->vendorOrder?->order?->exposeDeliveryAddress());
 
-        return response()->json($assignments);
+        // DRIVER-E1: only the fields the delivery needs (SRS §2.3), same pagination shape.
+        return response()->json($assignments->through(fn (DeliveryAssignment $assignment) => DeliveryDriverAssignmentJson::assignment($assignment)));
     }
 
     public function show(Request $request, DeliveryAssignment $assignment): JsonResponse
@@ -49,7 +51,7 @@ class AssignmentController extends Controller
         // ORD-BE-001: the order's delivery address is the checkout snapshot.
         $assignment->vendorOrder?->order?->exposeDeliveryAddress();
 
-        return response()->json($assignment);
+        return response()->json(DeliveryDriverAssignmentJson::assignment($assignment));
     }
 
     public function accept(Request $request, DeliveryAssignment $assignment): JsonResponse|RedirectResponse
@@ -206,12 +208,12 @@ class AssignmentController extends Controller
 
         return response()->json([
             'message' => $message,
-            'assignment' => $assignment->fresh([
+            'assignment' => DeliveryDriverAssignmentJson::assignment($assignment->fresh([
                 'vendorOrder.order.payment',
                 'vendorOrder.order.customer',
                 'vendorOrder.vendor.profile',
                 'vendorOrder.deliveryAssignment',
-            ]),
+            ])),
         ]);
     }
 
