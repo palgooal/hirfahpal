@@ -21,9 +21,9 @@ use Tests\TestCase;
 
 /**
  * ORD-BE-001 (CUSTOMER-ACCOUNT-A1): the delivery address of an order is copied at checkout and stays as it was,
- * whatever later happens to the saved address, its city or its governorate. Vendor, delivery-driver and customer
- * JSON expose that copy as delivery_address and as the deprecated "address" key; legacy orders (no copy) use a
- * marked fallback.
+ * whatever later happens to the saved address, its city or its governorate. Delivery-driver and customer JSON expose
+ * that copy as delivery_address and as the deprecated "address" key; legacy orders (no copy) use a marked fallback.
+ * VEN-BE-023 (decision): the vendor's JSON never publishes the delivery address.
  */
 class OrderDeliveryAddressSnapshotTest extends TestCase
 {
@@ -203,7 +203,13 @@ class OrderDeliveryAddressSnapshotTest extends TestCase
 
     // ---------------------------------------------------------------- JSON
 
-    public function test_vendor_json_exposes_the_snapshot_as_delivery_address_and_address(): void
+    /**
+     * VEN-BE-023 (ORD-BE-001's vendor part, changed by decision): the vendor hands the order to the delivery and the
+     * driver alone deals with the recipient (SRS §2.2-2.3), so the vendor's order JSON publishes the parent order by its
+     * number, status and customer name only: no delivery address (recipient, phone, location, notes), neither as
+     * delivery_address nor as the deprecated "address" key, nor the raw columns. The driver and the customer keep it.
+     */
+    public function test_vendor_json_never_publishes_the_delivery_address(): void
     {
         $customer = Customer::factory()->create();
         $address = $this->savedAddress($customer);
@@ -215,9 +221,19 @@ class OrderDeliveryAddressSnapshotTest extends TestCase
         $index = $this->actingAs($vendor, 'vendor')->getJson(route('vendor.dashboard.orders.index'))->assertOk();
         $show = $this->actingAs($vendor, 'vendor')->getJson(route('vendor.dashboard.orders.show', $vendorOrder))->assertOk();
 
-        foreach ([$index->json('orders.data.0.order'), $show->json('order.order')] as $payload) {
-            $this->assertSnapshotPayload($payload, $address->id, $customer->id);
+        foreach (['index' => $index, 'show' => $show] as $context => $response) {
+            $payload = $context === 'index' ? $response->json('orders.data.0.order') : $response->json('order.order');
+            $this->assertEqualsCanonicalizing(['id', 'number', 'status', 'created_at', 'updated_at', 'customer'], array_keys($payload), $context);
+            $this->assertSame([$order->id, $order->number], [$payload['id'], $payload['number']], $context);
+            $this->assertNoDeliveryKeyAtAnyDepth($response->json(), $context);
+            // Neither the checkout copy nor the saved address, at any depth.
+            foreach (['شارع الصف، بناية 4', 'Edited after checkout', '0599123456', 'الطابق الثاني', 'ليلى أحمد', '31.5326', '35.0998'] as $secret) {
+                $this->assertStringNotContainsString($secret, $response->getContent(), "{$context}: {$secret}");
+            }
         }
+
+        // The other parties' copies are unchanged (ORD-BE-001 for the driver and the customer).
+        $this->assertSame('شارع الصف، بناية 4', $this->actingAs($customer, 'customer')->getJson(route('customer.orders.show', $order))->assertOk()->json('delivery_address.address_line'));
     }
 
     public function test_delivery_driver_json_exposes_the_snapshot(): void
@@ -292,7 +308,45 @@ class OrderDeliveryAddressSnapshotTest extends TestCase
         ];
         foreach ($vendorPaths as $context => $url) {
             $payload = $this->actingAs($vendor, 'vendor')->getJson($url)->assertOk()->json();
-            $this->assertGreaterThan(0, $this->assertNoDeliveryAddressAnywhere($payload, $context), "{$context}: the order is in the payload.");
+            $found = $this->assertNoDeliveryAddressAnywhere($payload, $context);
+
+            // E2-MVP (VEN-BE-023): the reviews, returns, disputes and commissions responses publish the parent order as its id and number only,
+            // so it is found through each response's own structure, not through customer_address_id; and no
+            // delivery-address key appears anywhere in the payload.
+            $minimizedOrders = [
+                'vendor reviews' => fn (array $json) => array_column($json['reviews']['data'], 'order'),
+                'vendor returns' => fn (array $json) => array_column($json['returns']['data'], 'order'),
+                'vendor return' => fn (array $json) => [$json['return']['order']],
+                'vendor disputes' => fn (array $json) => array_column($json['disputes']['data'], 'order'),
+                'vendor dispute' => fn (array $json) => [$json['dispute']['order']],
+                'vendor commissions' => fn (array $json) => array_column(array_column($json['commissions']['data'], 'vendor_order'), 'order'),
+            ];
+            if (isset($minimizedOrders[$context])) {
+                $orders = $minimizedOrders[$context]($payload);
+                $this->assertNotEmpty($orders, "{$context}: the order is in the payload.");
+                foreach ($orders as $reviewOrder) {
+                    $this->assertSame(['id' => $order->id, 'number' => $order->number], $reviewOrder, "{$context}: the order's id and number only.");
+                }
+                $this->assertNoDeliveryKeyAtAnyDepth($payload, $context);
+
+                continue;
+            }
+
+            // VEN-BE-023 (ORD-BE-001's vendor part): the overview's recent orders carry the parent order through
+            // VendorOrderJson: its number, status, dates and customer name, no address or payment data.
+            if ($context === 'vendor overview') {
+                $recent = array_column($payload['recent_orders'], 'order');
+                $this->assertNotEmpty($recent, "{$context}: the order is in the payload.");
+                foreach ($recent as $recentOrder) {
+                    $this->assertEqualsCanonicalizing(['id', 'number', 'status', 'created_at', 'updated_at', 'customer'], array_keys($recentOrder), $context);
+                    $this->assertSame([$order->id, $order->number], [$recentOrder['id'], $recentOrder['number']], $context);
+                }
+                $this->assertNoDeliveryKeyAtAnyDepth($payload, $context);
+
+                continue;
+            }
+
+            $this->assertGreaterThan(0, $found, "{$context}: the order is in the payload.");
         }
 
         $customerOrders = $this->actingAs($customer, 'customer')->getJson(route('customer.orders.index'))->assertOk()->json();
@@ -439,6 +493,22 @@ class OrderDeliveryAddressSnapshotTest extends TestCase
         $walk($payload);
 
         return $found;
+    }
+
+    /** No delivery-address key (the snapshot, the deprecated key or a raw column) in any array of the payload. */
+    private function assertNoDeliveryKeyAtAnyDepth(array $payload, string $context): void
+    {
+        $walk = function (array $node) use (&$walk, $context): void {
+            foreach (['delivery_address', 'address', ...Order::DELIVERY_COLUMNS] as $key) {
+                $this->assertArrayNotHasKey($key, $node, "{$context}: {$key}");
+            }
+            foreach ($node as $value) {
+                if (is_array($value)) {
+                    $walk($value);
+                }
+            }
+        };
+        $walk($payload);
     }
 
     private function savedAddress(Customer $customer, array $attributes = []): CustomerAddress

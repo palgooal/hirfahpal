@@ -256,7 +256,9 @@ class VendorOrderDetailsDataContractTest extends TestCase
 
         $show = $this->actingAs($this->vendor, 'vendor')->getJson(route('vendor.dashboard.orders.show', $order))->assertOk()->json();
         $this->assertSame(['order', 'allowed_actions'], array_keys($show));
-        $this->assertSame('customer.secret@example.test', $show['order']['order']['customer']['email'], 'VEN-BE-023 stays open for the existing endpoint.');
+        // E2-MVP batch 05 (VEN-BE-023, the show endpoint): an explicit allowlist; the customer's name only, never the email.
+        $this->assertSame(['id', 'name'], array_keys($show['order']['order']['customer']));
+        $this->assertStringNotContainsString('customer.secret@example.test', json_encode($show));
         $this->assertSame(['orders', 'statuses'], array_keys($this->actingAs($this->vendor, 'vendor')->getJson(route('vendor.dashboard.orders.index'))->assertOk()->json()));
         $this->actingAs($this->vendor, 'vendor')->get(route('vendor.dashboard.orders.page'))->assertOk()->assertViewIs('vendor-dashboard.resources');
     }

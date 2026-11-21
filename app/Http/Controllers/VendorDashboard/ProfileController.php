@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\VendorDashboard\UpdateProfileRequest;
 use App\Models\Governorate;
 use App\Models\VendorProfile;
+use App\Support\Vendors\VendorAccountJson;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,8 @@ class ProfileController extends Controller
         $vendor = $request->user('vendor')->load(['profile.governorate', 'profile.city']);
 
         return response()->json([
-            'vendor' => $vendor,
+            // E2-MVP (VEN-BE-023): the vendor and their profile through an explicit allowlist.
+            'vendor' => VendorAccountJson::vendor($vendor),
             'media' => [
                 'logo_url' => $vendor->profile?->logo ? Storage::disk('public')->url($vendor->profile->logo) : null,
                 'cover_url' => $vendor->profile?->cover_image ? Storage::disk('public')->url($vendor->profile->cover_image) : null,
@@ -75,7 +77,8 @@ class ProfileController extends Controller
 
         return response()->json([
             'message' => 'Vendor profile updated successfully.',
-            'vendor' => $vendor->fresh(['profile.governorate', 'profile.city']),
+            // E2-MVP (VEN-BE-023): the same allowlist as the profile read.
+            'vendor' => VendorAccountJson::vendor($vendor->fresh(['profile.governorate', 'profile.city'])),
         ]);
     }
 

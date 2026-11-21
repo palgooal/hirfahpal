@@ -4,6 +4,7 @@ namespace App\Http\Controllers\VendorDashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Commission;
+use App\Support\Vendors\VendorCommissionJson;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -22,7 +23,8 @@ class CommissionController extends Controller
             ->withQueryString();
 
         return response()->json([
-            'commissions' => $commissions,
+            // E2-MVP (VEN-BE-023): each commission through an explicit allowlist; the paginator's fields are unchanged.
+            'commissions' => $commissions->through(fn (Commission $commission) => VendorCommissionJson::commission($commission)),
             'summary' => [
                 'pending' => (float) Commission::query()->where('vendor_id', $vendor->id)->where('status', 'pending')->sum('amount'),
                 'earned' => (float) Commission::query()->where('vendor_id', $vendor->id)->where('status', 'earned')->sum('amount'),

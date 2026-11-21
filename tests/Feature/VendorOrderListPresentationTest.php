@@ -151,7 +151,11 @@ class VendorOrderListPresentationTest extends TestCase
         $row = $this->list()->assertOk()->json('orders.data.0');
 
         $this->assertSame(['HF-700001-V1', 'pending', 'سارة', '30.00'], [$row['number'], $row['status'], $row['order']['customer']['name'], $row['total']], 'The fields each column reads.');
-        $this->assertNotSame($row['order']['grand_total'], $row['total']);
+        // E2-MVP batch 05 (VEN-BE-023): the Total column reads the vendor order's own total (30 of the order's 105); the
+        // parent order's grand total, which carries the other vendor's share, is not published.
+        $this->assertSame('30.00', $row['total']);
+        $this->assertArrayNotHasKey('grand_total', $row['order']);
+        $this->assertStringNotContainsString('105.00', json_encode($row));
         $this->assertIsString($row['created_at']);
     }
 

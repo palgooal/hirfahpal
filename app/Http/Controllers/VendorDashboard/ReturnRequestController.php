@@ -4,6 +4,7 @@ namespace App\Http\Controllers\VendorDashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\ReturnRequest;
+use App\Support\Vendors\VendorReturnJson;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -22,7 +23,8 @@ class ReturnRequestController extends Controller
             ->withQueryString();
 
         return response()->json([
-            'returns' => $returns,
+            // E2-MVP (VEN-BE-023): each return through an explicit allowlist; the paginator's fields are unchanged.
+            'returns' => $returns->through(fn (ReturnRequest $returnRequest) => VendorReturnJson::returnRequest($returnRequest)),
         ]);
     }
 
@@ -31,7 +33,8 @@ class ReturnRequestController extends Controller
         $this->authorizeReturn($request, $returnRequest);
 
         return response()->json([
-            'return' => $returnRequest->load(['order', 'vendorOrder.items.product.images', 'customer']),
+            // E2-MVP (VEN-BE-023): the same allowlist as the list.
+            'return' => VendorReturnJson::returnRequest($returnRequest->load(['order', 'vendorOrder.items.product.images', 'customer'])),
         ]);
     }
 

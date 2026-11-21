@@ -54,6 +54,33 @@ class VendorStoreLogoMediaTest extends TestCase
         Storage::disk('public')->assertExists($media->file_path);
     }
 
+    /**
+     * E2-MVP (VEN-BE-023): the logo responses are built field by field and never carry the vendor, the store profile or
+     * its financial and review records, even when the profile holds them.
+     */
+    public function test_the_logo_responses_never_carry_the_vendor_or_the_profile(): void
+    {
+        $admin = Admin::factory()->create(['super_admin' => true, 'status' => 'active']);
+        $this->vendor->profile()->update(['commission_rate' => 17.35, 'approved_by' => $admin->id, 'rejection_reason' => 'LOGO-REVIEW-SECRET',
+            'cover_image' => 'covers/logo-secret-cover.png']);
+        $media = $this->library($this->vendor);
+
+        $update = $this->choose($media->id)->assertOk();
+        $this->assertSame(['message', 'logo'], array_keys($update->json()));
+        $this->assertSame(['media_id', 'url'], array_keys($update->json('logo')));
+
+        $destroy = $this->actingAs($this->vendor, 'vendor')->deleteJson(route('vendor.dashboard.profile.logo.destroy'))->assertOk();
+        $this->assertSame(['message', 'logo'], array_keys($destroy->json()));
+        $this->assertNull($destroy->json('logo'));
+
+        foreach (['update' => $update, 'destroy' => $destroy] as $context => $response) {
+            foreach (['"vendor"', '"profile"', 'commission_rate', 'approval_status', 'approved_by', 'rejection_reason', 'cover_image', 'email', 'phone',
+                '17.35', 'LOGO-REVIEW-SECRET', 'logo-secret-cover', $this->vendor->email, $this->vendor->phone] as $secret) {
+                $this->assertStringNotContainsString($secret, $response->getContent(), "{$context}: {$secret}");
+            }
+        }
+    }
+
     public function test_the_logo_read_by_the_profile_endpoint_is_the_chosen_image(): void
     {
         $media = $this->library($this->vendor);

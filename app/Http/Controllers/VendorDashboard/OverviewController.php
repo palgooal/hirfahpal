@@ -7,6 +7,8 @@ use App\Models\Commission;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\VendorOrder;
+use App\Support\Orders\VendorOrderJson;
+use App\Support\Vendors\VendorAccountJson;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -20,7 +22,8 @@ class OverviewController extends Controller
         $products = Product::query()->where('vendor_id', $vendor->id);
 
         return response()->json([
-            'vendor' => $vendor->load(['profile.governorate', 'profile.city']),
+            // E2-MVP (VEN-BE-023): the vendor, their orders and products through explicit allowlists.
+            'vendor' => VendorAccountJson::vendor($vendor->load(['profile.governorate', 'profile.city'])),
             'stats' => [
                 'products_total' => (clone $products)->count(),
                 'products_active' => (clone $products)->where('status', 'active')->count(),
@@ -48,14 +51,16 @@ class OverviewController extends Controller
                 ->where('vendor_id', $vendor->id)
                 ->latest()
                 ->limit(8)
-                ->get(),
+                ->get()
+                ->map(fn (VendorOrder $vendorOrder) => VendorOrderJson::vendorOrder($vendorOrder)),
             'low_stock_products' => Product::query()
                 ->with(['category', 'primaryImage'])
                 ->where('vendor_id', $vendor->id)
                 ->lowAvailableStock()
                 ->orderByAvailableStock()
                 ->limit(8)
-                ->get(),
+                ->get()
+                ->map(fn (Product $product) => VendorAccountJson::lowStockProduct($product)),
         ]);
     }
 }

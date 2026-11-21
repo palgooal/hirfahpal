@@ -4,6 +4,7 @@ namespace App\Http\Controllers\VendorDashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Dispute;
+use App\Support\Vendors\VendorDisputeJson;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -23,7 +24,8 @@ class DisputeController extends Controller
             ->withQueryString();
 
         return response()->json([
-            'disputes' => $disputes,
+            // E2-MVP (VEN-BE-023): each dispute through an explicit allowlist; the paginator's fields are unchanged.
+            'disputes' => $disputes->through(fn (Dispute $dispute) => VendorDisputeJson::dispute($dispute)),
         ]);
     }
 
@@ -32,7 +34,8 @@ class DisputeController extends Controller
         $this->authorizeDispute($request, $dispute);
 
         return response()->json([
-            'dispute' => $dispute->load(['order', 'vendorOrder.items.product.images', 'customer']),
+            // E2-MVP (VEN-BE-023): the same allowlist as the list.
+            'dispute' => VendorDisputeJson::dispute($dispute->load(['order', 'vendorOrder.items.product.images', 'customer'])),
         ]);
     }
 

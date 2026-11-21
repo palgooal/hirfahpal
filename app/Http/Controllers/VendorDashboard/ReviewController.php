@@ -4,6 +4,7 @@ namespace App\Http\Controllers\VendorDashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Review;
+use App\Support\Vendors\VendorReviewJson;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -27,7 +28,8 @@ class ReviewController extends Controller
             ->withQueryString();
 
         return response()->json([
-            'reviews' => $reviews,
+            // E2-MVP (VEN-BE-023): each review through an explicit allowlist; the paginator's fields are unchanged.
+            'reviews' => $reviews->through(fn (Review $review) => VendorReviewJson::review($review)),
             'summary' => [
                 'average_rating' => round((float) Review::query()
                     ->where('vendor_id', $vendor->id)

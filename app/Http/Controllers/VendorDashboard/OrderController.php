@@ -8,6 +8,7 @@ use App\Models\VendorOrder;
 use App\Support\Inventory\StockCommitmentException;
 use App\Support\Inventory\StockReservationLifecycle;
 use App\Support\Orders\OrderStatusLifecycle;
+use App\Support\Orders\VendorOrderJson;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,7 +31,7 @@ class OrderController extends Controller
         $vendor = $request->user('vendor');
 
         $orders = VendorOrder::query()
-            ->with(['order.customer', 'order.address.governorate', 'order.address.city', 'items.product.primaryImage', 'deliveryAssignment.deliveryDriver.profile'])
+            ->with(['order.customer', 'items.product.primaryImage', 'deliveryAssignment.deliveryDriver'])
             ->where('vendor_id', $vendor->id)
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = $request->input('search');
@@ -50,11 +51,11 @@ class OrderController extends Controller
             ->paginate($request->integer('per_page', 12))
             ->withQueryString();
 
-        // ORD-BE-001: the order's delivery address is the checkout snapshot.
-        $orders->getCollection()->each(fn (VendorOrder $vendorOrder) => $vendorOrder->order?->exposeDeliveryAddress());
-
+        // VEN-BE-023 (ORD-BE-001's vendor part): no delivery address is published to the vendor, so none is exposed.
         return response()->json([
-            'orders' => $orders,
+            // E2-MVP batch 05 (VEN-BE-023, the vendor orders list): each row through the explicit allowlist; the
+            // paginator's own fields (current_page, last_page, total, links...) are unchanged.
+            'orders' => $orders->through(fn (VendorOrder $vendorOrder) => VendorOrderJson::vendorOrder($vendorOrder)),
             'statuses' => $this->statuses(),
         ]);
     }
@@ -65,18 +66,16 @@ class OrderController extends Controller
 
         $vendorOrder->load([
             'order.customer',
-            'order.address.governorate',
-            'order.address.city',
             'items.product.images',
-            'deliveryAssignment.deliveryDriver.profile',
-            'deliveryDriver.profile',
+            'deliveryAssignment.deliveryDriver',
+            'deliveryDriver',
             'stockReservations.product',
         ]);
-        // ORD-BE-001: the order's delivery address is the checkout snapshot.
-        $vendorOrder->order?->exposeDeliveryAddress();
 
+        // VEN-BE-023 (ORD-BE-001's vendor part): no delivery address is published to the vendor, so none is exposed.
         return response()->json([
-            'order' => $vendorOrder,
+            // E2-MVP batch 05 (VEN-BE-023): an explicit allowlist instead of the serialized models.
+            'order' => VendorOrderJson::vendorOrder($vendorOrder),
             'allowed_actions' => $this->allowedActions($vendorOrder),
         ]);
     }
@@ -247,7 +246,8 @@ class OrderController extends Controller
     {
         return response()->json([
             'message' => $message,
-            'order' => $vendorOrder->fresh(['order.customer', 'items.product.primaryImage']),
+            // E2-MVP batch 05 (VEN-BE-023, the four vendor actions): the same relations, through the explicit allowlist.
+            'order' => VendorOrderJson::vendorOrder($vendorOrder->fresh(['order.customer', 'items.product.primaryImage'])),
             'allowed_actions' => $this->allowedActions($vendorOrder->fresh()),
         ]);
     }
