@@ -5,6 +5,7 @@ namespace App\Http\Controllers\DeliveryDriverDashboard;
 use App\Http\Controllers\Controller;
 use App\Models\DeliveryAssignment;
 use App\Support\Orders\DeliveryDriverAssignmentJson;
+use App\Support\Orders\DriverCash;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -24,6 +25,8 @@ class OverviewController extends Controller
                 'delivered_today' => (clone $assignments)->where('status', 'delivered')->whereDate('delivered_at', today())->count(),
                 'failed' => (clone $assignments)->where('status', 'failed')->count(),
             ],
+            // E2-MVP batch 05: the driver's own cash custody (collected - settled + reversed), never another driver's.
+            'cash_balance' => DriverCash::format(DriverCash::summary($request->user('delivery_driver')->id)['balance']),
             'recent_assignments' => $assignments
                 ->with(['vendorOrder.vendor.profile', 'vendorOrder.order.address.governorate', 'vendorOrder.order.address.city'])
                 ->latest()

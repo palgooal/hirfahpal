@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Admin;
 use App\Models\City;
 use App\Models\Customer;
 use App\Models\DeliveryAssignment;
@@ -104,7 +105,7 @@ class DeliveryDriverDataExposureTest extends TestCase
 
         // picked_up → failed → returned to the vendor
         $failed = $this->assignmentFor($driver, 'picked_up', 'out_for_delivery');
-        $this->assertClean($this->act($driver, 'failed', $failed, ['failure_reason' => 'Customer unavailable.'])->assertOk()->json(), 'failed');
+        $this->assertClean($this->act($driver, 'failed', $failed, ['failure_code' => 'customer_absent', 'failure_reason' => 'Customer unavailable.'])->assertOk()->json(), 'failed');
         $this->assertClean($this->act($driver, 'return-to-vendor', $failed)->assertOk()->json(), 'return-to-vendor');
     }
 
@@ -127,9 +128,13 @@ class DeliveryDriverDataExposureTest extends TestCase
 
         // A failure after pickup keeps the order out for delivery until the return.
         $failed = $this->assignmentFor($driver, 'picked_up', 'out_for_delivery');
-        $this->act($driver, 'failed', $failed, ['failure_reason' => 'Customer unavailable.'])->assertOk()->assertJsonPath('assignment.failure_reason', 'Customer unavailable.');
+        $this->act($driver, 'failed', $failed, ['failure_code' => 'customer_absent', 'failure_reason' => 'Customer unavailable.'])->assertOk()->assertJsonPath('assignment.failure_reason', 'Customer unavailable.');
         $this->assertSame(['failed', 'out_for_delivery'], [$failed->fresh()->status, $failed->vendorOrder->fresh()->status]);
+        // E2-MVP custody fix: the driver declares the return; the admin confirmation alone closes the custody.
         $this->act($driver, 'return-to-vendor', $failed)->assertOk();
+        $this->assertSame(['failed', 'out_for_delivery'], [$failed->fresh()->status, $failed->vendorOrder->fresh()->status]);
+        $admin = Admin::factory()->create(['super_admin' => true, 'status' => 'active']);
+        $this->actingAs($admin, 'admin')->patch(route('dashboard.vendor-orders.confirm-return', $failed->vendorOrder))->assertRedirect();
         $this->assertSame(['cancelled', 'ready_for_delivery'], [$failed->fresh()->status, $failed->vendorOrder->fresh()->status]);
     }
 
@@ -303,7 +308,12 @@ class DeliveryDriverDataExposureTest extends TestCase
     private function act(DeliveryDriver $driver, string $action, DeliveryAssignment $assignment, array $data = []): TestResponse
     {
         return $this->actingAs($driver, 'delivery_driver')
-            ->patchJson(route("delivery-driver.dashboard.assignments.{$action}", $assignment), $action === 'failed' ? $data : []);
+            // E2-MVP batch 05: a cash-on-delivery delivery confirms the full amount collected.
+            ->patchJson(route("delivery-driver.dashboard.assignments.{$action}", $assignment), match ($action) {
+                'failed' => $data,
+                'delivered' => ['collected_amount' => (string) $assignment->vendorOrder->total],
+                default => [],
+            });
     }
 
     private function approvedDriver(array $profile = []): DeliveryDriver

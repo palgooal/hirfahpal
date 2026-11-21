@@ -15,6 +15,7 @@
 @source "../views/auth/accounts/register.blade.php";
 @source "../views/auth/accounts/forgot-password.blade.php";
 @source "../views/auth/accounts/reset-password.blade.php";
+@source "../views/auth/accounts/approval-status.blade.php";
 @source "../views/components/lang/language-switcher-admin-auth.blade.php";
 @source "../js/admin-auth.js";
 

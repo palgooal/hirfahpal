@@ -7,7 +7,7 @@ use Illuminate\Database\Seeder;
 
 /**
  * Arabic and English strings that only the delivery driver auth pages use (auth/accounts/login, register,
- * forgot-password and reset-password, same design as the vendor portal). Shared strings (password, remember me, brand...) come from AdminAuthTranslationSeeder.
+ * forgot-password, reset-password and approval-status, same design as the vendor portal). Shared strings (password, remember me, brand...) come from AdminAuthTranslationSeeder.
  * Only missing (key, locale) rows are inserted; edited values are kept. Not called from DatabaseSeeder.
  */
 class DeliveryDriverAuthTranslationSeeder extends Seeder
@@ -106,6 +106,88 @@ class DeliveryDriverAuthTranslationSeeder extends Seeder
         'driver.Have_Account' => [
             'ar' => 'لديك حساب بالفعل؟',
             'en' => 'Already have an account?',
+        ],
+        // E2-MVP batch 01: the service area and vehicle on the registration page, and their validation messages.
+        'driver.Governorate' => [
+            'ar' => 'المحافظة',
+            'en' => 'Governorate',
+        ],
+        'driver.Choose_Governorate' => [
+            'ar' => 'اختر المحافظة',
+            'en' => 'Choose a governorate',
+        ],
+        'driver.City' => [
+            'ar' => 'المدينة',
+            'en' => 'City',
+        ],
+        'driver.Choose_City' => [
+            'ar' => 'اختر المدينة',
+            'en' => 'Choose a city',
+        ],
+        'driver.Vehicle_Type' => [
+            'ar' => 'نوع المركبة',
+            'en' => 'Vehicle type',
+        ],
+        'driver.Vehicle_Type_Placeholder' => [
+            'ar' => 'مثال: دراجة نارية',
+            'en' => 'e.g. Motorcycle',
+        ],
+        'driver.Location_Invalid' => [
+            'ar' => 'القيمة المختارة غير متاحة.',
+            'en' => 'The selected value is not available.',
+        ],
+        'driver.City_Mismatch' => [
+            'ar' => 'المدينة المختارة لا تتبع المحافظة المختارة.',
+            'en' => 'The selected city does not belong to the selected governorate.',
+        ],
+        // E2-MVP batch 01 (FR-DEL-013): the application status page (auth/accounts/approval-status).
+        'driver.Status_Title' => [
+            'ar' => 'حالة الطلب | بوابة مندوبي التوصيل في حرفة',
+            'en' => 'Application status | Hirfah Delivery',
+        ],
+        'driver.Application_Status' => [
+            'ar' => 'حالة طلب الانضمام',
+            'en' => 'Application status',
+        ],
+        'driver.Pending_Heading' => [
+            'ar' => 'طلبك قيد المراجعة',
+            'en' => 'Your application is under review',
+        ],
+        'driver.Pending_Description' => [
+            'ar' => 'استلمنا طلب انضمامك إلى فريق توصيل حِرفة، ويراجعه فريقنا الآن. ستتمكن من استلام مهام التوصيل بعد الموافقة.',
+            'en' => 'We have received your request to join the Hirfah delivery team, and our team is reviewing it. You can receive delivery tasks once it is approved.',
+        ],
+        'driver.Rejected_Heading' => [
+            'ar' => 'لم تتم الموافقة على طلبك',
+            'en' => 'Your application was not approved',
+        ],
+        'driver.Rejected_Description' => [
+            'ar' => 'نأسف لإبلاغك بأن طلب انضمامك إلى فريق توصيل حِرفة لم تتم الموافقة عليه.',
+            'en' => 'We are sorry to let you know that your request to join the Hirfah delivery team was not approved.',
+        ],
+        'driver.Status_Label' => [
+            'ar' => 'الحالة',
+            'en' => 'Status',
+        ],
+        'driver.Pending_Label' => [
+            'ar' => 'قيد المراجعة',
+            'en' => 'Under review',
+        ],
+        'driver.Rejected_Label' => [
+            'ar' => 'مرفوض',
+            'en' => 'Not approved',
+        ],
+        'driver.Name_Label' => [
+            'ar' => 'الاسم',
+            'en' => 'Name',
+        ],
+        'driver.Rejection_Reason' => [
+            'ar' => 'سبب الرفض',
+            'en' => 'Reason',
+        ],
+        'driver.Sign_Out' => [
+            'ar' => 'تسجيل الخروج',
+            'en' => 'Sign out',
         ],
         // The password recovery pages (auth/accounts/forgot-password and reset-password).
         'driver.Forgot_Title' => [

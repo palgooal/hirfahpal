@@ -50,6 +50,11 @@
                             <input class="form-check-input" type="checkbox" value="1" name="needs_attention" id="needs_attention" @checked(request()->boolean('needs_attention'))>
                             <label class="form-check-label" for="needs_attention">{{ t('dashboard.Needs_attention', 'Needs attention') }}</label>
                         </div>
+                        {{-- E2-MVP batch 03: tasks declined or failed, waiting for the admin. --}}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="1" name="delivery_issue" id="delivery_issue" @checked(request()->boolean('delivery_issue'))>
+                            <label class="form-check-label" for="delivery_issue">{{ t('dashboard.Vendor_Order_Assignment_Delivery_Issue', 'Delivery issue') }}</label>
+                        </div>
                     </div>
                     <div class="col-12 col-lg-2 d-flex gap-2">
                         <button class="btn btn-primary" type="submit">{{ t('dashboard.Filter', 'Filter') }}</button>

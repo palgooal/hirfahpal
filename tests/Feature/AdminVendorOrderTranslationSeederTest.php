@@ -137,7 +137,11 @@ class AdminVendorOrderTranslationSeederTest extends TestCase
         $this->seed(AdminVendorOrderTranslationSeeder::class);
 
         $this->assertSame($before, $this->snapshot());
-        $this->assertSame(4, TranslationValue::where('key', 'like', 'dashboard.Vendor_Order_Assignment_%')->count());
+        // One row per locale of each seeded key of this family, derived from the seeder (no count to update by hand).
+        $expected = collect(AdminVendorOrderTranslationSeeder::TRANSLATIONS)
+            ->filter(fn (array $locales, string $key) => str_starts_with($key, 'dashboard.Vendor_Order_Assignment_'))
+            ->sum(fn (array $locales) => count($locales));
+        $this->assertSame($expected, TranslationValue::where('key', 'like', 'dashboard.Vendor_Order_Assignment_%')->count());
     }
 
     private function visit(string $locale): string

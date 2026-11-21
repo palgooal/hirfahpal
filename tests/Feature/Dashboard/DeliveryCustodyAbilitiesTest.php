@@ -43,7 +43,7 @@ class DeliveryCustodyAbilitiesTest extends TestCase
             'products.view', 'products.create', 'products.edit', 'products.delete', 'products.audit', 'products.suspend',
             'products.unsuspend', 'products.archive', 'products.restore',
             'customers.view', 'customers.edit',
-            'delivery-drivers.view', 'delivery-drivers.edit',
+            'delivery-drivers.view', 'delivery-drivers.edit', 'delivery-drivers.view-cash', 'delivery-drivers.settle-cash', // E2-MVP batch 05.
             'orders.view', 'orders.edit',
             'vendor-orders.view', 'vendor-orders.create', 'vendor-orders.assign-driver',
             'reviews.view', 'reviews.edit', 'reviews.delete',
@@ -127,16 +127,36 @@ class DeliveryCustodyAbilitiesTest extends TestCase
         $this->assertSame(['vendor-orders.confirm-return', 'vendor-orders.view'], $this->abilitiesOf($target));
     }
 
-    public function test_nothing_in_the_application_checks_them_yet(): void
+    /**
+     * E2-MVP: the abilities are now checked (confirm-return: the admin return confirmation that closes the custody;
+     * record-delivery-failure: the admin failure record after pickup), and only there: the vendor order controller, its
+     * routes and its admin page. Nothing else in the application mentions them.
+     */
+    public function test_only_the_admin_custody_actions_check_them(): void
     {
         $files = array_merge(File::allFiles(app_path()), File::allFiles(base_path('routes')), File::allFiles(resource_path()));
+        $mentioning = [];
 
         foreach ($files as $file) {
             $content = $file->getContents();
             foreach (['record-delivery-failure', 'confirm-return'] as $name) {
-                $this->assertStringNotContainsString($name, $content, "{$file->getRelativePathname()} mentions {$name}.");
+                if (str_contains($content, $name)) {
+                    $mentioning[] = str_replace('\\', '/', $file->getRealPath());
+                }
             }
         }
+
+        $this->assertEqualsCanonicalizing([
+            str_replace('\\', '/', app_path('Http/Controllers/Dashboard/VendorOrderManagementController.php')),
+            str_replace('\\', '/', app_path('Http/Controllers/Dashboard/VendorOrderManagementController.php')),
+            str_replace('\\', '/', base_path('routes/dashboard.php')),
+            str_replace('\\', '/', resource_path('views/dashboard/vendor-orders/show.blade.php')),
+            str_replace('\\', '/', resource_path('views/dashboard/vendor-orders/show.blade.php')),
+        ], $mentioning);
+
+        $controller = file_get_contents(app_path('Http/Controllers/Dashboard/VendorOrderManagementController.php'));
+        $this->assertStringContainsString("\$this->authorizeAbility(\$request, 'vendor-orders.confirm-return');", $controller);
+        $this->assertStringContainsString("\$this->authorizeAbility(\$request, 'vendor-orders.record-delivery-failure');", $controller);
     }
 
     /** @return list<string> group.ability, in catalogue order */

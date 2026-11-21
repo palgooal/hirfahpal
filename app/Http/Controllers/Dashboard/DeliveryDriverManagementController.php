@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Models\DeliveryAssignment;
 use App\Models\DeliveryDriver;
+use App\Models\DriverCashSettlement;
+use App\Support\Orders\DriverCash;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -42,7 +45,32 @@ class DeliveryDriverManagementController extends Controller
             'deliveryAssignments' => fn ($query) => $query->with('vendorOrder.order')->latest()->limit(15),
         ]);
 
-        return view('dashboard.delivery-drivers.show', compact('deliveryDriver'));
+        // E2-MVP batch 04: every task this driver still holds, however old: before pickup (assigned, accepted), with the
+        // goods (picked up, out for delivery), or failed after pickup and waiting for the return confirmation. Nothing is
+        // unassigned automatically: the admin reassigns or handles the custody from the order page.
+        $activeTasks = DeliveryAssignment::query()
+            ->with('vendorOrder')
+            ->where('delivery_driver_id', $deliveryDriver->id)
+            ->where(fn ($query) => $query
+                ->whereIn('status', ['assigned', 'accepted', 'picked_up', 'out_for_delivery'])
+                ->orWhere(fn ($custody) => $custody->where('status', 'failed')->whereHas('vendorOrder', fn ($order) => $order->where('status', 'out_for_delivery'))))
+            ->orderBy('id')
+            ->get();
+
+        // E2-MVP batch 05: the driver's cash custody, only for an admin allowed to see it (delivery-drivers.view-cash).
+        $admin = $request->user('admin');
+        $canViewCash = $admin->isSuperAdmin() || $admin->hasAbility('delivery-drivers.view-cash');
+
+        return view('dashboard.delivery-drivers.show', [
+            'deliveryDriver' => $deliveryDriver,
+            'activeTasks' => $activeTasks,
+            'notEligible' => ! VendorOrderManagementController::isEligible($deliveryDriver),
+            'cash' => $canViewCash ? DriverCash::summary($deliveryDriver->id) : null,
+            'cashEntries' => $canViewCash
+                ? DriverCashSettlement::query()->with(['recorder:id,name', 'reversal:id,reverses_id'])->where('delivery_driver_id', $deliveryDriver->id)->latest('id')->get()
+                : collect(),
+            'canSettleCash' => $admin->isSuperAdmin() || $admin->hasAbility('delivery-drivers.settle-cash'),
+        ]);
     }
 
     public function approve(Request $request, DeliveryDriver $deliveryDriver): RedirectResponse
@@ -82,7 +110,9 @@ class DeliveryDriverManagementController extends Controller
                 'is_available' => false,
             ]
         );
-        $deliveryDriver->update(['status' => 'blocked']);
+        // E2-MVP batch 01: a rejection is an approval decision, not an account block. The account status is kept, so the
+        // driver can still sign in and read the decision and its reason (FR-DEL-013); the rejected, unavailable profile
+        // keeps them out of delivery operations and assignment. Blocking stays an explicit action (updateAvailability).
 
         return back()->with('success', t('dashboard.Driver_rejected', 'Delivery driver rejected successfully.'));
     }

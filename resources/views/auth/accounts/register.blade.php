@@ -122,6 +122,70 @@
               @enderror
             </div>
 
+            {{-- E2-MVP batch 01: the service area, the active governorates and their active cities. The cities are grouped
+                 under their governorate; the server checks that the city belongs to the governorate (LocationPair). --}}
+            <div>
+              <label for="governorate_id" class="{{ $labelClass }}">{{ $driverText('driver.Governorate') }}{!! $requiredMark !!}</label>
+              <select
+                id="governorate_id"
+                name="governorate_id"
+                required
+                @error('governorate_id') aria-invalid="true" aria-describedby="governorate_id-error" @enderror
+                class="{{ $inputClass }}"
+              >
+                <option value="">{{ $driverText('driver.Choose_Governorate') }}</option>
+                @foreach ($governorates as $governorate)
+                  <option value="{{ $governorate->id }}" @selected((string) old('governorate_id') === (string) $governorate->id)>{{ $governorate->name }}</option>
+                @endforeach
+              </select>
+              @error('governorate_id')
+                <p id="governorate_id-error" role="alert" class="{{ $errorClass }}">{{ $message }}</p>
+              @enderror
+            </div>
+
+            <div>
+              <label for="city_id" class="{{ $labelClass }}">{{ $driverText('driver.City') }}{!! $requiredMark !!}</label>
+              <select
+                id="city_id"
+                name="city_id"
+                required
+                @error('city_id') aria-invalid="true" aria-describedby="city_id-error" @enderror
+                class="{{ $inputClass }}"
+              >
+                <option value="">{{ $driverText('driver.Choose_City') }}</option>
+                @foreach ($governorates as $governorate)
+                  @if ($governorate->cities->isNotEmpty())
+                    <optgroup label="{{ $governorate->name }}">
+                      @foreach ($governorate->cities as $city)
+                        <option value="{{ $city->id }}" @selected((string) old('city_id') === (string) $city->id)>{{ $city->name }}</option>
+                      @endforeach
+                    </optgroup>
+                  @endif
+                @endforeach
+              </select>
+              @error('city_id')
+                <p id="city_id-error" role="alert" class="{{ $errorClass }}">{{ $message }}</p>
+              @enderror
+            </div>
+
+            <div>
+              <label for="vehicle_type" class="{{ $labelClass }}">{{ $driverText('driver.Vehicle_Type') }}{!! $requiredMark !!}</label>
+              <input
+                id="vehicle_type"
+                name="vehicle_type"
+                type="text"
+                value="{{ old('vehicle_type') }}"
+                required
+                maxlength="255"
+                placeholder="{{ $driverText('driver.Vehicle_Type_Placeholder') }}"
+                @error('vehicle_type') aria-invalid="true" aria-describedby="vehicle_type-error" @enderror
+                class="{{ $inputClass }}"
+              />
+              @error('vehicle_type')
+                <p id="vehicle_type-error" role="alert" class="{{ $errorClass }}">{{ $message }}</p>
+              @enderror
+            </div>
+
             {{-- Passwords are never refilled after a failed submit; a mismatch is reported on password. --}}
             @foreach ([
                 ['password', t('dashboard.Password', 'Password')],

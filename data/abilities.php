@@ -68,6 +68,10 @@ return [
         'name' => t('dashboard.Delivery_Drivers', 'Delivery Drivers'),
         'view' => t('dashboard.View_Delivery_Drivers', 'View Delivery Drivers'),
         'edit' => t('dashboard.Edit_Delivery_Drivers', 'Approve / Update Delivery Drivers'),
+        // E2-MVP batch 05: the drivers' cash custody (balances and entries), and recording or reversing the cash received
+        // from them. Granted to nobody automatically: only explicitly through the admins form (a super admin needs neither).
+        'view-cash' => t('dashboard.Delivery_Ops_View_Cash', 'View Driver Cash'),
+        'settle-cash' => t('dashboard.Delivery_Ops_Settle_Cash', 'Record Driver Cash Settlements'),
     ],
     'orders' => [
         'name' => t('dashboard.Orders', 'Orders'),

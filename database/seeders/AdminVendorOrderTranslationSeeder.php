@@ -22,6 +22,16 @@ class AdminVendorOrderTranslationSeeder extends Seeder
      * @var array<string, array<string, string>>
      */
     public const TRANSLATIONS = [
+        // E2-MVP batch 03: a task the driver declined or could not deliver, for the admin to handle by hand (also the
+        // label of the vendor orders list filter).
+        'dashboard.Vendor_Order_Assignment_Delivery_Issue' => [
+            'ar' => 'مشكلة في التوصيل',
+            'en' => 'Delivery issue',
+        ],
+        'dashboard.Vendor_Order_Assignment_Declined' => [
+            'ar' => 'رفض المندوب المهمة قبل قبولها',
+            'en' => 'The driver declined the task before accepting it',
+        ],
         'dashboard.Vendor_Order_Assignment_Not_Ready' => [
             'ar' => 'يمكن إسناد مندوب توصيل بعد أن يحدّد البائع هذا الطلب كجاهز للتسليم.',
             'en' => 'A driver can be assigned once the vendor marks this order ready for delivery.',

@@ -11,6 +11,9 @@ use Illuminate\View\View;
 
 class OrderManagementController extends Controller
 {
+    /** E2-MVP batch 04: the parent order statuses an admin may still set by hand. */
+    public const MANUAL_STATUSES = ['pending', 'processing'];
+
     public function index(Request $request): View
     {
         $this->authorizeAbility($request, 'orders.view');
@@ -61,9 +64,12 @@ class OrderManagementController extends Controller
     {
         $this->authorizeAbility($request, 'orders.edit');
 
+        // E2-MVP batch 04: cancelled, partially cancelled and completed come from the vendor orders only
+        // (OrderStatusLifecycle); a manual change is limited to pending ↔ processing, from one of them.
         $data = $request->validate([
-            'status' => ['required', Rule::in(array_keys($this->statuses()))],
+            'status' => ['required', Rule::in(self::MANUAL_STATUSES)],
         ]);
+        abort_unless(in_array($order->status, self::MANUAL_STATUSES, true), 422);
 
         $order->update([
             'status' => $data['status'],

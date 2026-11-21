@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Admin;
 use App\Models\City;
 use App\Models\Customer;
 use App\Models\DeliveryAssignment;
@@ -97,6 +98,7 @@ class DeliveryDriverDashboardTest extends TestCase
 
         $this->actingAs($driver, 'delivery_driver')
             ->patchJson(route('delivery-driver.dashboard.assignments.failed', $assignment), [
+                'failure_code' => 'customer_absent',
                 'failure_reason' => 'Customer was unavailable.',
             ])
             ->assertOk()
@@ -124,19 +126,30 @@ class DeliveryDriverDashboardTest extends TestCase
         $assignment->update(['picked_up_at' => now()]);
 
         $this->actingAs($driver, 'delivery_driver')
-            ->patchJson(route('delivery-driver.dashboard.assignments.failed', $assignment), ['failure_reason' => 'Customer unavailable.'])
+            ->patchJson(route('delivery-driver.dashboard.assignments.failed', $assignment), ['failure_code' => 'customer_absent', 'failure_reason' => 'Customer unavailable.'])
             ->assertOk();
 
         $this->assertSame('out_for_delivery', $assignment->vendorOrder->fresh()->status);
 
+        // E2-MVP custody fix: the driver's return is a declaration; the order stays in the driver's custody.
         $this->actingAs($driver, 'delivery_driver')
             ->patchJson(route('delivery-driver.dashboard.assignments.return-to-vendor', $assignment))
             ->assertOk()
-            ->assertJsonPath('assignment.status', 'cancelled');
+            ->assertJsonPath('assignment.status', 'failed');
 
+        $this->assertNotNull($assignment->fresh()->return_declared_at);
+        $this->assertNull($assignment->fresh()->returned_at);
+        $this->assertSame(['out_for_delivery', $driver->id], [$assignment->vendorOrder->fresh()->status, $assignment->vendorOrder->fresh()->delivery_driver_id]);
+        $this->assertDatabaseHas('order_status_histories', ['vendor_order_id' => $assignment->vendor_order_id, 'status' => 'return_declared']);
+
+        // The admin confirmation closes the custody and reopens the order for reassignment.
+        $admin = Admin::factory()->create(['super_admin' => true, 'status' => 'active']);
+        $this->actingAs($admin, 'admin')->patch(route('dashboard.vendor-orders.confirm-return', $assignment->vendorOrder))->assertRedirect();
+
+        $this->assertSame(['cancelled', $admin->id], [$assignment->fresh()->status, $assignment->fresh()->return_confirmed_by]);
         $this->assertNotNull($assignment->fresh()->returned_at);
         $this->assertSame(['ready_for_delivery', null], [$assignment->vendorOrder->fresh()->status, $assignment->vendorOrder->fresh()->delivery_driver_id]);
-        $this->assertDatabaseHas('order_status_histories', ['vendor_order_id' => $assignment->vendor_order_id, 'status' => 'returned_to_vendor']);
+        $this->assertDatabaseHas('order_status_histories', ['vendor_order_id' => $assignment->vendor_order_id, 'status' => 'return_confirmed', 'actor_type' => 'admin', 'actor_id' => $admin->id]);
     }
 
     public function test_driver_cannot_change_another_drivers_assignment(): void

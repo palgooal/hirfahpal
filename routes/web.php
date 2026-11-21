@@ -12,6 +12,7 @@ use App\Http\Controllers\Customer\AccountDetailsController as CustomerAccountDet
 use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\FavoriteController as CustomerFavoriteController;
 use App\Http\Controllers\Dashboard\AdminDashboardController;
+use App\Http\Controllers\DeliveryDriverDashboard\ApprovalStatusController as DeliveryDriverApprovalStatusController;
 use App\Http\Controllers\DeliveryDriverDashboard\AssignmentController as DeliveryDriverAssignmentController;
 use App\Http\Controllers\DeliveryDriverDashboard\DashboardController as DeliveryDriverDashboardController;
 use App\Http\Controllers\DeliveryDriverDashboard\OverviewController as DeliveryDriverOverviewController;
@@ -296,6 +297,12 @@ foreach (AccountGuard::all() as $accountType => $account) {
                     }
 
                     if ($accountType === 'delivery_driver') {
+                        // E2-MVP batch 01 (FR-DEL-013): outside the approval gate, pending/rejected drivers land here.
+                        // Its page uses seeded translations only, so t() must not insert keys here.
+                        Route::get('approval-status', DeliveryDriverApprovalStatusController::class)
+                            ->middleware(['setLocale', 'disableTranslationAutoCreate'])
+                            ->name('approval-status');
+
                         Route::get('/dashboard', DeliveryDriverDashboardController::class)
                             ->middleware('delivery-driver.approved')
                             ->name('dashboard');
@@ -313,6 +320,9 @@ foreach (AccountGuard::all() as $accountType => $account) {
                                 ->name('dashboard.assignments.show');
                             Route::patch('assignments/{assignment}/accept', [DeliveryDriverAssignmentController::class, 'accept'])
                                 ->name('dashboard.assignments.accept');
+                            // E2-MVP batch 03: decline a task before accepting it.
+                            Route::patch('assignments/{assignment}/decline', [DeliveryDriverAssignmentController::class, 'decline'])
+                                ->name('dashboard.assignments.decline');
                             Route::patch('assignments/{assignment}/pick-up', [DeliveryDriverAssignmentController::class, 'pickUp'])
                                 ->name('dashboard.assignments.pick-up');
                             Route::patch('assignments/{assignment}/delivered', [DeliveryDriverAssignmentController::class, 'markDelivered'])

@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\City;
 use App\Models\DeliveryDriver;
+use App\Models\Governorate;
 use App\Models\Language;
 use App\Models\TranslationValue;
 use App\Models\Vendor;
@@ -25,7 +27,8 @@ class DeliveryDriverRegisterPageTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const FIELDS = ['full_name', 'phone', 'email', 'password', 'password_confirmation', 'terms'];
+    // E2-MVP batch 01: vehicle_type joined the inputs; the governorate and city are selects (DeliveryDriverApplicationTest).
+    private const FIELDS = ['full_name', 'phone', 'email', 'vehicle_type', 'password', 'password_confirmation', 'terms'];
 
     private string $hotFile;
 
@@ -143,7 +146,8 @@ class DeliveryDriverRegisterPageTest extends TestCase
         $this->assertSame('1', $xpath->query('//input[@name="terms"]')->item(0)->getAttribute('value'));
 
         // The visual required marks are hidden from screen readers.
-        $this->assertSame(7, $xpath->query('//form//span[@aria-hidden="true" and contains(@class, "text-error")]')->length);
+        // E2-MVP batch 01: 7 + governorate, city and vehicle type.
+        $this->assertSame(10, $xpath->query('//form//span[@aria-hidden="true" and contains(@class, "text-error")]')->length);
     }
 
     public function test_both_password_fields_have_an_accessible_toggle(): void
@@ -222,7 +226,14 @@ class DeliveryDriverRegisterPageTest extends TestCase
 
     public function test_registration_still_creates_an_active_driver_with_a_pending_profile_and_signs_in(): void
     {
+        // E2-MVP batch 01: the service area and vehicle are now required.
+        $governorate = Governorate::create(['name' => 'Gaza Governorate', 'slug' => 'gaza-governorate', 'status' => 'active']);
+        $city = City::create(['governorate_id' => $governorate->id, 'name' => 'Gaza', 'slug' => 'gaza', 'status' => 'active']);
+
         $this->post(route('delivery-driver.register.store'), [
+            'governorate_id' => $governorate->id,
+            'city_id' => $city->id,
+            'vehicle_type' => 'Motorcycle',
             'full_name' => 'Driver One',
             'phone' => '0591112223',
             'email' => 'driver-one@example.com',
@@ -270,7 +281,10 @@ class DeliveryDriverRegisterPageTest extends TestCase
     public function test_the_seeder_covers_the_driver_auth_pages_exactly(): void
     {
         $used = [];
-        foreach (['login', 'register', 'forgot-password', 'reset-password'] as $page) {
+        // E2-MVP batch 01: plus the approval-status page and the registration validation messages (CreateAccountUser).
+        preg_match_all("/->driverText\('([A-Za-z_.]+)'\)/", file_get_contents(app_path('Actions/Auth/CreateAccountUser.php')), $matches);
+        $used = $matches[1];
+        foreach (['login', 'register', 'forgot-password', 'reset-password', 'approval-status'] as $page) {
             preg_match_all("/\\\$driverText\('([A-Za-z_.]+)'\)/", file_get_contents(resource_path("views/auth/accounts/{$page}.blade.php")), $matches);
             $used = [...$used, ...$matches[1]];
         }
@@ -280,8 +294,8 @@ class DeliveryDriverRegisterPageTest extends TestCase
         sort($seeded);
 
         $this->assertSame($seeded, $used, 'Every seeded key is read by a driver page, and every key read is seeded.');
-        // 7 login, 15 registration and 12 password recovery keys.
-        $this->assertCount(34, $seeded);
+        // 7 login, 15 registration and 12 password recovery keys; E2-MVP batch 01: 8 registration and 12 status keys.
+        $this->assertCount(54, $seeded);
 
         // The approved login and registration values are unchanged.
         $this->assertSame(['ar' => 'إنشاء حساب مندوب توصيل', 'en' => 'Create a delivery driver account'], DeliveryDriverAuthTranslationSeeder::TRANSLATIONS['driver.Register_Heading']);

@@ -16,8 +16,17 @@ class DeliveryAssignment extends Model
         'delivered_at',
         'failed_at',
         'failure_reason',
+        'failure_code',
         'returned_at',
+        'declined_at',
+        'decline_code',
+        'decline_note',
+        'return_declared_at',
+        'return_confirmed_by',
         'notes',
+        'cod_amount',
+        'cod_collected_amount',
+        'cod_collected_at',
     ];
 
     protected function casts(): array
@@ -28,6 +37,11 @@ class DeliveryAssignment extends Model
             'delivered_at' => 'datetime',
             'failed_at' => 'datetime',
             'returned_at' => 'datetime',
+            'declined_at' => 'datetime',
+            'return_declared_at' => 'datetime',
+            'cod_amount' => 'decimal:2',
+            'cod_collected_amount' => 'decimal:2',
+            'cod_collected_at' => 'datetime',
         ];
     }
 

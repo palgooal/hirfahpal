@@ -27,9 +27,10 @@ use Illuminate\Support\Str;
  */
 class DeliveryDriverAssignmentJson
 {
-    /** Never assigned_by (the assigning admin). */
+    /** Never assigned_by (the assigning admin) or return_confirmed_by (the admin who closed the custody). */
     private const ASSIGNMENT = ['id', 'vendor_order_id', 'delivery_driver_id', 'status', 'assigned_at', 'picked_up_at',
-        'delivered_at', 'failed_at', 'failure_reason', 'returned_at', 'notes', 'created_at', 'updated_at'];
+        'delivered_at', 'failed_at', 'failure_code', 'failure_reason', 'returned_at', 'declined_at', 'decline_code', 'decline_note',
+        'return_declared_at', 'notes', 'cod_amount', 'cod_collected_amount', 'cod_collected_at', 'created_at', 'updated_at'];
 
     /** Never commission_amount, rejection_reason, vendor_response_due_at or the money columns. */
     private const VENDOR_ORDER = ['id', 'number', 'order_id', 'vendor_id', 'delivery_driver_id', 'status', 'ready_at',
@@ -63,8 +64,11 @@ class DeliveryDriverAssignmentJson
     /** @return array<string, mixed> */
     public static function assignment(DeliveryAssignment $assignment): array
     {
+        // E2-MVP batch 02: the delivery address only while the task is active (DeliveryDriverAssignmentCard::ACTIVE_STATUSES).
+        $active = DeliveryDriverAssignmentCard::isActive($assignment);
+
         return self::only($assignment, self::ASSIGNMENT) + self::relations($assignment, [
-            'vendorOrder' => fn (?VendorOrder $vendorOrder) => $vendorOrder ? self::vendorOrder($vendorOrder) : null,
+            'vendorOrder' => fn (?VendorOrder $vendorOrder) => $vendorOrder ? self::vendorOrder($vendorOrder, $active) : null,
         ]);
     }
 
@@ -77,10 +81,10 @@ class DeliveryDriverAssignmentJson
     }
 
     /** @return array<string, mixed> */
-    private static function vendorOrder(VendorOrder $vendorOrder): array
+    private static function vendorOrder(VendorOrder $vendorOrder, bool $active): array
     {
         return self::only($vendorOrder, self::VENDOR_ORDER) + self::relations($vendorOrder, [
-            'order' => fn (?Order $order) => $order ? self::order($order) : null,
+            'order' => fn (?Order $order) => $order ? self::order($order, $active) : null,
             'vendor' => fn (?Vendor $vendor) => $vendor ? self::vendor($vendor) : null,
             'items' => fn ($items) => $items->map(fn (OrderItem $item) => self::item($item))->all(),
             // The current assignment, without its vendor order again.
@@ -89,12 +93,13 @@ class DeliveryDriverAssignmentJson
     }
 
     /** @return array<string, mixed> */
-    private static function order(Order $order): array
+    private static function order(Order $order, bool $active): array
     {
         $data = self::only($order, self::ORDER);
 
-        // ORD-BE-001: only when the endpoint exposed it (index, show, overview), exactly as exposeDeliveryAddress() prepared it.
-        if (in_array('delivery_address', $order->getAppends(), true)) {
+        // ORD-BE-001: only when the endpoint exposed it (index, show, overview), exactly as exposeDeliveryAddress() prepared
+        // it; E2-MVP batch 02: and only for an active task (a finished one keeps no recipient address or phone).
+        if ($active && in_array('delivery_address', $order->getAppends(), true)) {
             $data['delivery_address'] = $order->delivery_address;
             $data['address'] = $order->getRelation('address')->toArray();
         }

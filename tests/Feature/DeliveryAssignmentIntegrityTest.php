@@ -96,7 +96,7 @@ class DeliveryAssignmentIntegrityTest extends TestCase
         $this->assertSame([$driver->id], OrderStatusHistory::distinct()->pluck('actor_id')->all());
 
         $failing = $this->assignment($driver, 'accepted', 'assigned');
-        $this->act($driver, 'failed', $failing, ['failure_reason' => 'Vehicle broke down.'])->assertOk();
+        $this->act($driver, 'failed', $failing, ['failure_code' => 'vehicle_issue', 'failure_reason' => 'Vehicle broke down.'])->assertOk();
         $this->assertSame(['failed', 'Vehicle broke down.', 'ready_for_delivery'], [$failing->fresh()->status, $failing->fresh()->failure_reason, $failing->vendorOrder->fresh()->status], 'A failure before pickup reopens the order for a new assignment.');
     }
 
@@ -130,7 +130,7 @@ class DeliveryAssignmentIntegrityTest extends TestCase
             $assignment = $this->assignment($original, $assignmentStatus, $orderStatus);
             $this->reassignAfterTheRouteCheck($assignment, $replacement);
 
-            $this->act($original, $action, $assignment, ['failure_reason' => 'x'])->assertNotFound();
+            $this->act($original, $action, $assignment, ['failure_code' => 'customer_absent', 'failure_reason' => 'x'])->assertNotFound();
             DeliveryAssignment::flushEventListeners();
 
             $after = $assignment->fresh();
@@ -167,7 +167,7 @@ class DeliveryAssignmentIntegrityTest extends TestCase
         foreach ($statuses as $action => [$assignmentStatus, $orderStatus]) {
             $driver = $this->driver();
             $assignment = $this->assignment($driver, $assignmentStatus, $orderStatus);
-            $this->assertSame(['vendor_orders', 'delivery_assignments'], $this->firstTablesReadInTransaction(fn () => $this->act($driver, $action, $assignment, ['failure_reason' => 'x'])->assertOk()), $action);
+            $this->assertSame(['vendor_orders', 'delivery_assignments'], $this->firstTablesReadInTransaction(fn () => $this->act($driver, $action, $assignment, ['failure_code' => 'customer_absent', 'failure_reason' => 'x'])->assertOk()), $action);
         }
 
         $assignment = $this->assignment($this->driver(), 'assigned', 'assigned');
@@ -209,7 +209,14 @@ class DeliveryAssignmentIntegrityTest extends TestCase
 
     private function act(DeliveryDriver $driver, string $action, DeliveryAssignment $assignment, array $data = [])
     {
-        return $this->actingAs($driver, 'delivery_driver')->patchJson(route("delivery-driver.dashboard.assignments.{$action}", $assignment), $action === 'failed' ? $data : []);
+        // E2-MVP batch 05: a cash-on-delivery delivery confirms the full amount collected.
+        $data = match ($action) {
+            'failed' => $data,
+            'delivered' => ['collected_amount' => (string) $assignment->vendorOrder->total],
+            default => [],
+        };
+
+        return $this->actingAs($driver, 'delivery_driver')->patchJson(route("delivery-driver.dashboard.assignments.{$action}", $assignment), $data);
     }
 
     private function assertPickedUp(DeliveryAssignment $assignment, DeliveryDriver $driver): void

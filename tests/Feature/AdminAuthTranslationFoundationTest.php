@@ -187,6 +187,8 @@ class AdminAuthTranslationFoundationTest extends TestCase
             // PAGES-03A: the dashboard's private preview of a content page.
             'dashboard.content-pages.preview',
             // The delivery driver guest pages (vendor portal design); not the driver's logout or dashboard.
+            // E2-MVP batch 01: plus the driver's application status page, as vendor.approval-status.
+            'delivery-driver.approval-status',
             'delivery-driver.login',
             'delivery-driver.login.store',
             'delivery-driver.password.email',

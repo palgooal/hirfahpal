@@ -7,6 +7,7 @@ use App\Http\Controllers\Dashboard\ContentPageManagementController;
 use App\Http\Controllers\Dashboard\CustomerManagementController;
 use App\Http\Controllers\Dashboard\DeliveryDriverManagementController;
 use App\Http\Controllers\Dashboard\DisputeManagementController;
+use App\Http\Controllers\Dashboard\DriverCashController;
 use App\Http\Controllers\Dashboard\LocationManagementController;
 use App\Http\Controllers\Dashboard\OrderManagementController;
 use App\Http\Controllers\Dashboard\ProductManagementController;
@@ -51,6 +52,9 @@ Route::prefix('dashboard')
         Route::patch('delivery-drivers/{deliveryDriver}/approve', [DeliveryDriverManagementController::class, 'approve'])->name('delivery-drivers.approve');
         Route::patch('delivery-drivers/{deliveryDriver}/reject', [DeliveryDriverManagementController::class, 'reject'])->name('delivery-drivers.reject');
         Route::patch('delivery-drivers/{deliveryDriver}/availability', [DeliveryDriverManagementController::class, 'updateAvailability'])->name('delivery-drivers.availability');
+        // E2-MVP batch 05: the cash received from a driver, and its correction by a reversal entry.
+        Route::post('delivery-drivers/{deliveryDriver}/cash-settlements', [DriverCashController::class, 'store'])->name('delivery-drivers.cash-settlements.store');
+        Route::post('delivery-drivers/{deliveryDriver}/cash-settlements/{settlement}/reverse', [DriverCashController::class, 'reverse'])->name('delivery-drivers.cash-settlements.reverse');
 
         Route::get('orders', [OrderManagementController::class, 'index'])->name('orders.index');
         Route::get('orders/{order}', [OrderManagementController::class, 'show'])->name('orders.show');
@@ -101,6 +105,11 @@ Route::prefix('dashboard')
         Route::post('vendor-orders', [VendorOrderManagementController::class, 'store'])->name('vendor-orders.store');
         Route::get('vendor-orders/{vendorOrder}', [VendorOrderManagementController::class, 'show'])->name('vendor-orders.show');
         Route::patch('vendor-orders/{vendorOrder}/assign-driver', [VendorOrderManagementController::class, 'assignDriver'])->name('vendor-orders.assign-driver');
+        // E2-MVP custody fix: the admin confirmation that closes the custody of a returned shipment.
+        Route::patch('vendor-orders/{vendorOrder}/confirm-return', [VendorOrderManagementController::class, 'confirmReturn'])->name('vendor-orders.confirm-return');
+        // E2-MVP batch 04: cancel before pickup; record a failed delivery after pickup on the driver's behalf.
+        Route::patch('vendor-orders/{vendorOrder}/cancel', [VendorOrderManagementController::class, 'cancel'])->name('vendor-orders.cancel');
+        Route::patch('vendor-orders/{vendorOrder}/record-failure', [VendorOrderManagementController::class, 'recordFailure'])->name('vendor-orders.record-failure');
 
         Route::get('settings', [SettingController::class, 'index'])->name('setting.index');
         Route::put('settings', [SettingController::class, 'update'])->name('setting.update');

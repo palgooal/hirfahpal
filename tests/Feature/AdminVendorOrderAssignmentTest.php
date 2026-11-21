@@ -298,7 +298,8 @@ class AdminVendorOrderAssignmentTest extends TestCase
         $this->seed(AdminVendorOrderTranslationSeeder::class);
         $this->seed(AdminVendorOrderTranslationSeeder::class);
 
-        $this->assertSame(6, TranslationValue::where('key', 'like', 'dashboard.Vendor_Order_Assignment_%')->count());
+        // E2-MVP batch 03: 5 keys (2 added) in both languages.
+        $this->assertSame(10, TranslationValue::where('key', 'like', 'dashboard.Vendor_Order_Assignment_%')->count());
         $this->assertSame('نص معدّل', TranslationValue::where('key', 'dashboard.Vendor_Order_Assignment_Not_Ready')->where('locale', 'ar')->value('value'), 'An edited value is kept.');
         $this->assertStringNotContainsString('AdminVendorOrderTranslationSeeder', file_get_contents((new \ReflectionClass(DatabaseSeeder::class))->getFileName()));
     }

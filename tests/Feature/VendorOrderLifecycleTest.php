@@ -111,7 +111,8 @@ class VendorOrderLifecycleTest extends TestCase
         $vendorOrder->update(['delivery_driver_id' => $driver->id]);
 
         $this->actingAs($driver, 'delivery_driver')
-            ->patchJson(route('delivery-driver.dashboard.assignments.delivered', $assignment))
+            // E2-MVP batch 05: the driver confirms the full cash collected; the payment status is still the admin's.
+            ->patchJson(route('delivery-driver.dashboard.assignments.delivered', $assignment), ['collected_amount' => '10.00'])
             ->assertOk()
             ->assertJsonPath('assignment.vendor_order.status', 'delivered')
             ->assertJsonPath('assignment.vendor_order.order.payment.status', 'pending');
